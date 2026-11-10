@@ -5,7 +5,7 @@ import type {
   MarketDayTotals,
   NameEvidence,
 } from '@/trading/markets/equity-vn/factors/name-evidence'
-import { sessionBar } from '@/trading/markets/equity-vn/factors/factors'
+import { isTradedOn } from '@/trading/markets/equity-vn/factors/factors'
 import { VN_TURNOVER_REFERENCE_SESSIONS } from '@/trading/markets/equity-vn/policy'
 import { sessionChange } from '@/trading/markets/timeseries'
 import { barTurnover } from '@/trading/markets/turnover'
@@ -19,7 +19,7 @@ export type SessionValue = (name: NameEvidence, asOf: TradingDay) => number | un
 /** Only where the name settled this session: a flow row can name a day its own tape never reached,
  *  and the change off its closes there is an earlier day's move dated to today. */
 export function sessionChangePct(name: NameEvidence, session: TradingDay): number | undefined {
-  if (sessionBar(name, session) === undefined) {
+  if (!isTradedOn(name, session)) {
     return undefined
   }
 
@@ -97,9 +97,9 @@ export function toTurnoverRatio(
 /** A name counts only when its newest record is the session being reported: an older one belongs to
  *  a name that did not trade, and adding it would date the total. */
 export function sessionTurnover(name: NameEvidence, asOf: TradingDay): number | undefined {
-  const last = name.bars[name.bars.length - 1]
+  const { lastBar } = name
 
-  return last === undefined || last.candle.at !== asOf ? undefined : barTurnover(last)
+  return lastBar === undefined || lastBar.at !== asOf ? undefined : lastBar.turnover
 }
 
 export function sessionForeignNet(name: NameEvidence, asOf: TradingDay): number | undefined {
@@ -111,5 +111,5 @@ export function sessionProprietaryNet(name: NameEvidence, asOf: TradingDay): num
 }
 
 function sessionFlow(name: NameEvidence, asOf: TradingDay): FlowSnapshot | undefined {
-  return name.flows.find((flow) => flow.at === asOf)
+  return name.flowReads.flowTail.find((flow) => flow.at === asOf)
 }

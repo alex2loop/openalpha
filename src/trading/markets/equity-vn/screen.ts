@@ -1,8 +1,5 @@
 import type { InstrumentStatus } from '@/trading/kernel/caveat'
-import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
-import type { FactorMetric } from '@/trading/kernel/factor-metric'
-import type { InstrumentKind, InstrumentRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
-import type { PreviousClose, ScreenCandidate } from '@/trading/kernel/market/market-capability'
+import type { InstrumentKind, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type {
   BarRecord,
   Candle,
@@ -10,13 +7,8 @@ import type {
   InstrumentRecord,
 } from '@/trading/kernel/market/market-data'
 import type { SupervisionLevel } from '@/trading/kernel/market/supervision'
-import type { TapeReading } from '@/trading/kernel/market/tape'
 import type { ScreenGateCode } from '@/trading/kernel/screen-codes'
 import type { VnExchange } from '@/trading/markets/equity-vn/policy'
-import type { ScreenGateVerdict } from '@/trading/markets/screen-partition'
-import { definedOnly } from '@/core/utils/collections'
-import { factorComposite } from '@/trading/kernel/factor'
-import { exposureSectorOf } from '@/trading/kernel/instrument'
 import { SUPERVISION_LEVELS } from '@/trading/kernel/market/supervision'
 import {
   DAILY_BAND_BY_EXCHANGE,
@@ -41,13 +33,8 @@ import {
   resolveTradeability,
   toVnExchange,
 } from '@/trading/markets/equity-vn/tradeability'
-import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
-import { nSessionReturn, realizedVolatility, sessionChange } from '@/trading/markets/timeseries'
+import { realizedVolatility } from '@/trading/markets/timeseries'
 import { medianTurnover } from '@/trading/markets/turnover'
-
-const PERCENT_PER_UNIT = 100
-/** About a trading month: the move a browsing board prints beside the price. */
-const MONTH_SESSIONS = 20
 
 /** The two bands, each read positively by its own gate, so a supervised name fails exactly one and
  *  the reported reason names what is actually wrong with it. The second is derived rather than
@@ -60,9 +47,6 @@ const DISCLOSURE_SUPERVISION: ReadonlySet<SupervisionLevel> = new Set(
 
 export interface ScreenInput {
   readonly instrument: InstrumentRef
-  readonly name?: string
-  /** The market's own sector slug, absent for a fund: its listed sector names the vehicle. */
-  readonly sector?: string
   readonly status: InstrumentStatus
   readonly kind: InstrumentKind
   /** The listing exchange, resolved the same way `resolveTradeability` does: a name's own daily
@@ -98,10 +82,6 @@ interface ScreenInputSource {
   readonly supervision?: SupervisionLevel
 }
 
-export interface RankedFactors extends FactorComposite {
-  readonly factors: readonly FactorResult[]
-}
-
 interface ScreenGate {
   readonly code: ScreenGateCode
   readonly test: (candidate: ScreenInput) => boolean
@@ -134,9 +114,6 @@ export const SCREEN_GATE_BASIS = Object.freeze({
   disclosure: [...DISCLOSURE_SUPERVISION],
 })
 
-/** A name failing three gates records the first. Recording all three would make the reason unstable
- *  across days as unrelated conditions changed, and the user-visible answer to "why not this stock"
- *  should not move for reasons that were already true. */
 /** The one `NameEvidence` to `ScreenInput` mapping, shared by the screen and the suggestion gate so
  *  the two cannot judge a name on differently-built inputs. */
 export function toScreenInput(source: ScreenInputSource, asOf: TradingDay): ScreenInput {
@@ -149,12 +126,10 @@ export function toScreenInput(source: ScreenInputSource, asOf: TradingDay): Scre
   const reference = resolveBandReference(candles, asOf) ?? lastClose
   const known = {
     instrument: record.instrument,
-    name: record.name,
     status: record.status,
     kind: record.kind,
-    exchange: toVnExchange(record.exchange) ?? PRIMARY_EXCHANGE,
+    exchange: exchangeOf(record),
     bars,
-    ...definedOnly({ sector: exposureSectorOf(record.kind, record.sector) }),
     ...(marketCap === undefined ? {} : { marketCap }),
     ...(source.supervision === undefined ? {} : { supervision: source.supervision }),
     ...(freeFloatPct === undefined ? {} : { freeFloatPct }),
@@ -187,136 +162,16 @@ export function toScreenInput(source: ScreenInputSource, asOf: TradingDay): Scre
   }
 }
 
-export function screenCandidate(candidate: ScreenInput): ScreenGateVerdict {
-  for (const gate of GATES) {
-    if (!gate.test(candidate)) {
-      return { kind: 'rejected', code: gate.code }
-    }
-  }
-
-  return { kind: 'accepted' }
-}
-
-/** Every gate this candidate fails, in table order. `screenCandidate` records only the first,
- *  because a screen owes one stable reason; the suggestion path needs them all, because it blocks
- *  on some of them and only spends conviction on others. Kept separate rather than folded into
- *  `screenCandidate`, whose short-circuit is what keeps a universe-wide pass cheap. */
+/** Every gate this candidate fails, in table order. A screen reports only the first, because it owes
+ *  one stable reason; the suggestion path needs them all, because it blocks on some of them and
+ *  only spends conviction on others. */
 export function failedGates(candidate: ScreenInput): readonly ScreenGateCode[] {
   return GATES.filter((gate) => !gate.test(candidate)).map((gate) => gate.code)
 }
 
-/** `screenCandidate` decides who clears the gates; this decides order. There is no second weight
- *  table: the market supplies the identical scored result the suggestion pipeline uses, so
- *  "ranked first" and "strong enough to suggest" cannot disagree about what strong means. */
-interface RankOptions {
-  /** A foreign account cannot buy a name with no room, so the rank is published with a caution. */
-  readonly foreignOperator: boolean
-}
-
-/** The per-name reads the rank is built from, bundled so the walk stays at three parameters. */
-export interface RankedEvidence {
-  readonly factorsByTicker: ReadonlyMap<Ticker, RankedFactors>
-  readonly signalsByTicker: ReadonlyMap<Ticker, readonly TapeReading[]>
-  /** The foreign desk's net over the flow window, for the names that reported one. */
-  readonly foreignNetByTicker?: ReadonlyMap<Ticker, number>
-  /** The plain values a board prints beside the factors. */
-  readonly readingsByTicker?: ReadonlyMap<Ticker, readonly FactorMetric[]>
-}
-
-export function rankSurvivors(
-  survivors: readonly ScreenInput[],
-  evidence: RankedEvidence,
-  options: RankOptions
-): readonly ScreenCandidate[] {
-  const scored = survivors.map((candidate) => {
-    const scoredFactors = evidence.factorsByTicker.get(candidate.instrument.ticker)
-
-    return {
-      candidate: {
-        instrument: candidate.instrument,
-        composite:
-          scoredFactors === undefined ? UNSCORED_COMPOSITE : factorComposite(scoredFactors),
-        factors: scoredFactors?.factors ?? [],
-        ...rowExtras(candidate, {
-          readings: evidence.signalsByTicker.get(candidate.instrument.ticker) ?? [],
-          foreignNet: evidence.foreignNetByTicker?.get(candidate.instrument.ticker),
-          metrics: evidence.readingsByTicker?.get(candidate.instrument.ticker) ?? [],
-        }),
-        ...(options.foreignOperator && candidate.foreignRoomExhausted === true
-          ? { caution: 'foreign-room-exhausted' as const }
-          : {}),
-      },
-      turnover: turnoverSortKey(candidate.bars),
-    }
-  })
-
-  // Score descending, then turnover, then ticker: a total order over the population, so paging is
-  // stable across reruns of the same day.
-  return scored
-    .sort(
-      (a, b) =>
-        b.candidate.composite.score - a.candidate.composite.score ||
-        b.turnover - a.turnover ||
-        a.candidate.instrument.ticker.localeCompare(b.candidate.instrument.ticker)
-    )
-    .map((entry) => entry.candidate)
-}
-
-/** What the per-name reads add to a row beside the scored factors. */
-interface RowReads {
-  readonly readings: readonly TapeReading[]
-  readonly foreignNet: number | undefined
-  readonly metrics: readonly FactorMetric[]
-}
-
-/** What a row carries only when the market had it, kept out of the shape otherwise. */
-function rowExtras(candidate: ScreenInput, reads: RowReads): Partial<ScreenCandidate> {
-  const { readings, foreignNet, metrics } = reads
-
-  const previousClose = lastAdjustedClose(candidate.bars)
-  const closes = adjustedCloses(candidate.bars)
-  const volatilityDaily = realizedVolatility(closes, VOLATILITY_SESSIONS)
-  const monthChange = nSessionReturn(closes, MONTH_SESSIONS)
-  const turnover = medianTurnover(candidate.bars, LIQUIDITY_SESSIONS)
-
-  return {
-    ...(candidate.name === undefined ? {} : { name: candidate.name }),
-    ...(candidate.sector === undefined ? {} : { sector: candidate.sector }),
-    ...(candidate.marketCap === undefined ? {} : { marketCap: candidate.marketCap }),
-    ...(turnover === undefined ? {} : { turnover }),
-    ...(monthChange === undefined ? {} : { monthChangePct: monthChange * PERCENT_PER_UNIT }),
-    ...(foreignNet === undefined ? {} : { foreignNet }),
-    ...(previousClose === undefined ? {} : { previousClose }),
-    ...(candidate.lockPrice === undefined ? {} : { lockPrice: candidate.lockPrice }),
-    ...(volatilityDaily === undefined ? {} : { volatilityDaily }),
-    ...(readings.length === 0 ? {} : { signals: readings.map((reading) => reading.signal) }),
-    ...(metrics.length === 0 ? {} : { readings: metrics }),
-  }
-}
-
-/** Zero where the window could not be measured: a tie-break needs a total order, and an unmeasured
- *  name is not the most traded one. Never published — the board quotes no turnover of its own. */
-function turnoverSortKey(bars: readonly BarRecord[]): number {
-  return medianTurnover(bars, LIQUIDITY_SESSIONS) ?? 0
-}
-
-/** The newest bar of the very series the factors were scored on, so the board reports the close its
- *  rank was built from rather than an unadjusted row the model never saw — and what that session
- *  moved, which the series holds and a close measured against its own live quote cannot show. */
-function lastAdjustedClose(bars: readonly BarRecord[]): PreviousClose | undefined {
-  const newest = adjustedCandles(bars).at(-1)
-
-  if (newest === undefined) {
-    return undefined
-  }
-
-  const change = sessionChange(adjustedCloses(bars))
-
-  return {
-    price: newest.close,
-    at: newest.at,
-    ...(change === undefined ? {} : { changePct: change * PERCENT_PER_UNIT }),
-  }
+/** The listing exchange, resolved the same way `resolveTradeability` does. */
+export function exchangeOf(record: InstrumentRecord): VnExchange {
+  return toVnExchange(record.exchange) ?? PRIMARY_EXCHANGE
 }
 
 export function adjustedCloses(bars: readonly BarRecord[]): readonly number[] {
@@ -330,7 +185,12 @@ export function adjustedCandles(bars: readonly BarRecord[]): readonly Candle[] {
 }
 
 function adjustedBars(bars: readonly BarRecord[]): readonly BarRecord[] {
-  return bars.filter((bar) => bar.candle.adjustment === 'adjusted' && bar.candle.close > 0)
+  return bars.filter(isAdjustedBar)
+}
+
+/** Whether a bar is one of the series the factors read: adjusted, with a usable close. */
+export function isAdjustedBar(bar: BarRecord): boolean {
+  return bar.candle.adjustment === 'adjusted' && bar.candle.close > 0
 }
 
 /** Traded value as the provider published it, or price times volume when it did not. Absent when

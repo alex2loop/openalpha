@@ -76,7 +76,7 @@ function proprietaryLeaders(
   const days = new Set<TradingDay>()
 
   for (const name of names) {
-    for (const flow of name.flows) {
+    for (const flow of name.flowReads.flowTail) {
       if (flow.at <= session) {
         days.add(flow.at)
       }

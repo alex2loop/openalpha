@@ -93,7 +93,7 @@ export function vnCapabilities(
     },
     screen: {
       kind: 'screen',
-      run: (request) => runScreen(crossSection, request, screenOptions(deps, manifest)),
+      run: (request) => runScreen(crossSection, request, screenOptions(deps)),
     },
     ...boardCapabilities(crossSection),
     macroRisk: {
@@ -126,8 +126,8 @@ function boardCapabilities(
 
 /** A foreign account cannot buy a name with no room, so the board warns only an operator whose home
  *  is not this region. */
-function screenOptions(deps: MarketDeps, manifest: MarketManifest): ScreenOptions {
-  return { foreignOperator: deps.config.defaultRegion !== VN_MARKET_REGION, manifest }
+function screenOptions(deps: MarketDeps): ScreenOptions {
+  return { foreignOperator: deps.config.defaultRegion !== VN_MARKET_REGION }
 }
 
 /** A market with no brief seam bound publishes no brief, rather than one that throws. */

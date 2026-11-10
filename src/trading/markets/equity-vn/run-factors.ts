@@ -1,14 +1,9 @@
 import type { FactorRequest, FactorScore } from '@/trading/kernel/factor'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
-import type { ScreenInput } from '@/trading/markets/equity-vn/screen'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { TradingCalendar } from '@/trading/markets/types'
-import { ETF_KIND } from '@/trading/kernel/instrument'
 import { isAccountsWeak } from '@/trading/markets/equity-vn/accounts/score'
 import { scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
-import { DAILY_BAND_BY_EXCHANGE } from '@/trading/markets/equity-vn/policy'
-import { adjustedCandles, failedGates, toScreenInput } from '@/trading/markets/equity-vn/screen'
-import { tapeReadings } from '@/trading/markets/equity-vn/tape/signals'
-import { ceilingRunOf } from '@/trading/markets/equity-vn/tradeability'
 import { UNSCORED_COMPOSITE } from '@/trading/markets/factor-scoring'
 
 interface CeilingTrim {
@@ -30,16 +25,14 @@ export async function runFactors(
     return { ...UNSCORED_COMPOSITE, results: [], caveats: [{ code: 'market-data.no-coverage' }] }
   }
 
-  const screen = toScreenInput(evidence, options.asOf)
-  const failed = failedGates(screen)
-  const signals = tapeReadings(evidence)
+  const { failedGates, tapeReadings: signals } = evidence
   const accounts = cross.accounts.get(options.instrument.ticker)?.score
 
   return {
     ...scoreNameFactors(evidence, cross),
-    ...(failed.length === 0 ? {} : { failedGates: failed }),
+    ...(failedGates.length === 0 ? {} : { failedGates }),
     ...(signals.length === 0 ? {} : { signals }),
-    ...(isCeilingClose(screen, options.now, trim)
+    ...(isCeilingClose(evidence, options.now, trim)
       ? { reduceSignal: 'ceiling-close' as const }
       : {}),
     ...(accounts === undefined || !accounts.decisive
@@ -48,28 +41,16 @@ export async function runFactors(
   }
 }
 
-function isCeilingClose(screen: ScreenInput, now: number, trim: CeilingTrim): boolean {
-  if (trim.sessions <= 0 || screen.kind === ETF_KIND) {
-    return false
-  }
+function isCeilingClose(evidence: NameEvidence, now: number, trim: CeilingTrim): boolean {
+  const { ceilingRun, lastAdjustedAt } = evidence
 
-  const candles = adjustedCandles(screen.bars)
-  const lastDay = candles.at(-1)?.at
-
-  if (lastDay === undefined) {
+  if (trim.sessions <= 0 || ceilingRun === undefined || lastAdjustedAt === undefined) {
     return false
   }
 
   // The gap is paid at the next open; once that open has passed there is nothing left to trim.
-  if (now >= trim.calendar.sessionOpenAt(trim.calendar.addTradingDays(lastDay, 1))) {
-    return false
-  }
-
-  const run = ceilingRunOf(candles, {
-    bandPct: DAILY_BAND_BY_EXCHANGE[screen.exchange].maximumUpPct,
-    calendar: trim.calendar,
-    ...(screen.listedOn === undefined ? {} : { listedOn: screen.listedOn }),
-  })
-
-  return run >= trim.sessions
+  return (
+    now < trim.calendar.sessionOpenAt(trim.calendar.addTradingDays(lastAdjustedAt, 1)) &&
+    ceilingRun >= trim.sessions
+  )
 }

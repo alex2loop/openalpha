@@ -32,6 +32,7 @@ import {
   adjustedCandles,
   adjustedCloses,
   failedGates,
+  isAdjustedBar,
   toScreenInput,
 } from '@/trading/markets/equity-vn/screen'
 import {
@@ -120,6 +121,8 @@ interface BarHistory {
   readonly closes: readonly number[]
   /** Whether each bar can carry a session statistic: see `isTradedBar`. */
   readonly traded: readonly boolean[]
+  /** Whether each bar is one of the name's `closes`, so a cut by day cuts `closes` to match. */
+  readonly inCloses: readonly boolean[]
 }
 
 /** The newest bar of any kind: where its figures came from and what the session traded. */
@@ -142,7 +145,8 @@ interface NameFlowReads {
   /** `null` where no session carries the figure, so an unreported desk never reads as a quiet one. */
   readonly proprietaryFlow20: number | null
   /** Every flow after the name's newest bar day, plus the last few at or before it: the market's
-   *  newest flow days read per name, which flows running ahead of the bars would displace. */
+   *  newest flow days read per name, which flows running ahead of the bars would displace. Exact
+   *  only at `latestNameSession`, the only day any reader asks. */
   readonly flowTail: readonly FlowSnapshot[]
 }
 
@@ -150,6 +154,8 @@ interface NameFlowReads {
  *  hand: no later reader can rebuild them once those are dropped. */
 export interface MarketDayTotals {
   readonly turnover: ReadonlyMap<TradingDay, number>
+  /** Each entry carries the instrument of the first name that reported its day, not the market's:
+   *  a reader stamps the market's when it turns the map into snapshots. */
   readonly flows: ReadonlyMap<TradingDay, FlowSnapshot>
   /** The flow with the newest `fetchedAt`, which the market-wide flow read stamps as its source. */
   readonly newestFlow?: FlowSnapshot
@@ -183,6 +189,7 @@ export function toNameEvidence(reads: NameReads, context: NameEvidenceContext): 
   const source = {
     record,
     bars,
+    history: toBarHistory(bars),
     fundamental,
     closes: adjustedCloses(bars),
     ...(supervision === undefined ? {} : { supervision }),
@@ -196,7 +203,6 @@ export function toNameEvidence(reads: NameReads, context: NameEvidenceContext): 
     flows,
     screened: failed.length === 0,
     failedGates: failed,
-    history: toBarHistory(bars),
     flowReads: toFlowReads(flows, bars),
     tapeReadings: tapeReadings({ closes: source.closes, flows, bars }),
     staleFactors: toStaleFactors(reads, context),
@@ -208,7 +214,7 @@ export function toNameEvidence(reads: NameReads, context: NameEvidenceContext): 
       foreignRoomExhausted: screen.foreignRoomExhausted,
       trackingError:
         record.kind === 'etf'
-          ? etfTrackingError(record.instrument.ticker, bars, context.benchmarks)
+          ? etfTrackingError(record.instrument.ticker, candles, context.benchmarks)
           : undefined,
       relativeVolume: relativeVolume(
         bars.map((bar) => bar.candle.volume),
@@ -221,19 +227,20 @@ export function toNameEvidence(reads: NameReads, context: NameEvidenceContext): 
   }
 }
 
-/** Whether a bar can carry a session statistic. Zero volume carries the previous close forward, so
- *  counting it reads as a name that held its price. An unadjusted bar prices a split as a crash,
- *  and `closes` has already dropped it, so its day would date a move the series does not hold. */
-export function isTradedBar(bar: BarRecord | undefined): bar is BarRecord {
-  return bar !== undefined && bar.candle.adjustment === 'adjusted' && bar.candle.volume > 0
-}
-
 function toBarHistory(bars: readonly BarRecord[]): BarHistory {
   return {
     days: bars.map((bar) => bar.candle.at),
     closes: bars.map((bar) => bar.candle.close),
     traded: bars.map((bar) => isTradedBar(bar)),
+    inCloses: bars.map((bar) => isAdjustedBar(bar)),
   }
+}
+
+/** Whether a bar can carry a session statistic. Zero volume carries the previous close forward, so
+ *  counting it reads as a name that held its price. An unadjusted bar prices a split as a crash,
+ *  and `closes` has already dropped it, so its day would date a move the series does not hold. */
+function isTradedBar(bar: BarRecord | undefined): bar is BarRecord {
+  return bar !== undefined && bar.candle.adjustment === 'adjusted' && bar.candle.volume > 0
 }
 
 function toLastBar(bars: readonly BarRecord[]): LastBar | undefined {

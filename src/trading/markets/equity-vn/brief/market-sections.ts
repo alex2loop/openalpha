@@ -1,5 +1,4 @@
 import type { SectorStrength } from '@/trading/kernel/market/market-capability'
-import type { FlowSnapshot } from '@/trading/kernel/market/market-data'
 import type {
   BriefDirection,
   BriefSectionResult,
@@ -18,7 +17,6 @@ import {
   VN_SECTOR_POLICY,
 } from '@/trading/markets/equity-vn/policy'
 import { staleIndexCaveats, toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
-import { netFlowValue, proprietaryFlowValue } from '@/trading/markets/equity-vn/tape/flows'
 import { groupByBoard, toBoards } from '@/trading/markets/equity-vn/tape/overview'
 import {
   sessionTurnoverTotal,
@@ -231,7 +229,7 @@ function foreignNameRows(names: readonly NameEvidence[]): readonly BriefSectionR
   const flows = names
     .map((name) => ({
       ticker: name.record.instrument.ticker,
-      net: netFlowValue(name.flows, FLOW_DEVIATION_SESSIONS),
+      net: name.flowReads.foreignNet20,
     }))
     .filter((row) => row.net !== 0)
   const sorted = [...flows].sort((left, right) => right.net - left.net)
@@ -315,10 +313,8 @@ function sectorCoverage(context: VnBriefContext): number {
 }
 
 const DESK_FLOWS = Object.freeze({
-  'foreign-desk-flow': (flows: readonly FlowSnapshot[]) =>
-    netFlowValue(flows, FLOW_DEVIATION_SESSIONS),
-  'proprietary-flow': (flows: readonly FlowSnapshot[]) =>
-    proprietaryFlowValue(flows, FLOW_DEVIATION_SESSIONS),
+  'foreign-desk-flow': (name: NameEvidence) => name.flowReads.foreignNet20,
+  'proprietary-flow': (name: NameEvidence) => name.flowReads.proprietaryFlow20,
 })
 
 type DeskFlowKind = keyof typeof DESK_FLOWS
@@ -326,7 +322,7 @@ type DeskFlowKind = keyof typeof DESK_FLOWS
 /** Empty where no name reported to this desk: a desk that filed nothing did not trade nothing. */
 function totalRow(names: readonly NameEvidence[], kind: DeskFlowKind): readonly BriefSectionRow[] {
   const desk = DESK_FLOWS[kind]
-  const reported = names.map((name) => desk(name.flows)).filter((value) => value !== null)
+  const reported = names.map(desk).filter((value) => value !== null)
 
   return reported.length === 0 ? [] : [{ net: reported.reduce((sum, value) => sum + value, 0) }]
 }

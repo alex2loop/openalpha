@@ -51,7 +51,10 @@ import {
   VN_MARKET_REF,
   VN_MARKET_REGION,
 } from '@/trading/markets/equity-vn/policy'
-import { resolveBandReference, resolveTradeability } from '@/trading/markets/equity-vn/tradeability'
+import {
+  resolveHistoryBandReference,
+  resolveTradeability,
+} from '@/trading/markets/equity-vn/tradeability'
 import { tickSizeFor } from '@/trading/markets/levels'
 import { mergeMacroValues } from '@/trading/markets/macro'
 
@@ -295,18 +298,20 @@ function bandInputs(
   const rows: { readonly last: number; readonly reference: number; readonly floor: number }[] = []
 
   for (const name of sessionShares(cross)) {
-    const candles = name.bars.map((bar) => bar.candle)
-    const newest = candles.at(-1)
-    const reference = newest === undefined ? undefined : resolveBandReference(candles, newest.at)
+    const { history } = name
+    const newestDay = history.days.at(-1)
+    const last = history.closes.at(-1)
+    const reference =
+      newestDay === undefined ? undefined : resolveHistoryBandReference(history, newestDay)
 
-    if (newest === undefined || reference === undefined) {
+    if (newestDay === undefined || last === undefined || reference === undefined) {
       continue
     }
 
     rows.push({
-      last: newest.close,
+      last,
       reference,
-      floor: resolveTradeability({ record: name.record, reference, asOf: newest.at }).dailyBand
+      floor: resolveTradeability({ record: name.record, reference, asOf: newestDay }).dailyBand
         .floor,
     })
   }

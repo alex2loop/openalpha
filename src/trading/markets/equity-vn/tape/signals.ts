@@ -10,8 +10,7 @@ import {
 import { foreignFlowShares } from '@/trading/markets/equity-vn/tape/flows'
 import { nSessionReturn } from '@/trading/markets/timeseries'
 
-/** The three series a tape signal reads. Structural rather than `NameEvidence`: the factor module
- *  already reaches this one through the screen, so naming it would close an import cycle. */
+/** The three series a tape signal reads, for the one pass that builds a name's evidence. */
 interface TapeEvidence {
   readonly closes: readonly number[]
   readonly flows: readonly FlowSnapshot[]
@@ -21,17 +20,22 @@ interface TapeEvidence {
 /** The flip fires only after a run: a desk stepping away from a name that has gone nowhere is a
  *  session, not a tell. */
 export function tapeReadings(name: TapeEvidence): readonly TapeReading[] {
-  const run = nSessionReturn(name.closes, TAPE_RUN_SESSIONS)
+  const { closes, flows, bars } = name
+  const run = nSessionReturn(closes, TAPE_RUN_SESSIONS)
 
   if (run === undefined || run < TAPE_RUN_MINIMUM_FRACTION) {
     return []
   }
 
-  return foreignFlip(name, run)
+  return foreignFlip(flows, bars, run)
 }
 
-function foreignFlip(name: TapeEvidence, run: number): readonly TapeReading[] {
-  const shares = foreignFlowShares(name.flows, name.bars)
+function foreignFlip(
+  flows: readonly FlowSnapshot[],
+  bars: readonly BarRecord[],
+  run: number
+): readonly TapeReading[] {
+  const shares = foreignFlowShares(flows, bars)
   const latest = shares.at(-1)
   const trailing = shares.slice(-FLOW_PERSISTENCE_SESSIONS - 1, -1)
 

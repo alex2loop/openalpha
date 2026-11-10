@@ -1,16 +1,16 @@
-import type { BarRecord } from '@/trading/kernel/market/market-data'
+import type { SourceStamp } from '@/trading/kernel/market/market-data'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 
 /** The freshest bar per name, not every bar: one stamp answers which source backed this name and
  *  when it was fetched, while the full series would repeat that stamp once per session. */
 export function latestBarProvenance(name: {
-  readonly bars: readonly BarRecord[]
+  readonly lastBar?: SourceStamp
 }): readonly SourceProvenance[] {
-  const latest = name.bars[name.bars.length - 1]
+  const { lastBar } = name
 
-  if (latest === undefined) {
+  if (lastBar === undefined) {
     return []
   }
 
-  return [{ sourceId: latest.sourceId, fetchedAt: latest.fetchedAt, freshness: 'cached' }]
+  return [{ sourceId: lastBar.sourceId, fetchedAt: lastBar.fetchedAt, freshness: 'cached' }]
 }

@@ -13,7 +13,6 @@ import {
   VOLATILITY_SESSIONS,
   WIDE_TRACKING_ERROR,
 } from '@/trading/markets/equity-vn/policy'
-import { adjustedCandles } from '@/trading/markets/equity-vn/screen'
 import { alignedCloses, nSessionReturn, trendWithSlope } from '@/trading/markets/timeseries'
 
 interface EtfEvidence {
@@ -55,11 +54,11 @@ function trackingCaveats(dispersion: number | undefined): readonly Caveat[] {
     : [{ code: 'suggestion.tracking-error-wide', detail: { drift: dispersion } }]
 }
 
-/** One fund's dispersion against the index it declares. A fund with no declared benchmark, no
+/** One fund's dispersion against the index it declares, from the fund's adjusted candles. A fund with no declared benchmark, no
  *  stored index series, or too short an overlap is absent rather than zero. */
 export function etfTrackingError(
   fund: Ticker,
-  bars: readonly BarRecord[],
+  fundCandles: readonly Candle[],
   benchmarks: ReadonlyMap<Ticker, readonly BarRecord[]>
 ): number | undefined {
   const benchmark = benchmarkBars(fund, benchmarks)
@@ -67,7 +66,7 @@ export function etfTrackingError(
   return benchmark === undefined
     ? undefined
     : trackingError(
-        adjustedCandles(bars),
+        fundCandles,
         benchmark.map((bar) => bar.candle)
       )
 }
