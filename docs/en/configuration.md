@@ -303,8 +303,8 @@ Layout under `data_dir`:
   restart.json                      written just before the daemon starts again, removed when the new daemon announces it
   restart.stdout.log                Windows only: stray output of a restart from the API, where a failed one says to look
   restart.stderr.log                Windows only: warnings and errors of that restart
-  logs/daemon.log                   default global log (`[log] file`)
-  logs/agents/<agentId>/agent.log   per-agent run log, kept
+  logs/daemon.log.N                 default global log (`[log] file`), the highest N is the active file
+  logs/agents/<agentId>/agent.log.N per-agent run log, kept
   backups/                          `db backup` files, plus pre-migration/ and pre-rollback/ snapshots
     daily/                          the daemon's daily copies, newest `[retention] daily_backups` kept
   plugins/                          installed plugins
@@ -388,7 +388,7 @@ Held-name news covers only names the daemon has already read. Headlines are arch
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `level` | string | `info` | `debug`, `info`, `warn`, `error`, `fatal`. |
-| `file` | string | `logs/daemon.log` | Relative paths join `data_dir`; absolute and `~/...` paths keep their meaning. Missing folders are created private; a folder that already exists is left as it is, but it must be yours and not writable by others. |
+| `file` | string | `logs/daemon.log` | Written as numbered files (`daemon.log.1`, `daemon.log.2`...); the highest number is the one in use. Relative paths join `data_dir`; absolute and `~/...` paths keep their meaning. Missing folders are created private; a folder that already exists is left as it is, but it must be yours and not writable by others. |
 | `max_file_mb` | float | `50` | Size of the active file before it rotates. |
 | `max_files` | int | `7` | Rotated files kept, besides the active one. |
 

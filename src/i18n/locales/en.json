@@ -3717,7 +3717,7 @@
     "daemonNoChannels": "none yet, so suggestions show only in `{brand} chat`",
     "daemonApi": "API: port {port}",
     "daemonPage": "Office page: run {command} to open it.",
-    "daemonLogFile": "Log: {path} (read it with `{brand} logs`)",
+    "daemonLogFile": "Log: {path}.1 onward, the highest number is the newest (read it with `{brand} logs`)",
     "daemonWorking": "Automatic jobs at work: {tasks}",
     "daemonIdle": "Automatic jobs are idle.",
     "daemonTaskDone": "Done: {task}",
