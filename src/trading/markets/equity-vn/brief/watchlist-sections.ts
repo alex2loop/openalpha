@@ -127,7 +127,11 @@ export async function buildScreenDelta(context: VnBriefContext): Promise<BriefSe
       ...entered.map((entry) => ({ ticker: entry, direction: 'entered' as const })),
       ...left.map((entry) => ({ ticker: entry, direction: 'left' as const })),
     ],
-    { caveats: judgedSupervisionCaveats(today, boardNames(today)) }
+    {
+      caveats: [today, previous].flatMap((cross) =>
+        judgedSupervisionCaveats(cross, boardNames(cross))
+      ),
+    }
   )
 }
 
