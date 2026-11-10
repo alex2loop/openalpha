@@ -38,6 +38,7 @@ export interface ScoredRow {
     readonly score: number
     readonly weight?: number
   }[]
+  /** The long side's price move, before fees: a factor predicts the price, and the baseline is gross. */
   readonly longReturnPct: number
   /** What the market returned over the same span, long side: a falling tape makes every bearish
    *  reading look right against zero, so a factor is judged by what it beat. Absent when none was
@@ -141,10 +142,11 @@ function baseVersionOf(version: string): string {
   return version.split(VERSION_SUFFIX_SEPARATOR)[0] ?? version
 }
 
-/** A resolved call as an attribution row. Its return is the call's own, net of the round trip, so a
- *  reduce's is turned back to the long side's before its factors are judged against it. The row
- *  does not store its fee, so the caller passes the market's round-trip rate. A call has too few
- *  same-day peers for a session mean, so its baseline is the index it was scored against. */
+/** A resolved call as an attribution row. Its return is stored net of the round trip, so the fee is
+ *  added back and a reduce turned to the long side: a factor predicts the price, not the fee, and the
+ *  board's rows are gross as well. The row does not store its fee, so the caller passes the market's
+ *  round-trip rate. A call has too few same-day peers for a session mean, so its baseline is the index
+ *  it was scored against. */
 export function suggestionScoredRow(
   suggestion: ResolvedActionableSuggestion,
   roundTripFee: number
@@ -160,12 +162,12 @@ export function suggestionScoredRow(
   }
 }
 
-/** A reduce is stored as `-move - fee`, and negating that would turn the fee into a gain, so the
- *  fee comes off twice to leave `move - fee`, the same net a buy carries. */
+/** The long side's move before fees. A buy is stored as `move - fee` and a reduce as `-move - fee`,
+ *  so the fee goes back on a buy and comes off a reduce once more than its negation. */
 function longSideReturn(suggestion: ResolvedActionableSuggestion, roundTripFee: number): number {
   const { returnPct } = suggestion.outcome
 
-  return suggestion.action === 'buy' ? returnPct : -returnPct - 2 * roundTripFee
+  return suggestion.action === 'buy' ? returnPct + roundTripFee : -returnPct - roundTripFee
 }
 
 /** The index move is stored on the call's own side, so a reduce's is negated back to the long side. */
