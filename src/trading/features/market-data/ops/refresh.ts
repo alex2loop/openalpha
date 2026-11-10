@@ -62,7 +62,7 @@ export type RefreshMarketData = (
 ) => Promise<RefreshMarketDataResult>
 
 /** What the process holds, read by a host that has one; the page has none. */
-export interface ProcessMemory {
+interface ProcessMemory {
   readonly rssBytes: number
   readonly peakRssBytes: number
   readonly heapUsedBytes: number

@@ -425,7 +425,9 @@ Give it 512 MB of memory. An idle daemon holds about 100 MB. The Vietnamese boar
 at a time and only a short summary of each stock is kept, so after the first read the daemon settles
 near 150 to 200 MB and peaks around 300 MB while the board is rebuilt. Servers smaller than 512 MB are
 untested.
-To see what your own server holds, read `memory` on the latest `trading.market_data_refreshed` line.
+To see what your own server holds, read `memory` on the latest `trading.market_data_refreshed` line
+whose `mode` is `daemon`. A `/refresh` typed in the terminal writes the same line for its own
+short-lived process.
 
 1. **Install.** On Linux or macOS, run the install script from the
    [README](../../README.md#quick-start) with `OPENALPHA_NO_ONBOARD=1` set. The

@@ -9,7 +9,7 @@ import type { Logger, LoggerResource } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
 import type { OpenedPersistence } from '@/persistence/api'
 import type { SocialConfig } from '@/social/api'
-import type { ProcessMemory, TradingConfig } from '@/trading/api'
+import type { TradingConfig } from '@/trading/api'
 import '@/app/events'
 
 import type { NoticeLog } from '@/app/activity/notice-log'
@@ -236,7 +236,7 @@ function buildProviderAssembly(input: ProviderAssemblyInput): ReturnType<typeof 
 }
 
 // `maxRSS` is the process high-water mark in KiB, so a peak between two refresh lines shows as a rise.
-function readProcessMemory(): ProcessMemory {
+function readProcessMemory() {
   const usage = process.memoryUsage()
 
   return {

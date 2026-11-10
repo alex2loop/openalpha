@@ -4,7 +4,7 @@ import type { ReachabilityProbe } from '@/core/limits'
 import type { Logger } from '@/core/logging/logger'
 import type { ScheduledRunner } from '@/core/types/command'
 import type { Hooks } from '@/engine/api'
-import type { ProcessMemory, RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
+import type { RefreshMarketData } from '@/trading/features/market-data/ops/refresh'
 import type { DebateDeps } from '@/trading/features/suggestion/debate/call'
 import type { RoleOutputListener } from '@/trading/features/suggestion/debate/types'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
@@ -40,7 +40,11 @@ import { toAggregate } from '@/trading/wiring/composition/aggregate'
 import { buildContributions, mergeUniqueByKey } from '@/trading/wiring/composition/contributions'
 import { bindHostSeams } from '@/trading/wiring/composition/host-seams'
 import { buildMarketTicks } from '@/trading/wiring/composition/market-ticks'
-import { buildRefreshCoordinator, resolveMarketsInUse } from '@/trading/wiring/composition/refresh'
+import {
+  buildRefreshCoordinator,
+  type buildRefreshTick,
+  resolveMarketsInUse,
+} from '@/trading/wiring/composition/refresh'
 import { buildRegistries } from '@/trading/wiring/composition/registries'
 import { assertRegistryConsistency } from '@/trading/wiring/composition/registry-checks'
 import { createDomainServices } from '@/trading/wiring/composition/services'
@@ -88,7 +92,7 @@ interface TradingRegistrationOptions {
   /** How the loops tell the network is up: the daemon resolves a name. */
   readonly reachability: ReachabilityProbe
   /** The daemon reads its own process; the page leaves it out. */
-  readonly processMemory?: () => ProcessMemory
+  readonly processMemory?: NonNullable<Parameters<typeof buildRefreshTick>[0]['processMemory']>
 }
 
 /** The options once the sender and the fill listener are built: everything below the provider
