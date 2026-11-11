@@ -40,6 +40,7 @@ const runList = signal<readonly Run[]>([])
 const pendingList = signal<readonly PendingWire[]>([])
 const checkedAt = signal<number | undefined>(undefined)
 const taskList = signal<readonly TaskStatusWire[] | undefined>(undefined)
+const staleAt = signal<number | undefined>(undefined)
 // The tickers each run the page watched end reported, oldest first, by `runId`.
 const finishedTickers = new Map<string, readonly string[]>()
 // The runs the page saw start a child run, which stays known after the child ends.
@@ -54,8 +55,29 @@ export const pending: ReadonlySignal<readonly PendingWire[]> = pendingList
 export const alertsCheckedAt: ReadonlySignal<number | undefined> = checkedAt
 /** The daemon's background tasks as it last said; absent until the first snapshot. */
 export const backgroundTasks: ReadonlySignal<readonly TaskStatusWire[] | undefined> = taskList
+/** Epoch ms (page clock) as of which the page's picture is known: set once the socket gives a
+ *  verdict (`offline` or `full`) after a live drop, to the instant it left `live`; moved forward by a
+ *  snapshot applied while not live; cleared by a snapshot applied on a live socket. */
+export const staleSince: ReadonlySignal<number | undefined> = staleAt
 /** Background tasks in a pass right now. */
 export const workingTasks = computed(() => taskList.value?.filter((task) => task.working) ?? [])
+
+/** The socket gave its verdict after a live drop; a drop already known keeps its earlier instant. */
+export function noteFeedDropped(leftLiveAt: number): void {
+  staleAt.value ??= leftLiveAt
+}
+
+/** A snapshot applied while the socket is not live: the picture is known as of `at`, never earlier. */
+export function noteFeedRead(at: number): void {
+  if (staleAt.value !== undefined && at > staleAt.value) {
+    staleAt.value = at
+  }
+}
+
+/** A snapshot applied on a live socket, or a feed that is over: nothing is stale. */
+export function noteFeedCurrent(): void {
+  staleAt.value = undefined
+}
 
 /** A run of the slash command `name`, which its run carries without the slash. */
 export function isCommandRun(

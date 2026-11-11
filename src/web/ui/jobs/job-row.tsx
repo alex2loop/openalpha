@@ -1,6 +1,6 @@
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import type { Run } from '@/web/state/live'
-import { useNow } from '@/web/state/clock'
+import { ELAPSED_TICK_MS, useLiveNow } from '@/web/state/clock'
 import { focusRun } from '@/web/state/focus'
 import { joinInline } from '@/web/text/glyphs'
 import { commandOf, formatRunName } from '@/web/text/run-name'
@@ -11,8 +11,6 @@ import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 
-const ELAPSED_TICK_MS = 1_000
-
 interface JobRowProps {
   readonly run: Run
   readonly childRuns: readonly Run[]
@@ -21,7 +19,7 @@ interface JobRowProps {
 /** A running run: what, who, its step, how long, where from, and "Dừng", which asks first. A
  *  parent lists its children under it. */
 export function JobRow({ run, childRuns }: JobRowProps) {
-  const now = useNow(ELAPSED_TICK_MS).value
+  const now = useLiveNow(ELAPSED_TICK_MS).value
 
   return (
     <div class="job-row">

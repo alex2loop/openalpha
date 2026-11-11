@@ -1,5 +1,10 @@
-import { type ReadonlySignal, type Signal, signal } from '@preact/signals'
+import { type ReadonlySignal, type Signal, signal, useComputed } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
+
+import { staleSince } from '@/web/state/live'
+
+/** The one tick every running clock on the page shares. */
+export const ELAPSED_TICK_MS = 1_000
 
 interface Ticker {
   readonly now: Signal<number>
@@ -21,6 +26,14 @@ export function useNow(everyMs: number): ReadonlySignal<number> {
   useEffect(() => subscribe(everyMs), [everyMs])
 
   return ticker.now
+}
+
+/** `useNow`, frozen at `staleSince` while the picture is stale, so a running clock stops instead of
+ *  counting time nobody saw. */
+export function useLiveNow(everyMs: number): ReadonlySignal<number> {
+  const now = useNow(everyMs)
+
+  return useComputed(() => staleSince.value ?? now.value)
 }
 
 function resolveTicker(everyMs: number): Ticker {
