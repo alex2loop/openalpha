@@ -257,7 +257,7 @@ export function renderBoardFactLines(
     return texts.length === 0
       ? []
       : [
-          `${INDENT[1]}${t(locale, `trading.render.screen.group.${group}`)}`,
+          `${INDENT[1]}**${t(locale, `trading.render.screen.group.${group}`)}**`,
           ...toFactLines(texts, context, 2),
         ]
   })
