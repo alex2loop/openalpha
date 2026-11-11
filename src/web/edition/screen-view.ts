@@ -1,6 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
-import { matchesGlossaryQuery } from '@/i18n'
+import { matchesSearchQuery } from '@/i18n'
 import { type Bound, boundId, hasLimits, withinLimits } from '@/web/edition/screen-bounds'
 import {
   type BaseSortKey,
@@ -143,7 +143,7 @@ export function filterCandidates(
       (candidate) =>
         isInScope(candidate, view.scope, own) &&
         (view.sector === NO_SECTOR || candidate.sector === view.sector) &&
-        matchesGlossaryQuery([candidate.instrument.ticker, candidate.name ?? ''], view.query)
+        matchesSearchQuery([candidate.instrument.ticker, candidate.name ?? ''], view.query)
     ),
     bounds,
     view.bounds

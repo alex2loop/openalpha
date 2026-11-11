@@ -14,7 +14,15 @@ import { formatPercentRank } from '@/trading/render/rank'
 const MONTH_CHANGE_ID = 'month-change'
 
 /** The groups a name's facts sit under, in the order they print. */
-const BOARD_GROUPS = Object.freeze(['price', 'valuation', 'flow', 'derivatives'] as const)
+const BOARD_GROUPS = Object.freeze([
+  'valuation',
+  'profitability',
+  'growth',
+  'health',
+  'price',
+  'flow',
+  'derivatives',
+] as const)
 
 type BoardGroup = (typeof BOARD_GROUPS)[number]
 
@@ -24,25 +32,25 @@ const BOARD_GROUP_OF = Object.freeze({
   pe: 'valuation',
   'average-profit-pe': 'valuation',
   pb: 'valuation',
-  'earnings-growth': 'valuation',
-  'revenue-growth': 'valuation',
+  'earnings-growth': 'growth',
+  'revenue-growth': 'growth',
   'value-percentile': 'valuation',
-  'return-on-equity': 'valuation',
-  'return-on-assets': 'valuation',
-  'debt-to-equity': 'valuation',
-  'gross-margin': 'valuation',
-  'quality-percentile': 'valuation',
-  'accounts-score': 'valuation',
-  'return-on-invested-capital': 'valuation',
-  'interest-cover': 'valuation',
-  'net-debt-to-ebitda': 'valuation',
-  'bad-debt-ratio': 'valuation',
-  'watch-list-ratio': 'valuation',
-  'provision-cover': 'valuation',
-  'casa-share': 'valuation',
-  'cost-to-income': 'valuation',
-  'capital-adequacy': 'valuation',
-  'net-interest-to-assets': 'valuation',
+  'return-on-equity': 'profitability',
+  'return-on-assets': 'profitability',
+  'debt-to-equity': 'health',
+  'gross-margin': 'profitability',
+  'quality-percentile': 'health',
+  'accounts-score': 'health',
+  'return-on-invested-capital': 'profitability',
+  'interest-cover': 'health',
+  'net-debt-to-ebitda': 'health',
+  'bad-debt-ratio': 'health',
+  'watch-list-ratio': 'health',
+  'provision-cover': 'health',
+  'casa-share': 'profitability',
+  'cost-to-income': 'profitability',
+  'capital-adequacy': 'health',
+  'net-interest-to-assets': 'profitability',
   'sector-pe': 'valuation',
   'trend-average': 'price',
   'year-high': 'price',
@@ -70,7 +78,7 @@ const BOARD_GROUP_OF = Object.freeze({
 } as const satisfies Readonly<Record<FactorMetricId, BoardGroup | undefined>>)
 
 /** The readings a reader looks for first, at the head of their group in this order: the price
- *  multiples, each beside its yardstick, before the quality ratios. */
+ *  multiples, each beside its yardstick. */
 const LEADING_FACTS: readonly string[] = Object.freeze([
   'pe',
   'sector-pe',

@@ -35,7 +35,14 @@ interface ScreenFactorWire {
 
 /** Where a fact of a name is listed: price and liquidity, valuation and quality, money flow, and
  *  derivatives, in that order. */
-type ScreenFactGroup = 'price' | 'valuation' | 'flow' | 'derivatives'
+type ScreenFactGroup =
+  | 'valuation'
+  | 'profitability'
+  | 'growth'
+  | 'health'
+  | 'price'
+  | 'flow'
+  | 'derivatives'
 
 /** One thing a board reads for a name, written as the CLI lists it: the label capitalised, the
  *  value with its unit. A factor's place among the board's names joins the reading of the same name,

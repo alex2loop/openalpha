@@ -1,5 +1,6 @@
 import type { ScreenFactWire } from '@/app/server/wire/market'
 import { termOfFact } from '@/i18n'
+import { DOWN_GLYPH, UP_GLYPH } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { GroupHelp, Term } from '@/web/ui/glossary/term'
 import { SectionHeading } from '@/web/ui/kit/section-heading'
@@ -8,8 +9,11 @@ import './fact-grid.css'
 
 /** The groups of a board's facts in the order the daemon lists them. */
 const SCREEN_GROUPS: readonly ScreenFactWire['group'][] = Object.freeze([
-  'price',
   'valuation',
+  'profitability',
+  'growth',
+  'health',
+  'price',
   'flow',
   'derivatives',
 ])
@@ -86,12 +90,21 @@ function FactGroup({
             <dt>
               <FactLabel id={id} label={label} />
             </dt>
-            <dd>{value}</dd>
+            <dd class={toneClassOf(value)}>{value}</dd>
           </div>
         ))}
       </dl>
     </section>
   )
+}
+
+// A signed reading wears the up or down colour, so a fall reads as one before its number does.
+function toneClassOf(value: string): string | undefined {
+  if (value.startsWith(UP_GLYPH)) {
+    return 'is-up-text'
+  }
+
+  return value.startsWith(DOWN_GLYPH) ? 'is-down-text' : undefined
 }
 
 // A label the glossary explains is a term; any other reads as it always did.

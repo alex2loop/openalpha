@@ -42,10 +42,13 @@
   color: var(--ink2);
 }
 
+.fact > dd:not([class]) {
+  color: var(--ink);
+}
+
 .fact > dd {
   max-width: 60vw;
   margin: 0;
-  color: var(--ink);
   font-weight: var(--weightSemibold);
   text-align: right;
   font-variant-numeric: tabular-nums;
