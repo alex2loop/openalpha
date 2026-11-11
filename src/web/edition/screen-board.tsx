@@ -168,7 +168,9 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
       ))}
       <ScreenControls market={market} view={view} {...choices} kinds={board.kinds} />
       <BoardTally shown={shown.length} total={board.candidates.length} />
-      {shown.length === 0 && <p class="empty-note">{tr('ui.office.edition.screen.filter.none')}</p>}
+      {shown.length === 0 && (
+        <NoMatch query={view.query} hasRejections={board.card.rejections.length > 0} />
+      )}
       {shown.map((candidate) => (
         <NameRow key={candidate.instrument.ticker} candidate={candidate} market={market} />
       ))}
@@ -237,6 +239,26 @@ function arrange(board: ScreenResponse, market: string) {
   )
 
   return { choices, view, shown }
+}
+
+// A search that finds nothing may be a name the gates left out, which only the list below can say.
+function NoMatch({
+  query,
+  hasRejections,
+}: {
+  readonly query: string
+  readonly hasRejections: boolean
+}) {
+  const typed = query.trim()
+  const lines =
+    typed === ''
+      ? [tr('ui.office.edition.screen.filter.none')]
+      : [
+          tr('ui.office.edition.screen.filter.searchNone', { query: typed }),
+          ...(hasRejections ? [tr('ui.office.edition.screen.filter.searchRejected')] : []),
+        ]
+
+  return <p class="empty-note">{lines.join(' ')}</p>
 }
 
 // What the gates left out, and why, as the CLI words it: a board of the names that cleared them
@@ -320,7 +342,7 @@ function nameHead({ instrument, sector, name }: Candidate): readonly string[] {
 
 // What the page says about the name's place on the board rather than about the name: that the
 // operator excluded it, and which factors had no data to read.
-function NameNotes({ candidate }: { readonly candidate: Candidate }) {
+export function NameNotes({ candidate }: { readonly candidate: Candidate }) {
   const notes = [
     ...(candidate.excluded === true ? [tr('ui.office.edition.screen.excluded')] : []),
     ...(candidate.missing === undefined

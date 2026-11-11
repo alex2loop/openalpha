@@ -98,7 +98,7 @@ interface ScreenCardWire {
   readonly caveats: readonly string[]
 }
 
-/** GET /v1/screen?market&kind&limit&cursor — ranked best first; no limit is the board `/screen`
+/** GET /v1/screen?market&kind&limit&cursor&ticker — ranked best first; no limit is the board `/screen`
  *  prints. `board: 'gate'` states per name whether it cleared, with no rank. `board: 'list'` is an
  *  edition that ranks nothing: every priced name in ticker order, a page of `limit` names from
  *  `cursor` with `next` for the one after, each with its factors' readings and percentiles, and no

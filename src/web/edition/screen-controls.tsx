@@ -50,9 +50,28 @@ interface ControlsProps {
 export function ScreenControls(props: ControlsProps) {
   return (
     <>
+      <SearchBar market={props.market} view={props.view} />
       <SortBar {...props} />
       <FilterBar {...props} />
     </>
+  )
+}
+
+function SearchBar({ market, view }: Pick<ControlsProps, 'market' | 'view'>) {
+  const label = tr('ui.office.edition.screen.filter.search')
+
+  return (
+    <div class="sort-bar">
+      <input
+        type="search"
+        class="screen-size"
+        autocomplete="off"
+        aria-label={label}
+        placeholder={label}
+        value={view.query}
+        onInput={(event) => updateView(market, { query: event.currentTarget.value })}
+      />
+    </div>
   )
 }
 

@@ -159,6 +159,8 @@ export interface MarketDataScreenRequest extends MarketDataMarketRequest {
   readonly instrumentKind?: InstrumentKind
   /** Narrows the board to these sector slugs; a market that files none ignores it. */
   readonly sectors?: readonly string[]
+  /** Keeps only this name's row, read against the whole board, so its places stay the board's. */
+  readonly ticker?: Ticker
 }
 
 /** The operator's exclusion list, injected rather than imported: the board marks an excluded name

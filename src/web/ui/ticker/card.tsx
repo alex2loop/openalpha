@@ -12,6 +12,7 @@ import { CardActions } from '@/web/ui/ticker/actions'
 import { CardAlerts } from '@/web/ui/ticker/alerts'
 import { isStoredAnswer } from '@/web/ui/ticker/analyze-button'
 import { EventsBlock } from '@/web/ui/ticker/events'
+import { FactsBlock } from '@/web/ui/ticker/facts'
 import { HoldingBlock } from '@/web/ui/ticker/holding'
 import { OpinionsBlock } from '@/web/ui/ticker/opinions'
 import { PastCalls } from '@/web/ui/ticker/past-calls'
@@ -52,6 +53,7 @@ export function TickerCard({ ticker, market }: TickerCardProps) {
         <PlanBlock reading={plan} ticker={ticker} market={market} />
       )}
       {!isLevel && <HoldingBlock ticker={ticker} market={market} />}
+      {!isLevel && <FactsBlock ticker={ticker} market={market} />}
       {isAnalysisOnly.value ? (
         <Analyses instrument={{ market, ticker }} />
       ) : (

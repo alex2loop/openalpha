@@ -8,7 +8,7 @@ import type {
   ScreenResponse,
 } from '@/app/server/wire/market'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
-import type { InstrumentKind, TradingMarketsView } from '@/trading/api'
+import type { InstrumentKind, MarketRef, Ticker, TradingMarketsView } from '@/trading/api'
 import { API_CHANNEL, APP_CHAT_ID } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
 import {
@@ -38,6 +38,7 @@ import {
   region,
   SURFACE_LIMITS,
   TYPED_PRICES,
+  ticker,
 } from '@/trading/api'
 
 /** The kinds a screen can be narrowed to; the host refuses a market that holds no such kind. */
@@ -54,9 +55,45 @@ const ALERT_BODY: z.ZodType<AlertCreateBody> = z.object({
 
 /** `market` is required: the default market is the one that owns the operator's region, and only
  *  the registry knows which that is. `cursor` pages a `list` board (the previous page's `next`); the
- *  board itself is read and cached whole. */
+ *  board itself is read and cached whole. `ticker` keeps one name's row, as a name's card reads it. */
 async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const query = new URL(req.url).searchParams
+  const asked = parseScreenQuery(query)
+
+  if (asked === null) {
+    return apiError('invalid_body')
+  }
+
+  const { market, limit, offset, kind, name } = asked
+  const read = async (): Promise<ScreenResponse> => {
+    const answer = await hostOf(ctx).screen({
+      market,
+      limit,
+      ...(kind === undefined ? {} : { instrumentKind: kind }),
+      ...(name === undefined ? {} : { ticker: name }),
+      // A shared board read outlives any one caller: it ends on the host's own ceiling or shutdown,
+      // never on the hang-up of whichever request started it.
+      signal: ctx.app.signal,
+    })
+
+    return toScreenWire(market, answer)
+  }
+  const key = `${market}|${kind ?? ''}|${limit}|${name ?? ''}`
+  const board = await cachedScreen(key, read, query.get('fresh') === FRESH_FLAG)
+
+  return json(toScreenPage(board, { offset, limit }))
+}
+
+interface ScreenQuery {
+  readonly market: MarketRef
+  readonly limit: number
+  readonly offset: number
+  readonly kind?: InstrumentKind
+  readonly name?: Ticker
+}
+
+/** `null` for a missing market or any malformed field (400). */
+function parseScreenQuery(query: URLSearchParams): ScreenQuery | null {
   const market = parseOptionalBranded(query.get('market'), marketRef)
   // No limit is the board `/screen` prints; the app asks for more only to search its watchlist.
   const limit =
@@ -65,33 +102,25 @@ async function handleScreen(req: Request, ctx: ApiRouteContext): Promise<Respons
       : parseLimit(query.get('limit'), SURFACE_LIMITS.maximumScreenCandidates)
   const offset = parsePageOffset(query.get('cursor'))
   const kind = query.get('kind')
-  const isFresh = query.get('fresh') === FRESH_FLAG
+  const name = parseOptionalBranded(query.get('ticker'), ticker)
+  const isMalformed = limit === null || offset === null || name === null
 
-  if (market === undefined || market === null || limit === null || offset === null) {
-    return apiError('invalid_body')
+  if (market === undefined || market === null || isMalformed) {
+    return null
   }
 
   if (kind !== null && !SCREEN_KINDS.has(kind)) {
-    return apiError('invalid_body')
+    return null
   }
 
-  const read = async (): Promise<ScreenResponse> => {
-    const answer = await hostOf(ctx).screen({
-      market,
-      limit,
-      // why-safe: checked against SCREEN_KINDS above, which holds InstrumentKind members only.
-      ...(kind === null ? {} : { instrumentKind: kind as InstrumentKind }),
-      // A shared board read outlives any one caller: it ends on the host's own ceiling or shutdown,
-      // never on the hang-up of whichever request started it.
-      signal: ctx.app.signal,
-    })
-
-    return toScreenWire(market, answer)
+  return {
+    market,
+    limit,
+    offset,
+    // why-safe: checked against SCREEN_KINDS above, which holds InstrumentKind members only.
+    ...(kind === null ? {} : { kind: kind as InstrumentKind }),
+    ...(name === undefined ? {} : { name }),
   }
-
-  const board = await cachedScreen(`${market}|${kind ?? ''}|${limit}`, read, isFresh)
-
-  return json(toScreenPage(board, { offset, limit }))
 }
 
 async function handleInstrumentSearch(req: Request, ctx: ApiRouteContext): Promise<Response> {

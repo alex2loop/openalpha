@@ -717,7 +717,10 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
   - Click a ticker anywhere and its card opens: the ticker with its sector beside it where the market files one, price (with "Refresh price", which reads that one name
     live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
     session's low, high and volume (the live session's when the price is live, else the last
-    settled session's, dated), the last sessions charted on price and date axes with the plan levels, your holding, "Why?" for the
+    settled session's, dated), the last sessions charted on price and date axes with the plan levels, your holding, "Key figures"
+    (P/E, liquidity, flows and where the name sits on the board, laid out exactly as its Screen row;
+    a name that did not make the screen gets one line saying why there are none; an index or a
+    futures contract has no such block), "Why?" for the
     reasoning behind a call, earlier calls and what your own agents think. Under the plan's
     levels sit "What it is waiting for" (what the trader still waits on before the entry, when it
     does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas

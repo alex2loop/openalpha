@@ -61,7 +61,7 @@ import {
 } from '@/trading/features/market-data/reads/quotes'
 import { runSentiment } from '@/trading/features/market-data/reads/sentiment'
 import { resolveDay, searchInstruments } from '@/trading/features/market-data/resolve'
-import { toBoardView } from '@/trading/features/market-data/screen-board'
+import { toRequestedView } from '@/trading/features/market-data/screen-board'
 import { closedCandidate, pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -192,8 +192,8 @@ async function runScreen(
   const ensured = await deps.ensure(buildEnsureOptions(options.market, options, answer))
   const result = await market.capabilities.screen?.run({
     market: options.market,
-    // A board is every name the gates cleared, so nothing is cut before its prices are read.
-    limit: isBoardForm(options) ? WHOLE_BOARD : options.limit,
+    // A board, or one name's row, reads every name the gates cleared, so nothing is cut first.
+    limit: isBoardForm(options) || options.ticker !== undefined ? WHOLE_BOARD : options.limit,
     asOf,
     now: options.now,
     signal: options.signal,
@@ -209,7 +209,7 @@ async function runScreen(
 
   const view = await decorateScreen(deps, { market, options, result, ensured, asOf }, reader)
 
-  return isBoardForm(options) ? toBoardView(view) : view
+  return toRequestedView(view, options)
 }
 
 interface ScreenRead {

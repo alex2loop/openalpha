@@ -23,6 +23,7 @@ import type {
   MarketRef,
   PriceDisplay,
   Region,
+  Ticker,
   TradingDay,
 } from '@/trading/kernel/instrument'
 import type { MacroRiskView } from '@/trading/kernel/market/market-macro'
@@ -135,6 +136,8 @@ export interface AppViews {
     readonly market: MarketRef
     readonly instrumentKind?: InstrumentKind
     readonly limit: number
+    /** Only this name's row, placed against the whole board. */
+    readonly ticker?: Ticker
     readonly now: number
     readonly signal: AbortSignal
     readonly locale: Locale
@@ -152,13 +155,11 @@ async function screen(
   deps: AppViewDeps,
   request: Parameters<AppViews['screen']>[0]
 ): Promise<ScreenAnswer> {
-  const { market, instrumentKind, limit, now, signal, locale } = request
+  const { market, instrumentKind, locale, ...read } = request
   const kindOption = instrumentKind === undefined ? {} : { instrumentKind }
   const view = await deps.marketData.screen({
     market,
-    limit,
-    now,
-    signal,
+    ...read,
     ...kindOption,
     ...(deps.screenForm === undefined ? {} : { form: deps.screenForm }),
   })

@@ -1,4 +1,8 @@
-import type { ScreenedCandidate, ScreenView } from '@/trading/features/market-data/types'
+import type {
+  MarketDataScreenRequest,
+  ScreenedCandidate,
+  ScreenView,
+} from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
@@ -11,13 +15,31 @@ const MINIMUM_PEERS = 2
  *  nothing never lists them. */
 const LEVEL_METRICS: ReadonlySet<FactorMetricId> = new Set(['breakout-trigger', 'trailing-low'])
 
+/** The view in the form the request asks for, kept to the one name a `ticker` asks for once the
+ *  board's places are read. */
+export function toRequestedView(
+  view: ScreenView,
+  request: Pick<MarketDataScreenRequest, 'form' | 'ticker'>
+): ScreenView {
+  const shaped = request.form === 'board' ? toBoardView(view) : view
+
+  if (request.ticker === undefined) {
+    return shaped
+  }
+
+  return {
+    ...shaped,
+    candidates: shaped.candidates.filter(({ instrument }) => instrument.ticker === request.ticker),
+  }
+}
+
 /** The whole priced board as a list to browse: ticker order, which says nothing about merit, and
  *  for each factor that fired where the name's reading sits among the board's. No reading is a
  *  price level (`LEVEL_METRICS`). A name with no price
  *  is left out and counted: the board prices what it lists, and a missing price is absent, not zero.
  *  The composite stays on the candidate for the callers that rank, and no renderer of this form
  *  reads it. */
-export function toBoardView(view: ScreenView): ScreenView {
+function toBoardView(view: ScreenView): ScreenView {
   const priced = view.candidates.filter((candidate) => candidate.price !== undefined)
   const percentiles = factorPercentiles(priced)
 

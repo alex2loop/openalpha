@@ -281,6 +281,7 @@ function boardMethods(
             ? {}
             : { instrumentKind: request.instrumentKind }),
           limit: bounded(request.limit, deps.limits.maximumScreenCandidates),
+          ...(request.ticker === undefined ? {} : { ticker: request.ticker }),
           now: scope.now,
           signal: scope.signal,
           locale: deps.defaultLocale,
