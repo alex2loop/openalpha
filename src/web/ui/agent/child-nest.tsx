@@ -23,7 +23,8 @@ interface ChildNestProps {
 }
 
 /** The temporary child agents a run handed work to: each with its goal and steps, and why it did
- *  not finish when it did not. Their cost counts to the parent. */
+ *  not finish when it did not. Their cost counts to the parent. The debate roles it started are the
+ *  timeline's. */
 export function ChildNest({ parent, maxSpawn }: ChildNestProps) {
   const children = useChildren(parent.runId)
   const count = children.length
@@ -75,11 +76,13 @@ function ChildRow({ child }: { readonly child: Child }) {
 function useChildren(parentRunId: string): readonly Child[] {
   const { seen, ended } = useHeardChildren(parentRunId)
 
-  return [...seen.values()].map((run) => {
-    const outcome = ended.get(run.runId)?.outcome
+  return [...seen.values()]
+    .filter((run) => run.title !== undefined)
+    .map((run) => {
+      const outcome = ended.get(run.runId)?.outcome
 
-    return outcome === undefined ? { run } : { run, outcome }
-  })
+      return outcome === undefined ? { run } : { run, outcome }
+    })
 }
 
 // Children never start children of their own, so a nest is one level unless the feed says more.

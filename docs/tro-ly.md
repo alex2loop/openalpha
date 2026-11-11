@@ -55,10 +55,11 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
   - phụ kiện (không, sách, bìa kẹp, cà vạt, kính hoặc khăn).
 
   Phần nào bạn bỏ qua thì theo mã của agent, nên agent nào cũng có ngoại hình ngay từ đầu. Đó là bảng `[look]` trong tệp; dịch vụ nền (daemon) chỉ giữ nó và không bao giờ đọc nó trong một phiên chạy.
-- Bấm vào một agent (bàn của nó, hoặc thẻ của nó ở tầng đội riêng) thì thẻ của nó mở ra: *Tiến độ* (các bước đang chạy và agent con nếu có), *Kết quả*, *Hồ sơ* và *Việc*, kèm nút tạm dừng hoặc tiếp tục.
+- Bấm vào một agent (bàn của nó, hoặc thẻ của nó ở tầng đội riêng) thì thẻ của nó mở ra: *Tiến độ* (các bước đang chạy, ai làm việc gì và lúc nào, và agent con nếu có), *Kết quả*, *Hồ sơ* và *Việc*, kèm nút tạm dừng hoặc tiếp tục.
   - Agent tạm dừng từ chối mọi phiên chạy của nó cho tới khi bạn cho chạy lại, đúng như `agent pause`, và bàn của nó ghi rõ điều đó.
   - Nút sửa hồ sơ mở biểu mẫu, và biểu mẫu đó cũng có nút xóa agent.
-- Khi một phiên chạy chia việc cho agent con, thẻ Tiến độ liệt kê từng agent con. Nó cho biết đang
+- Khi một phiên chạy chia việc cho nhiều người, như một phiên tranh luận `/suggest`, thẻ Tiến độ, dòng của việc đó và câu trả lời chat đã mở nó đều có dải "Diễn biến"; phiên chạy đã xong giữ dải này trong một khối đang đóng ở thẻ *Kết quả*, dưới câu trả lời trong chat và trong danh sách hoạt động. Dải chỉ vẽ những gì đã thật sự xảy ra: mỗi người một dòng trên cùng một trục thời gian, nên những người làm cùng lúc nằm cạnh nhau (lập luận tăng và lập luận giảm) và những người làm lần lượt nối tiếp nhau (nhà giao dịch, rồi người rà rủi ro, còn bước kiểm chứng nhận định chạy song song với cả hai). Người được hỏi lại có hai thanh trên cùng một dòng, và người chưa làm xong thì có ghi lý do. "Chuẩn bị" là khoảng trước người đầu tiên, và "Ghi lại kết quả" là khoảng sau người cuối cùng, chỉ hiện khi phiên chạy báo là đang khép lại; trước đó, quãng nghỉ giữa hai lượt được để trống. Phiên chạy xem nhiều mã thì có ô chọn mã để xem. Khi cuộc tranh luận đã được kiểm chứng, mỗi bước còn hiện điều người đó đã nói và liên kết tới thẻ của mã, nơi "Vì sao?" giữ cả cuộc tranh luận; agent con mà một phiên chạy tự tạo thì hiện phần tóm tắt của nó. Dải của phiên chạy đã xong chỉ đọc khi bạn mở khối.
+- Khi một phiên chạy chia việc cho agent con của riêng nó, thẻ Tiến độ liệt kê từng agent con đó (những người trong cuộc tranh luận thuộc về dải). Nó cho biết đang
   chạy bao nhiêu trong số tối đa một lần gọi được phép khởi động, chúng đi sâu mấy tầng, và thời gian
   dài nhất một agent con được chạy. Con số cuối là giới hạn mỗi lần gọi cho agent con của chính dịch vụ
   nền (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ dịch vụ

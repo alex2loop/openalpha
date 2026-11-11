@@ -823,6 +823,7 @@
     "office.timeline.failed": "Chưa tải được diễn biến của phiên chạy.",
     "office.timeline.readCase": "Xem cả lập luận",
     "office.timeline.from": "từ {start} đến {end}",
+    "office.timeline.empty": "Phiên chạy này không có ai làm cùng.",
     "office.activity.title": "Hoạt động hôm nay",
     "office.activity.titleDay": "Hoạt động ngày {day}",
     "office.common.noAi": "không tốn AI",

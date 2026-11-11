@@ -10,6 +10,13 @@ import {
   toSaidKey,
 } from '@/web/ui/run/heard-children'
 
+// The run's progress keys that come only after the last role has answered: the judgment stages and
+// the save. Before them a quiet run is between waves, not closing.
+const CLOSING_KEYS: ReadonlySet<string> = new Set([
+  'trading.progress.suggestion.stages',
+  'trading.progress.suggestion.persist',
+])
+
 // A listed child costing less than this much is a rounding left over, not another call.
 const OTHER_USD_MIN = 0.005
 
@@ -72,6 +79,8 @@ interface TimelineInputs {
   /** `findRun(runId) !== undefined`, passed in so the model stays pure. */
   readonly isLive: (runId: string) => boolean
   readonly root: TimelineRoot | undefined
+  /** The key of the run's latest progress line, if it has one. */
+  readonly progressKey: string | undefined
   /** The page clock, frozen while stale (`useLiveNow`). */
   readonly nowMs: number
 }
@@ -91,7 +100,7 @@ interface Axis {
 
 /** Undefined while no child is known: a run that handed nothing out has no strip. */
 export function buildTimeline(inputs: TimelineInputs): TimelineView | undefined {
-  const { read, heard, root, nowMs } = inputs
+  const { read, heard, root, nowMs, progressKey } = inputs
   const entries = toEntries(inputs).toSorted(byStart)
 
   if (entries.length === 0) {
@@ -111,7 +120,7 @@ export function buildTimeline(inputs: TimelineInputs): TimelineView | undefined 
       : toStretches(
           root,
           clamped.map((entry) => entry.span),
-          nowMs
+          { nowMs, isClosing: progressKey !== undefined && CLOSING_KEYS.has(progressKey) }
         )
 
   return {
@@ -283,11 +292,12 @@ function sumCosts(spans: readonly TimelineSpan[]): number | undefined {
 }
 
 // "Chuẩn bị" runs from the run's start to its first child; the closing stretch from its last child
-// to its end, or to now while the run is still going with no child running.
+// to its end, or, while the run still goes, to now once it reports the stages after the last role.
+// A quiet run before that is between waves: the gap stays empty time.
 function toStretches(
   root: TimelineRoot,
   spans: readonly TimelineSpan[],
-  nowMs: number
+  { nowMs, isClosing }: { readonly nowMs: number; readonly isClosing: boolean }
 ): { readonly prep?: RunStretch; readonly close?: RunStretch } {
   const firstStart = Math.min(...spans.map((span) => span.startedAt))
   const ends = spans.flatMap((span) => span.endedAt ?? [])
@@ -297,7 +307,8 @@ function toStretches(
   const prep =
     root.startedAt < firstStart ? { fromMs: root.startedAt, toMs: firstStart } : undefined
   const closeTo = Math.max(root.endedAt ?? nowMs, lastEnd ?? 0)
-  const hasClose = lastEnd !== undefined && !hasRunning && (isRunning || closeTo > lastEnd)
+  const hasClose =
+    lastEnd !== undefined && !hasRunning && (isRunning ? isClosing : closeTo > lastEnd)
 
   return {
     ...(prep === undefined ? {} : { prep: { ...prep, isRunning: false } }),

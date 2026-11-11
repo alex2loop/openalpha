@@ -15,6 +15,7 @@ import { Button } from '@/web/ui/kit/button'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { useLoad } from '@/web/ui/kit/use-load'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
+import { RunTimelineFold } from '@/web/ui/run/timeline/run-timeline'
 
 import './activity.css'
 
@@ -59,6 +60,12 @@ function ActivityList({ day }: { readonly day: string | undefined }) {
       {activity.value.rows.map((row) => (
         <div key={row.runId} class="activity-entry">
           <ActivityItem row={row} />
+          {row.children !== undefined && (
+            <RunTimelineFold
+              runId={row.runId}
+              root={{ startedAt: row.startedAt, endedAt: row.endedAt }}
+            />
+          )}
           {row.unbilled !== true && (
             <RunCalls runId={row.runId} isRunning={false} command={commandOf(row)} />
           )}

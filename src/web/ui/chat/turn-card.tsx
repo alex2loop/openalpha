@@ -18,7 +18,7 @@ import {
 } from '@/web/state/command'
 import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
-import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
+import { findRun, hasChildren, hasStartedChild, type Run, runs } from '@/web/state/live'
 import { isLevelInstrument } from '@/web/state/market'
 import { canRemember, toAttributeName } from '@/web/state/memory'
 import { joinInline } from '@/web/text/glyphs'
@@ -33,6 +33,7 @@ import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
+import { RunTimeline, RunTimelineFold } from '@/web/ui/run/timeline/run-timeline'
 import { openSettings } from '@/web/ui/settings/settings'
 import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
 
@@ -83,12 +84,15 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
       <PreferenceLines preferences={turn.preferences} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
       {isFinished(turn) && turn.runId !== undefined && (
-        <RunCalls
-          key={turn.runId}
-          runId={turn.runId}
-          isRunning={false}
-          command={turn.kind === 'slash' ? commandWordOf(turn.text) : undefined}
-        />
+        <>
+          {hasStartedChild(turn.runId) && <RunTimelineFold key={turn.runId} runId={turn.runId} />}
+          <RunCalls
+            key={turn.runId}
+            runId={turn.runId}
+            isRunning={false}
+            command={turn.kind === 'slash' ? commandWordOf(turn.text) : undefined}
+          />
+        </>
       )}
     </div>
   )
@@ -103,6 +107,7 @@ function RunningStep({ turn }: { readonly turn: Turn }) {
 
   const fallback = turn.kind === 'slash' ? 'ui.office.chat.working' : 'ui.office.chat.answering'
   const alongside = resolveAlongside(turn)
+  const run = findTurnRun(turn)
 
   return (
     <>
@@ -112,6 +117,9 @@ function RunningStep({ turn }: { readonly turn: Turn }) {
       </p>
       {alongside !== undefined && (
         <p class="meta">{tr('ui.office.chat.parallel', { what: alongside })}</p>
+      )}
+      {run !== undefined && hasStartedChild(run.runId) && (
+        <RunTimeline key={run.runId} runId={run.runId} root={run} />
       )}
     </>
   )

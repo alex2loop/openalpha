@@ -64,11 +64,12 @@ function TimelineBody({ runId, root, isTitled }: TimelineBodyProps) {
     heard,
     isLive: (id) => findRun(id) !== undefined,
     root: resolveRoot(root, read),
+    progressKey: findRun(runId)?.progress?.key,
     nowMs: now,
   })
 
   if (view === undefined) {
-    return <NoStrip state={reading.state} retry={reading.retry} />
+    return <NoStrip state={reading.state} retry={reading.retry} isFold={isTitled !== true} />
   }
 
   return (
@@ -128,9 +129,11 @@ function resolveTickers(runId: string, read: RunTimelineWire | undefined): reado
 interface NoStripProps {
   readonly state: BlockReading<unknown>['state']
   readonly retry: () => void
+  /** An opened fold says so when nobody worked on the run; a running strip just waits. */
+  readonly isFold: boolean
 }
 
-function NoStrip({ state, retry }: NoStripProps) {
+function NoStrip({ state, retry, isFold }: NoStripProps) {
   if (state === 'failed') {
     return (
       <div class="strip is-problem" role="alert">
@@ -142,7 +145,11 @@ function NoStrip({ state, retry }: NoStripProps) {
     )
   }
 
-  return state === 'loading' ? <Skeleton lines={2} /> : null
+  if (state === 'loading') {
+    return <Skeleton lines={2} />
+  }
+
+  return isFold ? <p class="empty-note">{tr('ui.office.timeline.empty')}</p> : null
 }
 
 function RunLine({ view }: { readonly view: TimelineView }) {
