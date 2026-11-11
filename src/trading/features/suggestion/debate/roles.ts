@@ -3,10 +3,11 @@ import type { z } from 'zod'
 import type { Logger } from '@/core/logging/logger'
 import type { Budget } from '@/core/types/budget'
 import type { Locale } from '@/core/types/locale'
-import type { Runner, RunResult } from '@/engine/api'
+import type { Runner, RunOptions, RunResult } from '@/engine/api'
 import type { SuggestionRequest } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { DebateRole } from '@/trading/kernel/config'
+import type { InstrumentRef } from '@/trading/kernel/instrument'
 import { agentId, LOCAL_USER_ID, sessionId } from '@/core/ids'
 import { scrubCredentials } from '@/core/security/credentials'
 import {
@@ -56,6 +57,7 @@ interface RoleRunContext<T> {
   readonly routingKey: string
   readonly schema: RoleSchema<T>
   readonly request: SuggestionRequest
+  readonly instrument: InstrumentRef
   readonly budget: Budget
   readonly signal: AbortSignal
   /** Spend lands here whether the role answers, halts, or fails its schema. */
@@ -170,24 +172,7 @@ async function attemptRole<T>(
       channel: context.request.channel,
       userMessage: localizedMessage(context.prompt.message, context.request.locale),
     },
-    {
-      instructions: context.prompt.instructions,
-      routingKey: context.routingKey,
-      persistence: 'ephemeral',
-      parentSignal: context.signal,
-      budgetSlice: context.budget,
-      outputContract: toResearchOutputContract(context.role, context.schema),
-      answerVisibility: 'hidden',
-      reasoningVisibility: 'hidden',
-      maxTurns: deps.maximumTurnsPerRole,
-      billingSessionId: context.request.billingSessionId,
-      ...(context.request.billingAgentId === undefined
-        ? {}
-        : { billingAgentId: context.request.billingAgentId }),
-      ...(context.request.parentRunId === undefined
-        ? {}
-        : { parentRunId: context.request.parentRunId }),
-    }
+    buildRoleRunOptions(deps, context)
   )
 
   if (result.reason !== 'completed') {
@@ -210,6 +195,26 @@ async function attemptRole<T>(
     kind: 'value',
     value: parsed.value,
     ...(result.totals.modelName === undefined ? {} : { modelName: result.totals.modelName }),
+  }
+}
+
+function buildRoleRunOptions<T>(deps: RoleRunDeps, context: RoleRunContext<T>): RunOptions {
+  const { request, instrument } = context
+
+  return {
+    instructions: context.prompt.instructions,
+    routingKey: context.routingKey,
+    persistence: 'ephemeral',
+    parentSignal: context.signal,
+    budgetSlice: context.budget,
+    outputContract: toResearchOutputContract(context.role, context.schema),
+    answerVisibility: 'hidden',
+    reasoningVisibility: 'hidden',
+    maxTurns: deps.maximumTurnsPerRole,
+    subject: { name: instrument.ticker, scope: instrument.market },
+    billingSessionId: request.billingSessionId,
+    ...(request.billingAgentId === undefined ? {} : { billingAgentId: request.billingAgentId }),
+    ...(request.parentRunId === undefined ? {} : { parentRunId: request.parentRunId }),
   }
 }
 

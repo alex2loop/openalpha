@@ -1,7 +1,12 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { WireEvent } from '@/app/server/wire/events'
-import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/server/wire/live'
+import type {
+  PendingWire,
+  ProgressWire,
+  QuestionPendingWire,
+  RunStartWire,
+} from '@/app/server/wire/live'
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import { setCapped } from '@/web/state/capped-map'
 
@@ -25,6 +30,7 @@ export interface Run {
   readonly agentId?: string
   readonly sessionId: string
   readonly parentRunId?: string
+  readonly subject?: RunStartWire['subject']
   readonly hidden?: true
   readonly startedAt: number
   readonly seenAt: number

@@ -26,6 +26,9 @@ export interface RunStartWire {
   readonly channelId: string
   readonly sessionId: string
   readonly parentRunId?: string
+  /** What a child works on (a debate role's instrument), so a client groups a parent's children by
+   *  it. Absent on most runs. */
+  readonly subject?: { readonly ticker: string; readonly market?: string }
   readonly hidden?: true
   readonly startedAt: number
 }

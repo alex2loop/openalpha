@@ -31,6 +31,19 @@
       "startedAt": 1792480010000,
       "persistent": [],
       "tickers": ["FPT", "HPG"]
+    },
+    {
+      "runId": "run_bull",
+      "kind": "agent",
+      "name": "suggest-bull",
+      "channelId": "api",
+      "sessionId": "sess_91d",
+      "agentId": "suggest-bull",
+      "parentRunId": "run_abc",
+      "subject": { "ticker": "HPG", "market": "equity-vn" },
+      "hidden": true,
+      "startedAt": 1792480012000,
+      "persistent": []
     }
   ],
   "pending": [

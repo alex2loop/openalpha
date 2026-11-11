@@ -23,7 +23,7 @@ export interface ActivityRowWire {
   /** Present when neither the run nor any run beneath it made a model call. */
   readonly unbilled?: true
   /** The tickers the run reported on, in the order first seen. Absent when it named none, and on a
-   *  run finished before the daemon kept them. */
+   *  run finished before the daemon kept them. On a child row, the ticker it worked on. */
   readonly tickers?: readonly string[]
   /** The research questions the run answered, of how many it asked. Absent on a run with none. */
   readonly questions?: { readonly done: number; readonly total: number }

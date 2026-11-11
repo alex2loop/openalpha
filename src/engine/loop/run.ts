@@ -11,6 +11,7 @@ import type {
   RunOptions,
   RunResult,
   RunServices,
+  RunSubject,
   RunView,
 } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
@@ -152,6 +153,7 @@ function registerRun(input: RegisterRunInput): RunHandle {
 
   const { identity } = run
   const title = toStartTitle(run, userMessage)
+  const subject = toStartSubject(run.env.subject)
   const hidden: Pick<BusEventMap['run_started'], 'hidden'> =
     run.env.answerVisibility === 'hidden' ? { hidden: true } : {}
 
@@ -163,6 +165,7 @@ function registerRun(input: RegisterRunInput): RunHandle {
     ...(identity.chatId === undefined ? {} : { chatId: identity.chatId }),
     ...(identity.parentRunId === undefined ? {} : { parentRunId: identity.parentRunId }),
     ...(title === undefined ? {} : { title }),
+    ...(subject === undefined ? {} : { subject }),
     ...hidden,
     startedAt: Date.now(),
   })
@@ -181,6 +184,12 @@ function toStartTitle(run: RunView, userMessage: string): string | undefined {
   }
 
   return toRunTitle(userMessage)
+}
+
+function toStartSubject(subject: RunSubject | undefined): RunSubject | undefined {
+  const name = subject === undefined ? undefined : toRunTitle(subject.name)
+
+  return subject !== undefined && name !== undefined ? { ...subject, name } : undefined
 }
 
 interface AdmissionInput {

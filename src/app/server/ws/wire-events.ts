@@ -2,6 +2,7 @@ import type { Channel, WireEvent } from '@/app/server/wire/events'
 import type { ProgressWire, RunStartWire } from '@/app/server/wire/live'
 import type { BusEventMap } from '@/core/events'
 import type { Locale } from '@/core/types/locale'
+import type { RunSubject } from '@/engine/api'
 import '@/app/events'
 
 import { APP_SOURCE, isApiChannel } from '@/app/server/channel'
@@ -289,8 +290,16 @@ export function toAgentRunWire(e: BusEventMap['run_started']): RunStartWire {
     channelId: e.channel,
     sessionId: e.sessionId,
     ...(e.parentRunId === undefined ? {} : { parentRunId: e.parentRunId }),
+    ...(e.subject === undefined ? {} : { subject: toSubjectWire(e.subject) }),
     ...(e.hidden === undefined ? {} : { hidden: e.hidden }),
     startedAt: e.startedAt,
+  }
+}
+
+function toSubjectWire(subject: RunSubject): NonNullable<RunStartWire['subject']> {
+  return {
+    ticker: subject.name,
+    ...(subject.scope === undefined ? {} : { market: subject.scope }),
   }
 }
 

@@ -82,6 +82,7 @@ export function createRunDebate(deps: DebateDeps): RunDebate {
       signal,
       market,
       request: input.request,
+      instrument: input.draft.instrument,
       instrumentKind: input.draft.instrumentKind,
       waves: DEBATE_MODE_WAVES[input.depth.mode],
       models: new Set<string>(),

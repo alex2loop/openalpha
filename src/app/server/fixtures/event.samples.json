@@ -34,6 +34,23 @@
     "v": 1,
     "kind": "run_started",
     "weight": "quiet",
+    "source": { "channel": "cli", "agentId": "suggest-bull" },
+    "runId": "run_bull",
+    "run": {
+      "kind": "agent",
+      "name": "suggest-bull",
+      "channelId": "cli",
+      "sessionId": "sess_91d",
+      "parentRunId": "run_abc",
+      "subject": { "ticker": "HPG", "market": "equity-vn" },
+      "hidden": true,
+      "startedAt": 1792480012000
+    }
+  },
+  {
+    "v": 1,
+    "kind": "run_started",
+    "weight": "quiet",
     "source": { "channel": "telegram", "agentId": "" },
     "runId": "cmd_4f1a",
     "run": {

@@ -188,6 +188,7 @@ function toAgentStart(e: BusEventMap['run_started']): OpenRun {
     channel: e.channel,
     sessionId: e.sessionId,
     ...(e.parentRunId === undefined ? {} : { parentRunId: e.parentRunId }),
+    ...(e.subject === undefined ? {} : { tickers: [e.subject.name] }),
     startedAt: e.startedAt,
   }
 }

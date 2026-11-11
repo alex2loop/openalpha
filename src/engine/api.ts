@@ -118,6 +118,7 @@ export type {
   RunResult,
   RunServices,
   RunState,
+  RunSubject,
   RunView,
   ToolExecutor,
   ToolExposure,
