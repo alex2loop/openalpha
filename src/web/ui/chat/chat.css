@@ -30,6 +30,10 @@
   margin: var(--s1) 10px;
 }
 
+.chat-panel > .stale-line {
+  margin: 0 10px var(--s1);
+}
+
 .chat-unread {
   position: absolute;
   top: 4px;

@@ -905,6 +905,7 @@
     "office.chat.drop": "Bỏ câu lệnh này",
     "office.chat.dropped": "Đã bỏ khỏi hàng chờ.",
     "office.chat.stopped": "Đã dừng. Phần đã làm được giữ trong nhật ký.",
+    "office.chat.cut": "Mất kết nối lúc {time} nên câu trả lời dừng giữa chừng. Phần đã làm được vẫn giữ trong nhật ký; khi trang kết nối lại, bạn gửi lại nhé.",
     "office.chat.addNote": "Bổ sung",
     "office.chat.steered": "Mình đã thêm ý này vào câu đang trả lời, nó đọc ở bước tiếp theo.",
     "office.chat.elapsed": "xong sau {seconds} giây",

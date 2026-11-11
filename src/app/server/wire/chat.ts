@@ -127,6 +127,9 @@ export interface ChatHistoryMessage {
   /** On an answer: the run that wrote it (an agent turn's run, or a long-running command's), whose
    *  model calls `GET /v1/runs/:id/calls` lists. Absent on the operator's own lines. */
   readonly runId?: string
+  /** On an answer whose run started other runs (a debate's roles, a spawned agent): its timeline
+   *  lists them. Absent when the run had none, and on the operator's own lines. */
+  readonly hasChildren?: true
   /** On an answer: an agent turn wrote it (a plain message's, or a command that handed its turn to
    *  an agent, `/research` among them), so it reads as prose. Absent on a command's own answer,
    *  which its daemon laid out as data, and on the operator's lines. */

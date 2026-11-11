@@ -11,6 +11,7 @@ import { AiLabel } from '@/web/ui/kit/ai-label'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
 import { CloseIcon, HistoryIcon, PlusIcon } from '@/web/ui/kit/icons'
+import { StaleLine } from '@/web/ui/kit/stale-line'
 
 import './chat.css'
 
@@ -33,6 +34,7 @@ export function ChatPanel() {
       {breakpoint.value === 'wide' && !isChatOnly.value && <ChatResizer />}
       <ChatHead />
       <AiLabel />
+      {viewed === undefined && <StaleLine lead="ui.office.stale.chat" />}
       {viewed === undefined ? (
         <MessageList />
       ) : (
