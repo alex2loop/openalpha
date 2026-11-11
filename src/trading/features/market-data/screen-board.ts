@@ -6,12 +6,14 @@ import type {
 } from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { Market } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { rankWithin } from '@/trading/markets/factor-scoring'
+import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const PERCENT = 100
 /** One reading has nothing to be placed against, so a factor that fired for fewer names has none. */
@@ -54,6 +56,22 @@ export async function resolveScreenKind(
 
     return {}
   }
+}
+
+/** Whether a name with no live quote is quoted for the screen: on a ranked board short enough to
+ *  quote whole, or when it is the one name asked for. A browse board prints settled closes. */
+export function isQuotedOnScreen(
+  candidate: ScreenCandidate,
+  request: MarketDataScreenRequest,
+  boardSize: number
+): boolean {
+  if (request.form === 'board') {
+    return false
+  }
+
+  return request.ticker === undefined
+    ? boardSize <= SURFACE_LIMITS.maximumScreenCandidates
+    : candidate.instrument.ticker === request.ticker
 }
 
 /** The view in the form the request asks for, kept to the one name a `ticker` asks for once the

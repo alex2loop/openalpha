@@ -61,7 +61,11 @@ import {
 } from '@/trading/features/market-data/reads/quotes'
 import { runSentiment } from '@/trading/features/market-data/reads/sentiment'
 import { resolveDay, searchInstruments } from '@/trading/features/market-data/resolve'
-import { resolveScreenKind, toRequestedView } from '@/trading/features/market-data/screen-board'
+import {
+  isQuotedOnScreen,
+  resolveScreenKind,
+  toRequestedView,
+} from '@/trading/features/market-data/screen-board'
 import { closedCandidate, pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -69,7 +73,6 @@ import { ECONOMY_FEED_SCOPE } from '@/trading/kernel/source/source-result'
 import { resolveMarketDay } from '@/trading/markets/calendar'
 import { convictionDriftCaveats } from '@/trading/markets/conviction-calibration'
 import { countByGate } from '@/trading/markets/screen-partition'
-import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const SCREEN_QUOTE_CONCURRENCY = 4
 /** A limit no board reaches: the market cuts to it after ranking, so it cuts nothing. */
@@ -309,19 +312,17 @@ async function withPrices(
     now: options.now,
     signal: options.signal,
   }
-  const isBoard = isBoardForm(options)
-  const fetchMissing = !isBoard && candidates.length <= SURFACE_LIMITS.maximumScreenCandidates
 
   return mapWithConcurrency(candidates, SCREEN_QUOTE_CONCURRENCY, async (candidate) => {
+    const isQuoted = isQuotedOnScreen(candidate, options, candidates.length)
     const quote =
-      candidate.liveQuote ??
-      (fetchMissing ? await quotedValue(scope, candidate.instrument) : undefined)
+      candidate.liveQuote ?? (isQuoted ? await quotedValue(scope, candidate.instrument) : undefined)
 
     if (quote !== undefined) {
       return pricedCandidate(candidate, quote, freshnessOf(scope, quote.observedAt, options.now))
     }
 
-    return isBoard ? closedCandidate(candidate, scope.calendar) : candidate
+    return isBoardForm(options) ? closedCandidate(candidate, scope.calendar) : candidate
   })
 }
 
