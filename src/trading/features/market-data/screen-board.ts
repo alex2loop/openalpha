@@ -1,3 +1,4 @@
+import type { MarketDataRunDeps } from '@/trading/features/market-data/market-data-run'
 import type {
   MarketDataScreenRequest,
   ScreenedCandidate,
@@ -5,6 +6,10 @@ import type {
 } from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { Market } from '@/trading/markets/types'
+import { isAbortError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
+import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { rankWithin } from '@/trading/markets/factor-scoring'
 
@@ -14,6 +19,42 @@ const MINIMUM_PEERS = 2
 /** The price levels a name's entry and stop are read from: a board that rates nothing and advises
  *  nothing never lists them. */
 const LEVEL_METRICS: ReadonlySet<FactorMetricId> = new Set(['breakout-trigger', 'trailing-low'])
+
+/** The kind the board is read on: the one asked, else the named ticker's own where the market
+ *  screens that kind, so a fund is found on the funds' board. A name that cannot be resolved reads
+ *  the market's first kind and comes back missing, as any absent name does. */
+export async function resolveScreenKind(
+  deps: Pick<MarketDataRunDeps, 'markets' | 'logger'>,
+  market: Market,
+  request: MarketDataScreenRequest
+): Promise<Pick<MarketDataScreenRequest, 'instrumentKind'>> {
+  const { instrumentKind, ticker, signal } = request
+
+  if (instrumentKind !== undefined || ticker === undefined) {
+    return instrumentKind === undefined ? {} : { instrumentKind }
+  }
+
+  try {
+    const resolved = await resolveInstrument(deps.markets, {
+      ticker,
+      market: request.market,
+      signal,
+    })
+    const own = resolved.kind === 'resolved' ? resolved.instrumentKind : undefined
+
+    return own !== undefined && market.manifest.screenableKinds?.includes(own) === true
+      ? { instrumentKind: own }
+      : {}
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error
+    }
+
+    deps.logger.warn('trading.screen_kind_unresolved', { ticker, err: formatErrForLog(error) })
+
+    return {}
+  }
+}
 
 /** The view in the form the request asks for, kept to the one name a `ticker` asks for once the
  *  board's places are read. */

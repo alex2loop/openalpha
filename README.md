@@ -335,6 +335,7 @@ Most everyday commands work on data already on your machine and never call the A
 | A question researched, with sources | `/research <question>` | yes (`quick` is the lightest depth) |
 | Themes forming in Vietnam | `/themes` | yes, at most $1 a run by default |
 | Rank a whole market | `/screen equity-vn 20` | no |
+| One name's key figures (P/E, liquidity, flows) | `/screen FPT` | no |
 | Follow a few names' prices | `/watchlist add FPT HPG` · `/watchlist` | no |
 | Load missing data for the markets you use (`force`: reload it all) | `/refresh` · `/refresh equity-vn force` | no |
 | Boards, macro, one price | `/market` · `/overview` · `/price FPT` | no |

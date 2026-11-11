@@ -58,32 +58,11 @@ function Facts({ ticker, market }: FactsProps) {
   )
 }
 
-// A market that lists more than one kind serves its first by default, so a fund is looked for on
-// the other kinds' boards before the name is called missing.
-async function readFacts(name: FactsProps, abort: AbortSignal): Promise<FactsRead> {
-  const first = await readBoard(name, undefined, abort)
-  let found = toFactsRead(first, name.ticker)
+// The board is read on the name's own kind, so a fund is found among the funds.
+async function readFacts({ ticker, market }: FactsProps, abort: AbortSignal): Promise<FactsRead> {
+  const board = await getJson(ROUTES.screen, { query: { market, ticker }, signal: abort })
 
-  for (const { kind } of first.kinds?.slice(1) ?? []) {
-    if (found.candidate !== undefined) {
-      break
-    }
-
-    found = toFactsRead(await readBoard(name, kind, abort), name.ticker)
-  }
-
-  return found
-}
-
-function readBoard(
-  { ticker, market }: FactsProps,
-  kind: string | undefined,
-  abort: AbortSignal
-): Promise<ScreenResponse> {
-  return getJson(ROUTES.screen, {
-    query: { market, ticker, ...(kind === undefined ? {} : { kind }) },
-    signal: abort,
-  })
+  return toFactsRead(board, ticker)
 }
 
 function toFactsRead(board: ScreenResponse, ticker: string): FactsRead {

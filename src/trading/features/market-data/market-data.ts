@@ -61,7 +61,7 @@ import {
 } from '@/trading/features/market-data/reads/quotes'
 import { runSentiment } from '@/trading/features/market-data/reads/sentiment'
 import { resolveDay, searchInstruments } from '@/trading/features/market-data/resolve'
-import { toRequestedView } from '@/trading/features/market-data/screen-board'
+import { resolveScreenKind, toRequestedView } from '@/trading/features/market-data/screen-board'
 import { closedCandidate, pricedCandidate } from '@/trading/features/market-data/screen-caution'
 import { unsupportedScreen, unsupportedSectors } from '@/trading/features/market-data/unsupported'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -197,7 +197,7 @@ async function runScreen(
     asOf,
     now: options.now,
     signal: options.signal,
-    ...(options.instrumentKind === undefined ? {} : { instrumentKind: options.instrumentKind }),
+    ...(await resolveScreenKind(deps, market, options)),
     ...(options.sectors === undefined ? {} : { sectors: options.sectors }),
   })
 

@@ -42,7 +42,7 @@ const BUY_RATINGS: ReadonlySet<ScreenRating> = new Set(['strong-buy', 'buy'])
 
 /** The market and its board convention travel as parameters because `ScreenResult` echoes neither,
  *  and a ranking without its market reads as a claim about the whole world. */
-interface ScreenRenderRequest {
+export interface ScreenRenderRequest {
   readonly market: MarketRef
   readonly context: RenderContext
   readonly display?: PriceDisplay
@@ -348,7 +348,7 @@ function renderBoardUnitLine(
 
 /** A board that prints bare prices says what they are in, once: the board's scale where the market
  *  has one, else its currency. */
-function renderPriceUnitLine(
+export function renderPriceUnitLine(
   locale: Locale,
   request: ScreenRenderRequest,
   result: ScreenResult
@@ -367,7 +367,8 @@ function renderPriceUnitLine(
   ]
 }
 
-function boardOf(request: ScreenRenderRequest, result: ScreenResult): ScreenBoard {
+/** What each row of the board is read against: its currency, price scale, clock and session. */
+export function boardOf(request: ScreenRenderRequest, result: ScreenResult): ScreenBoard {
   return {
     currency: result.currency,
     display: request.display,
