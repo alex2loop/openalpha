@@ -43,7 +43,11 @@ const BARREL_FILES: ReadonlySet<string> = new Set(['api.ts', 'node-api.ts', 'ind
 const BARREL_WAIVER = 'lint/performance/noBarrelFile'
 
 // Public facades AGENTS.md keeps deliberately callerless. `path#name`.
-const KNOWN_UNUSED: ReadonlySet<string> = new Set<string>([])
+const KNOWN_UNUSED: ReadonlySet<string> = new Set<string>([
+  // The run timeline's model and read wait for the strip that draws them; delete both then.
+  'src/web/ui/run/timeline/load-timeline.ts#loadTimeline',
+  'src/web/ui/run/timeline/timeline-model.ts#buildTimeline',
+])
 
 const DECLARATION_RE =
   /^export\s+(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?(?:function|const|let|class|interface|type|enum)\s+(\w+)/gm

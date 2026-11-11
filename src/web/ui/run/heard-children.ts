@@ -42,7 +42,7 @@ interface Hearing {
 }
 
 /** The key a role's words are kept under. */
-function toSaidKey(ticker: string, role: string): string {
+export function toSaidKey(ticker: string, role: string): string {
   return `${ticker}:${role}`
 }
 
