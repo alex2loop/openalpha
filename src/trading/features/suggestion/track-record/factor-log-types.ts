@@ -103,7 +103,7 @@ export interface FactorLogCaptureResult {
     readonly reason: FactorLogSkipReason
     /** Set for `capture-failed`: what the market's capture threw. */
     readonly error?: unknown
-    /** Set for `universe-empty` and `evidence-lagging`: the session the board was asked for. */
+    /** Set for every reason but `capture-failed`: the settled session the capture asked for. */
     readonly day?: TradingDay
     /** Set for `evidence-lagging`: the newest session the evidence reached. */
     readonly dataThroughDay?: TradingDay

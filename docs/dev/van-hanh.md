@@ -50,6 +50,14 @@ Lượt để bất kỳ loại dữ liệu nào ở `unavailable` (không lấy
 không bao giờ quá neo kế tiếp; lần hỏng thứ năm trả việc về cho neo và chuỗi bắt đầu lại. Lượt `partial`
 thì chờ neo kế tiếp.
 
+Lượt refresh theo lịch bị operator dừng từ danh sách phiên chạy được tính là lượt hỏng và đi theo cùng
+chuỗi thử lại: lần thử lại đầu chạy sau 2 phút, không chờ đến neo kế tiếp. Lượt này mang theo khâu chụp
+bảng yếu tố của ngày (`createFactorLogTick`, sau khi làm mới và ghi dòng NAV), mà khâu chụp chỉ hỏi phiên
+đã chốt gần nhất, nên một lượt mất vì bị dừng sẽ làm mất bảng của ngày đó vĩnh viễn. Tắt dịch vụ nền vẫn
+dừng vòng lặp. Khâu chụp ghi `trading.factor_log_captured` khi có dòng được ghi, và ở mức debug
+`trading.factor_log_no_screen` cùng `trading.factor_log_already_captured`, mỗi dòng kèm thị trường và ngày
+phiên, để lần theo một ngày bị thiếu; bảng chậm hoặc rỗng thì cảnh báo `trading.factor_log_capture_deferred`.
+
 ### Phân loại lỗi của một lượt
 
 `runTick` phân loại lỗi được ném ra:
@@ -59,7 +67,7 @@ thì chờ neo kế tiếp.
 | `StorageError`, `ChannelError`, `LLMError`, hoặc `RunHalted` với mã `budget` hay `rate` | Lỗi biên: `trading.tick_failed` ở mức warn, thử lại ở chu kỳ sau. |
 | `MissingEnvError` | Lỗi biên: `trading.tick_key_missing` ở mức warn, một lần mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở chu kỳ sau. |
 | Mọi lỗi khác | Thoát lên lớp cách ly bọc quanh vòng lặp. Thử lại mãi chỉ che giấu việc mã đang sai. |
-| Hủy | Là lúc tắt máy khi chính tín hiệu của vòng lặp bị hủy; vòng lặp thoát bình thường. Lệnh hủy khác (bạn dừng phiên chạy của lượt đó trên trang) ghi `trading.tick_stopped` ở mức info và chờ chu kỳ sau. |
+| Hủy | Là lúc tắt máy khi chính tín hiệu của vòng lặp bị hủy; vòng lặp thoát bình thường. Lệnh hủy khác (bạn dừng phiên chạy của lượt đó trên trang) ghi `trading.tick_stopped` ở mức info và chờ theo độ trễ kế tiếp của tác vụ: chu kỳ thường, hoặc với `trading.refresh` là chuỗi thử lại bên dưới. |
 
 Lớp cách ly (`withQuarantine`) ghi `trading.loop_quarantined` ở mức error và gửi operator một thông báo
 gọi tên vòng đó. Nó chạy lại vòng sau một giờ, tối đa ba lần. Vòng nào chạy trọn một ngày rồi mới lỗi

@@ -20,6 +20,8 @@ type Call = Extract<SuggestionWire, { readonly action: 'buy' | 'reduce' }>
 
 interface PastRead {
   readonly calls: readonly Call[]
+  /** The read hit its row limit, so older calls may exist beyond the ones counted. */
+  readonly capped: boolean
   /** The name's record as the daemon draws it: repeats folded, matured calls only. */
   readonly summary: TradingTrackRecordResponse['summary']
 }
@@ -36,6 +38,7 @@ export function PastCalls({ ticker, market }: PastCallsProps) {
     capability: ROUTES.suggestions.capability,
   })
   const count = reading.data?.calls.length
+  const capped = reading.data?.capped === true
 
   return (
     <BlockFrame
@@ -43,24 +46,22 @@ export function PastCalls({ ticker, market }: PastCallsProps) {
       colour="gray"
       icon={<ClockIcon />}
       reading={reading}
-      action={count === undefined || count === 0 ? undefined : <PastCount count={count} />}
+      action={
+        count === undefined || count === 0 ? undefined : <PastCount count={count} capped={capped} />
+      }
     >
       {({ calls, summary }) => <PastBody calls={calls} summary={summary} />}
     </BlockFrame>
   )
 }
 
-function PastCount({ count }: { readonly count: number }) {
-  return (
-    <span class="meta">
-      {tr(pluralKey(count, 'ui.office.ticker.pastCountOne', 'ui.office.ticker.pastCount'), {
-        count,
-      })}
-    </span>
-  )
+function PastCount({ count, capped }: { readonly count: number; readonly capped: boolean }) {
+  const key = pluralKey(count, 'ui.office.ticker.pastCountOne', 'ui.office.ticker.pastCount')
+
+  return <span class="meta">{tr(key, { count: capped ? `${count}+` : count })}</span>
 }
 
-function PastBody({ calls, summary }: PastRead) {
+function PastBody({ calls, summary }: Pick<PastRead, 'calls' | 'summary'>) {
   if (calls.length === 0) {
     return <p class="meta">{tr('ui.office.ticker.noPlan')}</p>
   }
@@ -134,7 +135,11 @@ function readPast(ticker: string, market: string): (abort: AbortSignal) => Promi
       getJson(ROUTES.trackRecord, { query: { market, ticker }, signal: abort }),
     ])
 
-    return { calls: rows.suggestions.filter(isCall), summary: record.summary }
+    return {
+      calls: rows.suggestions.filter(isCall),
+      capped: rows.suggestions.length >= PAST_READ,
+      summary: record.summary,
+    }
   }
 }
 

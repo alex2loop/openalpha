@@ -220,7 +220,8 @@ type TickOutcome =
 /** `stop` means shutdown. A boundary failure is logged and retried on the next interval; an invariant
  *  failure escapes to the quarantine around the loop rather than spinning forever getting the same
  *  thing wrong; an abort is shutdown only when the loop's own signal fired. An operator stopping the
- *  pass's run ends that pass, and the loop waits for the next interval. An unset key is said once until the loop logs
+ *  pass's run ends that pass and the loop waits the task's next delay; a task that wants the pass
+ *  retried sooner says so through that delay. An unset key is said once until the loop logs
  *  anything else: every tick in between would only repeat it. */
 async function runTick(
   spec: LoopSpec,
