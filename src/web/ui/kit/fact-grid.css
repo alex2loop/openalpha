@@ -11,10 +11,15 @@
   break-inside: avoid;
 }
 
+/* Room above each group after the first marks where one ends and the next begins. */
+.fact-group + .fact-group {
+  padding-top: var(--s2);
+}
+
 .fact-heading {
   margin: 0 0 2px;
   color: var(--ink);
-  font: var(--typeCaptionStrong);
+  font: var(--typeHeading);
 }
 
 .fact-list {
