@@ -5452,7 +5452,7 @@
     "quote-unit.currency-per-coin": "{currency}/coin",
     "quote-unit.currency-per-troy-ounce": "{currency}/oz",
     "quote-unit.currency-per-luong": "{currency}/lượng",
-    "render.freshness.live": "hiện tại {time}",
+    "render.freshness.live": "lúc {time}",
     "render.freshness.close": "đóng cửa {day}",
     "render.layout.asOf": "số liệu ngày {day}",
     "render.layout.provenance": "Số liệu từ {sources}, cập nhật lúc {at}",
