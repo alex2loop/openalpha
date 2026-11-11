@@ -11,6 +11,7 @@ import { joinInline } from '@/web/text/glyphs'
 import { formatClock, formatDuration } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import {
+  busyMs,
   isRunningSpan,
   type RunStretch,
   type TimelineGroup,
@@ -303,19 +304,15 @@ function describeLane(lane: TimelineLane, timeZone: string | undefined): string 
   return joinInline([...start, describeWork(lane.spans), ...cost])
 }
 
-// Still working, else the time its finished runs took; "not known" when none of them has an end.
+// Still working, else the time it was busy; "not known" when none of its runs has an end.
 function describeWork(spans: readonly TimelineSpan[]): string {
   if (spans.some(isRunningSpan)) {
     return tr('ui.office.timeline.working')
   }
 
-  const ended = spans.flatMap((span) =>
-    span.endedAt === undefined ? [] : [span.endedAt - span.startedAt]
-  )
+  const busy = busyMs(spans)
 
-  return ended.length === 0
-    ? tr('ui.office.timeline.endUnknown')
-    : formatDuration(ended.reduce((sum, took) => sum + took, 0))
+  return busy === undefined ? tr('ui.office.timeline.endUnknown') : formatDuration(busy)
 }
 
 function describeStretch(

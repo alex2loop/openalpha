@@ -226,6 +226,27 @@ export function isRunningSpan(span: TimelineSpan): boolean {
   return span.endedAt === undefined && span.isEndUnknown !== true
 }
 
+/** How long a lane was busy: its ended runs' intervals with overlaps counted once; absent when none ended. */
+export function busyMs(spans: readonly TimelineSpan[]): number | undefined {
+  const intervals = spans
+    .flatMap(({ startedAt, endedAt }) => (endedAt === undefined ? [] : [{ startedAt, endedAt }]))
+    .toSorted((a, b) => a.startedAt - b.startedAt)
+
+  if (intervals.length === 0) {
+    return undefined
+  }
+
+  let busy = 0
+  let reach = -Infinity
+
+  for (const { startedAt, endedAt } of intervals) {
+    busy += Math.max(0, endedAt - Math.max(startedAt, reach))
+    reach = Math.max(reach, endedAt)
+  }
+
+  return busy
+}
+
 // The run's own start and end when known, else the children's; a running end is the page clock.
 function toAxis(root: TimelineRoot | undefined, entries: readonly Entry[], nowMs?: number): Axis {
   const starts = entries.map(({ span }) => span.startedAt)

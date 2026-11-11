@@ -18,9 +18,10 @@ export interface TaskStatusWire {
   readonly nextRunAt?: number
   /** A pass is running now. */
   readonly working: boolean
-  /** The pass shows as a run in `/v1/live` while it works, so a list of what is running names it
-   *  there and not again here. Absent otherwise. */
-  readonly shownAsRun?: true
+  /** The name of the command run `/v1/live` lists for the part of the pass that fetches, so a list
+   *  of what is running counts that run and not this task while it is listed. The rest of the pass
+   *  (the snapshots after the fetch) has no run, so the task counts then. Absent otherwise. */
+  readonly shownAsRun?: string
 }
 
 /** The intraday report: `enabled` is the operator's switch, and `nextAt` the next fire in epoch ms,

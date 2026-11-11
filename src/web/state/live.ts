@@ -65,10 +65,12 @@ export const backgroundTasks: ReadonlySignal<readonly TaskStatusWire[] | undefin
  *  verdict (`offline` or `full`) after a live drop, to the instant it left `live`; moved forward by a
  *  snapshot applied while not live; cleared by a snapshot applied on a live socket. */
 export const staleSince: ReadonlySignal<number | undefined> = staleAt
-/** Background tasks in a pass right now, but for a pass the Running list already shows as a run. */
-export const workingTasks = computed(
-  () => taskList.value?.filter((task) => task.working && task.shownAsRun !== true) ?? []
-)
+/** Background tasks in a pass right now, but for one whose run the Running list is showing. */
+export const workingTasks = computed(() => {
+  const shown = runList.value.filter((run) => !run.hidden)
+
+  return taskList.value?.filter((task) => task.working && !isShownAsRun(task, shown)) ?? []
+})
 
 /** The socket gave its verdict after a live drop; a drop already known keeps its earlier instant. */
 export function noteFeedDropped(leftLiveAt: number): void {
@@ -85,6 +87,12 @@ export function noteFeedRead(at: number): void {
 /** A snapshot applied on a live socket, or a feed that is over: nothing is stale. */
 export function noteFeedCurrent(): void {
   staleAt.value = undefined
+}
+
+function isShownAsRun(task: TaskStatusWire, shown: readonly Run[]): boolean {
+  const { shownAsRun } = task
+
+  return shownAsRun !== undefined && shown.some((run) => isCommandRun(run, shownAsRun))
 }
 
 /** A run of the slash command `name`, which its run carries without the slash. */

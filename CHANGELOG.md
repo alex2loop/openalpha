@@ -35,6 +35,10 @@ The office page now shows who worked on each run and for how long, with what eac
 - Stop is greyed out while the page cannot reach OpenAlpha.
 - A data refresh stopped halfway is tried again within minutes, so a day's factor board is no longer lost.
 - At start the office page shows one data refresh in the running list, not three.
+- A person's time in "Who did what" is how long they were busy, so many helpers at once can no longer add up to more than the whole run.
+- In "Who did what" on a run over several names, typing text that matches no name says so instead of showing another name's steps.
+- With the chat and the information panel both open, the "not sure what everyone is doing" note is centred on the free part of the office instead of hiding under the panel.
+- People outside the debate (the assistant, the research helpers, the theme analyst) show their names, not raw ids, in "Who did what", the cost list and the AI calls.
 - A repeated "reasoning not supported" warning is logged once for each provider, model and reasoning setting, not on every request.
 
 ## [1.5.1] - 2026-11-11

@@ -186,19 +186,27 @@ interface LanesProps {
 }
 
 // A batch has one group per name: the picker shows one at a time, and a group with no name (a
-// spawned child) always shows.
+// spawned child) always shows. Text that is not yet a whole name shows no name's lanes, only a cue.
 function Lanes({ runId, view, typed, tickers }: LanesProps) {
   const subjects = listSubjects(view.groups)
-  const chosen = subjects.length < 2 ? undefined : pickSubject(subjects, typed.value)
-  const shown = view.groups.filter(
-    (group) =>
-      chosen === undefined || group.subject === undefined || group.subject.ticker === chosen
-  )
+  const hasPicker = subjects.length > 1
+  const picked = hasPicker ? pickSubject(subjects, typed.value) : undefined
+  const shown = hasPicker
+    ? view.groups.filter((group) => group.subject === undefined || group.subject.ticker === picked)
+    : view.groups
 
   return (
     <>
-      {chosen !== undefined && (
-        <SubjectPicker runId={runId} subjects={subjects} chosen={chosen} typed={typed} />
+      {hasPicker && (
+        <SubjectPicker
+          runId={runId}
+          subjects={subjects}
+          value={typed.value ?? picked ?? ''}
+          typed={typed}
+        />
+      )}
+      {hasPicker && picked === undefined && (
+        <p class="empty-note">{toSubjectCue(subjects, typed.value ?? '')}</p>
       )}
       <TimelineLanes
         view={view}
@@ -213,11 +221,11 @@ function Lanes({ runId, view, typed, tickers }: LanesProps) {
 interface PickerProps {
   readonly runId: string
   readonly subjects: readonly Subject[]
-  readonly chosen: string
+  readonly value: string
   readonly typed: Signal<string | undefined>
 }
 
-function SubjectPicker({ runId, subjects, chosen, typed }: PickerProps) {
+function SubjectPicker({ runId, subjects, value, typed }: PickerProps) {
   const text = tr('ui.office.timeline.subjects', { count: subjects.length })
 
   return (
@@ -226,10 +234,10 @@ function SubjectPicker({ runId, subjects, chosen, typed }: PickerProps) {
       <Combobox
         id={`timeline-subject-${runId}`}
         label={text}
-        value={typed.value ?? chosen}
+        value={value}
         options={subjects.map((subject) => subject.ticker)}
-        onInput={(value) => {
-          typed.value = value
+        onInput={(input) => {
+          typed.value = input
         }}
       />
     </div>
@@ -249,11 +257,26 @@ function listSubjects(groups: readonly TimelineGroup[]): readonly Subject[] {
   )
 }
 
-// What was typed when it names a group, else the first name still running, else the first.
-function pickSubject(subjects: readonly Subject[], typed: string | undefined): string {
-  const wanted = typed?.trim().toLowerCase()
-  const match = subjects.find((subject) => subject.ticker.toLowerCase() === wanted)
-  const fallback = subjects.find((subject) => subject.isRunning) ?? subjects[0]
+// Nothing typed picks the first name still running, else the first; typed text picks the name it
+// spells whole, and is undefined for text that spells none.
+function pickSubject(subjects: readonly Subject[], typed: string | undefined): string | undefined {
+  const wanted = typed?.trim().toLowerCase() ?? ''
 
-  return (match ?? fallback)?.ticker ?? ''
+  if (wanted === '') {
+    return (subjects.find((subject) => subject.isRunning) ?? subjects[0])?.ticker
+  }
+
+  return subjects.find((subject) => subject.ticker.toLowerCase() === wanted)?.ticker
+}
+
+// Text that starts a name the list holds asks for a pick; text no name holds says so.
+function toSubjectCue(subjects: readonly Subject[], typed: string): string {
+  const query = typed.trim()
+  const isPartial = subjects.some((subject) =>
+    subject.ticker.toLowerCase().includes(query.toLowerCase())
+  )
+
+  return isPartial
+    ? tr('ui.office.timeline.subjectPick')
+    : tr('ui.office.timeline.subjectNone', { query })
 }

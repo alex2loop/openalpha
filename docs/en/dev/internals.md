@@ -466,9 +466,11 @@ maintenance never wait for it.
 
 That pass runs through `runScheduled`, so it shows on the page as one `refresh` run. The task board
 (`taskStatus`) reports the loop under `trading.refresh` as working for the same pass; its row would say
-the same work twice in the Running list and the header chip, so `TaskStatusWire.shownAsRun` marks the
-tasks whose pass the page already lists as a run, and `workingTasks` leaves them out. The upkeep list
-still shows the loop as running.
+the same work twice in the Running list and the header chip, so `TaskStatusWire.shownAsRun` names the
+run that shows the task's fetch, and `workingTasks` leaves the task out only while a run of that name
+is listed. The snapshots the pass takes after the fetch have no run, so the task counts then, and the
+chip and the Running list agree throughout (both read `workingTasks`). The upkeep list still shows the
+loop as running.
 
 The daemon task
 hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on

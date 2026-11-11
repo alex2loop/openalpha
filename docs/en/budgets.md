@@ -136,7 +136,7 @@ The [office page](operations.md#the-office-page) keeps cost in view without a co
   - Only the latest 200 calls are listed. The head still counts them all.
   - A command that cost more than its usual estimate says so.
   - The fold reads stored figures and costs nothing, and none of it is ever shown to a model.
-- **Per person.** A run that handed work to several people also has a closed "Who did what" fold. Each person's line gives how long they took and what they cost, and one more line gives the rest of the run's calls, such as reading the headlines, so the parts add up to the run's total. It reads the same stored figures as the activity list and costs nothing. These figures are for you only: they are never sent to a model or written into a chat, and the web version shows times without cost.
+- **Per person.** A run that handed work to several people also has a closed "Who did what" fold. Each person's line gives how long they were busy and what they cost, and one more line gives the rest of the run's calls, such as reading the headlines, so the parts add up to the run's total. It reads the same stored figures as the activity list and costs nothing. These figures are for you only: they are never sent to a model or written into a chat, and the web version shows times without cost.
 
 ## How a call gets admitted
 

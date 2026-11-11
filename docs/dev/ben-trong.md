@@ -482,9 +482,11 @@ nền. Trò chuyện, bộ lập lịch, kênh và bảo trì không bao giờ c
 
 Lượt đó chạy qua `runScheduled`, nên hiện trên trang thành một phiên chạy `refresh`. Bảng tác vụ
 (`taskStatus`) báo vòng này là đang chạy dưới tên `trading.refresh` cho đúng lượt đó; dòng của nó sẽ nói
-cùng một việc hai lần trong danh sách Đang chạy và chip đầu trang, nên `TaskStatusWire.shownAsRun` đánh
-dấu các tác vụ mà trang đã liệt kê lượt của chúng thành một phiên chạy, và `workingTasks` bỏ chúng đi.
-Danh sách việc tự chạy vẫn hiện vòng này là đang chạy.
+cùng một việc hai lần trong danh sách Đang chạy và chip đầu trang, nên `TaskStatusWire.shownAsRun` nêu
+tên phiên chạy hiện phần tải dữ liệu của tác vụ, và `workingTasks` chỉ bỏ tác vụ đi khi một phiên chạy
+tên đó đang được liệt kê. Các ảnh chụp mà lượt chạy lấy sau phần tải không có phiên chạy riêng, nên lúc
+đó tác vụ được tính, và chip với danh sách Đang chạy luôn khớp nhau (cả hai đọc `workingTasks`). Danh
+sách việc tự chạy vẫn hiện vòng này là đang chạy.
 
 Tác vụ dịch vụ nền đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của

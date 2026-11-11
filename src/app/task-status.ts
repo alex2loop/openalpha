@@ -35,10 +35,11 @@ const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
   ['workflows', 'ui.task.workflows'],
 ])
 
-// Tasks whose pass the Running list already shows as a run, so a task row would say it twice:
-// `trading.refresh` goes through `runScheduled`. The briefs and the intraday report open no run
-// (a brief's debate roles run hidden), so they stay task rows.
-const SHOWN_AS_RUN: ReadonlySet<string> = new Set(['trading.refresh'])
+// Tasks whose pass the Running list shows as a command run while it fetches, by the run's name, so
+// a task row would say it twice then: `trading.refresh` goes through `runScheduled` as `refresh`.
+// The briefs and the intraday report open no run (a brief's debate roles run hidden), so they stay
+// task rows.
+const SHOWN_AS_RUN: ReadonlyMap<string, string> = new Map([['trading.refresh', 'refresh']])
 
 interface TaskEntry {
   readonly everyMs?: number
@@ -125,12 +126,13 @@ function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPas
 
 function toStatusWire(locale: Locale, name: string, entry: TaskEntry): TaskStatusWire {
   const key = LABEL_KEYS.get(name)
+  const shownAsRun = SHOWN_AS_RUN.get(name)
 
   return {
     name,
     label: key === undefined ? name : t(locale, key),
     ...entry,
-    ...(SHOWN_AS_RUN.has(name) ? { shownAsRun: true } : {}),
+    ...(shownAsRun === undefined ? {} : { shownAsRun }),
   }
 }
 
