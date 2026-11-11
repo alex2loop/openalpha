@@ -109,6 +109,7 @@ async function resolveExplicit(
     }
   }
 
+  const searched = [options.market]
   const notListed: Caveat = {
     code: 'market.ticker-not-listed',
     detail: { ticker: options.ticker, market: options.market },
@@ -117,11 +118,11 @@ async function resolveExplicit(
   // The same filter the unqualified path runs before dispatching: naming the market chooses which
   // detector answers, never whether the market would list the ticker at all.
   if (market.candidacy(options.ticker) === 'impossible') {
-    return unresolved(options.ticker, [notListed])
+    return unresolved(options.ticker, [notListed], searched)
   }
 
   if (!isAskable(market, options)) {
-    return unresolved(options.ticker, [])
+    return unresolved(options.ticker, [], searched)
   }
 
   const entry = await detectSafely(market, options)
@@ -132,7 +133,11 @@ async function resolveExplicit(
   }
 
   // A detector that could not answer is "not today"; only a clean miss is "not listed".
-  return unresolved(options.ticker, entry.caveats.length === 0 ? [notListed] : entry.caveats)
+  return unresolved(
+    options.ticker,
+    entry.caveats.length === 0 ? [notListed] : entry.caveats,
+    searched
+  )
 }
 
 /** A stored-only ask makes no network request, so a market that fetches is not asked. */
@@ -140,7 +145,13 @@ function isAskable(market: Market, options: ResolveMarketOptions): boolean {
   return options.detection !== 'stored' || market.manifest.detection === 'stored'
 }
 
-function unresolved(candidate: Ticker, caveats: readonly Caveat[]): MarketResolution {
+/** `searched` is the markets the miss was read against, so an unknown name says where it was not
+ *  found rather than leaving the reader to guess from a venue's own note. */
+function unresolved(
+  candidate: Ticker,
+  caveats: readonly Caveat[],
+  searched: readonly MarketRef[]
+): MarketResolution {
   if (caveats.some((caveat) => INCONCLUSIVE_CODES.has(caveat.code))) {
     return { kind: 'unavailable', ticker: candidate, caveats }
   }
@@ -152,7 +163,13 @@ function unresolved(candidate: Ticker, caveats: readonly Caveat[]): MarketResolu
     ticker: candidate,
     caveats: explained
       ? caveats
-      : [...caveats, { code: 'market.ticker-unknown', detail: { ticker: candidate } }],
+      : [
+          ...caveats,
+          {
+            code: 'market.ticker-unknown',
+            detail: { ticker: candidate, markets: searched.join(', ') },
+          },
+        ],
   }
 }
 
@@ -237,7 +254,7 @@ async function resolve(
   const caveats = detections.flatMap((entry) => entry.caveats)
 
   if (matches.length === 0) {
-    return unresolved(options.ticker, missCaveats(detections))
+    return unresolved(options.ticker, missCaveats(detections), searchedIn(markets, options))
   }
 
   const [first] = matches
@@ -262,16 +279,27 @@ async function resolve(
   }
 }
 
+function searchedIn(
+  markets: readonly Market[],
+  options: ResolveMarketOptions
+): readonly MarketRef[] {
+  return inScope(markets, options).map((market) => market.manifest.id)
+}
+
+function inScope(markets: readonly Market[], options: ResolveMarketOptions): readonly Market[] {
+  return markets.filter(
+    (market) => options.within === undefined || options.within.includes(market.manifest.id)
+  )
+}
+
 /** The synchronous filter runs first so an unqualified ticker never reaches an async detector.
  *  `impossible` means the detector would not have matched, so skipping cannot change the winner. */
 function possibleMarkets(
   markets: readonly Market[],
   options: ResolveMarketOptions
 ): readonly Market[] {
-  return markets.filter(
-    (market) =>
-      (options.within === undefined || options.within.includes(market.manifest.id)) &&
-      market.candidacy(options.ticker) === 'possible'
+  return inScope(markets, options).filter(
+    (market) => market.candidacy(options.ticker) === 'possible'
   )
 }
 

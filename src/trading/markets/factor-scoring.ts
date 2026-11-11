@@ -12,6 +12,7 @@ import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import { ValidationError } from '@/core/errors'
 import { EXTREME_SCORE_AT, MILD_SCORE_AT } from '@/trading/kernel/conviction'
+import { YIELD_RANKED_FACTOR_IDS } from '@/trading/kernel/factor'
 
 export const FACTOR_SCORING_VERSION = '1.0.0'
 
@@ -230,11 +231,7 @@ function scoreOneFactor<K extends FactorId>(
 
   // A missing input keeps its row — omitting it would make "we could not compute this" look
   // identical to "this factor is not part of the market" — but never joins the fired set.
-  const shared = {
-    id: input.id,
-    ...(input.metrics === undefined ? {} : { metrics: input.metrics }),
-    provenance: input.provenance,
-  }
+  const shared = rowOf(input, policy.normalization[input.id])
 
   if (input.raw === undefined || !Number.isFinite(input.raw)) {
     if (input.inapplicable === true) {
@@ -268,6 +265,26 @@ function scoreOneFactor<K extends FactorId>(
       caveats: input.caveats,
     },
   }
+}
+
+function rowOf<K extends FactorId>(input: FactorInput<K>, normalization: FactorNormalization) {
+  return {
+    id: input.id,
+    ...(input.metrics === undefined ? {} : { metrics: input.metrics }),
+    ...(scoreOpposesReading(input.id, normalization) ? { opposesReading: true as const } : {}),
+    provenance: input.provenance,
+  }
+}
+
+/** Whether a higher score is a lower reading, so a board that places a name by its reading takes the
+ *  complement of the score's place. Linear carries its direction in the order of its bounds. */
+function scoreOpposesReading(id: FactorId, normalization: FactorNormalization): boolean {
+  const ranksInverted =
+    normalization.kind === 'linear'
+      ? normalization.bullishAt < normalization.bearishAt
+      : normalization.direction === 'lower-is-bullish'
+
+  return ranksInverted !== YIELD_RANKED_FACTOR_IDS.has(id)
 }
 
 /** Five verbal buckets over the shared [-1, 1] scale, so an operator reads a word instead of a raw

@@ -53,7 +53,7 @@ sau khi khởi động lại mỗi vòng chưa hiện gì cho đến phiên ch�
 `trading.refresh` không chạy theo đồng hồ đều đặn. Nó chạy ở mốc **sớm nhất** trong:
 
 - ngay sau khi phiên của từng thị trường đóng và bảng giá đã chốt;
-- 90 phút trước giờ mở của từng thị trường, để bản tin và bảng lọc đọc dữ liệu đã làm ấm sẵn (bản
+- 90 phút trước giờ mở của từng thị trường, để bản tin và Màn lọc đọc dữ liệu đã làm ấm sẵn (bản
   tin sớm nhất gửi 08:15, trước giờ mở 09:00 hoặc 09:30);
 - chu kỳ đã cấu hình, chỉ là một cái trần.
 
@@ -703,14 +703,14 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     [Giao dịch](giao-dich.md#trên-trang-văn-phòng)).
   - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên thị trường, tin tức và các chủ đề của bạn (ở
     dưới).
-  - *Đề xuất* gồm các kế hoạch đang mở, màn hình cơ hội, thành tích và kết quả nghiên cứu, kèm số đề
+  - *Đề xuất* gồm các kế hoạch đang mở, Màn lọc, thành tích và kết quả nghiên cứu, kèm số đề
     xuất mới bạn chưa xem.
   - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: mã kèm ngành bên cạnh khi thị trường có xếp ngành, giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
     mã đó; bảng giá của đại lý như vàng VN thêm giá mua vào, giá bán ra và chênh lệch), mức thấp nhất,
     cao nhất và khối lượng của phiên (của phiên đang chạy khi giá là giá trực tiếp, nếu không thì của
     phiên đã chốt gần nhất, có ghi ngày), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng
     các mức của kế hoạch, mã bạn đang giữ, "Chỉ số chính" (P/E, thanh khoản, dòng tiền và vị trí của
-    mã so với cả bảng, bày giống hệt một dòng ở Màn lọc; mã không lọt vào bảng lọc thì có một dòng nói
+    mã so với cả bảng, bày giống hệt một dòng ở Màn lọc; mã không lọt vào Màn lọc thì có một dòng nói
     vì sao chưa có chỉ số; chỉ số và hợp đồng tương lai không có khối này), "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
     Dưới các mức của kế hoạch là "Đang chờ điều gì" (điều kiện người giao dịch còn chờ trước khi vào
     lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục
