@@ -11,7 +11,7 @@ import type {
   SuggestionOutcome,
 } from '@/trading/features/suggestion/types'
 import type { UnscoredStatus } from '@/trading/kernel/conviction'
-import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
@@ -325,6 +325,8 @@ export interface CoverageOptions {
   readonly focusKeys?: readonly FocusKey[]
   /** Only one version's rows, so the counts describe the population a version's rates read. */
   readonly strategyVersion?: string
+  /** Only this name's rows. Omitted, the whole book is counted. */
+  readonly instrument?: InstrumentRef
   readonly signal: AbortSignal
 }
 
@@ -349,6 +351,14 @@ export async function coverage(
     options.strategyVersion === undefined
       ? ` AND ${LATEST_OF_SAME_CALL_SQL}`
       : ` AND strategy_version = ${deps.dialect.param(params.length)}`
+  let instrumentFilter = ''
+
+  if (options.instrument !== undefined) {
+    params.push(options.instrument.market, options.instrument.ticker)
+    instrumentFilter =
+      ` AND market = ${deps.dialect.param(params.length - 1)}` +
+      ` AND ticker = ${deps.dialect.param(params.length)}`
+  }
 
   // Actionable only, restating the table's own CHECK: a hold carries no entry to score against.
   // `CASE` rather than a bare `return_pct IS NULL` column, which reads back as 0/1 on sqlite and as
@@ -362,7 +372,7 @@ export async function coverage(
     'SELECT market, outcome_status, ' +
       'CASE WHEN return_pct IS NULL THEN 1 ELSE 0 END AS unscored, COUNT(*) AS count ' +
       `FROM suggestions WHERE action <> 'hold'${focusFilter}` +
-      `${versionFilter} GROUP BY market, outcome_status, unscored`,
+      `${versionFilter}${instrumentFilter} GROUP BY market, outcome_status, unscored`,
     params
   )
 

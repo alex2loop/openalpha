@@ -854,7 +854,7 @@
     "office.team.childrenFolding": "Collecting results: {partial} unfinished, {stopped} stopped - combining with what I have",
     "office.command.placeholder": "Ask, give work, type a ticker for its price or / for commands",
     "office.command.placeholderWeb": "Ask me about the market, type a ticker for its price or / for commands",
-    "office.command.placeholderPhone": "Ask, type a ticker or /",
+    "office.command.placeholderPhone": "Ask, type a ticker or /command",
     "office.command.hint": "Type to ask, type a ticker to look it up, type / or press Tab to see commands. The up arrow recalls what you sent.",
     "office.command.keys": "Tab completes - Enter sends - up and down choose - Esc closes",
     "office.command.suggestions": "Suggestions",

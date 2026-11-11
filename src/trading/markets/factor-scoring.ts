@@ -271,14 +271,14 @@ function rowOf<K extends FactorId>(input: FactorInput<K>, normalization: FactorN
   return {
     id: input.id,
     ...(input.metrics === undefined ? {} : { metrics: input.metrics }),
-    ...(scoreOpposesReading(input.id, normalization) ? { opposesReading: true as const } : {}),
+    ...(isScoreOpposedToReading(input.id, normalization) ? { opposesReading: true as const } : {}),
     provenance: input.provenance,
   }
 }
 
 /** Whether a higher score is a lower reading, so a board that places a name by its reading takes the
  *  complement of the score's place. Linear carries its direction in the order of its bounds. */
-function scoreOpposesReading(id: FactorId, normalization: FactorNormalization): boolean {
+function isScoreOpposedToReading(id: FactorId, normalization: FactorNormalization): boolean {
   const ranksInverted =
     normalization.kind === 'linear'
       ? normalization.bullishAt < normalization.bearishAt

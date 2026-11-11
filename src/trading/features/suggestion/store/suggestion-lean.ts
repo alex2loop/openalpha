@@ -8,7 +8,7 @@ import type {
   SuggestionId,
 } from '@/trading/features/suggestion/types'
 import type { OutcomeStatus, SuggestionAction } from '@/trading/kernel/conviction'
-import type { InstrumentRef, MarketRef, TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { InvestmentHorizon } from '@/trading/kernel/operator/profile'
 import { assertNotAborted, StorageError } from '@/core/errors'
@@ -83,6 +83,7 @@ export interface LeanCallOptions {
   /** Only these focuses' calls. Omitted, every focus is read. */
   readonly focusKeys?: readonly FocusKey[]
   readonly market?: MarketRef
+  readonly ticker?: Ticker
   readonly action?: SuggestionDirection
   /** One version's rows. Omitted, the scored calls are pooled across versions. */
   readonly strategyVersion?: string

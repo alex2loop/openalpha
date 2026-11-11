@@ -113,7 +113,7 @@ questions and a reading must pass both:
 A reading that fails either test is not an error. The market answers with the settled close the store holds, tagged
 `market-data.quote-not-live`, so the screen says which price it is; it refuses only for a name the store cannot price at all.
 Crypto does this through `liveOrStoredQuote` (`markets/stored-quote.ts`), VN equities through the same file's `storedQuote`.
-A crypto adapter publishes the price and its instant only: `liveOrStoredQuote` also measures a live reading's move against the settled close it stands on, because the venues' own figure is a rolling 24-hour window that starts from a price no surface shows. The move is absent where the store holds no such close.
+`liveOrStoredQuote` measures a live crypto reading's move against the settled close it stands on, through `changeAgainstClose`, because the venues' own figure is a rolling 24-hour window that starts from a price no surface shows. Binance and MEXC publish the price and its instant only. OKX also publishes its move against `sodUtc0`, the 00:00 UTC price, which is the same session start; it stands in only while the store is behind the last settled session (every UTC morning until the daily refresh lands, and for a coin with no stored bars). Where neither exists the move is absent. Binance's `ticker/tradingDay` (`timeZone=0`) carries the UTC-day open but costs weight 4 against 2 and stamps `closeTime` at the day's end rather than the last trade, so it is not used.
 
 ## Anatomy of an adapter
 
