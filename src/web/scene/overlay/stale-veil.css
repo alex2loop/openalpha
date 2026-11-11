@@ -1,0 +1,16 @@
+.stale-veil {
+  position: absolute;
+  top: calc(var(--stageTopH) + var(--s1));
+  left: 50%;
+  z-index: var(--zStageBar);
+  width: max-content;
+  max-width: calc(100% - 2 * var(--s3));
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: var(--caution);
+  font-size: 12px;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}

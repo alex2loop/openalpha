@@ -35,6 +35,7 @@ import {
   SCENE_LABEL_ID,
   startViews,
 } from '@/web/scene/overlay/scene-views'
+import { watchStale } from '@/web/scene/overlay/stale-watch'
 import { keepStill } from '@/web/scene/overlay/still'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { syncTwin } from '@/web/scene/overlay/twin'
@@ -149,6 +150,7 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
       load3d: loadRenderer3d,
     }),
     watchPane(element, loop),
+    watchStale(loop),
     effect(() => {
       readSceneInputs()
       untracked(loop.wake)
