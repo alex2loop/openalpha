@@ -137,6 +137,7 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     source: { channel: wireChannel(e.channel), agentId: e.agentId },
     runId: e.runId,
     outcome: e.reason,
+    endedAt: e.endedAt,
   }),
   tool_started: (e) => ({
     v: 1,
@@ -182,6 +183,7 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     source: { channel: wireChannel(e.channel), agentId: '' },
     runId: e.runId,
     outcome: e.outcome,
+    endedAt: e.endedAt,
   }),
   alerts_checked: (e) => ({
     v: 1,

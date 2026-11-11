@@ -85,7 +85,8 @@
     "weight": "quiet",
     "source": { "channel": "cli", "agentId": "chat" },
     "runId": "run_abc",
-    "outcome": "completed"
+    "outcome": "completed",
+    "endedAt": 1762857600000
   },
   {
     "v": 1,
@@ -94,6 +95,7 @@
     "source": { "channel": "telegram", "agentId": "" },
     "runId": "cmd_4f1a",
     "outcome": "completed",
+    "endedAt": 1762857605000,
     "tickers": ["HPG", "FPT"]
   },
   {

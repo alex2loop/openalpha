@@ -251,6 +251,7 @@ function announceFinish(bus: EventBus, finish: RunFinish): void {
     runId: finish.start.id,
     channel: finish.start.channel,
     outcome: finish.outcome,
+    endedAt: Date.now(),
     ...(result === undefined ? {} : { result }),
     ...(idle ? { idle: true } : {}),
   })

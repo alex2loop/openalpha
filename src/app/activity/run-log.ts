@@ -89,6 +89,7 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
     bus.on('run_finished', (e) =>
       finish(book, e.runId, {
         outcome: e.reason,
+        endedAt: e.endedAt,
         ...(e.summary === undefined ? {} : { summary: e.summary }),
       })
     ),
@@ -111,7 +112,7 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
         return
       }
 
-      finish(book, e.runId, { outcome: e.outcome })
+      finish(book, e.runId, { outcome: e.outcome, endedAt: e.endedAt })
     }),
   ]
 }
@@ -162,6 +163,7 @@ function answeredQuestions(
 
 interface RunEnd {
   readonly outcome: string
+  readonly endedAt: number
   readonly summary?: string
 }
 
@@ -173,7 +175,7 @@ function finish(book: RunBook, id: RunId, end: RunEnd): void {
   }
 
   book.open.delete(id)
-  book.write({ ...run, endedAt: Date.now(), ...end })
+  book.write({ ...run, ...end })
 }
 
 function toAgentStart(e: BusEventMap['run_started']): OpenRun {

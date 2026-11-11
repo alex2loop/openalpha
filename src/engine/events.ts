@@ -115,6 +115,8 @@ declare module '@/core/events' {
       readonly channel: ChannelId
       readonly chatId?: string
       readonly reason: RunResultReason
+      // Epoch ms the run ended, read once where the finish is emitted.
+      readonly endedAt: number
       // A named child's answer, scrubbed and cut at CHILD_SUMMARY_MAX_CHARS.
       readonly summary?: string
       readonly totals: LLMUsageTotals
