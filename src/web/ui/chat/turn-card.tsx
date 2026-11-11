@@ -21,7 +21,9 @@ import { focusRun } from '@/web/state/focus'
 import { findRun, hasChildren, hasStartedChild, type Run, runs } from '@/web/state/live'
 import { isLevelInstrument } from '@/web/state/market'
 import { canRemember, toAttributeName } from '@/web/state/memory'
+import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
+import { formatClock } from '@/web/text/time'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { commandWordOf, commandWordsOf, resolveCommandLink } from '@/web/ui/chat/command-link'
@@ -263,6 +265,10 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
     return <p class="meta">{tr(`ui.office.chat.${turn.status}`)}</p>
   }
 
+  if (turn.status === 'cut') {
+    return <CutFoot cutAt={turn.cutAt} />
+  }
+
   const link = resolveCommandLink(turn.text, turn.runId)
 
   return (
@@ -286,6 +292,19 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
         <NextSteps turn={turn} />
       </div>
     </>
+  )
+}
+
+// The time needs the session's zone, which any page that sent a turn has.
+function CutFoot({ cutAt }: { readonly cutAt: number | undefined }) {
+  const timeZone = state.value?.timeZone
+
+  if (cutAt === undefined || timeZone === undefined) {
+    return null
+  }
+
+  return (
+    <p class="chat-caution">{tr('ui.office.chat.cut', { time: formatClock(cutAt, timeZone) })}</p>
   )
 }
 

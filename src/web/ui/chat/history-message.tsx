@@ -138,7 +138,9 @@ function HistoryMessage({ entry }: { readonly entry: HistoryEntry }) {
       <ReplyText text={message.content} isProse={message.byAgent === true} />
       {entry.isRunEnd && message.runId !== undefined && (
         <>
-          <RunTimelineFold key={message.runId} runId={message.runId} />
+          {message.hasChildren === true && (
+            <RunTimelineFold key={message.runId} runId={message.runId} />
+          )}
           <RunCalls key={message.runId} runId={message.runId} isRunning={false} command={command} />
         </>
       )}

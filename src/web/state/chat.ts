@@ -28,7 +28,16 @@ export type ChatSession = ChatSessionsResponse['sessions'][number]
 /** A preference the answer's chat stored or dropped, as the daemon told it. */
 export type SavedPreference = NonNullable<WireEvent['preference']>
 
-type TurnStatus = 'sending' | 'queued' | 'running' | 'done' | 'error' | 'dropped' | 'stopped'
+/** `cut` is a turn the page lost with its connection; `stopped` one the operator or a run stopped. */
+type TurnStatus =
+  | 'sending'
+  | 'queued'
+  | 'running'
+  | 'done'
+  | 'error'
+  | 'dropped'
+  | 'stopped'
+  | 'cut'
 
 /** A steer sent into the running answer: `text` is what was typed, or the daemon's sentence when
  *  no running turn read it. */
@@ -53,6 +62,8 @@ export interface Turn {
   readonly steps: readonly string[]
   readonly sentAt: number
   readonly doneAt?: number
+  /** `Date.now()` when the connection dropped under a `cut` turn. */
+  readonly cutAt?: number
   readonly runId?: string
   readonly error?: string
   /** The session it runs in: the page's when sent, else the one the daemon named for it. */
@@ -74,7 +85,7 @@ interface SendOptions {
   readonly onDone?: () => void
 }
 
-const FINISHED: ReadonlySet<TurnStatus> = new Set(['done', 'error', 'dropped', 'stopped'])
+const FINISHED: ReadonlySet<TurnStatus> = new Set(['done', 'error', 'dropped', 'stopped', 'cut'])
 
 const turns = signal<readonly Turn[]>([])
 const isOpen = signal(false)
@@ -104,7 +115,7 @@ export function startChat(): () => void {
     // A dropped socket aborts the turns it ran, so none is left waiting for a frame.
     effect(() => {
       if (connection.value.status !== 'live') {
-        untracked(stopUnfinished)
+        untracked(cutUnfinished)
       }
     }),
   ]
@@ -258,13 +269,6 @@ function updateTurn(localId: string, update: (turn: Turn) => Turn): void {
   turns.value = turns.value.map((turn) => (turn.localId === localId ? update(turn) : turn))
 }
 
-function finishTurn(localId: string, status: TurnStatus): void {
-  updateTurn(localId, (turn) =>
-    isFinished(turn) ? turn : { ...turn, status, doneAt: performance.now() }
-  )
-  doneCallbacks.delete(localId)
-}
-
 // A stop the run took ends its turn as stopped, also when the run's `done` came before the reply.
 function endAsStopped(localId: string): void {
   updateTurn(localId, (turn) =>
@@ -275,10 +279,20 @@ function endAsStopped(localId: string): void {
   doneCallbacks.delete(localId)
 }
 
-function stopUnfinished(): void {
-  for (const turn of turns.value) {
-    finishTurn(turn.localId, 'stopped')
+// The turns that were waiting for a frame ended with the connection, at this instant.
+function cutUnfinished(): void {
+  if (turns.value.every(isFinished)) {
+    return
   }
+
+  const cutAt = Date.now()
+  const doneAt = performance.now()
+
+  turns.value = turns.value.map((turn) =>
+    isFinished(turn) ? turn : { ...turn, status: 'cut', cutAt, doneAt }
+  )
+  // Every pending callback belongs to an unfinished turn, which is now over.
+  doneCallbacks.clear()
 }
 
 /** The page's own id a frame names; another client's frames carry no id of ours. */

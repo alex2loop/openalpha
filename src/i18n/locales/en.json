@@ -905,6 +905,7 @@
     "office.chat.drop": "Drop this command",
     "office.chat.dropped": "Removed from the line.",
     "office.chat.stopped": "Stopped. What was done is kept in the log.",
+    "office.chat.cut": "The connection dropped at {time}, so this answer stopped partway. What was done is kept in the log; send it again once the page reconnects.",
     "office.chat.addNote": "Add to it",
     "office.chat.steered": "I added this to the answer in progress; it reads it at the next step.",
     "office.chat.elapsed": "done in {seconds} s",

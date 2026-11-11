@@ -91,12 +91,29 @@ async function handleChatHistory(req: Request, ctx: ApiRouteContext): Promise<Re
     ...(run === undefined ? {} : { runId: run }),
   })
 
+  const parents = await findRunsWithChildren(ctx, page.messages)
+
   return json({
     sessionId: id,
     hasMore: page.hasMore,
     nextBefore: page.nextBefore,
-    messages: page.messages.flatMap(toHistoryMessage),
+    messages: page.messages.flatMap((row) => toHistoryMessage(row, parents)),
   } satisfies ChatHistoryResponse)
+}
+
+// The runs among a page's answers that started another run (a debate role, a spawned agent): one
+// read for the page, so a client opens a run's timeline only where it has someone on it.
+async function findRunsWithChildren(
+  ctx: ApiRouteContext,
+  rows: readonly TranscriptMessage[]
+): Promise<ReadonlySet<string>> {
+  const ids = new Set(rows.flatMap((row) => (row.runId === undefined ? [] : [row.runId])))
+
+  if (ids.size === 0) {
+    return new Set()
+  }
+
+  return new Set((await ctx.app.resolve('runLogStore').childrenOf([...ids], 1)).keys())
 }
 
 export function parseSessionId(raw: string): SessionId {
@@ -120,7 +137,10 @@ function parseIndex(value: string | null): number | undefined {
 // An assistant turn is a block array; only its text blocks are display content (a tool call is not).
 // An answer names the run that wrote it, so its model calls can be read. A command's answer is the
 // text it printed, so a block array is what tells an agent's answer from it.
-function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[] {
+function toHistoryMessage(
+  row: TranscriptMessage,
+  parents: ReadonlySet<string>
+): readonly ChatHistoryMessage[] {
   const { idx, message, runId } = row
   const content =
     typeof message.content === 'string'
@@ -140,6 +160,9 @@ function toHistoryMessage(row: TranscriptMessage): readonly ChatHistoryMessage[]
       role: message.role,
       content: scrubCredentials(content),
       ...(message.role === 'assistant' && runId !== undefined ? { runId } : {}),
+      ...(message.role === 'assistant' && runId !== undefined && parents.has(runId)
+        ? { hasChildren: true as const }
+        : {}),
       ...(message.role === 'assistant' && typeof message.content !== 'string'
         ? { byAgent: true as const }
         : {}),
