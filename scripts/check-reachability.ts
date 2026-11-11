@@ -38,11 +38,7 @@ const CANDIDATE_SUFFIXES: readonly string[] = [
 
 // A file outside the import graph on purpose, with the reason it stays. `path`. Empty today; the
 // gate's machinery for a file that must stay.
-const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([
-  // The run timeline's read and model wait for the strip that draws them; delete both then.
-  'src/web/ui/run/timeline/load-timeline.ts',
-  'src/web/ui/run/timeline/timeline-model.ts',
-])
+const KNOWN_UNREACHABLE: ReadonlySet<string> = new Set<string>([])
 
 // Bundled by the browser build, imported by no daemon entry: its imports are as live as a bin's.
 const BROWSER_ENTRY = 'src/app/browser/worker.ts'

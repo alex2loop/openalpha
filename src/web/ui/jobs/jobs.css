@@ -36,12 +36,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.job-child {
-  margin: 2px 0 0;
-  padding-left: 10px;
-  border-left: 2px dashed var(--border);
-}
-
 .job-row .spin {
   margin-top: 4px;
 }

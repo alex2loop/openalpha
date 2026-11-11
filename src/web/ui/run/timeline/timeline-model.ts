@@ -13,14 +13,14 @@ import {
 // A listed child costing less than this much is a rounding left over, not another call.
 const OTHER_USD_MIN = 0.005
 
-interface TimelineRoot {
+export interface TimelineRoot {
   readonly startedAt: number
   /** Absent while the run is running. */
   readonly endedAt?: number
 }
 
 /** One run of one role. Instants are clamped into the view's axis, so a bar never inverts. */
-interface TimelineSpan {
+export interface TimelineSpan {
   readonly runId: string
   readonly startedAt: number
   /** Absent while it runs, and when its end is unknown. */
@@ -32,7 +32,7 @@ interface TimelineSpan {
   readonly said?: RoleSaid
 }
 
-interface TimelineLane {
+export interface TimelineLane {
   readonly agentId: string
   readonly label: string
   /** Oldest first; a second span is the role asked again. */
@@ -40,19 +40,19 @@ interface TimelineLane {
   readonly costUsd?: number
 }
 
-interface TimelineGroup {
+export interface TimelineGroup {
   readonly subject?: { readonly ticker: string; readonly market?: string }
   readonly lanes: readonly TimelineLane[]
 }
 
 /** A stretch of the run itself between real events. */
-interface RunStretch {
+export interface RunStretch {
   readonly fromMs: number
   readonly toMs: number
   readonly isRunning: boolean
 }
 
-interface TimelineView {
+export interface TimelineView {
   readonly fromMs: number
   readonly toMs: number
   readonly isRunning: boolean
@@ -98,7 +98,10 @@ export function buildTimeline(inputs: TimelineInputs): TimelineView | undefined 
     return undefined
   }
 
-  const isRunning = root === undefined ? entries.some(isRunningEntry) : root.endedAt === undefined
+  const isRunning =
+    root === undefined
+      ? entries.some(({ span }) => isRunningSpan(span))
+      : root.endedAt === undefined
   const axis = toAxis(root, entries, isRunning ? nowMs : undefined)
   const clamped = entries.map((entry) => ({ ...entry, span: clampSpan(entry.span, axis) }))
   const groups = toGroups(clamped, heard)
@@ -206,7 +209,8 @@ function byStart(a: Entry, b: Entry): number {
   )
 }
 
-function isRunningEntry({ span }: Entry): boolean {
+/** Still going: no end yet, and not one that is merely not known. */
+export function isRunningSpan(span: TimelineSpan): boolean {
   return span.endedAt === undefined && span.isEndUnknown !== true
 }
 
@@ -288,7 +292,7 @@ function toStretches(
   const firstStart = Math.min(...spans.map((span) => span.startedAt))
   const ends = spans.flatMap((span) => span.endedAt ?? [])
   const isRunning = root.endedAt === undefined
-  const hasRunning = spans.some((span) => span.endedAt === undefined && span.isEndUnknown !== true)
+  const hasRunning = spans.some(isRunningSpan)
   const lastEnd = ends.length === 0 ? undefined : Math.max(...ends)
   const prep =
     root.startedAt < firstStart ? { fromMs: root.startedAt, toMs: firstStart } : undefined

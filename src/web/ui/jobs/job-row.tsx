@@ -1,7 +1,7 @@
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
-import type { Run } from '@/web/state/live'
 import { ELAPSED_TICK_MS, useLiveNow } from '@/web/state/clock'
 import { focusRun } from '@/web/state/focus'
+import { hasStartedChild, type Run } from '@/web/state/live'
 import { joinInline } from '@/web/text/glyphs'
 import { commandOf, formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
@@ -10,6 +10,7 @@ import { tr } from '@/web/text/tr'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
+import { RunTimeline } from '@/web/ui/run/timeline/run-timeline'
 
 interface JobRowProps {
   readonly run: Run
@@ -35,14 +36,7 @@ export function JobRow({ run, childRuns }: JobRowProps) {
             sourceLabel(run.channelId),
           ])}
         </p>
-        {childRuns.map((child) => (
-          <p key={child.runId} class="meta job-child">
-            {joinInline([
-              formatRunName(child),
-              ...(child.progress === undefined ? [] : [child.progress.text]),
-            ])}
-          </p>
-        ))}
+        {hasStartedChild(run.runId) && <RunTimeline key={run.runId} runId={run.runId} root={run} />}
         <RunCalls key={run.runId} runId={run.runId} isRunning command={commandOf(run)} />
       </div>
       <Button kind="tertiary" size="small" onClick={() => focusRun(run.runId)}>
