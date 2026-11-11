@@ -152,7 +152,7 @@ function toRendered(locale: Locale, caveat: Caveat, isPlain = false): RenderedCa
 
   // Internal ids the catalog names in the reader's language, falling back to the raw id. A
   // confirmer needs two labels: `reasons` says what strained, `confirmers` says which check is blind.
-  const { role, reasons, confirmers, section, signs } = detail
+  const { role, reasons, confirmers, section, signs, markets } = detail
 
   return {
     code: caveat.code,
@@ -175,6 +175,9 @@ function toRendered(locale: Locale, caveat: Caveat, isPlain = false): RenderedCa
         : {}),
       ...(typeof section === 'string'
         ? { section: renderProvidedValue(locale, `trading.brief.section.${section}`, section) }
+        : {}),
+      ...(typeof markets === 'string'
+        ? { markets: namedIds(locale, markets, (id) => `trading.market.${id}`) }
         : {}),
     },
   }

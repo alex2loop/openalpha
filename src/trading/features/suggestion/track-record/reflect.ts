@@ -1,6 +1,5 @@
 import type { ScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
-import type { LeanCall } from '@/trading/features/suggestion/store/suggestion-lean'
 import type { ActedSummary, RecordedFill } from '@/trading/features/suggestion/track-record/acted'
 import type {
   TrackRecordOptions,
@@ -9,7 +8,7 @@ import type {
 } from '@/trading/features/suggestion/track-record/types'
 import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion/types'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketCosts } from '@/trading/markets/cost'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { suggestionScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
@@ -21,7 +20,6 @@ import {
 import { summarizeActed } from '@/trading/features/suggestion/track-record/acted'
 import { coverageOf } from '@/trading/features/suggestion/track-record/coverage'
 import { readScoredPopulation } from '@/trading/features/suggestion/track-record/population'
-import { isSameInstrument } from '@/trading/kernel/instrument'
 import { DEFAULT_FOCUS_KEY } from '@/trading/kernel/operator/focus'
 import { marketRoundTripRate } from '@/trading/markets/cost'
 
@@ -82,26 +80,30 @@ export async function summarize(
     now: Date.now(),
     signal: options.signal,
     ...version,
-    ...instrumentFilter(options.instrument),
+    ...instrumentScope(options.instrument),
   })
   const summary = withAwaiting(
     summarizeTrackRecord(population, MINIMUM_TRACK_RECORD_SAMPLE),
     population.earlyCount
   )
   const coverage = coverageOf(
-    await deps.store.coverage({ focusKeys, signal: options.signal, ...version }),
+    await deps.store.coverage({
+      focusKeys,
+      signal: options.signal,
+      ...version,
+      ...(options.instrument === undefined ? {} : { instrument: options.instrument }),
+    }),
     deps.markets
   )
 
   return { summary: { ...summary, coverage }, recent: population.calls }
 }
 
-function instrumentFilter(instrument: InstrumentRef | undefined): {
-  readonly isIncluded?: (call: LeanCall) => boolean
+function instrumentScope(instrument: InstrumentRef | undefined): {
+  readonly market?: MarketRef
+  readonly ticker?: Ticker
 } {
-  return instrument === undefined
-    ? {}
-    : { isIncluded: (call) => isSameInstrument(call.instrument, instrument) }
+  return instrument === undefined ? {} : { market: instrument.market, ticker: instrument.ticker }
 }
 
 /** Said once the rates are drawn, so a record of matured calls never reads as the whole book. */

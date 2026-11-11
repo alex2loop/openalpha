@@ -283,13 +283,10 @@ function searchedIn(
   markets: readonly Market[],
   options: ResolveMarketOptions
 ): readonly MarketRef[] {
-  return inScope(markets, options).map((market) => market.manifest.id)
-}
+  const scope = inScope(markets, options)
+  const asked = scope.filter((market) => isAskable(market, options))
 
-function inScope(markets: readonly Market[], options: ResolveMarketOptions): readonly Market[] {
-  return markets.filter(
-    (market) => options.within === undefined || options.within.includes(market.manifest.id)
-  )
+  return (asked.length === 0 ? scope : asked).map((market) => market.manifest.id)
 }
 
 /** The synchronous filter runs first so an unqualified ticker never reaches an async detector.
@@ -300,6 +297,12 @@ function possibleMarkets(
 ): readonly Market[] {
   return inScope(markets, options).filter(
     (market) => market.candidacy(options.ticker) === 'possible'
+  )
+}
+
+function inScope(markets: readonly Market[], options: ResolveMarketOptions): readonly Market[] {
+  return markets.filter(
+    (market) => options.within === undefined || options.within.includes(market.manifest.id)
   )
 }
 

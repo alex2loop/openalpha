@@ -353,7 +353,8 @@ async function trackRecord(
       ...(request.instrument === undefined ? {} : { instrument: request.instrument }),
       signal: request.signal,
     }),
-    deps.suggestions.modelRecords(request.signal),
+    // The per-name card never reads the per-model split, and it is the whole book's to compute.
+    request.instrument === undefined ? deps.suggestions.modelRecords(request.signal) : [],
   ])
 
   return { reflection, text: renderReflectForSurface(request.locale, reflection), byModel }
