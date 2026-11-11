@@ -65,8 +65,10 @@ export const backgroundTasks: ReadonlySignal<readonly TaskStatusWire[] | undefin
  *  verdict (`offline` or `full`) after a live drop, to the instant it left `live`; moved forward by a
  *  snapshot applied while not live; cleared by a snapshot applied on a live socket. */
 export const staleSince: ReadonlySignal<number | undefined> = staleAt
-/** Background tasks in a pass right now. */
-export const workingTasks = computed(() => taskList.value?.filter((task) => task.working) ?? [])
+/** Background tasks in a pass right now, but for a pass the Running list already shows as a run. */
+export const workingTasks = computed(
+  () => taskList.value?.filter((task) => task.working && task.shownAsRun !== true) ?? []
+)
 
 /** The socket gave its verdict after a live drop; a drop already known keeps its earlier instant. */
 export function noteFeedDropped(leftLiveAt: number): void {

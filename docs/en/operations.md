@@ -60,25 +60,28 @@ after a restart each loop shows nothing until its next pass.
 A market that never closes, such as crypto, refreshes at the UTC day rollover. Anchors within 60
 seconds of each other merge into one run.
 
-At boot, the first refresh runs beside the other parts as they start, so the office page and the
-chat are up within seconds:
+At boot, the refresh loop's first pass is the first refresh. It runs beside the other parts as they
+start, so the office page and the chat are up within seconds:
 
 - For up to a minute after the start, market data may still be filling in, so a chart can look thin
   until it lands.
 - The loops that read market data (alerts, outcomes, macro extraction, theme outcomes, briefs and
-  the intraday report) wait for it before their first pass, up to 60 seconds. A provider that
-  never answers cannot hold them longer: they start with a warning (`daemon.boot_refresh_timeout`)
-  and the sweep finishes in the background. The refresh loop joins the same sweep. Chat, the
-  scheduler, the channels and the maintenance loops never wait for it.
-- With no network at boot, the loop waits for the network.
-- A provider, storage or channel failure in that refresh is only a warning
-  (`daemon.boot_refresh_failed`), whether it lands inside the 60 seconds or after them. The daemon
-  keeps running. Any other error stops the daemon.
+  the intraday report) wait for that pass to end, however it ends, before their first pass, up to
+  60 seconds. A provider that never answers cannot hold them longer: they start with a warning
+  (`trading.boot_refresh_timeout`) and the pass finishes in the background. Chat, the scheduler,
+  the channels and the maintenance loops never wait for it.
+- With no network at boot, the loop waits for the network, so the loops that wait for it start after
+  the 60 seconds.
+- A provider, storage or channel failure in that pass is only a warning (`trading.tick_failed`),
+  and the loop carries on with its schedule. Any other error stops the refresh loop alone, with a
+  notice, and never the daemon.
 
 Each of these passes, the boot one included, shows on the office page just as a typed `/refresh`
-does. The stock keeper works in the data store, with progress on the wall monitor. The header counts
-it as running. Once it ends, Activity lists it as "Data refresh", from "a schedule" (marked stopped or
-failed when it did not finish). It calls no model, so its row shows no cost and no AI calls.
+does, as one run in the running list. The stock keeper works in the data store, with progress on the
+wall monitor. The header counts it once, as running; the refresh loop still reads as running in the
+automatic jobs list. Once it ends, Activity lists it as "Data refresh", from "a schedule" (marked
+stopped or failed when it did not finish). It calls no model, so its row shows no cost and no AI
+calls.
 
 A pass shows from its first fetch. So a pass with no market in use, or one that finds every market's
 data still fresh, shows nothing at all.

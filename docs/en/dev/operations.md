@@ -37,13 +37,15 @@ somewhere to go.
 A continuous market has no open and anchors on the UTC day rollover alone. Anchors under 60 s apart
 merge into one pass.
 
-Boot runs the first refresh as a tracked daemon task beside the other subsystems. The loops that read
-market data wait for it before their first tick, up to 60 s (`daemon.boot_refresh_timeout`), and the
-sweep then finishes in the background. A boundary failure (`isBoundaryFailure`) from it warns as
-`daemon.boot_refresh_failed` on either side of the 60 s and the daemon runs on; any other error is
-fatal, through the daemon task tracker. The loop's own first tick follows: it joins a boot sweep still
-in flight, and after a boot with no network it is the pass that waits for the network and enters the
-retry ladder.
+The loop's first pass is the boot sweep: it ticks at start, beside the other subsystems, and
+after a boot with no network it is the pass that waits for the network and enters the retry ladder.
+`FirstSweep` (`wiring/first-sweep.ts`) owns "the first sweep is done": its `settled` promise releases
+the loops that read market data when that first pass ends however it ends (done, failed, stopped from
+the runs list), when its 60 s budget runs out (`trading.boot_refresh_timeout`; the pass is not
+aborted and finishes in the background), or when the loop ends. Release is idempotent and the budget
+timer is cleared by it, so a late finish or a second release does nothing. A boundary failure
+(`isBoundaryFailure`) in the first pass is `trading.tick_failed` like any other pass; any other
+error quarantines the refresh loop alone (`trading.loop_quarantined`) rather than the daemon.
 
 A pass that leaves any kind `unavailable` (nothing fetched) retries after 2, 4, 8 and 16 minutes,
 never past the next anchor; a fifth failure hands back to the anchor and the ladder restarts. A

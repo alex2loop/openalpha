@@ -439,11 +439,10 @@ registered as its subsystem starts, so a later one that throws cannot lose an ea
 
 **Start order.** Migrations and the container come first. The API binds next, before any subsystem
 (`startDaemonApi`), so a page can connect while the daemon is still coming up and a busy port is the
-first thing reported. Then workspace retention, then `startDaemonSubsystems` (the boot refresh as a
-tracked daemon task, channels, scheduled workflows, delivery, channel watch, scheduler, trading loops,
-maintenance, plugin tasks), then `markReady`. The API's admission closer and stop are registered for
-teardown the moment it binds, so a start that fails later still closes it, and its admission still
-closes first on the way down.
+first thing reported. Then workspace retention, then `startDaemonSubsystems` (channels, scheduled
+workflows, delivery, channel watch, scheduler, trading loops, maintenance, plugin tasks), then
+`markReady`. The API's admission closer and stop are registered for teardown the moment it binds, so
+a start that fails later still closes it, and its admission still closes first on the way down.
 
 Until `markReady` the API is starting: `GET /v1/health` answers `ok: false, status: 'starting'`, and a
 route answers only if it is a `GET` or declares `whileStarting` (the sign-in exchange, sign-out and
@@ -454,14 +453,22 @@ upgrade, so a route added without thinking of it fails closed. The page reads `s
 `/v1/health`, shows the `ui.office.starting` line and signs in only once it reads `ready`, so a sign-in
 code is never spent on a daemon that cannot finish the exchange.
 
-The boot sweep no longer blocks the start. It runs as a tracked task: a failure that is not a boundary
-failure ends the daemon through the same task tracker as every other loop. The trading loops that read
-market data (alerts, the operation loops and the intraday loop) wait on the `firstSweep`
-promise before their first tick, aborting with the daemon; the exit and intent loops read only the venue
-and the stored plans, so they start at once; `runBootRefresh` settles it through
-`TradingServices.releaseFirstSweep` when the sweep ends, when its 60 s budget runs out and in `finally`,
-so a stuck provider never holds them. The refresh loop joins the sweep through the coordinator's
-in-flight map; chat, the scheduler, the channels and maintenance never wait for it.
+The boot sweep does not block the start: it is the first pass of the `trading.refresh` loop, which ticks
+at start like every trading loop. The trading loops that read market data (alerts, the operation loops
+and the intraday loop) wait on the `FirstSweep` promise (`trading/wiring/first-sweep.ts`, created by
+`createTradingDaemonTasks`) before their first tick, aborting with the daemon; the exit and intent loops
+read only the venue and the stored plans, so they start at once. The refresh loop releases it when its
+first pass settles, when its 60 s budget runs out (`trading.boot_refresh_timeout`) and when the loop
+ends, so a stuck provider or an offline start never holds the others past the budget. A failure of that
+first pass is handled as any later one: a boundary failure is `trading.tick_failed`, anything else
+quarantines the loop (`withQuarantine`) and never ends the daemon. Chat, the scheduler, the channels and
+maintenance never wait for it.
+
+That pass runs through `runScheduled`, so it shows on the page as one `refresh` run. The task board
+(`taskStatus`) reports the loop under `trading.refresh` as working for the same pass; its row would say
+the same work twice in the Running list and the header chip, so `TaskStatusWire.shownAsRun` marks the
+tasks whose pass the page already lists as a run, and `workingTasks` leaves them out. The upkeep list
+still shows the loop as running.
 
 The daemon task
 hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on

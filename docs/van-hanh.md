@@ -60,25 +60,27 @@ sau khi khởi động lại mỗi vòng chưa hiện gì cho đến phiên ch�
 Thị trường không bao giờ đóng cửa như crypto thì làm mới lúc sang ngày UTC. Hai mốc cách nhau dưới 60
 giây thì gộp làm một lượt.
 
-Lúc khởi động, lần làm mới đầu tiên chạy song song với các phần khác khi chúng khởi động, nên trang
-văn phòng và cuộc trò chuyện sẵn sàng sau vài giây:
+Lúc khởi động, lượt đầu của vòng làm mới chính là lần làm mới đầu tiên. Nó chạy song song với các phần
+khác khi chúng khởi động, nên trang văn phòng và cuộc trò chuyện sẵn sàng sau vài giây:
 
 - Trong tối đa một phút sau khi khởi động, dữ liệu thị trường có thể vẫn đang được nạp, nên biểu đồ
   có thể còn thưa cho đến khi dữ liệu về đủ.
 - Các vòng đọc dữ liệu thị trường (cảnh báo, kết quả gợi ý, trích xuất vĩ mô, kết quả chủ đề, bản tin
-  và báo cáo trong phiên) chờ nó xong rồi mới chạy lượt đầu, tối đa 60 giây. Nhà cung cấp
-  không trả lời cũng không giữ chúng lâu hơn: chúng chạy kèm một cảnh báo
-  (`daemon.boot_refresh_timeout`) còn lượt làm mới tiếp tục ở nền. Vòng làm mới nhập vào đúng lượt
-  này. Trò chuyện, bộ lập lịch, các kênh chat và các vòng bảo trì không bao giờ chờ nó.
-- Khởi động mà không có mạng thì vòng lặp chờ có mạng.
-- Lần làm mới đầu mà gặp lỗi nhà cung cấp, lưu trữ hay kênh thì chỉ là một cảnh báo
-  (`daemon.boot_refresh_failed`), dù lỗi đến trong 60 giây hay sau đó. Dịch vụ nền vẫn chạy tiếp.
-  Lỗi nào khác thì dừng dịch vụ nền.
+  và báo cáo trong phiên) chờ lượt đó kết thúc, dù kết thúc thế nào, rồi mới chạy lượt đầu, tối đa 60
+  giây. Nhà cung cấp không trả lời cũng không giữ chúng lâu hơn: chúng chạy kèm một cảnh báo
+  (`trading.boot_refresh_timeout`) còn lượt làm mới tiếp tục ở nền. Trò chuyện, bộ lập lịch, các kênh
+  chat và các vòng bảo trì không bao giờ chờ nó.
+- Khởi động mà không có mạng thì vòng lặp chờ có mạng, nên các vòng kia chạy sau 60 giây.
+- Lượt đó mà gặp lỗi nhà cung cấp, lưu trữ hay kênh thì chỉ là một cảnh báo (`trading.tick_failed`),
+  và vòng lặp chạy tiếp theo lịch. Lỗi nào khác thì chỉ dừng vòng làm mới, kèm một thông báo, không
+  bao giờ dừng dịch vụ nền.
 
-Mỗi lượt như vậy, kể cả lượt lúc khởi động, hiện trên trang văn phòng y như khi bạn gõ `/refresh`.
-Thủ kho vào Kho dữ liệu làm việc, tiến độ hiện trên màn hình tường. Đầu trang đếm nó vào số việc đang
-chạy. Khi xong, mục Hoạt động ghi "Làm mới dữ liệu", nguồn "lịch" (kèm "dừng" hoặc "lỗi" nếu lượt đó
-không xong). Lượt này không gọi mô hình, nên dòng của nó không ghi chi phí và không có lệnh gọi AI.
+Mỗi lượt như vậy, kể cả lượt lúc khởi động, hiện trên trang văn phòng y như khi bạn gõ `/refresh`, là
+một dòng duy nhất trong danh sách đang chạy. Thủ kho vào Kho dữ liệu làm việc, tiến độ hiện trên màn
+hình tường. Đầu trang đếm nó đúng một lần vào số việc đang chạy; vòng làm mới vẫn hiện là đang chạy
+trong danh sách việc tự chạy. Khi xong, mục Hoạt động ghi "Làm mới dữ liệu", nguồn "lịch" (kèm "dừng"
+hoặc "lỗi" nếu lượt đó không xong). Lượt này không gọi mô hình, nên dòng của nó không ghi chi phí và
+không có lệnh gọi AI.
 
 Một lượt chỉ hiện từ lần tải đầu tiên. Vì vậy lượt không có thị trường nào đang dùng, hay lượt thấy
 dữ liệu mọi thị trường vẫn mới, thì không hiện gì cả.

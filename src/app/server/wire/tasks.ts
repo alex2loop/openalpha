@@ -18,6 +18,9 @@ export interface TaskStatusWire {
   readonly nextRunAt?: number
   /** A pass is running now. */
   readonly working: boolean
+  /** The pass shows as a run in `/v1/live` while it works, so a list of what is running names it
+   *  there and not again here. Absent otherwise. */
+  readonly shownAsRun?: true
 }
 
 /** The intraday report: `enabled` is the operator's switch, and `nextAt` the next fire in epoch ms,

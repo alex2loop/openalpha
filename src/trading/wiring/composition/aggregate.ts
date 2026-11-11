@@ -79,10 +79,6 @@ export function toAggregate(
   options: AggregateOptions,
   registries: Registries
 ): TradingServices {
-  // The one owner of "the boot sweep is done": the loops wait on its promise, and the boot refresh
-  // settles it through `releaseFirstSweep`.
-  const firstSweep = Promise.withResolvers<void>()
-
   return Object.freeze({
     ...parts.services,
     refresh: parts.refresh,
@@ -103,12 +99,7 @@ export function toAggregate(
     ),
     profileFields: offeredFields(options.edition?.profile?.fields),
     appViews: buildAppViews(parts.services, options.tradingConfig, options.edition),
-    daemonTasks: buildDaemonTasks(
-      parts,
-      { ...options, firstSweep: firstSweep.promise },
-      registries
-    ),
-    releaseFirstSweep: () => firstSweep.resolve(),
+    daemonTasks: buildDaemonTasks(parts, options, registries),
     syncVenue: buildVenueSync(parts, registries),
     marketSession: buildMarketSession(parts, options.tradingConfig, registries),
   })
@@ -149,7 +140,7 @@ function buildVenueSync(
 
 function buildDaemonTasks(
   parts: AggregateParts,
-  options: AggregateOptions & { readonly firstSweep: Promise<void> },
+  options: AggregateOptions,
   registries: Registries
 ): TradingServices['daemonTasks'] {
   return createTradingDaemonTasks({
@@ -182,7 +173,6 @@ function buildDaemonTasks(
     onTaskPass: options.onTaskPass,
     recipient: options.recipient,
     refreshMarketData: parts.refreshMarketData,
-    firstSweep: options.firstSweep,
     logger: parts.logger,
     reachability: options.reachability,
   })

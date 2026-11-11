@@ -38,13 +38,15 @@ tiên vẫn có nơi gửi tới.
 Thị trường chạy liên tục không có giờ mở, nên chỉ neo vào lúc sang ngày UTC. Hai neo cách nhau dưới 60
 giây thì gộp thành một lượt.
 
-Khi khởi động, lần làm mới đầu chạy như một tác vụ dịch vụ nền được theo dõi, song song với các hệ con
-khác. Các vòng đọc dữ liệu thị trường chờ nó trước nhịp đầu, tối đa 60 giây (`daemon.boot_refresh_timeout`),
-rồi lượt quét hoàn tất ở chế độ nền. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo
-`daemon.boot_refresh_failed` dù ở trong hay sau 60 giây và dịch vụ nền vẫn chạy; lỗi khác là chí mạng,
-qua bộ theo dõi tác vụ dịch vụ nền. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
-chạy thì nó nhập vào đó, và nếu máy khởi động không có mạng, chính nhịp này là lượt chờ có mạng rồi đi
-vào chuỗi thử lại.
+Lượt đầu của vòng là lượt quét khởi động: nó chạy ngay khi khởi động, song song với các hệ con khác,
+và nếu máy khởi động không có mạng, chính nó là lượt chờ có mạng rồi đi vào chuỗi thử lại. `FirstSweep`
+(`wiring/first-sweep.ts`) sở hữu việc "lượt quét đầu đã xong": promise `settled` của nó thả các vòng đọc
+dữ liệu thị trường khi lượt đầu kết thúc, dù kết thúc thế nào (xong, lỗi, bị dừng từ danh sách phiên
+chạy), khi hết ngân sách 60 giây (`trading.boot_refresh_timeout`; lượt đó không bị hủy và hoàn tất ở chế
+độ nền), hoặc khi vòng kết thúc. Việc thả là idempotent và bộ hẹn giờ ngân sách được xóa theo, nên lượt
+về muộn hay lần thả thứ hai không làm gì. Lỗi ranh giới (`isBoundaryFailure`) ở lượt đầu là
+`trading.tick_failed` như mọi lượt khác; lỗi nào khác cách ly riêng vòng làm mới
+(`trading.loop_quarantined`) chứ không dừng dịch vụ nền.
 
 Lượt để bất kỳ loại dữ liệu nào ở `unavailable` (không lấy được gì) thử lại sau 2, 4, 8 và 16 phút,
 không bao giờ quá neo kế tiếp; lần hỏng thứ năm trả việc về cho neo và chuỗi bắt đầu lại. Lượt `partial`

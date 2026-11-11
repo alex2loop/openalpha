@@ -30,6 +30,7 @@ The office page now shows who worked on each run and for how long, with what eac
 
 - Stop is greyed out while the page cannot reach OpenAlpha.
 - A data refresh stopped halfway is tried again within minutes, so a day's factor board is no longer lost.
+- At start the office page shows one data refresh in the running list, not three.
 - A repeated "reasoning not supported" warning is logged once per model.
 
 ## [1.5.1] - 2026-11-11

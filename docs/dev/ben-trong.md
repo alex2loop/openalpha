@@ -457,8 +457,7 @@ hàm dọn của hệ con trước.
 
 **Thứ tự khởi động.** Migration và container đi trước. API mở cổng ngay sau đó, trước mọi hệ con
 (`startDaemonApi`), nên trang kết nối được khi dịch vụ nền còn đang lên và cổng bị chiếm là điều được báo
-đầu tiên. Rồi tới dọn thư mục làm việc tạm, rồi `startDaemonSubsystems` (lần làm mới đầu như một tác vụ
-dịch vụ nền được theo dõi, kênh, workflow theo lịch, bộ gửi, theo dõi kênh, bộ lập lịch, các vòng giao dịch,
+đầu tiên. Rồi tới dọn thư mục làm việc tạm, rồi `startDaemonSubsystems` (kênh, workflow theo lịch, bộ gửi, theo dõi kênh, bộ lập lịch, các vòng giao dịch,
 bảo trì, tác vụ của plugin), rồi `markReady`. Hàm đóng nhận khách và hàm dừng của API được đăng ký cho phần
 tắt ngay khi nó mở cổng, nên một lần khởi động hỏng muộn hơn vẫn đóng được nó, và nó vẫn là thứ đóng nhận
 khách đầu tiên khi tắt.
@@ -471,13 +470,21 @@ lại theo backoff. Cổng chặn là một chỗ kiểm trong `handleHttp` và 
 thêm vào mà quên khai thì bị chặn. Trang đọc `status` từ `/v1/health`, hiện dòng `ui.office.starting` và chỉ
 đăng nhập khi đọc được `ready`, nên mã đăng nhập không bị dùng mất trên một dịch vụ nền chưa đổi được.
 
-Lượt quét khởi động không còn chặn việc khởi động. Nó chạy như một tác vụ được theo dõi: lỗi không phải lỗi
-ranh giới làm dịch vụ nền dừng qua đúng bộ theo dõi tác vụ như mọi vòng khác. Các vòng giao dịch đọc dữ liệu
-thị trường (cảnh báo, các vòng tác vụ và vòng báo cáo trong phiên) chờ promise `firstSweep`
-trước nhịp đầu, và dừng theo dịch vụ nền; vòng lệnh thoát và vòng ý định chỉ đọc sàn và các kế hoạch đã lưu nên chạy ngay; `runBootRefresh` giải phóng nó qua `TradingServices.releaseFirstSweep`
-khi lượt quét xong, khi hết ngân sách 60 giây và trong `finally`, nên nhà cung cấp kẹt không giữ chúng mãi.
-Vòng làm mới nhập vào lượt quét qua bảng đang chạy của bộ điều phối; trò chuyện, bộ lập lịch, kênh và bảo trì
-không bao giờ chờ nó.
+Lượt quét khởi động không chặn việc khởi động: nó là lượt đầu của vòng `trading.refresh`, vòng này chạy
+ngay khi khởi động như mọi vòng giao dịch. Các vòng giao dịch đọc dữ liệu thị trường (cảnh báo, các vòng
+tác vụ và vòng báo cáo trong phiên) chờ promise `FirstSweep` (`trading/wiring/first-sweep.ts`, do
+`createTradingDaemonTasks` tạo) trước nhịp đầu, và dừng theo dịch vụ nền; vòng lệnh thoát và vòng ý định
+chỉ đọc sàn và các kế hoạch đã lưu nên chạy ngay. Vòng làm mới thả nó khi lượt đầu kết thúc, khi hết ngân
+sách 60 giây (`trading.boot_refresh_timeout`) và khi vòng kết thúc, nên nhà cung cấp kẹt hay máy khởi động
+không có mạng cũng không giữ các vòng kia quá ngân sách. Lượt đầu mà hỏng thì được xử lý như mọi lượt sau:
+lỗi ranh giới là `trading.tick_failed`, lỗi khác cách ly vòng (`withQuarantine`) chứ không dừng dịch vụ
+nền. Trò chuyện, bộ lập lịch, kênh và bảo trì không bao giờ chờ nó.
+
+Lượt đó chạy qua `runScheduled`, nên hiện trên trang thành một phiên chạy `refresh`. Bảng tác vụ
+(`taskStatus`) báo vòng này là đang chạy dưới tên `trading.refresh` cho đúng lượt đó; dòng của nó sẽ nói
+cùng một việc hai lần trong danh sách Đang chạy và chip đầu trang, nên `TaskStatusWire.shownAsRun` đánh
+dấu các tác vụ mà trang đã liệt kê lượt của chúng thành một phiên chạy, và `workingTasks` bỏ chúng đi.
+Danh sách việc tự chạy vẫn hiện vòng này là đang chạy.
 
 Tác vụ dịch vụ nền đưa cả hai danh sách cho `onReady` (`DaemonStartOptions.onReady`); `start`
 tiền cảnh in chúng ra stderr, còn log stderr của tiến trình nền được chuyển tiếp dưới dòng thành công của
