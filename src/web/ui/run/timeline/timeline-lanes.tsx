@@ -5,7 +5,8 @@ import type { MessageKey } from '@/i18n'
 import { staleSince } from '@/web/state/live'
 import { state } from '@/web/state/session'
 import { childOutcomeKey } from '@/web/text/child-outcome'
-import { formatUsdCents, PERCENT } from '@/web/text/figures'
+import { formatCost } from '@/web/text/cost'
+import { PERCENT } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock, formatDuration } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
@@ -39,11 +40,6 @@ interface TimelineLanesProps {
   readonly tickers: readonly string[]
   /** The run's latest progress line, told by its stretch while it runs. */
   readonly progress: string | undefined
-}
-
-/** A money figure as the cost breakdown prints it, so the parts add up to the total. */
-export function formatCost(usd: number): string {
-  return tr('ui.office.cost.amount', { usd: formatUsdCents(usd) })
 }
 
 /** One row per person, between the run's two stretches; each row's bars sit on one time axis. */

@@ -12,6 +12,9 @@ import { localeOf, parsePathId } from '@/app/server/routes/params'
 import { runId } from '@/core/ids'
 import { t } from '@/i18n'
 
+/** Children of one run a timeline lists: a debate with retries stays far under it. */
+const RUN_TIMELINE_CHILDREN_MAX = 200
+
 /** Stops a run started from any channel: it only aborts, and an abort answers nobody's question.
  *  An agent run lives in the run registry, a long-running command in the dispatcher; the run ends
  *  through its own path, so the page sees `run_finished`. */
@@ -54,9 +57,6 @@ async function handleCalls(req: Request, ctx: ApiRouteContext): Promise<Response
     totalUsd: read.totalUsd,
   } satisfies RunCallsWire)
 }
-
-/** Children of one run a timeline lists: a debate with retries stays far under it. */
-const RUN_TIMELINE_CHILDREN_MAX = 200
 
 /** Operator only: costs here never reach a model or a chat. An unknown id, or a run still running,
  *  answers no `run`; the children that have ended are listed as they land. */

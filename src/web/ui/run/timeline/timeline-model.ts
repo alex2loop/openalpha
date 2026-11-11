@@ -64,7 +64,8 @@ export interface TimelineView {
   readonly toMs: number
   readonly isRunning: boolean
   readonly groups: readonly TimelineGroup[]
-  /** One group only: a batch has no per-name event for these. */
+  /** A debate on one name only: a batch has no per-name event for these, and another run's gaps are not
+   *  known to be preparing or saving. */
   readonly prep?: RunStretch
   readonly close?: RunStretch
   readonly totalUsd?: number
@@ -114,8 +115,10 @@ export function buildTimeline(inputs: TimelineInputs): TimelineView | undefined 
   const axis = toAxis(root, entries, isRunning ? nowMs : undefined)
   const clamped = entries.map((entry) => ({ ...entry, span: clampSpan(entry.span, axis) }))
   const groups = toGroups(clamped, heard)
+  // Only a debate on one name has a preparing and a closing stretch of its own; elsewhere the gap
+  // between children could be any work.
   const stretches =
-    root === undefined || groups.length !== 1
+    root === undefined || groups.length !== 1 || groups[0]?.subject === undefined
       ? {}
       : toStretches(
           root,

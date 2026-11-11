@@ -824,6 +824,7 @@
     "office.timeline.readCase": "Read the full case",
     "office.timeline.from": "from {start} to {end}",
     "office.timeline.empty": "No one else worked on this run.",
+    "office.timeline.notKept": "This page doesn't keep the details of a finished run.",
     "office.activity.title": "Today's activity",
     "office.activity.titleDay": "Activity on {day}",
     "office.common.noAi": "no AI cost",

@@ -5,6 +5,7 @@ import type { RunTimelineWire } from '@/app/server/wire/live'
 import { type BlockReading, useBlockRead } from '@/web/state/block'
 import { ELAPSED_TICK_MS, useLiveNow } from '@/web/state/clock'
 import { findFinishedTickers, findRun, staleSince } from '@/web/state/live'
+import { formatCost } from '@/web/text/cost'
 import { joinInline } from '@/web/text/glyphs'
 import { formatDuration } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
@@ -15,7 +16,7 @@ import { Skeleton } from '@/web/ui/kit/skeleton'
 import { StaleLine } from '@/web/ui/kit/stale-line'
 import { useHeardChildren } from '@/web/ui/run/heard-children'
 import { loadTimeline } from '@/web/ui/run/timeline/load-timeline'
-import { formatCost, TimelineLanes } from '@/web/ui/run/timeline/timeline-lanes'
+import { TimelineLanes } from '@/web/ui/run/timeline/timeline-lanes'
 import {
   buildTimeline,
   isRunningSpan,
@@ -33,6 +34,11 @@ interface RunTimelineProps {
 
 interface TimelineBodyProps extends RunTimelineProps {
   readonly isTitled?: true
+}
+
+interface Subject {
+  readonly ticker: string
+  readonly isRunning: boolean
 }
 
 /** "Diễn biến", open: who worked on a running run and when. A mount is for one run: key it by
@@ -129,7 +135,7 @@ function resolveTickers(runId: string, read: RunTimelineWire | undefined): reado
 interface NoStripProps {
   readonly state: BlockReading<unknown>['state']
   readonly retry: () => void
-  /** An opened fold says so when nobody worked on the run; a running strip just waits. */
+  /** An opened fold says why it has nothing; a running strip just waits. */
   readonly isFold: boolean
 }
 
@@ -149,7 +155,14 @@ function NoStrip({ state, retry, isFold }: NoStripProps) {
     return <Skeleton lines={2} />
   }
 
-  return isFold ? <p class="empty-note">{tr('ui.office.timeline.empty')}</p> : null
+  if (!isFold) {
+    return null
+  }
+
+  // No read was possible (the web edition): that is not the same as nobody having worked.
+  const key = state === 'absent' ? 'ui.office.timeline.notKept' : 'ui.office.timeline.empty'
+
+  return <p class="empty-note">{tr(key)}</p>
 }
 
 function RunLine({ view }: { readonly view: TimelineView }) {
@@ -218,11 +231,6 @@ function SubjectPicker({ runId, subjects, chosen, typed }: PickerProps) {
       />
     </div>
   )
-}
-
-interface Subject {
-  readonly ticker: string
-  readonly isRunning: boolean
 }
 
 function listSubjects(groups: readonly TimelineGroup[]): readonly Subject[] {
