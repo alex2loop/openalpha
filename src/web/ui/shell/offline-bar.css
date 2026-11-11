@@ -21,3 +21,8 @@
 .app.is-offline .panes {
   filter: grayscale(0.85) brightness(0.75);
 }
+
+/* Work the page can no longer see is not turning. */
+.app.is-offline :is(.run-step, .job-row) .spin {
+  animation: none;
+}

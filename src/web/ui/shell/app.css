@@ -41,6 +41,18 @@
   right: calc(var(--s3) + var(--dockClear) + var(--panelW));
 }
 
+/* Over a chat or information pane (the command bar not floating) the stack sits in the page's flow
+   above the command bar (still above any dialog), so it takes room instead of covering the pane's foot. */
+.bottom-stack.is-docked {
+  position: relative;
+  inset: auto;
+  padding: var(--s2) var(--s3) 0;
+}
+
+.bottom-stack.is-docked:empty {
+  padding: 0;
+}
+
 .bottom-stack > * {
   max-width: 100%;
   pointer-events: auto;

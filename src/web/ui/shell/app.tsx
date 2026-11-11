@@ -76,19 +76,31 @@ export function App() {
 }
 
 // What every page keeps: the hosts that float over the panes, and the box to type in while it does
-// not float over them.
+// not float over them; then the stack sits just above that box, in flow.
 function PageBottom({ hasCommandBar }: { readonly hasCommandBar: boolean }) {
   return (
     <>
-      <div class="bottom-stack">
-        <OfflineBar />
-        <UndoBar />
-      </div>
-      {hasCommandBar && <CommandBar />}
+      {hasCommandBar ? (
+        <div class="page-foot">
+          <BottomStack isDocked />
+          <CommandBar />
+        </div>
+      ) : (
+        <BottomStack />
+      )}
       <ModalHost />
       <ReaderHost />
       <Announcer />
     </>
+  )
+}
+
+function BottomStack({ isDocked }: { readonly isDocked?: true }) {
+  return (
+    <div class={isDocked === true ? 'bottom-stack is-docked' : 'bottom-stack'}>
+      <OfflineBar />
+      <UndoBar />
+    </div>
   )
 }
 

@@ -74,6 +74,8 @@ interface LayoutInput {
   readonly fixed: readonly Rect[]
   readonly tags: readonly Rect[]
   readonly hover?: HoverLabel
+  /** The pane the label must stay inside. */
+  readonly pane: Size
   readonly rooms: ReadonlyMap<RoomId, Rect>
   readonly actors: ReadonlyMap<ActorId, Rect>
   /** The selected person: their bubble goes first and shows even where it must overlap. */
@@ -110,7 +112,8 @@ let fontFamily = FALLBACK_FAMILY
  *  speaker's room and clear of everything placed before it. A bubble with no free place is hidden,
  *  but the selected person's takes the place that covers the least. */
 export function layoutOverlay(input: LayoutInput): Layout {
-  const hover = input.hover === undefined ? undefined : placeHover(input.hover, input.fixed)
+  const hover =
+    input.hover === undefined ? undefined : placeHover(input.hover, input.fixed, input.pane)
   const taken: Rect[] = [...input.fixed, ...input.tags, ...(hover === undefined ? [] : [hover])]
   const placed: Placed[] = []
   const hidden: ActorId[] = []
@@ -217,20 +220,31 @@ function isOverlapping(a: Rect, b: Rect): boolean {
   )
 }
 
-// The first of right, left, below and above that covers nothing fixed; else to the right.
-function placeHover(hover: HoverLabel, fixed: readonly Rect[]): Rect {
+// The first of right, left, below and above that covers nothing fixed and fits the pane; else the
+// first that covers nothing, else the one to the right; always pulled inside the pane.
+function placeHover(hover: HoverLabel, fixed: readonly Rect[], pane: Size): Rect {
   const { anchor, size } = hover
   const midY = anchor.y + anchor.h / 2 - size.h / 2
   const midX = anchor.x + anchor.w / 2 - size.w / 2
+  const right: Rect = { x: anchor.x + anchor.w + BUBBLE_GAP_PX, y: midY, ...size }
   const spots: Rect[] = [
-    { x: anchor.x + anchor.w + BUBBLE_GAP_PX, y: midY, ...size },
+    right,
     { x: anchor.x - BUBBLE_GAP_PX - size.w, y: midY, ...size },
     { x: midX, y: anchor.y + anchor.h + BUBBLE_GAP_PX, ...size },
     { x: midX, y: anchor.y - BUBBLE_GAP_PX - size.h, ...size },
   ]
-  const free = spots.find((spot) => !isTaken(spot, fixed))
+  const isFree = (at: Rect): boolean => !isTaken(at, fixed)
+  const spot = spots.find((at) => isFree(at) && isInside(at, pane)) ?? spots.find(isFree) ?? right
 
-  return free ?? { x: anchor.x + anchor.w + BUBBLE_GAP_PX, y: midY, ...size }
+  return {
+    ...size,
+    x: Math.max(0, Math.min(spot.x, pane.w - size.w)),
+    y: Math.max(0, Math.min(spot.y, pane.h - size.h)),
+  }
+}
+
+function isInside(rect: Rect, pane: Size): boolean {
+  return rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= pane.w && rect.y + rect.h <= pane.h
 }
 
 // The first place clear of everything taken; a forced bubble takes the one that covers the least.

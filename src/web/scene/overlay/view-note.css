@@ -2,6 +2,7 @@
   position: absolute;
   top: calc(var(--stageTopH) + var(--s1));
   left: 50%;
+  width: max-content;
   max-width: calc(100% - 2 * var(--s3));
   margin: 0;
   padding: 4px 12px;

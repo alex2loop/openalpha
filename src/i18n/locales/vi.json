@@ -472,7 +472,7 @@
     "office.stale.scene": "Chưa rõ mọi người đang làm gì",
     "office.stale.person": "Chưa rõ đang làm gì",
     "office.stale.jobs": "Danh sách này có thể đã khác",
-    "office.stale.step": "đã chạy {elapsed} tính đến {time}, sau đó chưa rõ",
+    "office.stale.step": "đã chạy {elapsed} lúc nhận tin cuối",
     "office.stale.chat": "Câu trả lời mới chưa về được tới đây",
     "office.header.running": "{count} việc đang chạy",
     "office.header.runningOne": "{count} việc đang chạy",
