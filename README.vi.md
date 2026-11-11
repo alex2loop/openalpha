@@ -336,6 +336,7 @@ Phần lớn câu lệnh hằng ngày chỉ tính trên dữ liệu đã có tro
 | Nghiên cứu một câu hỏi, có trích nguồn | `/research <câu hỏi>` | có (`quick` là mức nhẹ nhất) |
 | Chủ đề đầu tư đang hình thành | `/themes` | có, mặc định tối đa $1 mỗi lần |
 | Xếp hạng cả thị trường | `/screen equity-vn 20` | không |
+| Chỉ số chính của một mã (P/E, thanh khoản, dòng tiền) | `/screen FPT` | không |
 | Theo dõi giá vài mã | `/watchlist add FPT HPG` · `/watchlist` | không |
 | Nạp dữ liệu còn thiếu cho các thị trường bạn đang dùng (`force`: nạp lại hết) | `/refresh` · `/refresh equity-vn force` | không |
 | Bảng giá, vĩ mô, một mã | `/market` · `/overview` · `/price FPT` | không |

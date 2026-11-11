@@ -1,8 +1,19 @@
-import type { ScreenedCandidate, ScreenView } from '@/trading/features/market-data/types'
+import type { MarketDataRunDeps } from '@/trading/features/market-data/market-data-run'
+import type {
+  MarketDataScreenRequest,
+  ScreenedCandidate,
+  ScreenView,
+} from '@/trading/features/market-data/types'
 import type { FactorId } from '@/trading/kernel/factor'
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
+import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
+import type { Market } from '@/trading/markets/types'
+import { isAbortError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
+import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { rankWithin } from '@/trading/markets/factor-scoring'
+import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 const PERCENT = 100
 /** One reading has nothing to be placed against, so a factor that fired for fewer names has none. */
@@ -11,13 +22,83 @@ const MINIMUM_PEERS = 2
  *  nothing never lists them. */
 const LEVEL_METRICS: ReadonlySet<FactorMetricId> = new Set(['breakout-trigger', 'trailing-low'])
 
+/** The kind the board is read on: the one asked, else the named ticker's own where the market
+ *  screens that kind, so a fund is found on the funds' board. A name that cannot be resolved reads
+ *  the market's first kind and comes back missing, as any absent name does. */
+export async function resolveScreenKind(
+  deps: Pick<MarketDataRunDeps, 'markets' | 'logger'>,
+  market: Market,
+  request: MarketDataScreenRequest
+): Promise<Pick<MarketDataScreenRequest, 'instrumentKind'>> {
+  const { instrumentKind, ticker, signal } = request
+
+  if (instrumentKind !== undefined || ticker === undefined) {
+    return instrumentKind === undefined ? {} : { instrumentKind }
+  }
+
+  try {
+    const resolved = await resolveInstrument(deps.markets, {
+      ticker,
+      market: request.market,
+      signal,
+    })
+    const own = resolved.kind === 'resolved' ? resolved.instrumentKind : undefined
+
+    return own !== undefined && market.manifest.screenableKinds?.includes(own) === true
+      ? { instrumentKind: own }
+      : {}
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error
+    }
+
+    deps.logger.warn('trading.screen_kind_unresolved', { ticker, err: formatErrForLog(error) })
+
+    return {}
+  }
+}
+
+/** Whether a name with no live quote is quoted for the screen: on a ranked board short enough to
+ *  quote whole, or when it is the one name asked for. A browse board prints settled closes. */
+export function isQuotedOnScreen(
+  candidate: ScreenCandidate,
+  request: MarketDataScreenRequest,
+  boardSize: number
+): boolean {
+  if (request.form === 'board') {
+    return false
+  }
+
+  return request.ticker === undefined
+    ? boardSize <= SURFACE_LIMITS.maximumScreenCandidates
+    : candidate.instrument.ticker === request.ticker
+}
+
+/** The view in the form the request asks for, kept to the one name a `ticker` asks for once the
+ *  board's places are read. */
+export function toRequestedView(
+  view: ScreenView,
+  request: Pick<MarketDataScreenRequest, 'form' | 'ticker'>
+): ScreenView {
+  const shaped = request.form === 'board' ? toBoardView(view) : view
+
+  if (request.ticker === undefined) {
+    return shaped
+  }
+
+  return {
+    ...shaped,
+    candidates: shaped.candidates.filter(({ instrument }) => instrument.ticker === request.ticker),
+  }
+}
+
 /** The whole priced board as a list to browse: ticker order, which says nothing about merit, and
  *  for each factor that fired where the name's reading sits among the board's. No reading is a
  *  price level (`LEVEL_METRICS`). A name with no price
  *  is left out and counted: the board prices what it lists, and a missing price is absent, not zero.
  *  The composite stays on the candidate for the callers that rank, and no renderer of this form
  *  reads it. */
-export function toBoardView(view: ScreenView): ScreenView {
+function toBoardView(view: ScreenView): ScreenView {
   const priced = view.candidates.filter((candidate) => candidate.price !== undefined)
   const percentiles = factorPercentiles(priced)
 

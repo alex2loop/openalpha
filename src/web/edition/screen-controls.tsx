@@ -1,6 +1,6 @@
 import type { ScreenResponse } from '@/app/server/wire/market'
 import type { MessageKey } from '@/i18n'
-import type { Bound } from '@/web/edition/screen-bounds'
+import { type Bound, hasLimits } from '@/web/edition/screen-bounds'
 import { labelled, SORT_LABELS } from '@/web/edition/screen-columns'
 import {
   type BaseSortKey,
@@ -23,6 +23,7 @@ import {
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
+import { Fold } from '@/web/ui/kit/fold'
 
 const SCOPE_LABELS = Object.freeze({
   all: 'ui.office.edition.screen.scope.all',
@@ -43,6 +44,8 @@ interface ControlsProps {
   readonly bounds: readonly Bound[]
   /** The kinds of instrument the market lists, where it lists more than one. */
   readonly kinds: ScreenResponse['kinds']
+  /** How many names the filters leave, of how many on the board. */
+  readonly tally: { readonly shown: number; readonly total: number }
 }
 
 /** The order and the filters the visitor sets on the board. Every choice is theirs and every
@@ -50,9 +53,30 @@ interface ControlsProps {
 export function ScreenControls(props: ControlsProps) {
   return (
     <>
+      <SearchBar market={props.market} view={props.view} />
+      <BoardTally {...props.tally} />
       <SortBar {...props} />
       <FilterBar {...props} />
+      <LimitsFold {...props} />
     </>
+  )
+}
+
+function SearchBar({ market, view }: Pick<ControlsProps, 'market' | 'view'>) {
+  const label = tr('ui.office.edition.screen.filter.search')
+
+  return (
+    <div class="sort-bar">
+      <input
+        type="search"
+        class="screen-size"
+        autocomplete="off"
+        aria-label={label}
+        placeholder={label}
+        value={view.query}
+        onInput={(event) => updateView(market, { query: event.currentTarget.value })}
+      />
+    </div>
   )
 }
 
@@ -148,19 +172,45 @@ function FilterBar({ market, view, sectors, bounds, kinds }: ControlsProps) {
       {kinds !== undefined && <KindSelect market={market} view={view} kinds={kinds} />}
       <ScopeSelect market={market} view={view} />
       {sectors.length > 0 && <SectorSelect market={market} view={view} sectors={sectors} />}
-      {bounds.map(({ id, label, sessions }) => (
-        <LimitInput
-          key={id}
-          label={labelled(label, sessions)}
-          value={view.bounds[id] ?? ''}
-          onInput={(typed) => updateView(market, { bounds: { ...view.bounds, [id]: typed } })}
-        />
-      ))}
       {isFiltered(view, bounds) && (
         <Button size="small" onClick={() => clearFilters(market)}>
           {tr('ui.office.edition.screen.filter.clear')}
         </Button>
       )}
+    </div>
+  )
+}
+
+// The limits are many and seldom all wanted, so they fold away until one is set.
+function LimitsFold({ market, view, bounds }: Pick<ControlsProps, 'market' | 'view' | 'bounds'>) {
+  if (bounds.length === 0) {
+    return null
+  }
+
+  return (
+    <Fold
+      title={tr('ui.office.edition.screen.filter.limits')}
+      isOpenInitially={hasLimits(bounds, view.bounds)}
+    >
+      <div class="sort-bar">
+        {bounds.map(({ id, label, sessions }) => (
+          <LimitInput
+            key={id}
+            label={labelled(label, sessions)}
+            value={view.bounds[id] ?? ''}
+            onInput={(typed) => updateView(market, { bounds: { ...view.bounds, [id]: typed } })}
+          />
+        ))}
+      </div>
+    </Fold>
+  )
+}
+
+/** How many names the filters leave. */
+function BoardTally({ shown, total }: ControlsProps['tally']) {
+  return (
+    <div class="sort-bar">
+      <p class="meta">{tr('ui.office.edition.screen.filter.count', { shown, total })}</p>
     </div>
   )
 }

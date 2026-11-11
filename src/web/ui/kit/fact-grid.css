@@ -11,10 +11,15 @@
   break-inside: avoid;
 }
 
+/* Room above each group after the first marks where one ends and the next begins. */
+.fact-group + .fact-group {
+  padding-top: var(--s2);
+}
+
 .fact-heading {
   margin: 0 0 2px;
   color: var(--ink);
-  font: var(--typeCaptionStrong);
+  font: var(--typeHeading);
 }
 
 .fact-list {
@@ -42,10 +47,13 @@
   color: var(--ink2);
 }
 
+.fact > dd:not([class]) {
+  color: var(--ink);
+}
+
 .fact > dd {
   max-width: 60vw;
   margin: 0;
-  color: var(--ink);
   font-weight: var(--weightSemibold);
   text-align: right;
   font-variant-numeric: tabular-nums;

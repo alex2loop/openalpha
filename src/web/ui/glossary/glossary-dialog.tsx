@@ -1,6 +1,6 @@
 import { useSignal } from '@preact/signals'
 
-import { foldGlossaryText, glossaryGroups, matchesGlossaryQuery } from '@/i18n'
+import { foldGlossaryText, glossaryGroups, matchesSearchQuery } from '@/i18n'
 import { locale } from '@/web/state/session'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -26,7 +26,7 @@ function GlossaryBody() {
     .map((group) => ({
       ...group,
       terms: group.terms.filter((term) =>
-        matchesGlossaryQuery([term.name, term.definition, ...term.tickers], query.value)
+        matchesSearchQuery([term.name, term.definition, ...term.tickers], query.value)
       ),
     }))
     .filter((group) => group.terms.length > 0)

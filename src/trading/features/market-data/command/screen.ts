@@ -5,8 +5,9 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import type { MarketDataService, ScreenForm } from '@/trading/features/market-data/types'
-import type { MarketRef } from '@/trading/kernel/instrument'
+import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
 import { renderScreenText } from '@/trading/features/market-data/render/screen'
+import { renderScreenNameText } from '@/trading/features/market-data/render/screen-name'
 import {
   INSTRUMENT_KINDS,
   type InstrumentKind,
@@ -17,6 +18,7 @@ import {
   parseMember,
   parsePositiveInteger,
   parseRegisteredMarket,
+  parseTickerRequest,
   usage,
 } from '@/trading/kernel/surface/surface'
 import { answerSurfaceOf, resolveRenderContext } from '@/trading/render/format'
@@ -73,10 +75,11 @@ async function run(deps: ScreenCommandDeps, ctx: SlashContext): Promise<SlashRes
     return usage(USAGE, buildUsageValues(deps))
   }
 
-  const { market, limit, instrumentKind } = parsed
+  const { market, limit, instrumentKind, ticker } = parsed
   const result = await deps.marketData.screen({
     market,
     limit,
+    ...(ticker === undefined ? {} : { ticker }),
     now: Date.now(),
     signal: ctx.signal,
     ...(deps.form === undefined ? {} : { form: deps.form }),
@@ -85,21 +88,21 @@ async function run(deps: ScreenCommandDeps, ctx: SlashContext): Promise<SlashRes
   })
 
   const display = deps.marketData.quoteConvention(market)?.display
+  const request = {
+    market,
+    context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
+    // A board lists every priced name; the argument says how many of them the chat prints.
+    shown: limit,
+    ...(display === undefined ? {} : { display }),
+    ...(instrumentKind === undefined ? {} : { instrumentKind }),
+  }
 
   return {
     kind: 'text',
-    text: renderScreenText(
-      ctx.locale,
-      {
-        market,
-        context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
-        // A board lists every priced name; the argument says how many of them the chat prints.
-        shown: limit,
-        ...(display === undefined ? {} : { display }),
-        ...(instrumentKind === undefined ? {} : { instrumentKind }),
-      },
-      result
-    ),
+    text:
+      ticker === undefined
+        ? renderScreenText(ctx.locale, request, result)
+        : renderScreenNameText(ctx.locale, { ...request, ticker }, result),
   }
 }
 
@@ -119,12 +122,15 @@ interface ScreenArgs {
   readonly market: MarketRef
   readonly limit: number
   readonly instrumentKind?: InstrumentKind
+  /** Prints only this name's row. */
+  readonly ticker?: Ticker
 }
 
 interface ScreenSlots {
   readonly market?: MarketRef
   readonly instrumentKind?: InstrumentKind
   readonly limit?: number
+  readonly ticker?: Ticker
 }
 
 /** Classified rather than positional: with the market optional, a bare number could be either it or
@@ -144,6 +150,7 @@ function parseScreenArgs(args: readonly string[], context: ScreenArgsContext): S
         market,
         limit: slots.limit ?? SURFACE_LIMITS.defaultScreenCandidates,
         ...(slots.instrumentKind === undefined ? {} : { instrumentKind: slots.instrumentKind }),
+        ...(slots.ticker === undefined ? {} : { ticker: slots.ticker }),
       }
 }
 
@@ -166,5 +173,31 @@ function fillSlot(slots: ScreenSlots, raw: string, context: ScreenArgsContext): 
 
   const limit = parsePositiveInteger(raw, SURFACE_LIMITS.maximumScreenCandidates)
 
-  return limit === null || slots.limit !== undefined ? null : { ...slots, limit }
+  if (limit !== null) {
+    return slots.limit === undefined ? { ...slots, limit } : null
+  }
+
+  return fillTicker(slots, raw, context)
+}
+
+/** Anything else is a name, `market:ticker` when it says where it lists; a second name, or a market
+ *  that disagrees with the one already given, is a usage line. */
+function fillTicker(
+  slots: ScreenSlots,
+  raw: string,
+  context: ScreenArgsContext
+): ScreenSlots | null {
+  const request = parseTickerRequest(raw, context.markets)
+
+  if (request === null || slots.ticker !== undefined) {
+    return null
+  }
+
+  const market = request.market ?? slots.market
+
+  if (slots.market !== undefined && market !== slots.market) {
+    return null
+  }
+
+  return { ...slots, ticker: request.ticker, ...(market === undefined ? {} : { market }) }
 }

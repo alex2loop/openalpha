@@ -58,6 +58,9 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
   'trading.metric.pb',
   'trading.metric-short.pe',
   'trading.metric-short.pb',
+  'trading.metric-short.return-on-equity',
+  'trading.metric-short.return-on-assets',
+  'trading.metric-short.return-on-invested-capital',
   // The acronym is what the exchange lists it as, so the badge is the same word in both.
   'trading.render.kind.etf',
   // A series name, a date and a value carry no word to translate.

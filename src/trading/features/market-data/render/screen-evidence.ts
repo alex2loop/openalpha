@@ -81,16 +81,30 @@ export function renderBoardRow(
 ): readonly string[] {
   return [
     ...toRowLines(
-      [
-        renderNameHead(locale, candidate),
-        ...renderPriceFacts(locale, candidate, board),
-        ...missingSegment(locale, candidate),
-      ],
+      [renderNameHead(locale, candidate), ...renderPriceSegments(locale, candidate, board)],
       board.context,
       1
     ),
     ...renderBoardFactLines(locale, boardFacts(locale, candidate, board), board.context),
   ]
+}
+
+/** The price, its move and how fresh it is, then what the name lacks, on lines that never split a
+ *  fact: a board row's head without the name, for a view the name already heads. */
+export function renderPriceLine(
+  locale: Locale,
+  candidate: ScreenedCandidate,
+  board: ScreenBoard
+): readonly string[] {
+  return toRowLines(renderPriceSegments(locale, candidate, board), board.context, 1)
+}
+
+function renderPriceSegments(
+  locale: Locale,
+  candidate: ScreenedCandidate,
+  board: ScreenBoard
+): readonly string[] {
+  return [...renderPriceFacts(locale, candidate, board), ...missingSegment(locale, candidate)]
 }
 
 /** How a board writes a factor's quantities: short labels, each reading once, joined by commas. A
@@ -131,7 +145,8 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
 
 /** The ticker, then the sector the market files it under where it files one: a ticker alone does
  *  not say what the company does. Names itself, so it takes no label. */
-function renderNameHead(locale: Locale, candidate: ScreenCandidate): string {
+/** The ticker and the sector its market files it under, where it files one. */
+export function renderNameHead(locale: Locale, candidate: ScreenCandidate): string {
   const { sector } = candidate
 
   return sector === undefined

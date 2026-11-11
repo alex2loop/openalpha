@@ -18,7 +18,7 @@ export {
   type GlossaryGroupEntry,
   type GlossaryTermId,
   groupOfHeading,
-  matchesGlossaryQuery,
+  matchesSearchQuery,
   termOfFact,
   termOfKind,
   termOfMarket,

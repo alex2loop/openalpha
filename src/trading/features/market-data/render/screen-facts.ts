@@ -1,6 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { ScreenedCandidate } from '@/trading/features/market-data/types'
-import type { FactorResult } from '@/trading/kernel/factor'
+import type { FactorId, FactorResult } from '@/trading/kernel/factor'
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import type { PriceDisplay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
@@ -14,7 +14,15 @@ import { formatPercentRank } from '@/trading/render/rank'
 const MONTH_CHANGE_ID = 'month-change'
 
 /** The groups a name's facts sit under, in the order they print. */
-const BOARD_GROUPS = Object.freeze(['price', 'valuation', 'flow', 'derivatives'] as const)
+const BOARD_GROUPS = Object.freeze([
+  'valuation',
+  'profitability',
+  'growth',
+  'health',
+  'price',
+  'flow',
+  'derivatives',
+] as const)
 
 type BoardGroup = (typeof BOARD_GROUPS)[number]
 
@@ -24,25 +32,25 @@ const BOARD_GROUP_OF = Object.freeze({
   pe: 'valuation',
   'average-profit-pe': 'valuation',
   pb: 'valuation',
-  'earnings-growth': 'valuation',
-  'revenue-growth': 'valuation',
+  'earnings-growth': 'growth',
+  'revenue-growth': 'growth',
   'value-percentile': 'valuation',
-  'return-on-equity': 'valuation',
-  'return-on-assets': 'valuation',
-  'debt-to-equity': 'valuation',
-  'gross-margin': 'valuation',
-  'quality-percentile': 'valuation',
-  'accounts-score': 'valuation',
-  'return-on-invested-capital': 'valuation',
-  'interest-cover': 'valuation',
-  'net-debt-to-ebitda': 'valuation',
-  'bad-debt-ratio': 'valuation',
-  'watch-list-ratio': 'valuation',
-  'provision-cover': 'valuation',
-  'casa-share': 'valuation',
-  'cost-to-income': 'valuation',
-  'capital-adequacy': 'valuation',
-  'net-interest-to-assets': 'valuation',
+  'return-on-equity': 'profitability',
+  'return-on-assets': 'profitability',
+  'debt-to-equity': 'health',
+  'gross-margin': 'profitability',
+  'quality-percentile': 'health',
+  'accounts-score': 'health',
+  'return-on-invested-capital': 'profitability',
+  'interest-cover': 'health',
+  'net-debt-to-ebitda': 'health',
+  'bad-debt-ratio': 'health',
+  'watch-list-ratio': 'health',
+  'provision-cover': 'health',
+  'casa-share': 'profitability',
+  'cost-to-income': 'profitability',
+  'capital-adequacy': 'health',
+  'net-interest-to-assets': 'profitability',
   'sector-pe': 'valuation',
   'trend-average': 'price',
   'year-high': 'price',
@@ -69,8 +77,24 @@ const BOARD_GROUP_OF = Object.freeze({
   'ranked-peers': undefined,
 } as const satisfies Readonly<Record<FactorMetricId, BoardGroup | undefined>>)
 
+/** The readings a reader looks for first, at the head of their group in this order: the price
+ *  multiples, each beside its yardstick. */
+const LEADING_FACTS: readonly string[] = Object.freeze([
+  'pe',
+  'sector-pe',
+  'average-profit-pe',
+  'pb',
+])
+
 /** A factor with a place on the board but no reading of its own is listed under price. */
 const UNMEASURED_GROUP: BoardGroup = 'price'
+
+/** Where a factor's place is listed when its readings span groups: value is a verdict on the price
+ *  paid, quality one on the company's health; any other factor follows its first reading. */
+const PLACE_GROUP_OF: Readonly<Partial<Record<FactorId, BoardGroup>>> = Object.freeze({
+  value: 'valuation',
+  quality: 'health',
+})
 
 /** One fact of a name on a board: a reading with its label and value apart, for a page to lay out
  *  as it likes and for the text below to join. A factor's place among the board's names joins the
@@ -115,11 +139,13 @@ export function boardFacts(
     }
 
     if (percentile !== undefined) {
-      addPlace(found, {
+      addPlace(locale, found, {
         id: factor.id,
         label: renderDeclaredValue(locale, `trading.factor.${factor.id}`),
         value: formatPercentRank(locale, percentile, 'plain'),
-        group: readings[0] === undefined ? UNMEASURED_GROUP : toFact(readings[0]).group,
+        group:
+          PLACE_GROUP_OF[factor.id] ??
+          (readings[0] === undefined ? UNMEASURED_GROUP : toFact(readings[0]).group),
       })
     }
   }
@@ -127,8 +153,17 @@ export function boardFacts(
   addOwnFacts(locale, { candidate, found, read })
 
   return [...found.values()].toSorted(
-    (left, right) => BOARD_GROUPS.indexOf(left.group) - BOARD_GROUPS.indexOf(right.group)
+    (left, right) =>
+      BOARD_GROUPS.indexOf(left.group) - BOARD_GROUPS.indexOf(right.group) ||
+      leadRank(left) - leadRank(right)
   )
+}
+
+/** A fact's place among `LEADING_FACTS`; every other fact keeps its order after them. */
+function leadRank({ id }: BoardFact): number {
+  const rank = LEADING_FACTS.indexOf(id)
+
+  return rank === -1 ? LEADING_FACTS.length : rank
 }
 
 /** The size, the traded value and the month's move a market states as fields of the name rather
@@ -179,12 +214,14 @@ function toFact({ metric, label, value }: MetricReading): BoardFact {
 }
 
 /** A factor's place goes on the line of the reading named as the factor is, so one quantity reads on
- *  one line; with none it is a fact of its own. */
-function addPlace(found: Map<string, BoardFact>, place: BoardFact): void {
+ *  one line; with none it is a fact of its own, labelled as a place so it never reads as a heading. */
+function addPlace(locale: Locale, found: Map<string, BoardFact>, place: BoardFact): void {
   const named = [...found.entries()].find(([, stated]) => stated.label === place.label)
 
   if (named === undefined) {
-    addFact(found, place.id, place)
+    const label = t(locale, 'trading.render.screen.placeLabel', { factor: place.label })
+
+    addFact(found, place.id, { ...place, label })
 
     return
   }
@@ -231,7 +268,7 @@ export function renderBoardFactLines(
     return texts.length === 0
       ? []
       : [
-          `${INDENT[1]}${t(locale, `trading.render.screen.group.${group}`)}`,
+          `${INDENT[1]}**${t(locale, `trading.render.screen.group.${group}`)}**`,
           ...toFactLines(texts, context, 2),
         ]
   })

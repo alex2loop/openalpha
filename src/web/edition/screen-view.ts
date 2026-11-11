@@ -1,5 +1,6 @@
 import { type Signal, signal } from '@preact/signals'
 
+import { matchesSearchQuery } from '@/i18n'
 import { type Bound, boundId, hasLimits, withinLimits } from '@/web/edition/screen-bounds'
 import {
   type BaseSortKey,
@@ -40,6 +41,8 @@ export interface BoardView {
   readonly thenDirection: SortDirection
   readonly scope: Scope
   readonly sector: string
+  /** Narrows the board to names whose ticker or company name holds it, accents and case aside. */
+  readonly query: string
   readonly bounds: Readonly<Record<string, string>>
 }
 
@@ -54,6 +57,7 @@ const DEFAULT_VIEW: BoardView = Object.freeze({
   thenDirection: 'desc',
   scope: 'all',
   sector: NO_SECTOR,
+  query: '',
   bounds: Object.freeze({}),
 })
 
@@ -117,6 +121,7 @@ export function isFiltered(view: BoardView, bounds: readonly Bound[]): boolean {
   return (
     view.scope !== DEFAULT_VIEW.scope ||
     view.sector !== DEFAULT_VIEW.sector ||
+    view.query !== DEFAULT_VIEW.query ||
     hasLimits(bounds, view.bounds)
   )
 }
@@ -137,7 +142,8 @@ export function filterCandidates(
     candidates.filter(
       (candidate) =>
         isInScope(candidate, view.scope, own) &&
-        (view.sector === NO_SECTOR || candidate.sector === view.sector)
+        (view.sector === NO_SECTOR || candidate.sector === view.sector) &&
+        matchesSearchQuery([candidate.instrument.ticker, candidate.name ?? ''], view.query)
     ),
     bounds,
     view.bounds
@@ -195,7 +201,7 @@ function readView(market: string): BoardView {
 
 // Each field is read on its own, so a view saved by an older page keeps what still fits.
 function toView(stored: Record<string, unknown>): BoardView {
-  const text = (key: 'kind' | 'sort' | 'thenSort' | 'sector'): string => {
+  const text = (key: 'kind' | 'sort' | 'thenSort' | 'sector' | 'query'): string => {
     const value = stored[key]
 
     return typeof value === 'string' ? value : DEFAULT_VIEW[key]
@@ -210,6 +216,7 @@ function toView(stored: Record<string, unknown>): BoardView {
     thenDirection: thenDirection === 'asc' ? 'asc' : DEFAULT_VIEW.thenDirection,
     scope: scope === 'held' || scope === 'watched' ? scope : 'all',
     sector: text('sector'),
+    query: text('query'),
     bounds: toBounds(stored),
   }
 }

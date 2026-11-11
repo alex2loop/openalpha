@@ -102,6 +102,9 @@ export interface GlossaryGroupEntry {
 const HEADING_GROUPS: Readonly<Record<string, GlossaryGroup>> = Object.freeze({
   price: 'technical',
   valuation: 'valuation',
+  profitability: 'valuation',
+  growth: 'valuation',
+  health: 'valuation',
   flow: 'flow',
   derivatives: 'derivatives',
   'taker-flow': 'flow',
@@ -160,7 +163,7 @@ export function foldGlossaryText(text: string): string {
 }
 
 /** True when the folded query is empty or sits inside any of the folded fields. */
-export function matchesGlossaryQuery(fields: readonly string[], query: string): boolean {
+export function matchesSearchQuery(fields: readonly string[], query: string): boolean {
   const needle = foldGlossaryText(query)
 
   return needle === '' || fields.some((field) => foldGlossaryText(field).includes(needle))

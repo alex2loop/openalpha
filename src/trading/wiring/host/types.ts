@@ -111,6 +111,8 @@ interface TradingScreenRequest extends TradingSignalRequest {
   readonly market: MarketRef
   readonly instrumentKind?: InstrumentKind
   readonly limit: number
+  /** Only this name's row, placed against the whole board. */
+  readonly ticker?: Ticker
 }
 
 interface TradingSearchRequest extends TradingSignalRequest {
