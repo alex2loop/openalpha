@@ -1,3 +1,4 @@
+import type { Locale } from '@/core/types/locale'
 import type { CurrencyCode, InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 
 export const MARKET_EVENT_KINDS = Object.freeze([
@@ -58,6 +59,9 @@ export interface MarketEvent {
   /** `title` and `detail` are the adapter's English, for a model and the logs: a reader showing the
    *  event to a person words it from the kind and the facts below, in the person's language. */
   readonly composedText?: true
+  /** The language the provider writes `title` and `detail` in, so a reader of the other language is
+   *  told; set by the adapter from its own source, absent on text it composed. */
+  readonly writtenIn?: Locale
   readonly insider?: InsiderPurchase
   readonly providerEventId?: string
   /** A cash dividend's amount per share, in the market's price unit; absent where not published. */

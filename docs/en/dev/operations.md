@@ -49,6 +49,15 @@ A pass that leaves any kind `unavailable` (nothing fetched) retries after 2, 4, 
 never past the next anchor; a fifth failure hands back to the anchor and the ladder restarts. A
 `partial` pass waits for the next anchor.
 
+A scheduled pass an operator stopped from the runs list counts as a failed pass and takes the same
+ladder: the first retry runs 2 minutes later, not at the next anchor. The pass carries the day's
+factor board capture (`createFactorLogTick`, after the refresh and the NAV row), and capture asks only
+for the newest settled session, so a pass lost to a stop would otherwise lose that day's board for
+good. Shutdown still ends the loop. Capture logs `trading.factor_log_captured` on a write, and at
+debug `trading.factor_log_no_screen` and `trading.factor_log_already_captured`, each with the market
+and the session day, so a missing day can be traced; a lagging or empty board warns as
+`trading.factor_log_capture_deferred`.
+
 ### Tick failure classification
 
 `runTick` sorts a thrown error:
@@ -58,7 +67,7 @@ never past the next anchor; a fifth failure hands back to the anchor and the lad
 | `StorageError`, `ChannelError`, `LLMError`, or `RunHalted` with code `budget` or `rate` | Boundary failure: `trading.tick_failed` at warn, retried next interval. |
 | `MissingEnvError` | Boundary failure: `trading.tick_key_missing` at warn once per loop until another failure is logged, retried next interval. |
 | Any other error | Escapes to the quarantine wrapper around the loop. Retrying forever would hide the code being wrong. |
-| Abort | Shutdown when the loop's own signal fired; the loop exits normally. Any other abort (the operator stopped the pass's run on the page) logs `trading.tick_stopped` at info and waits for the next interval. |
+| Abort | Shutdown when the loop's own signal fired; the loop exits normally. Any other abort (the operator stopped the pass's run on the page) logs `trading.tick_stopped` at info and waits the task's next delay: the interval, or for `trading.refresh` the retry ladder below. |
 
 Quarantine (`withQuarantine`) logs `trading.loop_quarantined` at error and sends the operator a
 notice that names the loop. It restarts the loop after one hour, at most three times. A loop that ran

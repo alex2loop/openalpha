@@ -97,6 +97,7 @@ function toDividendEvent(
       at,
       kind: 'dividend-ex-date',
       title: title.value,
+      writtenIn: 'en',
       // A row with no cash figure (a stock or special dividend stated as a ratio) keeps its own
       // words, which say what kind it is; a cash row is worded from the kind and the amount.
       ...(cash.cashPerShare === undefined ? {} : { composedText: true as const }),

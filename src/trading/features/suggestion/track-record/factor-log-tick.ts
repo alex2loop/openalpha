@@ -49,6 +49,14 @@ export function createFactorLogTick(
 type Skip = FactorLogCaptureResult['skipped'][number]
 
 function logSkip(logger: Logger, skip: Skip): void {
+  if (skip.reason === 'no-screen') {
+    logger.debug('trading.factor_log_no_screen', { market: skip.market, day: skip.day })
+  }
+
+  if (skip.reason === 'already-captured') {
+    logger.debug('trading.factor_log_already_captured', { market: skip.market, day: skip.day })
+  }
+
   if (skip.reason === 'capture-failed') {
     logger.warn('trading.factor_log_capture_failed', {
       market: skip.market,

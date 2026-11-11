@@ -320,6 +320,9 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
     logger: deps.logger,
   })
   let failedPasses = 0
+  const settlePass = (failed: boolean): void => {
+    failedPasses = failed ? (failedPasses % refreshRetry.maximumAttempts) + 1 : 0
+  }
 
   // Ticks at start rather than waiting for an anchor: it joins a boot sweep still in flight, and
   // after an offline boot it is the pass that waits for the network and enters the retry ladder.
@@ -338,18 +341,9 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
     reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: async (signal) => {
-      const results = await deps.refreshMarketData({ signal, scheduled: true })
-      const degradations = refreshDegradations(results)
-      const emptied = results.some((result) =>
-        result.results.some((kind) => kind.status === 'unavailable')
-      )
+      const results = await sweepScheduled(deps, signal, () => settlePass(true))
 
-      if (degradations.length > 0) {
-        logRefreshDegradations({ logger: deps.logger, forced: false, degradations })
-      }
-
-      failedPasses = emptied ? (failedPasses % refreshRetry.maximumAttempts) + 1 : 0
-
+      settlePass(logDegradedPass(deps.logger, results))
       await deps.navSnapshot(signal)
       await factorLogTick(
         results.map((result) => result.market),
@@ -357,6 +351,36 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
       )
     },
   })
+}
+
+/** The pass the daemon schedules. An operator stopping it from the runs list ends it without the
+ *  daemon shutting down, and the day's capture rides this pass: `onStopped` puts it on the retry
+ *  ladder, so the pass runs again soon instead of at the next anchor. */
+async function sweepScheduled(
+  deps: TradingDaemonDeps,
+  signal: AbortSignal,
+  onStopped: () => void
+): Promise<readonly RefreshMarketDataResult[]> {
+  try {
+    return await deps.refreshMarketData({ signal, scheduled: true })
+  } catch (err: unknown) {
+    if (isAbortError(err) && !signal.aborted) {
+      onStopped()
+    }
+
+    throw err
+  }
+}
+
+/** Logs what the pass left degraded; true when a kind came back empty, which is a failed pass. */
+function logDegradedPass(logger: Logger, results: readonly RefreshMarketDataResult[]): boolean {
+  const degradations = refreshDegradations(results)
+
+  if (degradations.length > 0) {
+    logRefreshDegradations({ logger, forced: false, degradations })
+  }
+
+  return results.some((result) => result.results.some((kind) => kind.status === 'unavailable'))
 }
 
 function intradayTask(deps: TradingDaemonDeps): DaemonTask {
