@@ -229,7 +229,9 @@ function settledBar(
 
 /** A live reading, not a quote: this market never stops, so the provider's price is what it trades
  *  at right now and no session has closed on it. The settled bar rides beside it, dated by the
- *  session it closed, so the live move is measured against a close the row actually prints. */
+ *  session it closed, so the live move is measured against a close the row actually prints. The
+ *  board's own change is a rolling 24-hour window measured from a price no row shows, so it is not
+ *  carried: with no settled bar the row states no move. */
 function toRow(
   calendar: TradingCalendar,
   record: MarketCapRecord,
@@ -239,7 +241,6 @@ function toRow(
     instrument: record.instrument,
     live: {
       price: record.priceUsd,
-      ...(record.changePct === undefined ? {} : { changePct: record.changePct }),
       observedAt: record.fetchedAt,
       observedOn: calendar.dayAt(record.fetchedAt),
       observedTime: formatZonedTime(record.fetchedAt, calendar.timezone),
@@ -254,7 +255,6 @@ function toRow(
           },
           closedOn: settled.at,
         }),
-    ...(record.changePct === undefined ? {} : { changePct: record.changePct }),
     turnover: record.totalVolumeUsd,
   }
 }

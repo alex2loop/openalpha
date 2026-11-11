@@ -111,6 +111,8 @@ function buildUsageValues(deps: ScreenCommandDeps): CommandMessageValues {
   return {
     markets: deps.marketData.markets().join(', '),
     kinds: screenableKindsText(deps.marketData.screenableKinds()),
+    maximum: SURFACE_LIMITS.maximumScreenCandidates,
+    default: SURFACE_LIMITS.defaultScreenCandidates,
   }
 }
 

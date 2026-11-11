@@ -28,10 +28,14 @@ The office page now shows who worked on each run and for how long, with what eac
 
 ### Fixed
 
+- `/overview crypto` and the brief's crypto headline rows no longer fall back to the market-cap board's rolling 24-hour move when the daily close cannot be read; with no close they show no move.
+- "Not listed" and "no such kind" answers name the market in full ("Crypto market") instead of its internal id.
+- `/screen equity-vn:FPT crypto` answers with the kind problem alone, not also with a line saying FPT is not on the Screen.
+- `/screen` with an out-of-range number says the range it accepts (1 to 50).
 - Stop is greyed out while the page cannot reach OpenAlpha.
 - A data refresh stopped halfway is tried again within minutes, so a day's factor board is no longer lost.
 - At start the office page shows one data refresh in the running list, not three.
-- A repeated "reasoning not supported" warning is logged once per model.
+- A repeated "reasoning not supported" warning is logged once for each provider, model and reasoning setting, not on every request.
 
 ## [1.5.1] - 2026-11-11
 

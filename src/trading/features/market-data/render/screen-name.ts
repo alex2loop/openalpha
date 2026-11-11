@@ -40,12 +40,17 @@ export function renderScreenNameText(
   }
 
   if (candidate === undefined) {
+    const caveats = caveatsAbout(result, request.ticker)
+    const lines = renderCaveatLines(locale, caveats, { plain: true })
+
+    // A kind the market cannot screen is the whole answer; the name's absence adds nothing to it.
+    if (caveats.some(({ code }) => code === 'market-data.kind-unsupported')) {
+      return joinSections([lines])
+    }
+
     const title = t(locale, 'trading.render.screen.nameMissing', values)
 
-    return joinSections([
-      [renderSectionTitle(SECTION_ICONS.screen, title)],
-      renderCaveatLines(locale, caveatsAbout(result, request.ticker), { plain: true }),
-    ])
+    return joinSections([[renderSectionTitle(SECTION_ICONS.screen, title)], lines])
   }
 
   const title = t(locale, 'trading.render.screen.nameTitle', {

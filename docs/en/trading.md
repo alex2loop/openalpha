@@ -169,7 +169,7 @@ Some sources publish an intraday series. A quote from one of them brings the ses
 
 A settled read has no range, and neither does a source without an intraday series. Nothing guesses a range from one close.
 
-Crypto headline rows are measured against the settled close from their own daily series. That close is printed beside the row. They are not measured against a rolling 24-hour window you never see on screen.
+Crypto headline rows are measured against the settled close from their own daily series, the close `/price` prints. A headline row shows the live price, that move and the time of the reading, not the close itself. They are not measured against a rolling 24-hour window you never see on screen, and a row whose close could not be read shows no move at all.
 
 The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session. The mover list leaves out coins under a market-cap floor of 250 million USD, because a small coin can top a thin day's list without saying anything about the market; the count of names that rose and fell below keeps every liquid name.
 

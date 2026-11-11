@@ -326,8 +326,8 @@ async function otherListingCaveats(
       code: 'market.ticker-also-listed',
       detail: {
         ticker: options.ticker,
-        market: winner.manifest.id,
-        other: entry.market.manifest.id,
+        readMarket: winner.manifest.id,
+        otherMarket: entry.market.manifest.id,
       },
     })
   )
