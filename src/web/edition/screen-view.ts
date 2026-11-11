@@ -150,6 +150,18 @@ export function filterCandidates(
   )
 }
 
+/** The name whose ticker is the search ahead of the rest, the others in the order given: a visitor
+ *  typing a ticker means that name before one whose company name merely holds it. */
+export function withTickerMatchFirst(
+  candidates: readonly Candidate[],
+  query: string
+): readonly Candidate[] {
+  const ticker = query.trim().toUpperCase()
+  const isTyped = (candidate: Candidate) => candidate.instrument.ticker.toUpperCase() === ticker
+
+  return [...candidates.filter(isTyped), ...candidates.filter((candidate) => !isTyped(candidate))]
+}
+
 /** What a board can honour of the visitor's choices. */
 interface BoardChoices extends SortChoices {
   readonly sectors: readonly string[]
