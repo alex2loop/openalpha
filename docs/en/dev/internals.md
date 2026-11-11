@@ -254,7 +254,8 @@ takes out one waiting command.
 - It lists at most `RUN_TIMELINE_CHILDREN_MAX` children (`truncated` beyond), reading one row past the cap to tell a full page from a cut one.
 - `run` is absent while the run runs, for a run never written and for an unknown id: the run log's writes are fire-and-forget, so a client reads that as not yet written and never keeps the answer as final. `totalUsd` is set while the run runs.
 - A malformed id is `invalid_body`; an unknown id is the empty shape.
-- It is operator only (cost per person never reaches a model, a chat or the socket) and withheld on the web edition, whose strip runs from the worker's live events and shows times only.
+- A person's cost is the sum of that person's child rows, each priced over the run tree ([persistence/stores/run-tree-sql.ts](../../../src/persistence/stores/run-tree-sql.ts), which also counts calls billed under a throwaway run id through `llm_attempts.parent_run_id`); the page prints the rest of the run as `totalUsd` less the listed children.
+- It is operator only. Cost per person is read from this route alone: no `WireEvent` carries it (the declared `usage` kind is never sent), no prompt or tool result is built from the run log's costs, and the route is withheld on the web edition, whose strip runs from the worker's live events and shows times only.
 
 One `/suggest` runs per identity and depth: a second finds the run in the suggestion service's
 flight map and waits on it, and the starter alone is billed.

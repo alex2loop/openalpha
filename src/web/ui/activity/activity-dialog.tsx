@@ -3,7 +3,6 @@ import { formatDay } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { locale, state } from '@/web/state/session'
-import { formatChildrenLine } from '@/web/text/activity'
 import { childOutcomeKey } from '@/web/text/child-outcome'
 import { formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
@@ -25,7 +24,7 @@ interface ActivityOptions {
 }
 
 /** A day's finished runs, newest first, each with what it cost and its AI calls one fold away;
- *  delegated children fold under their parent. */
+ *  delegated children are in the run's timeline fold. */
 export function openActivityDialog(options: ActivityOptions = {}): void {
   const { day } = options
 
@@ -59,7 +58,7 @@ function ActivityList({ day }: { readonly day: string | undefined }) {
     <div class="activity-list">
       {activity.value.rows.map((row) => (
         <div key={row.runId} class="activity-entry">
-          <ActivityItem row={row} />
+          <ActivityLine row={row} />
           {row.children !== undefined && (
             <RunTimelineFold
               runId={row.runId}
@@ -77,28 +76,6 @@ function ActivityList({ day }: { readonly day: string | undefined }) {
 
 function loadActivity(signal: AbortSignal, day: string | undefined): Promise<ActivityResponse> {
   return getJson(ROUTES.activity, { ...(day === undefined ? {} : { query: { day } }), signal })
-}
-
-function ActivityItem({ row }: { readonly row: ActivityRowWire }) {
-  const children = row.children ?? []
-
-  if (children.length === 0) {
-    return <ActivityLine row={row} />
-  }
-
-  return (
-    <details class="activity-item">
-      <summary>
-        <ActivityLine row={row} />
-        <span class="meta activity-children">{formatChildrenLine(children)}</span>
-      </summary>
-      <div class="activity-nested">
-        {children.map((child) => (
-          <ActivityLine key={child.runId} row={child} />
-        ))}
-      </div>
-    </details>
-  )
 }
 
 export function ActivityLine({ row }: { readonly row: ActivityRowWire }) {

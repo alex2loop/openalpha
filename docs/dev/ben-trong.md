@@ -264,7 +264,8 @@ bỏ đúng một câu đang chờ.
 - Route trả tối đa `RUN_TIMELINE_CHILDREN_MAX` phiên chạy con (`truncated` khi nhiều hơn), đọc thừa một dòng để phân biệt trang đầy với trang bị cắt.
 - `run` vắng khi phiên chạy còn chạy, với phiên chạy chưa từng được ghi và với id không biết: việc ghi nhật ký chạy là bắn-rồi-quên, nên client đọc đó là chưa ghi xong và không bao giờ giữ câu trả lời như kết quả cuối. `totalUsd` có giá trị cả khi phiên chạy còn chạy.
 - Id sai dạng là `invalid_body`; id không biết là dạng rỗng.
-- Route chỉ dành cho người vận hành (chi phí từng người không bao giờ tới mô hình, cuộc chat hay socket) và bị giữ lại trên bản web, nơi dải thời gian chạy từ các sự kiện trực tiếp của worker và chỉ hiện thời gian.
+- Chi phí của một người là tổng các dòng phiên chạy con của người đó, mỗi dòng tính tiền trên cả cây phiên chạy ([persistence/stores/run-tree-sql.ts](../../src/persistence/stores/run-tree-sql.ts), tính cả các lệnh gọi ghi dưới một mã phiên chạy tạm qua `llm_attempts.parent_run_id`); trang in phần còn lại của phiên chạy bằng `totalUsd` trừ các phiên chạy con đã liệt kê.
+- Route chỉ dành cho người vận hành. Chi phí từng người chỉ đọc được từ route này: không `WireEvent` nào mang nó (loại `usage` đã khai báo không bao giờ được gửi), không prompt hay kết quả công cụ nào dựng từ chi phí trong nhật ký chạy, và route bị giữ lại trên bản web, nơi dải thời gian chạy từ các sự kiện trực tiếp của worker và chỉ hiện thời gian.
 
 Mỗi định danh và độ sâu chỉ chạy một `/suggest`: lượt thứ hai tìm lượt đang chạy trong bảng các
 lượt của dịch vụ đề xuất rồi chờ nó, và chỉ lượt khởi đầu bị tính phí.

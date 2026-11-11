@@ -12,8 +12,7 @@
   font-size: var(--sizeBody);
 }
 
-.activity-entry:first-child > .activity-line,
-.activity-entry:first-child > .activity-item > summary > .activity-line {
+.activity-entry:first-child > .activity-line {
   border-top: 0;
 }
 
@@ -49,24 +48,4 @@
 .activity-cost {
   flex: none;
   font-variant-numeric: tabular-nums;
-}
-
-.activity-item summary {
-  list-style: none;
-  cursor: pointer;
-}
-
-.activity-item summary::-webkit-details-marker {
-  display: none;
-}
-
-.activity-children {
-  display: block;
-  padding-bottom: var(--s1);
-}
-
-.activity-nested {
-  margin-left: var(--s2);
-  padding-left: 10px;
-  border-left: 2px dashed var(--border);
 }
