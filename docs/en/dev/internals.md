@@ -249,6 +249,13 @@ takes out one waiting command.
 - A malformed id is `invalid_body`; an unknown or unbilled run is an empty list.
 - The page's `RunCalls` fold ([web/ui/run/calls/](../../../src/web/ui/run/calls/)) reads it when opened, keeps the runs that had ended in a capped cache (`RUN_CALLS_CACHE_MAX`), and reads a running run again on its `run_finished`, never on a timer.
 
+`GET /v1/runs/:runId/timeline` ([routes/runs.ts](../../../src/app/server/routes/runs.ts)) answers who worked on a run and when: the run's own row once it has ended (`RunLogStore.findRun`), its direct children that have ended, oldest first, and the run's total, all priced as `/v1/activity` prices them.
+
+- It lists at most `RUN_TIMELINE_CHILDREN_MAX` children (`truncated` beyond), reading one row past the cap to tell a full page from a cut one.
+- `run` is absent while the run runs, for a run never written and for an unknown id: the run log's writes are fire-and-forget, so a client reads that as not yet written and never keeps the answer as final. `totalUsd` is set while the run runs.
+- A malformed id is `invalid_body`; an unknown id is the empty shape.
+- It is operator only (cost per person never reaches a model, a chat or the socket) and withheld on the web edition, whose strip runs from the worker's live events and shows times only.
+
 One `/suggest` runs per identity and depth: a second finds the run in the suggestion service's
 flight map and waits on it, and the starter alone is billed.
 
@@ -978,7 +985,7 @@ The sources a page can read are a measured subset. `BROWSER_REACHABLE_SOURCES`, 
 
 ### Edition capabilities
 
-`Capabilities` says what an edition *offers*, fixed per edition, not live state (that stays in `/v1/state` and the route gates). The daemon offers everything and is not analysis-only; the web has `analysisOnly: true` and `venues`, `channels`, `schedules`, `agents` and `chatgpt` false ([host.ts](../../../src/app/browser/host.ts)). The routes agree: [routes.ts](../../../src/app/browser/routes.ts) serves a subset of the route groups and withholds, as `not_found`, the daemon's routes (alerts, themes, the venue sync, reconcile, `PATCH /v1/brief`, a run's per-call cost) and the ones that name a verdict, a stop or a plan (suggestions, stops, the track record), so a capability derived from the route table reads false too. `/v1/analyses` is the web's own, and `POST /v1/runs/:id/stop` is served so the page's Stop and the jobs list work, and so are the stored-chat routes (recent, sessions, history and a session's delete) so a reload shows the chat again; `POST /v1/respond` stays withheld, since no tool the web's chat may call asks for an approval. `/v1/rebalance` on the web carries gaps only: no side and no quantity in the wire, not just in the text.
+`Capabilities` says what an edition *offers*, fixed per edition, not live state (that stays in `/v1/state` and the route gates). The daemon offers everything and is not analysis-only; the web has `analysisOnly: true` and `venues`, `channels`, `schedules`, `agents` and `chatgpt` false ([host.ts](../../../src/app/browser/host.ts)). The routes agree: [routes.ts](../../../src/app/browser/routes.ts) serves a subset of the route groups and withholds, as `not_found`, the daemon's routes (alerts, themes, the venue sync, reconcile, `PATCH /v1/brief`, a run's per-call cost and its timeline) and the ones that name a verdict, a stop or a plan (suggestions, stops, the track record), so a capability derived from the route table reads false too. `/v1/analyses` is the web's own, and `POST /v1/runs/:id/stop` is served so the page's Stop and the jobs list work, and so are the stored-chat routes (recent, sessions, history and a session's delete) so a reload shows the chat again; `POST /v1/respond` stays withheld, since no tool the web's chat may call asks for an approval. `/v1/rebalance` on the web carries gaps only: no side and no quantity in the wire, not just in the text.
 
 The page reads this through `isAnalysisOnly` and `offers(feature)` in `state/edition.ts` and hides what the edition lacks; a route marked `daemonOnly` in the page's route table is never called on the web. The page and the worker meet at two seams: `setApiTransport` (a `fetch` replacement, here `postMessage` `http` calls) and `setFeedSocketFactory` (the socket, here `frame` calls), both in [src/web/edition/](../../../src/web/edition/). The office's own `api/` and `state/` code runs unchanged over them.
 

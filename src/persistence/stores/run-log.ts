@@ -58,6 +58,11 @@ export function createRunLogStore(db: Storage, dialect: Dialect): RunLogStore {
     },
     listTopLevel: async (fromMs, toMs, limit) =>
       (await db.query<DbRunRow>(sql.topLevel, [fromMs, toMs, limit])).map(toRunLogRow),
+    findRun: async (id) => {
+      const rows = await db.query<DbRunRow>(sql.byId, [id])
+
+      return rows[0] === undefined ? undefined : toRunLogRow(rows[0])
+    },
     listResearch: async (agent, beforeMs, limit) =>
       (await db.query<DbRunRow>(sql.research, [agent, beforeMs, limit])).map(toRunLogRow),
     countResearch: async (agent, fromMs, toMs) =>
@@ -237,6 +242,7 @@ function buildSql(d: Dialect) {
       `SELECT ${columns} FROM runs WHERE parent_run_id IS NULL ` +
       `AND ended_at >= ${d.param(1)} AND ended_at < ${d.param(2)} ` +
       `ORDER BY ended_at DESC, run_id DESC LIMIT ${d.param(3)}`,
+    byId: `SELECT ${columns} FROM runs WHERE run_id = ${d.param(1)}`,
     countResearch:
       `SELECT COUNT(*) AS n FROM runs WHERE parent_run_id IS NULL AND kind = 'agent' ` +
       `AND name = ${d.param(1)} AND ended_at >= ${d.param(2)} AND ended_at < ${d.param(3)}`,

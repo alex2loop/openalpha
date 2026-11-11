@@ -25,7 +25,12 @@ import type {
   IndexContributorsResponse,
   IndexValuationResponse,
 } from '@/app/server/wire/index-reading'
-import type { LiveSnapshotWire, RunCallsWire, RunStopWire } from '@/app/server/wire/live'
+import type {
+  LiveSnapshotWire,
+  RunCallsWire,
+  RunStopWire,
+  RunTimelineWire,
+} from '@/app/server/wire/live'
 import type {
   AlertDisableResponse,
   AlertsResponse,
@@ -145,6 +150,10 @@ export const ROUTES = Object.freeze({
   respond: route<OkAnswer>('/v1/respond'),
   runStop: (runId: string) => route<RunStopWire>(`/v1/runs/${encodeURIComponent(runId)}/stop`),
   runCalls: (runId: string) => route<RunCallsWire>(`/v1/runs/${encodeURIComponent(runId)}/calls`),
+  runTimeline: (runId: string) =>
+    route<RunTimelineWire>(`/v1/runs/${encodeURIComponent(runId)}/timeline`, undefined, {
+      daemonOnly: true,
+    }),
   commands: route<CommandList>('/v1/commands'),
   commandComplete: route<CommandCompletion>('/v1/commands/complete'),
   instruments: route<InstrumentSearchResponse>('/v1/instruments'),

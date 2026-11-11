@@ -34,6 +34,7 @@ const WITHHELD_ROUTES: readonly WithheldRoute[] = Object.freeze([
   { path: '/v1/brief', method: 'PATCH' },
   { path: '/v1/respond' },
   { path: '/v1/runs/:runId/calls' },
+  { path: '/v1/runs/:runId/timeline' },
 ])
 
 /** The route groups the web's features need: the market reads, the trading reads (suggestions'
