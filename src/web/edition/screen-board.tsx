@@ -78,7 +78,7 @@ function KindBoard({ market, kind }: { readonly market: string; readonly kind: s
 
   return (
     <BlockFrame
-      title={tr('ui.office.edition.screen.title')}
+      title={tr('ui.office.ideas.screen')}
       colour="teal"
       icon={<TrendIcon />}
       reading={reading}

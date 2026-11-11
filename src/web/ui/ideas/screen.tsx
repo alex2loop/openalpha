@@ -8,7 +8,7 @@ import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { ScreenBoard } from '@/web/edition/screen-board'
 import { type BlockReading, useBlock, useBlockRead } from '@/web/state/block'
-import { editionKey, isAnalysisOnly } from '@/web/state/edition'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -31,7 +31,7 @@ const MARKET_SEPARATOR = ':'
 // markets, and each row carries its whole call, so the read stays near two days.
 const DAY_CALLS_READ = 50
 
-/** Cơ hội: the names the daemon ranked best in a market, as it words them. A score is a rank, not
+/** Màn lọc: the names the daemon ranked best in a market, as it words them. A score is a rank, not
  *  advice, and a call is one tap away. */
 export function Opportunities() {
   const markets = boardMarkets.value
@@ -46,7 +46,7 @@ export function Opportunities() {
       {markets.length > 1 && (
         <Segmented
           isTabs
-          label={tr(editionKey('ui.office.ideas.screen', 'ui.office.edition.screen.title'))}
+          label={tr('ui.office.ideas.screen')}
           value={market.market}
           options={markets.map((held) => ({ value: held.market, label: held.segmentLabel }))}
           onChange={(value) => {

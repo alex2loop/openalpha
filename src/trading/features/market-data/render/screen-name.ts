@@ -44,7 +44,7 @@ export function renderScreenNameText(
 
     return joinSections([
       [renderSectionTitle(SECTION_ICONS.screen, title)],
-      renderCaveatLines(locale, result.caveats, { plain: true }),
+      renderCaveatLines(locale, caveatsAbout(result, request.ticker), { plain: true }),
     ])
   }
 
@@ -63,6 +63,12 @@ export function renderScreenNameText(
       ...renderBoardFactLines(locale, facts, { ...board.context, width: LIST_WIDTH }),
       ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
     ],
-    renderCaveatLines(locale, result.caveats, { plain: true }),
+    renderCaveatLines(locale, caveatsAbout(result, request.ticker), { plain: true }),
   ])
+}
+
+/** Only what is about this name or the board as a whole: a source's miss on another name is not
+ *  this answer's to print. */
+function caveatsAbout(result: ScreenView, ticker: Ticker): ScreenView['caveats'] {
+  return result.caveats.filter(({ detail }) => (detail?.ticker ?? ticker) === ticker)
 }

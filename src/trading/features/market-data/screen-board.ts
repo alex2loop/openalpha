@@ -140,7 +140,8 @@ function withPercentiles(
 }
 
 /** Per name, each fired factor's percentile among the names it fired for: a factor that abstained
- *  has no reading to place. Ties share the mean position (`rankWithin`). */
+ *  has no reading to place. Ties share the mean position (`rankWithin`). The score is ranked, then
+ *  turned round where a higher score is a lower reading, so the percentile is always the reading's. */
 function factorPercentiles(
   candidates: readonly ScreenedCandidate[]
 ): ReadonlyMap<string, NonNullable<ScreenedCandidate['percentiles']>> {
@@ -160,7 +161,9 @@ function factorPercentiles(
         const peers = readings.get(factor.id) ?? []
 
         if (peers.length >= MINIMUM_PEERS) {
-          placed[factor.id] = rankWithin(peers, factor.score) * PERCENT
+          const share = rankWithin(peers, factor.score) * PERCENT
+
+          placed[factor.id] = factor.opposesReading === true ? PERCENT - share : share
         }
       }
 

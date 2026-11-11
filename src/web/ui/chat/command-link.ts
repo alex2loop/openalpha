@@ -1,7 +1,6 @@
 import type { InstrumentKind } from '@/app/server/wire/vocab'
 import type { MessageKey } from '@/i18n'
 import { openBook } from '@/web/state/book'
-import { editionKey } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -99,7 +98,7 @@ function linkScreen(args: readonly string[]): CommandLink | undefined {
     return linkPrice([name])
   }
 
-  return linkTo(editionKey('ui.office.chat.link.screen', 'ui.office.chat.link.screenWeb'), () =>
+  return linkTo('ui.office.chat.link.screen', () =>
     openIdeas(
       'screen',
       args.find((arg) => markets.has(arg))

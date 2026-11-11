@@ -32,12 +32,6 @@ export function editionKey(daemon: MessageKey, web: MessageKey): MessageKey {
   return isAnalysisOnly.value ? web : daemon
 }
 
-/** The screen's name: the daemon's board of opportunities, the web's screen of readings, which names
- *  no name a chance. */
-export function screenTabKey(): MessageKey {
-  return editionKey('ui.office.ideas.screen', 'ui.office.edition.screen.title')
-}
-
 /** The name of the panel's third tab: the daemon's calls, the web's analyses. Every place that names
  *  the tab (the tab bar, its sub-tabs, the back row, the shortcut list) reads it here. */
 export function ideasTabKey(): MessageKey {
