@@ -5,11 +5,12 @@ import type { AgentView } from '@/web/ui/agent/agent-view'
 import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { lookOf } from '@/web/scene/sprites/parts'
 import { reputationLine, setPaused } from '@/web/state/agents'
-import { hasChildren } from '@/web/state/live'
+import { hasChildren, staleSince } from '@/web/state/live'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 import { describeEvent } from '@/web/text/schedule-event'
+import { formatStaleLine } from '@/web/text/stale'
 import { formatClock } from '@/web/text/time'
 import { toErrorText, tr } from '@/web/text/tr'
 import { clearSavedNote, savedNote } from '@/web/ui/agent/form/agent-form'
@@ -85,6 +86,12 @@ function describeNow(view: AgentView): string {
   const last = rows[0]
 
   if (run !== undefined) {
+    const since = staleSince.value
+
+    if (since !== undefined) {
+      return joinInline([formatRunName(run), formatStaleLine(since, 'ui.office.stale.unknown')])
+    }
+
     return joinInline([
       formatRunName(run),
       ...(run.progress === undefined ? [] : [run.progress.text]),

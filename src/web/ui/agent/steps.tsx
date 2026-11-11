@@ -1,7 +1,8 @@
 import type { ProgressWire } from '@/app/server/wire/live'
-import type { Run } from '@/web/state/live'
 import { ELAPSED_TICK_MS, useLiveNow } from '@/web/state/clock'
-import { formatElapsed } from '@/web/text/time'
+import { type Run, staleSince } from '@/web/state/live'
+import { state } from '@/web/state/session'
+import { formatClock, formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { CheckIcon } from '@/web/ui/kit/icons'
 
@@ -31,12 +32,22 @@ function RunningStep({ step }: { readonly step: ProgressWire }) {
       <span class="spin" aria-hidden="true" />
       <span>
         {step.text}
-        <span class="meta run-step-time">
-          {tr('ui.office.agent.stepRunning', { elapsed: formatElapsed(now - step.at) })}
-        </span>
+        <span class="meta run-step-time">{describeStepTime(formatElapsed(now - step.at))}</span>
       </span>
     </li>
   )
+}
+
+// While the picture is stale the clock is frozen at the last instant it was known, and says so.
+function describeStepTime(elapsed: string): string {
+  const since = staleSince.value
+  const timeZone = state.value?.timeZone
+
+  if (since === undefined || timeZone === undefined) {
+    return tr('ui.office.agent.stepRunning', { elapsed })
+  }
+
+  return tr('ui.office.stale.step', { elapsed, time: formatClock(since, timeZone) })
 }
 
 // The latest line, unless it is the persistent step already listed as done.
