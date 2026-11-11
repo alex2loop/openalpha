@@ -22,7 +22,6 @@ import {
   type TimelineGroup,
   type TimelineRoot,
   type TimelineView,
-  toTimelineRoot,
 } from '@/web/ui/run/timeline/timeline-model'
 
 import './run-timeline.css'
@@ -121,7 +120,9 @@ function resolveRoot(
   root: TimelineRoot | undefined,
   read: RunTimelineWire | undefined
 ): TimelineRoot | undefined {
-  return read?.run === undefined ? root : toTimelineRoot(read.run)
+  return read?.run === undefined
+    ? root
+    : { startedAt: read.run.startedAt, endedAt: read.run.endedAt }
 }
 
 // The row once read, else the names the page heard the run report while it ran.
@@ -171,10 +172,8 @@ function RunLine({ view }: { readonly view: TimelineView }) {
   const key = view.isRunning ? 'ui.office.timeline.totalRunning' : 'ui.office.timeline.total'
   const duration = formatDuration(view.toMs - view.fromMs)
   const cost = view.totalUsd === undefined ? [] : [formatCost(view.totalUsd)]
-  const total =
-    view.isEndUnknown === true ? tr('ui.office.timeline.totalUnknown') : tr(key, { duration })
 
-  return <p class="meta">{joinInline([total, ...cost])}</p>
+  return <p class="meta">{joinInline([tr(key, { duration }), ...cost])}</p>
 }
 
 interface LanesProps {

@@ -275,17 +275,8 @@ export interface CommandCostRange {
 }
 
 export interface RunLogStore {
-  /** A run is written once; recording the same id again keeps the first row. The run's open row, if
-   *  any, goes with it. */
+  /** A run is written once; recording the same id again keeps the first row. */
   record(row: RunLogRow): Promise<void>
-  /** Notes a run that has started and not finished, so a process that dies before it ends can have
-   *  it logged as interrupted by the next boot. Only the start's own fields are kept. */
-  open(row: Omit<RunLogRow, 'endedAt' | 'outcome'>): Promise<void>
-  /** Drops a run's open row without logging it: a run whose row is never written. */
-  forget(runId: RunId): Promise<void>
-  /** Boot only: logs every run still open as `interrupted`, ended where it began because its real end
-   *  is not known, then clears them. Returns how many. */
-  closeOpen(): Promise<number>
   /** Runs that ended in `[fromMs, toMs)` and have no parent, newest first. */
   listTopLevel(fromMs: number, toMs: number, limit: number): Promise<readonly RunLogRow[]>
   /** Each run's direct children, oldest first, at most `perRun` of each. A run with none is absent. */
