@@ -7,6 +7,24 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.5.1] - 2026-11-11
+
+You can now find a name on the Screen board by ticker or company name, and read its key figures (P/E, profitability, growth, debt, liquidity, money flow) on its card or with `/screen FPT`. The figures read more plainly everywhere, grouped by what they tell you.
+> Giờ bạn tìm được một mã trên Màn lọc theo mã hoặc tên công ty, và xem chỉ số chính của mã đó (P/E, sinh lời, tăng trưởng, nợ, thanh khoản, dòng tiền) ngay trên thẻ mã hoặc bằng lệnh `/screen FPT`. Các chỉ số ở mọi nơi cũng dễ đọc hơn, chia nhóm theo ý nghĩa.
+
+### Added
+
+- A search box on the Screen board (web) finds names by ticker or company name, with or without accents; when nothing matches it says so and points to the names the board left out.
+- A name's card shows "Key figures", the same grid as its Screen row; a name the screen left out gets a line saying why there are none.
+- `/screen <ticker>` (or `market:ticker`) prints one name's figures; the chat link under it opens that name's card.
+
+### Changed
+
+- Figures are grouped into Valuation, Profitability, Growth, Financial health, Price & liquidity and Money flow, with P/E and the sector P/E first, on the Screen board, a name's card and in chat alike.
+- Labels read more plainly (ROE, ROA, ROIC, revenue and profit growth, gross margin, 50-session average, daily swing, foreign room left), and a place on the board reads "… against the board".
+- On the web, rises show in green and falls in red, group headings are larger, and the Screen board's value limits fold under "Filter by figures" with the count of names right under the search box.
+- In chat, group headings are bold and a live price reads "at 10:48" instead of "now 10:48".
+
 ## [1.5.0] - 2026-11-10
 
 The morning brief reads more easily, with a headline strip and every market in plain words, and the track record now counts only calls whose window has passed, names each result for what it was, and keeps open plans through a dividend or split. The Vietnamese board uses far less memory. The database gains two tables; the upgrade runs them for you.
