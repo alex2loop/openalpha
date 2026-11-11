@@ -9,8 +9,8 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ## [1.6.0] - 2026-11-11
 
-The office page now shows who worked on each run and for how long, with what each person cost (on your own computer only), and says plainly when it has lost touch with OpenAlpha instead of showing old work as live. Many small fixes make the Screen board, ticker cards, crypto moves and the track record read the same everywhere.
-> Trang văn phòng giờ cho thấy ai đã làm gì trong mỗi lượt chạy, mất bao lâu và tốn bao nhiêu (chỉ trên máy bạn), và nói rõ khi mất liên lạc với OpenAlpha thay vì vẫn hiện việc cũ như đang chạy. Nhiều sửa lỗi nhỏ giúp Màn lọc, thẻ mã, biến động giá crypto và thành tích đề xuất đọc giống nhau ở mọi nơi.
+The office page now shows who worked on each run and for how long, with what each person cost (on your own computer only), and says plainly when it has lost touch with OpenAlpha instead of showing old work as live. Many small fixes make the Screen board, ticker cards, crypto moves and the track record read the same everywhere. The database gains one table; the upgrade adds it for you.
+> Trang văn phòng giờ cho thấy ai đã làm gì trong mỗi lượt chạy, mất bao lâu và tốn bao nhiêu (chỉ trên máy bạn), và nói rõ khi mất liên lạc với OpenAlpha thay vì vẫn hiện việc cũ như đang chạy. Nhiều sửa lỗi nhỏ giúp Màn lọc, thẻ mã, biến động giá crypto và thành tích đề xuất đọc giống nhau ở mọi nơi. Cơ sở dữ liệu thêm một bảng; lệnh nâng cấp tự thêm cho bạn.
 
 ### Added
 
@@ -28,6 +28,7 @@ The office page now shows who worked on each run and for how long, with what eac
 
 ### Fixed
 
+- A run cut off when OpenAlpha was stopped shows as interrupted after the next start, instead of disappearing; Stop is greyed out while the page cannot reach OpenAlpha.
 - A data refresh stopped halfway is tried again within minutes, so a day's factor board is no longer lost.
 - A repeated "reasoning not supported" warning is logged once per model.
 
