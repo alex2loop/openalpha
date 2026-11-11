@@ -1,3 +1,4 @@
+import { breakpoint } from '@/web/state/breakpoints'
 import { useNow } from '@/web/state/clock'
 import { retryFeedNow } from '@/web/state/feed'
 import { staleSince } from '@/web/state/live'
@@ -42,7 +43,8 @@ export function OfflineBar() {
   )
 }
 
-// Names the minute the picture stopped; nothing until the session has said the operator's zone.
+// Names the minute the picture stopped, in a shorter sentence on a phone; nothing until the session
+// has said the operator's zone.
 function StaleSince() {
   const since = staleSince.value
   const timeZone = state.value?.timeZone
@@ -51,11 +53,9 @@ function StaleSince() {
     return null
   }
 
-  return (
-    <span class="offline-bar-detail">
-      {tr('ui.office.stale.since', { time: formatClock(since, timeZone) })}
-    </span>
-  )
+  const key = breakpoint.value === 'phone' ? 'ui.office.stale.sinceShort' : 'ui.office.stale.since'
+
+  return <span class="offline-bar-detail">{tr(key, { time: formatClock(since, timeZone) })}</span>
 }
 
 function RunningNote() {
@@ -70,9 +70,10 @@ function ArmedRetry({ retryAt }: { readonly retryAt: number }) {
     return <RunningNote />
   }
 
+  // A phone keeps the bar short: the countdown alone.
   const detail = joinInline([
     tr('ui.office.offline.retry', { seconds: formatCountdown(retryAt, now) }),
-    tr('ui.office.offline.running'),
+    ...(breakpoint.value === 'phone' ? [] : [tr('ui.office.offline.running')]),
   ])
 
   return (

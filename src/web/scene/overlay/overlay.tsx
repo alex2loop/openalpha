@@ -11,7 +11,6 @@ import { boxStyle } from '@/web/scene/overlay/box-style'
 import { CrispFilter, DeskScreen } from '@/web/scene/overlay/desk-screen'
 import { HoverLabel } from '@/web/scene/overlay/hover-label'
 import { NameTags, roleTitleOf, tagTextOf } from '@/web/scene/overlay/name-tags'
-import { StaleVeil } from '@/web/scene/overlay/stale-veil'
 import { childRunIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { childRoleOf } from '@/web/scene/sim/team/goals'
 import { findRun } from '@/web/state/live'
@@ -122,7 +121,6 @@ export function SceneOverlay() {
       {view.bubbles.map((placed) => (
         <BubbleView key={placed.bubble.id} placed={placed} />
       ))}
-      <StaleVeil />
     </div>
   )
 }

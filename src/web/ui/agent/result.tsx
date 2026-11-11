@@ -16,6 +16,7 @@ import { Markdown } from '@/web/ui/markdown/markdown'
 import { openReader } from '@/web/ui/reader/reader'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 import { RunTimelineFold } from '@/web/ui/run/timeline/run-timeline'
+import { toTimelineRoot } from '@/web/ui/run/timeline/timeline-model'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
 interface Finished {
@@ -76,11 +77,7 @@ function WithCalls({
     <>
       {children}
       {row.children !== undefined && (
-        <RunTimelineFold
-          key={row.runId}
-          runId={row.runId}
-          root={{ startedAt: row.startedAt, endedAt: row.endedAt }}
-        />
+        <RunTimelineFold key={row.runId} runId={row.runId} root={toTimelineRoot(row)} />
       )}
       {row.unbilled !== true && <RunCalls key={row.runId} runId={row.runId} isRunning={false} />}
     </>

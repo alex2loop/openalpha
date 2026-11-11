@@ -9,6 +9,7 @@ import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
+import { StopButton } from '@/web/ui/kit/stop-button'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 import { RunTimeline } from '@/web/ui/run/timeline/run-timeline'
 
@@ -42,9 +43,7 @@ export function JobRow({ run, childRuns }: JobRowProps) {
       <Button kind="tertiary" size="small" onClick={() => focusRun(run.runId)}>
         {tr('ui.office.common.view')}
       </Button>
-      <Button kind="destructive" size="small" onClick={() => askStop(run, childRuns.length > 0)}>
-        {tr('ui.office.common.stop')}
-      </Button>
+      <StopButton onClick={() => askStop(run, childRuns.length > 0)} />
     </div>
   )
 }

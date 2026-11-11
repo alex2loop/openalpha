@@ -22,6 +22,7 @@ import {
   type TimelineGroup,
   type TimelineRoot,
   type TimelineView,
+  toTimelineRoot,
 } from '@/web/ui/run/timeline/timeline-model'
 
 import './run-timeline.css'
@@ -120,9 +121,7 @@ function resolveRoot(
   root: TimelineRoot | undefined,
   read: RunTimelineWire | undefined
 ): TimelineRoot | undefined {
-  return read?.run === undefined
-    ? root
-    : { startedAt: read.run.startedAt, endedAt: read.run.endedAt }
+  return read?.run === undefined ? root : toTimelineRoot(read.run)
 }
 
 // The row once read, else the names the page heard the run report while it ran.
@@ -138,6 +137,11 @@ interface NoStripProps {
 }
 
 function NoStrip({ state, retry, isFold }: NoStripProps) {
+  // The page cannot hear the daemon, so a read cannot be had: that is not a load failure.
+  if (staleSince.value !== undefined && state !== 'absent') {
+    return <p class="empty-note">{tr('ui.office.timeline.stale')}</p>
+  }
+
   if (state === 'failed') {
     return (
       <div class="strip is-problem" role="alert">
@@ -167,8 +171,10 @@ function RunLine({ view }: { readonly view: TimelineView }) {
   const key = view.isRunning ? 'ui.office.timeline.totalRunning' : 'ui.office.timeline.total'
   const duration = formatDuration(view.toMs - view.fromMs)
   const cost = view.totalUsd === undefined ? [] : [formatCost(view.totalUsd)]
+  const total =
+    view.isEndUnknown === true ? tr('ui.office.timeline.totalUnknown') : tr(key, { duration })
 
-  return <p class="meta">{joinInline([tr(key, { duration }), ...cost])}</p>
+  return <p class="meta">{joinInline([total, ...cost])}</p>
 }
 
 interface LanesProps {

@@ -10,6 +10,7 @@ import { runTreeCtes } from '@/persistence/stores/run-tree-sql'
 const LOW_PERCENTILE = 0.25
 const HIGH_PERCENTILE = 0.75
 const TICKER_SEPARATOR = ','
+const INTERRUPTED_OUTCOME = 'interrupted'
 
 const RUN_COLUMNS = [
   'run_id',
@@ -28,6 +29,19 @@ const RUN_COLUMNS = [
   'started_at',
   'ended_at',
   'outcome',
+] as const
+
+const OPEN_COLUMNS = [
+  'run_id',
+  'kind',
+  'name',
+  'title',
+  'agent_id',
+  'channel',
+  'session_id',
+  'parent_run_id',
+  'tickers',
+  'started_at',
 ] as const
 
 interface DbRunRow {
@@ -54,8 +68,23 @@ export function createRunLogStore(db: Storage, dialect: Dialect): RunLogStore {
 
   return {
     record: async (row) => {
-      await db.execute(sql.insert, toParams(row))
+      await db.transaction(async (tx) => {
+        await tx.execute(sql.insert, toParams(row))
+        await tx.execute(sql.forget, [row.runId])
+      })
     },
+    open: async (row) => {
+      await db.execute(sql.open, toOpenParams(row))
+    },
+    forget: async (id) => {
+      await db.execute(sql.forget, [id])
+    },
+    closeOpen: async () =>
+      db.transaction(async (tx) => {
+        await tx.execute(sql.closeOpen)
+
+        return (await tx.execute(sql.clearOpen)).changes
+      }),
     listTopLevel: async (fromMs, toMs, limit) =>
       (await db.query<DbRunRow>(sql.topLevel, [fromMs, toMs, limit])).map(toRunLogRow),
     findRun: async (id) => {
@@ -231,10 +260,38 @@ function toParams(row: RunLogRow): readonly unknown[] {
   ]
 }
 
+function toOpenParams(row: Omit<RunLogRow, 'endedAt' | 'outcome'>): readonly unknown[] {
+  return [
+    row.runId,
+    row.kind,
+    row.name,
+    row.title ?? null,
+    row.agentId ?? null,
+    row.channel ?? null,
+    row.sessionId ?? null,
+    row.parentRunId ?? null,
+    row.tickers === undefined || row.tickers.length === 0
+      ? null
+      : row.tickers.join(TICKER_SEPARATOR),
+    row.startedAt,
+  ]
+}
+
 function buildSql(d: Dialect) {
   const columns = RUN_COLUMNS.join(', ')
+  const openColumns = OPEN_COLUMNS.join(', ')
 
   return {
+    open:
+      `INSERT INTO open_runs (${openColumns}) VALUES (${d.paramList(OPEN_COLUMNS.length)}) ` +
+      `ON CONFLICT (run_id) DO NOTHING`,
+    forget: `DELETE FROM open_runs WHERE run_id = ${d.param(1)}`,
+    // The end is not known, so the row ends where it began.
+    closeOpen:
+      `INSERT INTO runs (${openColumns}, ended_at, outcome) ` +
+      `SELECT ${openColumns}, started_at, '${INTERRUPTED_OUTCOME}' FROM open_runs WHERE true ` +
+      `ON CONFLICT (run_id) DO NOTHING`,
+    clearOpen: 'DELETE FROM open_runs',
     insert:
       `INSERT INTO runs (${columns}) VALUES (${d.paramList(RUN_COLUMNS.length)}) ` +
       `ON CONFLICT (run_id) DO NOTHING`,

@@ -14,10 +14,9 @@ import { SkipLink } from '@/web/ui/a11y/skip-link'
 import { ChatPanel } from '@/web/ui/chat/chat-panel'
 import { CommandBar } from '@/web/ui/command/command-bar'
 import { ModalHost } from '@/web/ui/kit/modal'
-import { UndoBar } from '@/web/ui/kit/undo-bar'
 import { ReaderHost } from '@/web/ui/reader/reader'
+import { BottomStack } from '@/web/ui/shell/bottom-stack'
 import { Header } from '@/web/ui/shell/header'
-import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { PaneBar } from '@/web/ui/shell/pane-bar'
 import { isCommandBarFloating, Panes } from '@/web/ui/shell/panes'
 import { SignIn } from '@/web/ui/shell/sign-in'
@@ -92,15 +91,6 @@ function PageBottom({ hasCommandBar }: { readonly hasCommandBar: boolean }) {
       <ReaderHost />
       <Announcer />
     </>
-  )
-}
-
-function BottomStack({ isDocked }: { readonly isDocked?: true }) {
-  return (
-    <div class={isDocked === true ? 'bottom-stack is-docked' : 'bottom-stack'}>
-      <OfflineBar />
-      <UndoBar />
-    </div>
   )
 }
 

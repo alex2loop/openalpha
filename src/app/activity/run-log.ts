@@ -30,9 +30,12 @@ export interface RunLog {
 /** Writes one row per finished run, in every process that boots the app: a `chat -m` process exits
  *  right after its command finishes, so the caller awaits `stop` before closing storage.
  *
+ *  The daemon also notes each run's start, so a run it dies in is logged as interrupted by the
+ *  next boot; a short-lived process is not the daemon's to close.
+ *
  *  Not written: a command whose result hands the turn to an agent (the agent run is the row), and an
  *  agent run whose answer never reaches a surface unless it is a child of another run. */
-export function startRunLog(app: App): RunLog {
+export function startRunLog(app: App, mode: 'cli' | 'daemon'): RunLog {
   const bus = app.resolve('bus')
   const store = app.resolve('runLogStore')
   const logger = app.resolve('logger')
@@ -40,9 +43,8 @@ export function startRunLog(app: App): RunLog {
   const writes = new Set<Promise<void>>()
   let failureLogged = false
 
-  const write = (row: RunLogRow): void => {
-    const pending = store
-      .record(row)
+  const track = (action: Promise<void>): void => {
+    const pending = action
       .catch((err: unknown) => {
         if (!failureLogged) {
           failureLogged = true
@@ -55,7 +57,13 @@ export function startRunLog(app: App): RunLog {
 
     writes.add(pending)
   }
-  const offs = followRuns(bus, { open, write })
+  const isDaemon = mode === 'daemon'
+  const offs = followRuns(bus, {
+    open,
+    write: (row) => track(store.record(row)),
+    begin: (run) => (isDaemon ? track(store.open(run)) : undefined),
+    drop: (id) => (isDaemon ? track(store.forget(id)) : undefined),
+  })
 
   return {
     stop: async () => {
@@ -72,6 +80,10 @@ export function startRunLog(app: App): RunLog {
 interface RunBook {
   readonly open: Map<RunId, OpenRun>
   readonly write: (row: RunLogRow) => void
+  /** A run has started. */
+  readonly begin: (run: OpenRun) => void
+  /** A run will never be written. */
+  readonly drop: (id: RunId) => void
 }
 
 function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
@@ -80,10 +92,10 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
   return [
     bus.on('run_started', (e) => {
       if (e.hidden === undefined || e.parentRunId !== undefined) {
-        remember(open, toAgentStart(e))
+        remember(book, toAgentStart(e))
       }
     }),
-    bus.on('command_started', (e) => remember(open, toCommandStart(e))),
+    bus.on('command_started', (e) => remember(book, toCommandStart(e))),
     bus.on('run_progress', (e) => noteProgress(open, e.runId, e.message)),
     bus.on('command_progress', (e) => noteProgress(open, e.runId, e.message)),
     bus.on('run_finished', (e) =>
@@ -108,6 +120,7 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
     bus.on('command_finished', (e) => {
       if (e.result?.kind === 'agent' || e.idle === true) {
         open.delete(e.runId)
+        book.drop(e.runId)
 
         return
       }
@@ -117,9 +130,10 @@ function followRuns(bus: EventBus, book: RunBook): (() => void)[] {
   ]
 }
 
-function remember(open: Map<RunId, OpenRun>, run: OpenRun): void {
-  open.set(run.runId, run)
-  trimToSize(open, MAX_OPEN_RUNS)
+function remember(book: RunBook, run: OpenRun): void {
+  book.open.set(run.runId, run)
+  trimToSize(book.open, MAX_OPEN_RUNS)
+  book.begin(run)
 }
 
 // A run's rows keep what its progress lines named: the admitted sources of a research run, the

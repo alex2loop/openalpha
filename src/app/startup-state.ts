@@ -15,6 +15,8 @@ export async function hydrateStartupState(app: App, mode: 'cli' | 'daemon'): Pro
     await app
       .resolve('sessionStore')
       .markStaleRuns(now - (app.config.loop.maxDurationMs + RUN_LEASE_SLACK_MS))
+    // Only the daemon notes runs as open, so these are the ones the previous daemon died in.
+    await app.resolve('runLogStore').closeOpen()
   }
 }
 

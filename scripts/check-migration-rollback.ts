@@ -23,6 +23,8 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const OPEN_RUNS_MIGRATION_ID = '2026_11_11_181208_add_open_runs'
+const OPEN_RUNS_TABLE = 'open_runs'
 const SCREENED_NAMES_MIGRATION_ID = '2026_11_09_182105_add_screened_names'
 const SCREENED_NAMES_TABLE = 'screened_names'
 const PUBLIC_BRIEFS_MIGRATION_ID = '2026_11_06_185835_add_public_briefs'
@@ -220,6 +222,19 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** The runs under way go with their one table; a run still going is logged when it finishes. */
+async function assertOpenRunsRollback(db: Storage): Promise<void> {
+  assertState(await hasTable(db, OPEN_RUNS_TABLE), 'open runs migration did not add the table')
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: OPEN_RUNS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'open runs rollback did not complete')
+  assertState(!(await hasTable(db, OPEN_RUNS_TABLE)), 'open runs rollback kept the table')
 }
 
 /** The stored names go with their one table; the next accounts pass reads the board and stores
@@ -562,6 +577,7 @@ async function main(): Promise<void> {
   await assertDownCoversUp(`${OVERRIDES_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${PUBLIC_BRIEFS_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${SCREENED_NAMES_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${OPEN_RUNS_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -572,6 +588,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertOpenRunsRollback(db)
     await assertScreenedNamesRollback(db)
     await assertPublicBriefsRollback(db)
     await assertOverridesRollback(db)

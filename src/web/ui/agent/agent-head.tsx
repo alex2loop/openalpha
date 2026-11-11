@@ -17,6 +17,7 @@ import { clearSavedNote, savedNote } from '@/web/ui/agent/form/agent-form'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { Portrait } from '@/web/ui/kit/portrait'
+import { StopButton } from '@/web/ui/kit/stop-button'
 
 // The assistant's own desk: it wears the mascot, and says so.
 const HEAD_PORTRAIT_PX = 40
@@ -47,15 +48,7 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
       {agent?.paused === true && <p class="agent-note">{tr('ui.office.agent.pausedNote')}</p>}
       <SavedNote agentId={view.agentId} />
       <div class="agent-actions">
-        {run !== undefined && (
-          <Button
-            kind="destructive"
-            size="small"
-            onClick={() => askStop(run, hasChildren(run.runId))}
-          >
-            {tr('ui.office.common.stop')}
-          </Button>
-        )}
+        {run !== undefined && <StopButton onClick={() => askStop(run, hasChildren(run.runId))} />}
         {agent !== undefined && (
           <Button size="small" onClick={() => togglePause(agent.id, !agent.paused, failure)}>
             {tr(agent.paused ? 'ui.office.agent.resume' : 'ui.office.agent.pause')}

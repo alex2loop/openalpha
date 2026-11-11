@@ -15,6 +15,7 @@ import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { useLoad } from '@/web/ui/kit/use-load'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 import { RunTimelineFold } from '@/web/ui/run/timeline/run-timeline'
+import { toTimelineRoot } from '@/web/ui/run/timeline/timeline-model'
 
 import './activity.css'
 
@@ -60,10 +61,7 @@ function ActivityList({ day }: { readonly day: string | undefined }) {
         <div key={row.runId} class="activity-entry">
           <ActivityLine row={row} />
           {row.children !== undefined && (
-            <RunTimelineFold
-              runId={row.runId}
-              root={{ startedAt: row.startedAt, endedAt: row.endedAt }}
-            />
+            <RunTimelineFold runId={row.runId} root={toTimelineRoot(row)} />
           )}
           {row.unbilled !== true && (
             <RunCalls runId={row.runId} isRunning={false} command={commandOf(row)} />

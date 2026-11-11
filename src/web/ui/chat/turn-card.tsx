@@ -34,6 +34,7 @@ import { RunButton } from '@/web/ui/command/run-button'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
+import { StopButton } from '@/web/ui/kit/stop-button'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
 import { RunTimeline, RunTimelineFold } from '@/web/ui/run/timeline/run-timeline'
 import { openSettings } from '@/web/ui/settings/settings'
@@ -222,11 +223,7 @@ function RunningActions({ turn }: { readonly turn: Turn }) {
           {tr('ui.office.chat.addNote')}
         </Button>
       )}
-      {canStop(turn) && (
-        <Button kind="destructive" size="small" onClick={() => askStopTurn(turn)}>
-          {tr('ui.office.common.stop')}
-        </Button>
-      )}
+      {canStop(turn) && <StopButton onClick={() => askStopTurn(turn)} />}
     </div>
   )
 }

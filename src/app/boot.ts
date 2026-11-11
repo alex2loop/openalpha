@@ -281,7 +281,7 @@ async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
     await migrateStartupSchema(app)
   }
 
-  held.runLog = startRunLog(app)
+  held.runLog = startRunLog(app, bootOptions.mode)
   held.noticeLog = startNoticeLog(app)
 }
 

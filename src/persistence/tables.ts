@@ -35,6 +35,7 @@ const CORE_TABLES = [
   { name: 'heartbeat_commitments', pk: ['id'] },
   { name: 'memory_kv', pk: ['agent_id', 'user_id', 'key'], durable: true },
   { name: 'runs', pk: ['run_id'] },
+  { name: 'open_runs', pk: ['run_id'] },
   { name: 'notices', pk: ['id'] },
   { name: 'browser_sessions', pk: ['id'] },
   // Durable: the operator's own choice, written nowhere else.

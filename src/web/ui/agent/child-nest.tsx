@@ -8,7 +8,7 @@ import { MS_PER_MINUTE } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { StepList } from '@/web/ui/agent/steps'
 import { askStop } from '@/web/ui/kit/ask-stop'
-import { Button } from '@/web/ui/kit/button'
+import { StopButton } from '@/web/ui/kit/stop-button'
 import { useHeardChildren } from '@/web/ui/run/heard-children'
 
 /** A child as last seen, with how it ended once it has. */
@@ -49,9 +49,7 @@ export function ChildNest({ parent, maxSpawn }: ChildNestProps) {
           minutes: formatMinutes(state.value?.childRunMaxMs),
         })}
       </p>
-      <Button kind="destructive" size="small" onClick={() => askStop(parent, true)}>
-        {tr('ui.office.agent.childrenStop')}
-      </Button>
+      <StopButton label="ui.office.agent.childrenStop" onClick={() => askStop(parent, true)} />
     </section>
   )
 }

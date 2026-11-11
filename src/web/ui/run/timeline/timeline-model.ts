@@ -1,6 +1,7 @@
 import type { ActivityRowWire } from '@/app/server/wire/activity'
 import type { RunTimelineWire } from '@/app/server/wire/live'
 import type { Run } from '@/web/state/live'
+import { INTERRUPTED_OUTCOME } from '@/web/text/child-outcome'
 import { formatAgentName, formatRunName } from '@/web/text/run-name'
 import { toSentenceStart } from '@/web/text/sentence'
 import {
@@ -24,6 +25,19 @@ export interface TimelineRoot {
   readonly startedAt: number
   /** Absent while the run is running. */
   readonly endedAt?: number
+  /** The run was cut off with the daemon: `endedAt` is where it began, not when it ended. */
+  readonly isEndUnknown?: true
+}
+
+/** The root of a finished run's row. */
+export function toTimelineRoot(
+  row: Pick<ActivityRowWire, 'startedAt' | 'endedAt' | 'outcome'>
+): TimelineRoot {
+  const { startedAt, endedAt } = row
+
+  return row.outcome === INTERRUPTED_OUTCOME
+    ? { startedAt, endedAt, isEndUnknown: true }
+    : { startedAt, endedAt }
 }
 
 /** One run of one role. Instants are clamped into the view's axis, so a bar never inverts. */
@@ -63,6 +77,8 @@ export interface TimelineView {
   readonly fromMs: number
   readonly toMs: number
   readonly isRunning: boolean
+  /** The run's own end is not known: the daemon went down with it. */
+  readonly isEndUnknown?: true
   readonly groups: readonly TimelineGroup[]
   /** A debate on one name only: a batch has no per-name event for these, and another run's gaps are not
    *  known to be preparing or saving. */
@@ -129,6 +145,7 @@ export function buildTimeline(inputs: TimelineInputs): TimelineView | undefined 
   return {
     ...axis,
     isRunning,
+    ...(root?.isEndUnknown === true ? { isEndUnknown: true as const } : {}),
     groups,
     ...stretches,
     ...toCosts(read, clamped),
@@ -162,12 +179,19 @@ function toRowEntry(row: ActivityRowWire, heard: HeardChildren): Entry {
     span: {
       runId: row.runId,
       startedAt: row.startedAt,
-      endedAt: row.endedAt,
+      ...toRowEnd(row),
       outcome: row.outcome,
       ...costUsd,
       ...summary,
     },
   }
+}
+
+// An interrupted run's row ends where it began: its real end is not known.
+function toRowEnd(row: ActivityRowWire): Pick<TimelineSpan, 'endedAt' | 'isEndUnknown'> {
+  return row.outcome === INTERRUPTED_OUTCOME
+    ? { isEndUnknown: true as const }
+    : { endedAt: row.endedAt }
 }
 
 // A child the read does not list yet: running while the feed has it, else as it was heard to end.
