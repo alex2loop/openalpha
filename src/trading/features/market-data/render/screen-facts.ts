@@ -69,6 +69,15 @@ const BOARD_GROUP_OF = Object.freeze({
   'ranked-peers': undefined,
 } as const satisfies Readonly<Record<FactorMetricId, BoardGroup | undefined>>)
 
+/** The readings a reader looks for first, at the head of their group in this order: the price
+ *  multiples, each beside its yardstick, before the quality ratios. */
+const LEADING_FACTS: readonly string[] = Object.freeze([
+  'pe',
+  'sector-pe',
+  'average-profit-pe',
+  'pb',
+])
+
 /** A factor with a place on the board but no reading of its own is listed under price. */
 const UNMEASURED_GROUP: BoardGroup = 'price'
 
@@ -127,8 +136,17 @@ export function boardFacts(
   addOwnFacts(locale, { candidate, found, read })
 
   return [...found.values()].toSorted(
-    (left, right) => BOARD_GROUPS.indexOf(left.group) - BOARD_GROUPS.indexOf(right.group)
+    (left, right) =>
+      BOARD_GROUPS.indexOf(left.group) - BOARD_GROUPS.indexOf(right.group) ||
+      leadRank(left) - leadRank(right)
   )
+}
+
+/** A fact's place among `LEADING_FACTS`; every other fact keeps its order after them. */
+function leadRank({ id }: BoardFact): number {
+  const rank = LEADING_FACTS.indexOf(id)
+
+  return rank === -1 ? LEADING_FACTS.length : rank
 }
 
 /** The size, the traded value and the month's move a market states as fields of the name rather

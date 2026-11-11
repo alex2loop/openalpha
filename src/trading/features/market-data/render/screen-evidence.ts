@@ -80,17 +80,26 @@ export function renderBoardRow(
   board: ScreenBoard
 ): readonly string[] {
   return [
-    ...toRowLines(
-      [
-        renderNameHead(locale, candidate),
-        ...renderPriceFacts(locale, candidate, board),
-        ...missingSegment(locale, candidate),
-      ],
-      board.context,
-      1
-    ),
+    ...renderBoardRowHead(locale, candidate, board),
     ...renderBoardFactLines(locale, boardFacts(locale, candidate, board), board.context),
   ]
+}
+
+/** A board row's first line: the name, its sector, its price and move, and what it lacks. */
+export function renderBoardRowHead(
+  locale: Locale,
+  candidate: ScreenedCandidate,
+  board: ScreenBoard
+): readonly string[] {
+  return toRowLines(
+    [
+      renderNameHead(locale, candidate),
+      ...renderPriceFacts(locale, candidate, board),
+      ...missingSegment(locale, candidate),
+    ],
+    board.context,
+    1
+  )
 }
 
 /** How a board writes a factor's quantities: short labels, each reading once, joined by commas. A

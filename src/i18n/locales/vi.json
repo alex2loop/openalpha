@@ -5739,7 +5739,7 @@
     "render.screen.metricsFold": "Số liệu gốc phía sau các điểm số",
     "render.screen.emptyKind": "Hôm nay không {kind} nào ở {market} qua được bộ lọc.",
     "render.screen.empty": "Hôm nay không mã nào ở {market} qua được bộ lọc.",
-    "render.screen.nameTitle": "Chỉ số chính của {ticker} ở {market}",
+    "render.screen.nameTitle": "Chỉ số chính của {ticker}",
     "render.screen.nameMissing": "Hôm nay {ticker} chưa có trên bảng lọc của {market}. Có thể mã gõ chưa đúng, hoặc mã giao dịch còn mỏng hay thiếu báo cáo tài chính. Nếu mã niêm yết ở thị trường khác, bạn gõ kèm thị trường, dạng thị-trường:mã.",
     "render.screen.noUniverse": "Chưa có mã nào ở {market} để xếp hạng.",
     "render.screen.noUniverseKind": "Chưa có {kind} nào niêm yết ở {market} nên chưa xếp hạng được.",

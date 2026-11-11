@@ -5739,7 +5739,7 @@
     "render.screen.metricsFold": "The raw numbers behind these scores",
     "render.screen.emptyKind": "No {kind} in {market} made it through the screen today.",
     "render.screen.empty": "Nothing in {market} made it through the screen today.",
-    "render.screen.nameTitle": "Key figures for {ticker} in {market}",
+    "render.screen.nameTitle": "Key figures for {ticker}",
     "render.screen.nameMissing": "{ticker} isn't on the {market} screen today. The ticker may be mistyped, or the name trades too thinly or lacks reports. If it lists on another market, add that market, as in market:ticker.",
     "render.screen.noUniverse": "There is nothing to rank in {market} yet.",
     "render.screen.noUniverseKind": "No {kind} is listed in {market} yet, so there is nothing to rank.",
