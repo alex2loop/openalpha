@@ -4,7 +4,10 @@ import type { ScreenView } from '@/trading/features/market-data/types'
 import type { Ticker } from '@/trading/kernel/instrument'
 import { t } from '@/i18n'
 import { boardOf, renderPriceUnitLine } from '@/trading/features/market-data/render/screen'
-import { renderBoardRowHead } from '@/trading/features/market-data/render/screen-evidence'
+import {
+  renderNameHead,
+  renderPriceLine,
+} from '@/trading/features/market-data/render/screen-evidence'
 import {
   boardFacts,
   renderBoardFactLines,
@@ -45,15 +48,18 @@ export function renderScreenNameText(
     ])
   }
 
-  const title = t(locale, 'trading.render.screen.nameTitle', values)
+  const title = t(locale, 'trading.render.screen.nameTitle', {
+    ...values,
+    ticker: renderNameHead(locale, candidate),
+  })
   const board = boardOf(request, result)
   const facts = boardFacts(locale, candidate, board)
 
   return joinSections([
     [
       `${renderSectionTitle(SECTION_ICONS.screen, title)}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
+      ...renderPriceLine(locale, candidate, board),
       ...renderPriceUnitLine(locale, request, result),
-      ...renderBoardRowHead(locale, candidate, board),
       ...renderBoardFactLines(locale, facts, { ...board.context, width: LIST_WIDTH }),
       ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
     ],
