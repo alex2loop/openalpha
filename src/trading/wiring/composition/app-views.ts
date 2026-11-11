@@ -20,6 +20,7 @@ import type {
 } from '@/trading/features/themes/types'
 import type {
   InstrumentKind,
+  InstrumentRef,
   MarketRef,
   PriceDisplay,
   Region,
@@ -124,6 +125,7 @@ export interface AppViews {
   }>
   trackRecord(request: {
     readonly limit: number
+    readonly instrument?: InstrumentRef
     readonly locale: Locale
     readonly signal: AbortSignal
   }): Promise<{
@@ -346,7 +348,11 @@ async function trackRecord(
   request: Parameters<AppViews['trackRecord']>[0]
 ): ReturnType<AppViews['trackRecord']> {
   const [reflection, byModel] = await Promise.all([
-    deps.suggestions.reflect({ limit: request.limit, signal: request.signal }),
+    deps.suggestions.reflect({
+      limit: request.limit,
+      ...(request.instrument === undefined ? {} : { instrument: request.instrument }),
+      signal: request.signal,
+    }),
     deps.suggestions.modelRecords(request.signal),
   ])
 

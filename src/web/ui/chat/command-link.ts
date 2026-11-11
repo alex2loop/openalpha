@@ -15,8 +15,9 @@ import { openReader } from '@/web/ui/reader/reader'
 const WORD_BREAK = /\s+/
 // `market:ticker` names the market when two claim a ticker.
 const MARKET_SEPARATOR = ':'
-// `/screen 20`: how many rows the board prints.
-const ROW_COUNT = /^\d+$/
+// `/screen 20`: how many rows the board prints. Any number is an option, never a ticker: the CLI
+// answers a usage line for one it cannot print (0, 99999, 5.5).
+const NUMBER_WORD = /^[+-]?(\d+\.?\d*|\.\d+)$/
 // `/screen etf`: a kind word, never a ticker. Typed against the wire, so a kind added there fails here.
 const KIND_WORDS: Readonly<Record<InstrumentKind, true>> = Object.freeze({
   equity: true,
@@ -92,25 +93,21 @@ function linkMeeting(runId: string | undefined): CommandLink | undefined {
 // market's board; a bare `/screen` on the one last open.
 function linkScreen(args: readonly string[]): CommandLink | undefined {
   const markets = new Set(knownMarkets.value.map(({ market }) => market))
-  const name = args.find((arg) => !isScreenOption(arg, markets))
+  const words = args.map((arg) => arg.toLowerCase())
+  const nameAt = words.findIndex((word) => !isScreenOption(word, markets))
 
-  if (name !== undefined) {
-    return linkPrice([name])
+  if (nameAt !== -1) {
+    return linkPrice(args.slice(nameAt))
   }
 
-  return linkTo('ui.office.chat.link.screen', () =>
-    openIdeas(
-      'screen',
-      args.find((arg) => markets.has(arg))
-    )
-  )
+  const board = words.find((word) => markets.has(word))
+
+  return linkTo('ui.office.chat.link.screen', () => openIdeas('screen', board))
 }
 
-// A market, a row count or an instrument kind: the words `/screen` reads besides a name.
-function isScreenOption(arg: string, markets: ReadonlySet<string>): boolean {
-  const word = arg.toLowerCase()
-
-  return markets.has(word) || ROW_COUNT.test(word) || Object.hasOwn(KIND_WORDS, word)
+// A market, a number or an instrument kind, lower-cased: the words `/screen` reads besides a name.
+function isScreenOption(word: string, markets: ReadonlySet<string>): boolean {
+  return markets.has(word) || NUMBER_WORD.test(word) || Object.hasOwn(KIND_WORDS, word)
 }
 
 // `/alert create FPT ...` opens the form for the name it asked about; any other `/alert` has none.

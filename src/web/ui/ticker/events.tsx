@@ -49,7 +49,7 @@ export function EventsBlock({
           {events.map((event) => (
             <div key={`${event.at}:${event.kind}`} class="row">
               <div>
-                <b>{event.title}</b>
+                <b>{tr(`trading.event.${event.kind}`)}</b>
                 {event.detail !== undefined && <p class="meta">{event.detail}</p>}
                 <EventTerms event={event} market={market} />
               </div>

@@ -116,8 +116,6 @@ function isStale(item: QuoteBoardItem): boolean {
 function toQuoteWire(item: QuoteBoardItem, locale: Locale): TradingQuoteWire {
   return {
     ticker: item.ticker,
-    // The wire's own label: the instrument key the two fields below spell out.
-    label: buildInstrumentKey({ market: item.market, ticker: item.ticker }),
     region: item.region,
     currency: item.currency,
     last: item.last,

@@ -8,7 +8,7 @@ import type {
   SuggestionId,
 } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 
 export interface OutcomeResolutionBatch {
@@ -43,6 +43,8 @@ export interface TrackRecordOptions {
   readonly strategyVersion?: string
   /** The focus whose record is read: the operator's own when absent. */
   readonly focusKey?: FocusKey
+  /** Only this name's calls, folded and matured like the whole record's. */
+  readonly instrument?: InstrumentRef
   readonly signal: AbortSignal
 }
 

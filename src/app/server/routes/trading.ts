@@ -306,16 +306,19 @@ async function handleSuggestionCard(req: Request, ctx: ApiRouteContext): Promise
 }
 
 async function handleTradingTrackRecord(req: Request, ctx: ApiRouteContext): Promise<Response> {
-  const limit = parseLimit(
-    new URL(req.url).searchParams.get('limit'),
-    SURFACE_LIMITS.maximumTrackRecordItems
-  )
+  const query = new URL(req.url).searchParams
+  const limit = parseLimit(query.get('limit'), SURFACE_LIMITS.maximumTrackRecordItems)
+  const instrument = parseOptionalInstrument(query)
 
-  if (limit === null) {
+  if (limit === null || instrument === null) {
     return apiError('invalid_body')
   }
 
-  const view = await hostOf(ctx).getTrackRecord({ limit, signal: req.signal })
+  const view = await hostOf(ctx).getTrackRecord({
+    limit,
+    ...(instrument === undefined ? {} : { instrument }),
+    signal: req.signal,
+  })
 
   return json(toTrackRecordWire(view, localeOf(ctx)))
 }

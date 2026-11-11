@@ -87,7 +87,7 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
 
   const board = findQuote(ticker, market)
   const quote = newerQuote(live.quote, board)
-  const labelTail = toLabelTail(board?.label, reading.data?.sector)
+  const labelTail = toLabelTail(reading.data?.sector)
   // An index, a fund or world gold says what it is, in the glossary's words.
   const term = termOfTicker(ticker) ?? (quote === undefined ? undefined : termOfKind(quote.kind))
 
@@ -126,11 +126,9 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
   )
 }
 
-// What follows the ticker in the title: the board's label, then the sector, each where known.
-function toLabelTail(label: string | undefined, sector: string | undefined): string {
-  const names = [label, sector === undefined ? undefined : sectorName(sector)]
-
-  return names.map((name) => (name === undefined ? '' : ` ${INLINE_SEPARATOR} ${name}`)).join('')
+// What follows the ticker in the title: the sector, where the market files the name under one.
+function toLabelTail(sector: string | undefined): string {
+  return sector === undefined ? '' : ` ${INLINE_SEPARATOR} ${sectorName(sector)}`
 }
 
 // A market that is trading shows its live price, not the close the board fell back to: one read

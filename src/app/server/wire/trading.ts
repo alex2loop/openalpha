@@ -48,7 +48,6 @@ export interface TradingWireProvenance {
 
 export interface TradingQuoteWire extends QuoteDetailWire {
   readonly ticker: string
-  readonly label: string
   readonly region: string
   readonly currency: string
   readonly last: number
