@@ -113,6 +113,7 @@ questions and a reading must pass both:
 A reading that fails either test is not an error. The market answers with the settled close the store holds, tagged
 `market-data.quote-not-live`, so the screen says which price it is; it refuses only for a name the store cannot price at all.
 Crypto does this through `liveOrStoredQuote` (`markets/stored-quote.ts`), VN equities through the same file's `storedQuote`.
+A crypto adapter publishes the price and its instant only: `liveOrStoredQuote` also measures a live reading's move against the settled close it stands on, because the venues' own figure is a rolling 24-hour window that starts from a price no surface shows. The move is absent where the store holds no such close.
 
 ## Anatomy of an adapter
 

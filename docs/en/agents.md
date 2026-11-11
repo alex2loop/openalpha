@@ -636,7 +636,7 @@ plaintext keys are not accepted in model configuration. A server on this machine
 Reasoning accepts `default`, `off`, `low`, `medium` or `high`. It is hidden, so you pay for it in latency and
 tokens and never read it. At `high` a model that uses its whole budget spends roughly 20k thinking tokens and
 two minutes per call; `medium` caps a call's output at 12,288 tokens. On Opus 5.5 and Fable 5, which cannot stop
-thinking, `off` runs at `low` (logged as `ai.reasoning_downgraded`).
+thinking, `off` runs at `low` (logged once per model as `ai.reasoning_downgraded`).
 
 #### `provider_sort`
 

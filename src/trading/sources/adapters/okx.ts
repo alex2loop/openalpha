@@ -14,7 +14,7 @@ import type { SourceFetchOutcome } from '@/trading/sources/types'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { createCryptoFx } from '@/trading/sources/adapters/crypto-fx'
 import { createSource, parsedSource } from '@/trading/sources/define'
-import { dayChangePct, finite, positive } from '@/trading/sources/rows/normalization'
+import { finite, positive } from '@/trading/sources/rows/normalization'
 import { QUOTE_ATTEMPT_LIMITS } from '@/trading/sources/transport/http'
 
 export const OKX_DEFAULT_ENDPOINT = 'https://www.okx.com'
@@ -34,12 +34,9 @@ const FX_COINS: ReadonlySet<string> = new Set([QUOTE_ASSET])
  *  code, which no transport miss mapping reads. */
 const FX_FIAT = 'USD'
 
-/** `last` is the last trade and `ts` the instant it printed. `sodUtc0` is the price at 00:00 UTC,
- *  which on a market whose day is the UTC day is the previous session's close - the `open24h`
- *  beside it is a rolling window that measures from a price appearing on no surface. */
+/** `last` is the last trade and `ts` the instant it printed. */
 const TICKER = z.object({
   last: z.string().min(1),
-  sodUtc0: z.string().optional(),
   ts: z.string().min(1),
 })
 
@@ -139,14 +136,9 @@ async function loadQuote(
 }
 
 function toQuote(row: z.infer<typeof TICKER>, instrument: InstrumentRef): Quote {
-  const price = positive(Number(row.last), 'last')
-  const previousClose = Number(row.sodUtc0)
-  const changePct = dayChangePct(price, previousClose > 0 ? previousClose : undefined)
-
   return {
     instrument,
-    price,
+    price: positive(Number(row.last), 'last'),
     observedAt: finite(Number(row.ts), 'ts'),
-    ...(changePct === undefined ? {} : { changePct }),
   }
 }

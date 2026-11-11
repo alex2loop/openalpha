@@ -94,6 +94,7 @@ Một nhà cung cấp ngừng cập nhật thì **không báo hỏng**. Nó tr�
 `toLiveReading` (`markets/live-reading.ts`) - đường của `/overview` và `/market` - áp đúng phép kiểm tuổi đó (`isRecentObservation`) lên ngày đã settle mà bên gọi đang giữ. Quy tắc settle nằm ở [Giao dịch](../giao-dich.md#một-phiên-chốt-khi-bảng-giá-của-nó-chốt-không-phải-khi-chuông-reo).
 
 Một số đọc trượt một trong hai phép kiểm thì **không phải lỗi**. Thị trường trả giá chốt mà kho đang lưu, gắn nhãn `market-data.quote-not-live`, để màn hình nói rõ đó là giá nào; chỉ từ chối với mã mà kho hoàn toàn không định giá được. Crypto làm việc này qua `liveOrStoredQuote` (`markets/stored-quote.ts`), cổ phiếu VN qua `storedQuote` của cùng tệp.
+Bộ chuyển đổi crypto chỉ công bố giá và thời điểm của giá: `liveOrStoredQuote` còn tính mức biến động của một số đọc trực tiếp so với giá đóng đã chốt mà nó đứng trên, vì con số của chính các sàn là cửa sổ 24 giờ trôi, bắt đầu từ một mức giá không hiện ở đâu trên màn hình. Kho không có giá đóng như vậy thì không có mức biến động.
 
 ## Giải phẫu một bộ nối
 

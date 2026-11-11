@@ -636,7 +636,7 @@ trong cấu hình mô hình. Một server chạy trên chính máy này (`base_u
 Mức suy luận nhận `default`, `off`, `low`, `medium` hoặc `high`. Phần suy luận bị ẩn, nên bạn trả tiền cho nó bằng độ
 trễ và token mà không bao giờ đọc được. Ở `high`, một mô hình dùng hết ngân sách của nó tiêu khoảng 20k token suy nghĩ và
 hai phút cho mỗi lời gọi; `medium` chặn đầu ra một lời gọi ở 12.288 token. Với Opus 5.5 và Fable 5, vốn không ngừng suy
-nghĩ được, `off` chạy ở `low` (ghi log `ai.reasoning_downgraded`).
+nghĩ được, `off` chạy ở `low` (ghi log `ai.reasoning_downgraded` một lần cho mỗi mô hình).
 
 #### `provider_sort`
 

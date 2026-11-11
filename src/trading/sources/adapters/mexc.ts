@@ -15,7 +15,6 @@ import {
   dropInvalid,
   finite,
   klineLimit,
-  PERCENT_PER_UNIT,
   positive,
   toCandle,
   utcDayEndEpochMs,
@@ -49,11 +48,9 @@ const KLINES = z.array(
 )
 
 /** The rolling 24 h window for one symbol. `closeTime` is the window's end, which is the instant the
- *  quote was taken. Unlike the Binance-shaped endpoint it copies, `priceChangePercent` carries a
- *  fraction rather than a percent — measured 0,0048 against a true 0,49% move. */
+ *  quote was taken. */
 const TICKER_24H = z.object({
   lastPrice: z.string().min(1),
-  priceChangePercent: z.string().min(1),
   closeTime: z.number(),
 })
 
@@ -121,7 +118,6 @@ function toQuote(raw: unknown, context: SourceContext): Quote {
   return {
     instrument: context.instrument,
     price: positive(Number(row.lastPrice), 'lastPrice'),
-    changePct: finite(Number(row.priceChangePercent), 'priceChangePercent') * PERCENT_PER_UNIT,
     observedAt: finite(row.closeTime, 'closeTime'),
   }
 }

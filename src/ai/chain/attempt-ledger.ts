@@ -20,6 +20,11 @@ import { withRetry } from '@/core/utils/retry'
 
 const OUTPUT_CONTRACT_REJECTION_RE = /schema|response_format|json_schema|structured output/i
 
+// A downgrade is a fixed property of a configured model, so every attempt of it would repeat the
+// same line. Reported once per process; the keys are bounded by the configured models times the
+// reasoning modes, never by traffic.
+const reportedDowngrades = new Set<string>()
+
 interface AttemptLedger {
   nextId(): number
   append(attempt: ProviderAttempt): void
@@ -246,14 +251,23 @@ function logReasoningDowngrade(
     return
   }
 
+  const effective = entry.reasoningResolution.effectiveMode
+  const key = [entry.provider.id, entry.model, requested, effective].join('|')
+
+  if (reportedDowngrades.has(key)) {
+    return
+  }
+
+  reportedDowngrades.add(key)
   entry.logger.warn('ai.reasoning_downgraded', {
     requested,
-    effective: entry.reasoningResolution.effectiveMode,
+    effective,
     provider: entry.provider.id,
     model: entry.model,
     reason,
-    // Key must not contain "token": isSensitiveKey would redact it from the log line.
-    outputCap: maxTokens,
+    // Key must not contain "token": isSensitiveKey would redact it from the log line. A request
+    // with no conversation (a decisions query) carries no cap, and the field is left out.
+    ...(maxTokens > 0 ? { outputCap: maxTokens } : {}),
   })
 }
 

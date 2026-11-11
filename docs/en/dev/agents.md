@@ -299,7 +299,7 @@ of output usage: reported separately, never charged twice.
 Claude is the fiddly one. From 4.6 on it takes adaptive thinking with an effort level; a thinking *budget* is what
 older models take, and 4.7 onward rejects it. Claude 5 thinks when the request says nothing, so `off` must be sent
 as an explicit disable. Opus 5.5 and Fable 5 cannot stop thinking: `off` runs them at `low`, logs
-`ai.reasoning_downgraded`, and widens the reply cap by the `low` reserve.
+`ai.reasoning_downgraded` (once per process for each provider, model, requested and effective mode), and widens the reply cap by the `low` reserve.
 
 Both lists are fixed: models that take a budget (everything before 4.6) and models that accept a disable (Opus and
 Sonnet 4.6-4.8, Opus 5, Sonnet 5). Any other Claude id, including a future one, gets adaptive thinking and treats

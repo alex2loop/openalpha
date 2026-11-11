@@ -297,7 +297,7 @@ con của token đầu ra: báo riêng, không bao giờ tính tiền hai lần.
 Claude là nhà cung cấp rắc rối nhất. Từ 4.6 trở đi nó nhận suy luận thích ứng kèm một mức nỗ lực; còn **ngân sách** suy nghĩ
 là thứ các mô hình cũ hơn nhận, và từ 4.7 trở đi thì bị từ chối. Claude 5 suy nghĩ khi yêu cầu không nói gì, nên `off` phải
 được gửi đi như một lệnh tắt tường minh. Opus 5.5 và Fable 5 không ngừng suy nghĩ được: `off` chạy chúng ở `low`, ghi log
-`ai.reasoning_downgraded`, và nới trần câu trả lời thêm phần dự trữ của `low`.
+`ai.reasoning_downgraded` (một lần mỗi tiến trình cho mỗi bộ nhà cung cấp, mô hình, chế độ yêu cầu và chế độ thực chạy), và nới trần câu trả lời thêm phần dự trữ của `low`.
 
 Hai danh sách đều cố định: các mô hình nhận ngân sách (mọi thứ trước 4.6) và các mô hình chấp nhận lệnh tắt (Opus và Sonnet
 4.6-4.8, Opus 5, Sonnet 5). Mọi mã Claude khác, kể cả mã ra mắt sau này, nhận suy luận thích ứng và coi `off` là `low` - yêu

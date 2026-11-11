@@ -1,7 +1,7 @@
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { Ticker } from '@/trading/kernel/instrument'
 import type { InstrumentRequest } from '@/trading/kernel/market/market-capability'
-import type { Quote } from '@/trading/kernel/market/market-data'
+import type { BarRecord, Quote } from '@/trading/kernel/market/market-data'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { TradingCalendar } from '@/trading/markets/types'
@@ -14,6 +14,11 @@ const QUOTE_SESSIONS = 10
 
 export type AvailableQuote = SourceResult<Quote> & { readonly kind: 'available' }
 
+interface SettledBars {
+  readonly newest: BarRecord
+  readonly previous: BarRecord | undefined
+}
+
 interface LiveOrStoredInput {
   readonly deps: MarketDeps
   readonly calendar: TradingCalendar
@@ -25,15 +30,22 @@ interface LiveOrStoredInput {
  *  tape is making, the settled close where it is not, and the refusal only where the store cannot
  *  price the name either. A provider answers a halted ticker with its last print indefinitely and a
  *  stalled feed answers with a bar from hours ago, both well-formed — so a market that returned the
- *  refusal alone left every surface unpriced for a close it already holds. */
+ *  refusal alone left every surface unpriced for a close it already holds.
+ *
+ *  A live reading's move is measured here against the settled close it stands on, never taken from
+ *  the provider: a continuous market's own figure is a rolling window that starts from a price no
+ *  surface shows. It is absent where the store holds no such close. */
 export async function liveOrStoredQuote(input: LiveOrStoredInput): Promise<SourceResult<Quote>> {
   const { calendar, deps, quote, request } = input
 
-  if (
-    quote.kind !== 'available' ||
-    isLiveObservation(calendar, quote.value.observedAt, request.now)
-  ) {
+  if (quote.kind !== 'available') {
     return quote
+  }
+
+  if (isLiveObservation(calendar, quote.value.observedAt, request.now)) {
+    const settled = await newestSettledBars(deps, calendar, request)
+
+    return withSettledMove(quote, settled?.newest)
   }
 
   const stored = await storedQuote(deps, calendar, request)
@@ -51,22 +63,16 @@ export async function storedQuote(
   calendar: TradingCalendar,
   request: InstrumentRequest
 ): Promise<AvailableQuote | undefined> {
-  const toDay = lastSettledDay(request, calendar)
-  const rows = await deps.marketDataStore.listBars({
-    instrument: request.instrument,
-    fromDay: calendar.addTradingDays(toDay, -QUOTE_SESSIONS),
-    toDay,
-    signal: request.signal,
-  })
-  const newest = rows[rows.length - 1]
+  const settled = await newestSettledBars(deps, calendar, request)
 
-  if (newest === undefined || newest.candle.at < toDay) {
+  if (settled === undefined) {
     return undefined
   }
 
+  const { newest, previous } = settled
   // A settled bar was observed at its own session's close; `fetchedAt` would date it to the refresh.
   const observedAt = calendar.sessionCloseAt(newest.candle.at)
-  const changePct = dayChangePct(newest.candle.close, rows[rows.length - 2]?.candle.close)
+  const changePct = dayChangePct(newest.candle.close, previous?.candle.close)
 
   return {
     kind: 'available',
@@ -81,6 +87,36 @@ export async function storedQuote(
     ],
     caveats: [],
   }
+}
+
+/** The last settled session's bar and the one before it. Absent when the store is behind that
+ *  session: an older bar would be dated as a close it is not. */
+async function newestSettledBars(
+  deps: MarketDeps,
+  calendar: TradingCalendar,
+  request: InstrumentRequest
+): Promise<SettledBars | undefined> {
+  const toDay = lastSettledDay(request, calendar)
+  const rows = await deps.marketDataStore.listBars({
+    instrument: request.instrument,
+    fromDay: calendar.addTradingDays(toDay, -QUOTE_SESSIONS),
+    toDay,
+    signal: request.signal,
+  })
+  const newest = rows[rows.length - 1]
+
+  if (newest === undefined || newest.candle.at < toDay) {
+    return undefined
+  }
+
+  return { newest, previous: rows[rows.length - 2] }
+}
+
+function withSettledMove(quote: AvailableQuote, close: BarRecord | undefined): SourceResult<Quote> {
+  const { changePct: _providerWindow, ...reading } = quote.value
+  const changePct = dayChangePct(reading.price, close?.candle.close)
+
+  return { ...quote, value: { ...reading, ...(changePct === undefined ? {} : { changePct }) } }
 }
 
 /** A held name whose board is open but has not printed is not the same fact as a shut market, and
