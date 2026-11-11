@@ -19,6 +19,7 @@ import {
 import { LiveUpkeepSection, UpkeepSection } from '@/web/ui/jobs/upkeep-section'
 import { Button } from '@/web/ui/kit/button'
 import { JOBS_POPOVER_ID, Popover } from '@/web/ui/kit/popover'
+import { StaleLine } from '@/web/ui/kit/stale-line'
 import { useLoad } from '@/web/ui/kit/use-load'
 
 import './jobs.css'
@@ -94,6 +95,7 @@ function RunningSection() {
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.jobs.running')}</h3>
+      <StaleLine lead="ui.office.stale.jobs" />
       {tops.length === 0 && working.length === 0 && (
         <p class="empty-note">{tr('ui.office.jobs.none')}</p>
       )}

@@ -1,9 +1,10 @@
 import { useNow } from '@/web/state/clock'
 import { retryFeedNow } from '@/web/state/feed'
+import { staleSince } from '@/web/state/live'
 import { restartPhase } from '@/web/state/restart'
-import { connection } from '@/web/state/session'
+import { connection, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
-import { formatCountdown } from '@/web/text/time'
+import { formatClock, formatCountdown } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { RestartStatus } from '@/web/ui/settings/restart'
@@ -35,8 +36,25 @@ export function OfflineBar() {
       <strong>
         {tr(status === 'full' ? 'ui.office.offline.full' : 'ui.office.offline.title')}
       </strong>
+      <StaleSince />
       {retryAt === undefined ? <RunningNote /> : <ArmedRetry retryAt={retryAt} />}
     </div>
+  )
+}
+
+// Names the minute the picture stopped; nothing until the session has said the operator's zone.
+function StaleSince() {
+  const since = staleSince.value
+  const timeZone = state.value?.timeZone
+
+  if (since === undefined || timeZone === undefined) {
+    return null
+  }
+
+  return (
+    <span class="offline-bar-detail">
+      {tr('ui.office.stale.since', { time: formatClock(since, timeZone) })}
+    </span>
   )
 }
 
