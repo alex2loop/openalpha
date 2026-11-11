@@ -166,8 +166,13 @@ function Names({ board, market }: { readonly board: ScreenResponse; readonly mar
           {line}
         </p>
       ))}
-      <ScreenControls market={market} view={view} {...choices} kinds={board.kinds} />
-      <BoardTally shown={shown.length} total={board.candidates.length} />
+      <ScreenControls
+        market={market}
+        view={view}
+        {...choices}
+        kinds={board.kinds}
+        tally={{ shown: shown.length, total: board.candidates.length }}
+      />
       {shown.length === 0 && (
         <NoMatch query={view.query} hasRejections={board.card.rejections.length > 0} />
       )}
@@ -275,15 +280,6 @@ function Rejections({ lines }: { readonly lines: readonly string[] }) {
         <p key={line}>{line}</p>
       ))}
     </details>
-  )
-}
-
-/** How many names the filters leave. */
-function BoardTally({ shown, total }: { readonly shown: number; readonly total: number }) {
-  return (
-    <div class="sort-bar">
-      <p class="meta">{tr('ui.office.edition.screen.filter.count', { shown, total })}</p>
-    </div>
   )
 }
 

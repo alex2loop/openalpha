@@ -1,6 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { ScreenedCandidate } from '@/trading/features/market-data/types'
-import type { FactorResult } from '@/trading/kernel/factor'
+import type { FactorId, FactorResult } from '@/trading/kernel/factor'
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import type { PriceDisplay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
@@ -89,6 +89,13 @@ const LEADING_FACTS: readonly string[] = Object.freeze([
 /** A factor with a place on the board but no reading of its own is listed under price. */
 const UNMEASURED_GROUP: BoardGroup = 'price'
 
+/** Where a factor's place is listed when its readings span groups: value is a verdict on the price
+ *  paid, quality one on the company's health; any other factor follows its first reading. */
+const PLACE_GROUP_OF: Readonly<Partial<Record<FactorId, BoardGroup>>> = Object.freeze({
+  value: 'valuation',
+  quality: 'health',
+})
+
 /** One fact of a name on a board: a reading with its label and value apart, for a page to lay out
  *  as it likes and for the text below to join. A factor's place among the board's names joins the
  *  reading of the factor's own name; with no such reading it is a fact of its own, valued as that
@@ -132,11 +139,13 @@ export function boardFacts(
     }
 
     if (percentile !== undefined) {
-      addPlace(found, {
+      addPlace(locale, found, {
         id: factor.id,
         label: renderDeclaredValue(locale, `trading.factor.${factor.id}`),
         value: formatPercentRank(locale, percentile, 'plain'),
-        group: readings[0] === undefined ? UNMEASURED_GROUP : toFact(readings[0]).group,
+        group:
+          PLACE_GROUP_OF[factor.id] ??
+          (readings[0] === undefined ? UNMEASURED_GROUP : toFact(readings[0]).group),
       })
     }
   }
@@ -205,12 +214,14 @@ function toFact({ metric, label, value }: MetricReading): BoardFact {
 }
 
 /** A factor's place goes on the line of the reading named as the factor is, so one quantity reads on
- *  one line; with none it is a fact of its own. */
-function addPlace(found: Map<string, BoardFact>, place: BoardFact): void {
+ *  one line; with none it is a fact of its own, labelled as a place so it never reads as a heading. */
+function addPlace(locale: Locale, found: Map<string, BoardFact>, place: BoardFact): void {
   const named = [...found.entries()].find(([, stated]) => stated.label === place.label)
 
   if (named === undefined) {
-    addFact(found, place.id, place)
+    const label = t(locale, 'trading.render.screen.placeLabel', { factor: place.label })
+
+    addFact(found, place.id, { ...place, label })
 
     return
   }
