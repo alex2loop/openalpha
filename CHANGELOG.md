@@ -7,6 +7,30 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.6.0] - 2026-11-11
+
+The office page now shows who worked on each run and for how long, with what each person cost (on your own computer only), and says plainly when it has lost touch with OpenAlpha instead of showing old work as live. Many small fixes make the Screen board, ticker cards, crypto moves and the track record read the same everywhere.
+> Trang văn phòng giờ cho thấy ai đã làm gì trong mỗi lượt chạy, mất bao lâu và tốn bao nhiêu (chỉ trên máy bạn), và nói rõ khi mất liên lạc với OpenAlpha thay vì vẫn hiện việc cũ như đang chạy. Nhiều sửa lỗi nhỏ giúp Màn lọc, thẻ mã, biến động giá crypto và thành tích đề xuất đọc giống nhau ở mọi nơi.
+
+### Added
+
+- "Who did what": a timeline of each run on the office page (jobs, chat, agent tab, activity) with one lane per person, how long each took, and on the installed app what each cost; a batch lets you pick a name.
+- When the page loses OpenAlpha, it says since when: the office stops moving, running clocks freeze, the jobs list and agent tab say they may be out of date, and a chat answer cut by the drop says so with the time.
+- `GET /v1/runs/:runId/timeline` for apps: a run's people, times and costs from the run log.
+
+### Changed
+
+- On the Screen board, a name whose ticker is what you typed comes first; one name for the screen everywhere ("Screen" / "Màn lọc"); a "so với bảng" place now reads in the same direction as the figure beside it; missing figures sit on their own line.
+- A crypto price's move is measured against the last settled close on every surface and venue, never a rolling 24-hour figure.
+- A ticker card's past calls count each idea once and only once its window has passed, the same as `/reflect`; the card title no longer shows an internal key; the board scale reads "×1.000".
+- Event notes from a source in another language are tagged with that language; an unknown ticker names the markets that were searched.
+- `/screen` with an out-of-range number and `/reflect` with any argument answer with how to use them.
+
+### Fixed
+
+- A data refresh stopped halfway is tried again within minutes, so a day's factor board is no longer lost.
+- A repeated "reasoning not supported" warning is logged once per model.
+
 ## [1.5.1] - 2026-11-11
 
 You can now find a name on the Screen board by ticker or company name, and read its key figures (P/E, profitability, growth, debt, liquidity, money flow) on its card or with `/screen FPT`. The figures read more plainly everywhere, grouped by what they tell you.
