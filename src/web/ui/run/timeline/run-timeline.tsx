@@ -12,7 +12,6 @@ import { Button } from '@/web/ui/kit/button'
 import { Combobox } from '@/web/ui/kit/combobox'
 import { Fold } from '@/web/ui/kit/fold'
 import { Skeleton } from '@/web/ui/kit/skeleton'
-import { StaleLine } from '@/web/ui/kit/stale-line'
 import { useHeardChildren } from '@/web/ui/run/heard-children'
 import { loadTimeline } from '@/web/ui/run/timeline/load-timeline'
 import { formatCost, TimelineLanes } from '@/web/ui/run/timeline/timeline-lanes'
@@ -75,7 +74,6 @@ function TimelineBody({ runId, root, isTitled }: TimelineBodyProps) {
   return (
     <section class="run-timeline">
       {isTitled === true && <p class="timeline-title">{tr('ui.office.timeline.title')}</p>}
-      {view.isRunning && <StaleLine />}
       <RunLine view={view} />
       <Lanes runId={runId} view={view} typed={typed} tickers={resolveTickers(runId, read)} />
       {view.otherUsd !== undefined && (

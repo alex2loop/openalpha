@@ -298,6 +298,7 @@ function layOut(input: PassInput, deps: PassDeps): OverlayView {
     fixed,
     tags: [...tags.values()],
     ...(hover === undefined ? {} : { hover: hover.label }),
+    pane: projection.value.pane,
     rooms: roomRects(input.view, deps.renderer),
     actors: input.figures,
     selected: input.selected,

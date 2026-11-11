@@ -472,7 +472,7 @@
     "office.stale.scene": "Not sure what everyone is doing",
     "office.stale.person": "Not sure what they are doing",
     "office.stale.jobs": "This list may have changed",
-    "office.stale.step": "ran {elapsed} as of {time}; unknown since",
+    "office.stale.step": "ran {elapsed} when last heard from",
     "office.stale.chat": "New replies can't reach this page yet",
     "office.header.running": "{count} jobs running",
     "office.header.runningOne": "{count} job running",

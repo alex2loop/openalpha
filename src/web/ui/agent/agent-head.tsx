@@ -77,21 +77,24 @@ function SavedNote({ agentId }: { readonly agentId: string }) {
   return <p class="agent-note is-saved">{tr('ui.office.form.saved', { name: saved.name })}</p>
 }
 
-// The run under way, else what it waits for, else its last run today, else free.
+// While the picture is stale only that; else the run under way, else what it waits for, else its
+// last run today, else free.
 function describeNow(view: AgentView): string {
   const { run, rows, agent } = view
   const timeZone = state.value?.timeZone
   const schedules = (state.value?.schedules ?? []).filter((row) => row.agentId === view.daemonId)
   const waiting = schedules.find((row) => row.event !== undefined && row.enabled !== false)?.event
   const last = rows[0]
+  const since = staleSince.value
+
+  if (since !== undefined) {
+    return joinInline([
+      ...(run === undefined ? [] : [formatRunName(run)]),
+      formatStaleLine(since, 'ui.office.stale.unknown'),
+    ])
+  }
 
   if (run !== undefined) {
-    const since = staleSince.value
-
-    if (since !== undefined) {
-      return joinInline([formatRunName(run), formatStaleLine(since, 'ui.office.stale.unknown')])
-    }
-
     return joinInline([
       formatRunName(run),
       ...(run.progress === undefined ? [] : [run.progress.text]),

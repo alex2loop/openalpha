@@ -1,12 +1,11 @@
 import { useSignal } from '@preact/signals'
 
 import { pluralKey } from '@/i18n'
-import { hasStartedChild, type Run } from '@/web/state/live'
+import { hasStartedChild, type Run, staleSince } from '@/web/state/live'
 import { tr } from '@/web/text/tr'
 import { ChildNest } from '@/web/ui/agent/child-nest'
 import { StepList } from '@/web/ui/agent/steps'
 import { Pager } from '@/web/ui/kit/pager'
-import { StaleLine } from '@/web/ui/kit/stale-line'
 import { toSafeHref } from '@/web/ui/markdown/inline'
 import { RunTimeline } from '@/web/ui/run/timeline/run-timeline'
 
@@ -22,12 +21,11 @@ interface ProgressProps {
  *  the pages it read. */
 export function Progress({ run, maxSpawn }: ProgressProps) {
   if (run === undefined) {
-    return <p class="meta">{tr('ui.office.status.free')}</p>
+    return staleSince.value === undefined ? <p class="meta">{tr('ui.office.status.free')}</p> : null
   }
 
   return (
     <>
-      <StaleLine />
       <StepList run={run} />
       {hasStartedChild(run.runId) && <RunTimeline key={run.runId} runId={run.runId} root={run} />}
       <ChildNest key={run.runId} parent={run} maxSpawn={maxSpawn} />
