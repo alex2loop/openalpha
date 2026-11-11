@@ -6,6 +6,7 @@ import { tr } from '@/web/text/tr'
 import { ChildNest } from '@/web/ui/agent/child-nest'
 import { StepList } from '@/web/ui/agent/steps'
 import { Pager } from '@/web/ui/kit/pager'
+import { StaleLine } from '@/web/ui/kit/stale-line'
 import { toSafeHref } from '@/web/ui/markdown/inline'
 import { RunTimeline } from '@/web/ui/run/timeline/run-timeline'
 
@@ -26,6 +27,7 @@ export function Progress({ run, maxSpawn }: ProgressProps) {
 
   return (
     <>
+      <StaleLine />
       <StepList run={run} />
       {hasStartedChild(run.runId) && <RunTimeline key={run.runId} runId={run.runId} root={run} />}
       <ChildNest key={run.runId} parent={run} maxSpawn={maxSpawn} />
