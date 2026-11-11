@@ -10,6 +10,7 @@ import { ELAPSED_TICK_MS, useNow } from '@/web/state/clock'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
+import { formatStaleLine } from '@/web/text/stale'
 import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
@@ -94,6 +95,8 @@ export function replyTextOf(now: ActorNow, canTakeWork: boolean): string {
       return tr('ui.office.ix.busy', { what: formatRunName(now.run) })
     case 'errand':
       return now.line
+    case 'unknown':
+      return formatStaleLine(now.since, 'ui.office.stale.person')
     default:
       return tr(canTakeWork ? 'ui.office.ix.free' : 'ui.office.ix.freeStaff')
   }
@@ -119,6 +122,8 @@ function lineOf(now: ActorNow, epochMs: number): string {
       return now.line
     case 'dot':
       return statusTextOf(now.status)
+    case 'unknown':
+      return formatStaleLine(now.since, 'ui.office.stale.person')
   }
 }
 

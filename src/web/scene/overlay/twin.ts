@@ -10,9 +10,10 @@ import { menuActionsFor } from '@/web/scene/overlay/radial-menu'
 import { agents, selectedAgentId } from '@/web/state/agents'
 import { thread } from '@/web/state/chat'
 import { selectActor } from '@/web/state/focus'
-import { pending, runs } from '@/web/state/live'
+import { pending, runs, staleSince } from '@/web/state/live'
 import { locale } from '@/web/state/session'
 import { formatRunName } from '@/web/text/run-name'
+import { formatStaleLine } from '@/web/text/stale'
 import { tr } from '@/web/text/tr'
 
 /** One line of the canvas's text twin: who, what they do now in words, and what its button opens. */
@@ -61,6 +62,7 @@ function inputsOf(sim: SimView, markers: readonly Marker[]): readonly unknown[] 
     sceneGoals.value,
     pending.value,
     runs.value,
+    staleSince.value,
     agents.value,
     thread.value,
     selectedAgentId.value,
@@ -122,6 +124,8 @@ function whatOf(now: ActorNow): string {
       return now.line
     case 'dot':
       return statusTextOf(now.status)
+    case 'unknown':
+      return formatStaleLine(now.since, 'ui.office.stale.person')
   }
 }
 
