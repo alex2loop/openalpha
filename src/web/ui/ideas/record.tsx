@@ -3,6 +3,7 @@ import { pluralKey } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { SHARED_FOCUS } from '@/web/state/agents'
 import { useBlock } from '@/web/state/block'
+import { AWAITING_WINDOW_CODE } from '@/web/text/caveat-text'
 import { formatFixedFraction } from '@/web/text/figures'
 import { isNoteLine } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -13,9 +14,6 @@ import { NoteList } from '@/web/ui/markdown/note-list'
 import { renderLinkedText } from '@/web/ui/ticker/linked-text'
 import { openWhy } from '@/web/ui/ticker/why-dialog'
 import { BlockFrame } from '@/web/ui/today/block-frame'
-
-// The caveat a record carries while calls it holds are still inside their outcome window.
-const AWAITING_WINDOW_CODE = 'reporting.awaiting-window'
 
 /** Thành tích: how the calls the daemon scored turned out, in `/reflect`'s own lines. */
 export function TrackRecord() {

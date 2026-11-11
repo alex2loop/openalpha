@@ -210,6 +210,7 @@ function recordMethods(
       scoped(deps, request.signal, (scope) =>
         deps.services.appViews.trackRecord({
           limit: bounded(request.limit, deps.limits.maximumTrackRecordItems),
+          ...(request.instrument === undefined ? {} : { instrument: request.instrument }),
           locale: deps.defaultLocale,
           signal: scope.signal,
         })

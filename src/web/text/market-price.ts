@@ -98,7 +98,7 @@ export function toWholeUnits(market: string, typed: number): number {
   return Math.round(typed * divisor * WHOLE_UNIT_PRECISION) / WHOLE_UNIT_PRECISION
 }
 
-/** "giá bảng điện, x1.000 VND" for a board-scaled market; absent for any other. */
+/** "giá bảng điện, ×1.000 VND" for a board-scaled market; absent for any other. */
 function boardScaleNote(market: string): string | undefined {
   const found = findMarket(market)
 
@@ -106,7 +106,7 @@ function boardScaleNote(market: string): string | undefined {
     return undefined
   }
 
-  return tr('ui.office.ticker.boardScale', {
+  return tr('trading.quote-unit.board', {
     divisor: formatPrice(found.priceDisplay.divisor, WHOLE_DISPLAY),
     currency: found.currency,
   })
