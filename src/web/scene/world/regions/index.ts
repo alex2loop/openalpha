@@ -67,7 +67,7 @@ export interface RoadLayout {
   readonly bikeLane: boolean
 }
 
-/** A street name plate: colours, the inset frame, the street word over the name (`caps`: sign
+/** A street name plate: colors, the inset frame, the street word over the name (`caps`: sign
  *  letters in capitals) and the plate's width to height. */
 export interface PlateStyle {
   readonly background: string
@@ -89,7 +89,7 @@ export interface BusStop {
  *  is `[0, 0]`; a day and night shop is `[0, 1440]`, so it never closes when `hours[0] === 0 &&
  *  hours[1] >= 1440` (`hours[1] >= 1440` alone would also match a shop that closes at midnight).
  *  `item`, when set, is what an errand there brings back. `name` is the shop's own invented name (no real business), never
- *  translated (absent: the sign reads its kind's word); `sign` its colours; `tables`, café
+ *  translated (absent: the sign reads its kind's word); `sign` its colors; `tables`, café
  *  tables out on the pavement while it serves. */
 export interface ShopRow {
   readonly kind: ShopKind
@@ -110,7 +110,7 @@ export interface ShopSign {
 }
 
 /** The traffic, as shares (each group sums to one): vehicles by kind, motorbikes by shape, cars
- *  by size, and the share of cars that are taxis; plain body colours per car size, no brand. */
+ *  by size, and the share of cars that are taxis; plain body colors per car size, no brand. */
 export interface VehicleMix {
   readonly kinds: { readonly motorbike: number; readonly car: number; readonly bus: number }
   readonly bikeShapes: Readonly<Record<BikeShape, number>>

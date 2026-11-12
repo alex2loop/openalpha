@@ -8,7 +8,7 @@ There are two ways in, and one list of commands behind both:
 Trading has slash commands only. It has no CLI command of its own.
 
 Treat this page as a map. For the exact syntax of the version you installed, run `openalpha help`,
-`openalpha help <command>` or `openalpha <command> --help`.
+`openalpha help <command>` or `openalpha <command> --help`. A command with subcommands, such as `logs`, `key`, `autostart` and `db migrate`, marks its default subcommand "(default)" in its help and shows that subcommand's flags, so `openalpha logs --help` lists `--lines` and `--follow` too.
 
 **Contents**
 
@@ -174,7 +174,7 @@ Telegram menu. So a command behaves the same in the REPL and in a group chat.
 | `/deny` | Operator only, in a chat listed in `allowed_ids`: `/deny <code>` turns that pairing request down. See [Channels](channels.md#pairing) |
 
 `/help` lists commands in groups: portfolio and trades (starting with `/setup`), markets, analysis and suggestions, then system (`/help`, `/stop` and the commands that belong to no group). The Telegram menu follows the same order.
-`/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelt
+`/help <name>` (with or without the leading `/`) shows one command's description and usage; a misspelled
 name gets the closest command.
 
 Trading commands read their words in any case: `/refresh crypto FORCE`, `/profile enable Crypto` and
@@ -222,7 +222,7 @@ A chip on its left says who receives what you type: the assistant, or one of you
 
 - **Typing.** Plain words ask a question. A single word that names an instrument opens its card when you press Enter, and any other word is sent as a question. Type `/`, or press Tab on an empty box, to see the commands; Tab on text completes the first ticker or command that matches. Up and Down choose a row (on an empty box, Up recalls what you sent before), Enter sends, Esc closes the list. If the connection is down the text stays in the box and a line says it was not sent.
 - **Sub-commands and arguments.** After a command name and a space, the list offers what that command accepts next, the same words Tab completes in the terminal (for example `add` and `remove` after `/watchlist`, or the agent names after `/agent`), narrowed as you type; Tab, Enter or a click fills the word and a space. A faint line at the top shows the command's usage, such as `/alert create <ticker> above|below <price>`, even when it has no words to offer. A ticker that is also on offer is listed once. If the suggestions cannot be read, the box still sends what you typed.
-- **What it suggests.** A focused empty box offers the usual starts: read the brief, see the portfolio, suggest for one name, research a topic. With a ticker card open it offers to suggest again, set a price alert or add the name to the watchlist (the card of an index or a futures contract leaves out the suggestion, since `/suggest` cannot analyse them); with one of your agents open it offers to send your next line to that agent, or to look at its schedules.
+- **What it suggests.** A focused empty box offers the usual starts: read the brief, see the portfolio, suggest for one name, research a topic. With a ticker card open it offers to suggest again, set a price alert or add the name to the watchlist (the card of an index or a futures contract leaves out the suggestion, since `/suggest` cannot analyze them); with one of your agents open it offers to send your next line to that agent, or to look at its schedules.
 - **Estimates.** Beside each command, and on the "Run the command" row, the page shows what it usually costs (for example "about 0.05-0.20 USD"), or "no AI cost" for a command that answers from local data, together with what is left of today's cap when you have one. The figure is the middle half of what the command's last few runs cost, so it appears only after a few runs and never for a command that hands the turn to an agent. A command whose cost depends on what you type, such as `/suggest` on different names, pools every use, so read it as a rough guide. See [Budgets](budgets.md#in-the-office-page).
 - **The queue.** Commands that run on their own do not wait behind each other, within the limits above. In the chat column a command that has to wait says its place in line and how many are running at once, and can be dropped from the line. A command that runs beside others says what it runs alongside.
 - **Stopping and adding.** A running answer or command shows "See it in the office" and Stop, which asks you to confirm and keeps the work already done in the log. While an answer (not a command) is in progress you can type a further thought and press "Add to it": the answer reads it at its next step. A line that starts with `/` is a command, never an addition.
@@ -278,7 +278,7 @@ budget and branch budget weight. Then it waits for one decision:
 | `q` or Escape | Cancel the run |
 
 You get **exactly one** edit. After that the plan offers only start or cancel. With nobody to ask
-(piped stdin or no terminal), a `thorough` run is cancelled before it spends anything. `quick` and
+(piped stdin or no terminal), a `thorough` run is canceled before it spends anything. `quick` and
 `standard` show no plan selector, and delegated research never prompts.
 
 In a channel the plan arrives as a message with Start and Cancel buttons and no edit. Only an
@@ -370,7 +370,7 @@ adds live probes of PostgreSQL, providers, channel tokens, web search and exchan
 probe sends the first model of each provider one short message. It tells you plainly when a server on
 your machine is not running.
 
-Rows are labelled in your `[locale] language`. A row marked `i` is a state that needs no action yet,
+Rows are labeled in your `[locale] language`. A row marked `i` is a state that needs no action yet,
 never a warning. Examples: a database, log folder or data folder that the first run creates; a daemon
 that has not been started; an optional data source whose key is unset. The source row says what the
 key would add.
@@ -751,7 +751,7 @@ The rest fit in a line.
 | `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme, looks for no new ones and reports on it alone, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
 | `/reflect` | `/reflect`, which takes no arguments - how your past calls actually performed. Only calls whose window has passed are counted; a closing line says how many more already hit a level and are waiting for theirs |
-| `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
+| `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous (on VN gold the alert watches the buy price, what the shop pays you, and says so); `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. Under the title sits a strip of headline figures (VN-Index, VN30, SJC gold, world gold, bitcoin, USD/VND). See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
@@ -843,15 +843,19 @@ of the book.
 
 The ledger only books what you can hold: nobody holds an index or a futures contract (VN-Index,
 VN30F1M), so `/record` and `/update` refuse a row that names one when the market's stored list
-recognises the name. A legacy row that already names a level can only be deleted or given another ticker.
+recognizes the name. A legacy row that already names a level can only be deleted or given another ticker.
+
+A `market:ticker` the market's stored list does not hold is not booked straight away: the reply names it,
+offers the closest stored name and asks whether it is a real trade. Tap the button or send the same command
+again with `confirm` at the end to book it as typed. `/update` asks only when it changes the instrument.
 
 ```text
-/record deposit|withdrawal|fee|loss <venue> <amount> <currency> <day>
-/record buy|sell [venue] <ticker> <quantity|all> <unit-price> [currency] [fee] [day]
-/record rights [venue] <ticker> <quantity> <unit-price> [currency] <fee> [day]
-/record dividend <venue> <ticker> <amount> <currency> <day>
-/record split|distribution <venue> <ticker> <quantity-delta> <day>
-/record transfer <from-venue> <to-venue> <amount> <currency> <fee> <day>
+/record deposit|withdrawal|fee|loss <venue> <amount> <currency> <date>
+/record buy|sell [venue] <ticker> <quantity|all> <price> [currency] [fee] [date]
+/record rights [venue] <ticker> <quantity> <price> [currency] <fee> [date]
+/record dividend <venue> <ticker> <amount> <currency> <date>
+/record split|distribution <venue> <ticker> <quantity change> <date>
+/record transfer <from venue> <to venue> <amount> <currency> <fee> <date>
 /record sync <venue>
 /record confirm
 ```
@@ -931,7 +935,7 @@ split on a name held at two brokers is two rows, not one applied pro rata.
   that way, so you can fix a row with `/update` if you bought over P2P.
 
 **`/record sync <venue>`** books every fill the venue reports that your book has no row for, using
-the exchange's own quantity, price and fee. A limit order that filled only partly before you cancelled
+the exchange's own quantity, price and fee. A limit order that filled only partly before you canceled
 it is synced for the part that filled.
 
 - Binance lists trades coin by coin, so its sync reads the coins in your book plus the ones you hold,
@@ -941,7 +945,7 @@ it is synced for the part that filled.
 - An exchange with no API key yet gets a reply naming the variables it is waiting for. A venue you
   trade by hand sends no fills, so the reply points you to `/record buy` or `/record sell`.
 - Each fill is keyed on the venue's own order id, and a fill matching a row you typed by hand is left
-  alone. Running it twice books nothing the second time, and the reply says how many it recognised.
+  alone. Running it twice books nothing the second time, and the reply says how many it recognized.
 - A fill matching one of your rows on everything *but* the date is reported, not booked. Fix the date
   on that row and run it again.
 - If any fill for a name cannot be booked, none of that name's are. Half a name's history would be a
@@ -987,7 +991,7 @@ default and tells you when nothing needs a fresh read.
 ```text
 /trade
 /trade spot <[venue:]ticker> buy|sell <quantity> [limit <price>] [tp <price>] [sl <price>]
-/trade exit <[venue:]ticker> [qty <size>] [tp <price>] [sl <price>]
+/trade exit <[venue:]ticker> [qty <quantity>] [tp <price>] [sl <price>]
 /trade halt|resume
 /trade confirm [token]
 /trade cancel <[venue:]ticker>

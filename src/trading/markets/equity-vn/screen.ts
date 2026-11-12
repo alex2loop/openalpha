@@ -219,7 +219,7 @@ function hasMinimumTradingFrequency(candidate: ScreenInput): boolean {
 
 /** A fund clears a lower bar than a share: its price is held to its basket by arbitrage, so the
  *  floor only has to answer whether a ticket can leave. An unmeasured window fails, unlike the
- *  unknown capitalisation above: that is one snapshot missing beside a tape this still reads. */
+ *  unknown capitalization above: that is one snapshot missing beside a tape this still reads. */
 function hasMinimumTurnover(candidate: ScreenInput): boolean {
   const floor =
     candidate.kind === 'etf' ? MINIMUM_ETF_MEDIAN_TURNOVER_VND : MINIMUM_MEDIAN_TURNOVER_VND
@@ -228,13 +228,13 @@ function hasMinimumTurnover(candidate: ScreenInput): boolean {
   return turnover !== undefined && turnover >= floor
 }
 
-/** An unknown capitalisation passes: the fundamentals refresh is a separate provider call, and a
+/** An unknown capitalization passes: the fundamentals refresh is a separate provider call, and a
  *  name whose snapshot has not landed yet is unmeasured rather than small. */
 function hasMinimumMarketCap(candidate: ScreenInput): boolean {
   return candidate.marketCap === undefined || candidate.marketCap >= MINIMUM_MARKET_CAP_VND
 }
 
-/** An unknown float passes for the same reason an unknown capitalisation does. */
+/** An unknown float passes for the same reason an unknown capitalization does. */
 function hasMinimumFreeFloat(candidate: ScreenInput): boolean {
   return candidate.freeFloatPct === undefined || candidate.freeFloatPct >= MINIMUM_FREE_FLOAT_PCT
 }

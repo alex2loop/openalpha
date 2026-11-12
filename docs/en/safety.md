@@ -36,7 +36,7 @@ suggests: the one surface that places an order asks you every single time.
 | **Allow once** | Runs this exact call, once. |
 | **Remember** | Allows it for the chat session or MCP connection. Not offered for a tool that declines it, or for a call whose arguments were too long to show whole. |
 
-Anything unrecognised, malformed, expired or undeliverable blocks the call. Cancelling ends the wait
+Anything unrecognized, malformed, expired or undeliverable blocks the call. Canceling ends the wait
 and the run.
 
 Remember is never offered to scheduled jobs or delegated children. It is also never offered for
@@ -67,7 +67,7 @@ pass input checks, before you are asked anything.
 
 ### Modes
 
-| Mode | Behaviour |
+| Mode | Behavior |
 | --- | --- |
 | `manual` | Ask a human. The normal interactive mode. |
 | `bypass` | Allow without asking. Must be chosen explicitly. |
@@ -108,7 +108,7 @@ for one-time approval through that route; without one, its dangerous calls are b
 ```mermaid
 flowchart LR
   A[Agent proposes a tool call] --> B[Admission gates]
-  B --> C[Normalise and validate input]
+  B --> C[Normalize and validate input]
   C --> D{Dangerous?}
   D -- no --> I[Run]
   D -- yes --> E{Mode and scope}
@@ -136,7 +136,7 @@ and offers no remember.
 
 **Channels.** An inline-button prompt goes only to the channel that owns the run. A tap counts only
 when all of these are true: the request is still pending, the tap came from the chat that was asked,
-that decision was actually offered, *and* the person tapping is an authorised operator.
+that decision was actually offered, *and* the person tapping is an authorized operator.
 
 A channel without inline buttons (Zalo) asks with short codes such as `/4821` for you to type back.
 Each code works only in that chat and only while the prompt is open. Only when no code can be drawn
@@ -222,7 +222,7 @@ Details of the scrub:
   chunks is still caught. The stream holds back an unfinished word, header line or private-key block
   until it can judge it; past 512 characters it releases what it has.
 
-Scrubbing is the last line of defence, not permission to put credentials where a model can see them.
+Scrubbing is the last line of defense, not permission to put credentials where a model can see them.
 
 ### Files and shell
 
@@ -260,7 +260,7 @@ That covers provider tokens, agent and skill files, plugin installs, logs, scrat
   request is pinned to the validated address. That is what stops DNS rebinding.
 - **Redirects.** At most five hops, each destination rechecked. A cross-host redirect loses sensitive
   headers (this path is GET or HEAD only, so no body can leak).
-- **Abort.** Cancelling propagates through DNS resolution and the request.
+- **Abort.** Canceling propagates through DNS resolution and the request.
 
 An external MCP server's HTTP endpoint is rechecked on every request and follows no redirect, but it
 is not address-pinned, so the rebind window between check and call stays open.
@@ -278,13 +278,13 @@ the list is skipped like any other failed read, and the run carries on.
 
 ### Tool and skill content
 
-Tool output is normalised before it re-enters the model's context:
+Tool output is normalized before it re-enters the model's context:
 
 1. ANSI sequences removed, credentials scrubbed. The whole result is scrubbed before any cut, so a
    key block cannot be split and left half exposed. A result over 4 MiB (only a remote MCP server can
    send one) is dropped unread and replaced with a one-line note.
 2. Prompt-injection patterns detected **before** arrays are compacted or the size cap applies.
-3. Arrays normalised and output capped - 32 KB in a chat run, 64 KB for a served MCP call whose
+3. Arrays normalized and output capped - 32 KB in a chat run, 64 KB for a served MCP call whose
    client budgets its own context - keeping the head and tail of anything longer. The cap counts the
    text as the model receives it, escaped and inside its wrapper, not the raw text.
 4. Suspicious content gets an in-band security notice.
@@ -353,7 +353,7 @@ asked in that terminal, the page cannot answer them, and two terminals never see
 that take a secret (`key set`, `onboard`, `auth login`) stay local. The daemon logs each command's name,
 exit code and duration, never its arguments, your answers, edited text or output.
 
-## Failure behaviour
+## Failure behavior
 
 | Condition | Result |
 | --- | --- |
@@ -391,7 +391,7 @@ When a run stops early, the CLI exits with the code below and prints the sentenc
 | `session_busy` | 12 | This session already has a run in progress. | Wait, stop it with `/stop`, or start fresh with `/new`. A run that died without cleaning up frees the session after `[loop] max_duration_ms` plus five minutes. |
 | `loop` | 15 | The agent kept repeating the same tool calls. | Rephrase, or steer it with another message. If it is fanning out over many distinct calls, raise `[loop] max_tool_calls`. |
 | `agent_paused` | 16 | The agent is paused. | `openalpha agent resume <id>`. |
-| `abort` | 130 | You cancelled. | Send a new message to start again. |
+| `abort` | 130 | You canceled. | Send a new message to start again. |
 
 A run that runs out of time (no exit code of its own) says "Timed out before the agent finished".
 Send another message to continue, or raise `[loop] max_duration_ms`.
@@ -466,7 +466,7 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 | `order.unmirrorable_fee` | Filled, but the fee currency cannot be booked automatically. | Record the trade by hand. |
 | `order.fee_unreported` | Filled, but the exchange still had not listed the trade's fee after a few quick re-reads. | Wait a minute, then run `/record sync <venue>`; it books the fill once the exchange lists it. |
 | `order.unpriced_fill` | The venue reported a fill with no price. | Record the trade by hand. |
-| `order.fill_timeout` | The order is still live at the exchange and could not be cancelled. | Settle it at the exchange; `/trade reconcile` lists it so you can close it out. |
+| `order.fill_timeout` | The order is still live at the exchange and could not be canceled. | Settle it at the exchange; `/trade reconcile` lists it so you can close it out. |
 | `order.exit_failed` | Filled, but the take-profit/stop-loss could not be placed. | The position has no stop. Set one with `/trade exit`. |
 
 **The book is untouched.** Nothing moved; fix the cause and try again:
@@ -481,8 +481,8 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 | `order.clock_skew` | Your clock is too far from the exchange's. | Fix the system clock. |
 | `order.below_minimum` | Quantity below the exchange minimum. | Raise the size. |
 | `order.exit_below_minimum` | At the stop price the position would be below the exchange's minimum order, so its stop could not be placed. | Raise the size a little. |
-| `order.unfilled` | Did not fill in time and was cancelled. | Place again if you still want it. |
-| `order.book_moved` | Another order went out while this one waited, so the caps no longer allow it. | Check the book and place again. |
+| `order.unfilled` | Did not fill in time and was canceled. | Place again if you still want it. |
+| `order.book_moved` | Since you looked at this order the book moved and the caps no longer allow it; says what changed. | Review the order and place it again if you still want it. |
 | `order.book_unpriced` | A holding in your book has no price right now, so the caps cannot be checked against it. | `/portfolio` names the holding; `/refresh` its market, then place again. |
 | `order.approval_bypassed` | Orders need an approval prompt, and this session bypassed it. | Run it in a `manual` session, or also set `[trading.orders] allow_unattended`. |
 | `order.buying_halted` | Buying is switched off (`/trade halt`). Sells and exits still go out. | Only you can switch buying back on. |

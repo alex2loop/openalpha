@@ -1,10 +1,13 @@
-import type { SlashContext, SlashResult } from '@/core/types/command'
+import type { OperatorMessage } from '@/core/errors'
+import type { Affordance, SlashContext, SlashResult } from '@/core/types/command'
 import type { Locale } from '@/core/types/locale'
+import type { MessageKey } from '@/i18n'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import type { QuoteConvention } from '@/trading/render/money'
 import { isWord } from '@/core/utils/text'
-import { formatDay, t } from '@/i18n'
+import { bindLocale, formatDay, t } from '@/i18n'
+import { InstrumentUnlistedError } from '@/trading/features/market-data/reads/listed-name'
 import { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
 import { INDENT } from '@/trading/render/layout'
 import { formatPrice, formatQuotedPrice, renderBoardScaleNotes } from '@/trading/render/money'
@@ -16,9 +19,9 @@ interface PriceConfirmSurface {
   readonly marketData: Pick<MarketDataService, 'quoteConvention'>
 }
 
-/** Runs a write whose price the operator typed, handing it the arguments without a trailing
- *  `confirm`. One held as far from the market is answered with the question and a button that sends
- *  the same command again, confirmed; nothing is held. */
+/** Runs a write whose price or name the operator typed, handing it the arguments without a trailing
+ *  `confirm`. A price held as far from the market, or a name no stored list has, is answered with
+ *  the question and a button that sends the same command again, confirmed; nothing is held. */
 export async function runWithPriceConfirm(
   ctx: SlashContext,
   surface: PriceConfirmSurface,
@@ -33,6 +36,10 @@ export async function runWithPriceConfirm(
   } catch (err: unknown) {
     if (err instanceof PriceUnconfirmedError) {
       return renderPriceConfirm(ctx, err, surface)
+    }
+
+    if (err instanceof InstrumentUnlistedError && err.operator !== undefined) {
+      return renderUnlistedConfirm(ctx, err.operator, surface)
     }
 
     throw err
@@ -60,12 +67,30 @@ function renderPriceConfirm(
   return {
     kind: 'text',
     text: [question, ...notes].join('\n'),
-    affordances: [
-      {
-        label: t(locale, 'trading.render.affordance.savePrice'),
-        command: `/${surface.command} ${[...ctx.args, CONFIRM_TOKEN].join(' ')}`,
-      },
-    ],
+    affordances: [confirmAffordance(ctx, surface, 'trading.render.affordance.savePrice')],
+  }
+}
+
+function renderUnlistedConfirm(
+  ctx: SlashContext,
+  question: OperatorMessage,
+  surface: PriceConfirmSurface
+): SlashResult {
+  return {
+    kind: 'text',
+    text: bindLocale(ctx.locale).translate(question.key, question.params),
+    affordances: [confirmAffordance(ctx, surface, 'trading.render.affordance.recordAsTyped')],
+  }
+}
+
+function confirmAffordance(
+  ctx: SlashContext,
+  surface: PriceConfirmSurface,
+  label: MessageKey
+): Affordance {
+  return {
+    label: t(ctx.locale, label),
+    command: `/${surface.command} ${[...ctx.args, CONFIRM_TOKEN].join(' ')}`,
   }
 }
 

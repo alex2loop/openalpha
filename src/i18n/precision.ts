@@ -10,6 +10,15 @@ export const SUB_UNIT_SIGNIFICANT_DIGITS = 4
 const SUB_UNIT_FLOOR = 1
 /** Whether a rendered number carries any magnitude at all, once its own rounding has been applied. */
 const SIGNIFICANT_DIGIT_RE = /[1-9]/
+/** Units the instrument already implies: a share price is per share and a coin price per coin, so
+ *  naming it states the mechanism rather than the fact. Anything else is a measure the ticker does
+ *  not carry — the same gold reading is one number per lượng and another per ounce — and is spelled
+ *  out beside the price. Listing what is implied rather than what is spelled means a market
+ *  quoting a new measure is labeled without an edit here. */
+const IMPLIED_QUOTE_UNITS: ReadonlySet<string> = new Set([
+  'currency-per-share',
+  'currency-per-coin',
+])
 
 /** One option set per unit the trading surface and the page print. Naming them apart is what keeps
  *  a 40% target from rendering as 0.4%, and a factor score from losing the sign that carries its
@@ -61,6 +70,11 @@ export const NUMBER_FORMATS = {
  *  move the number beside it no longer shows. */
 export function hasMagnitude(text: string): boolean {
   return SIGNIFICANT_DIGIT_RE.test(text)
+}
+
+/** Whether a quote unit is a measure the reader must be told, rather than one its instrument implies. */
+export function namesQuoteUnit(unit: string | undefined): unit is string {
+  return unit !== undefined && !IMPLIED_QUOTE_UNITS.has(unit)
 }
 
 /** ISO 4217 as the runtime itself knows it. Asked rather than tabulated, and asked by membership

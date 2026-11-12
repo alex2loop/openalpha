@@ -13,7 +13,7 @@ Cả thiết kế dựa trên một ý: **mô hình không bao giờ chạm tớ
 trước; mô hình chỉ được xem đúng phần tài liệu mã đó thu về. Nhờ vậy một trích nguồn bịa ra là **không
 thể** xảy ra, chứ không chỉ là khó xảy ra.
 
-Cú pháp `/research` xem [Lệnh](lenh.md); mô hình nào chạy cho từng giai đoạn xem
+Cú pháp `/research` xem [Câu lệnh](lenh.md); mô hình nào chạy cho từng giai đoạn xem
 [Cấu hình](cau-hinh.md). Cách nó chạy bên trong: [dev/nghien-cuu.md](dev/nghien-cuu.md).
 
 ## Khởi động một lần nghiên cứu
@@ -124,7 +124,7 @@ Khi có gì bị loại hoặc còn thiếu, báo cáo nêu thành khoảng tr�
 | Khoảng trống | Nghĩa là |
 | --- | --- |
 | `low_recall` | Một câu hỏi tìm được dưới hai trang |
-| `content_limit` | Một giới hạn cỡ hay số lượng đã cắt tài liệu (quá 42 lần tìm, quá 3 trang tự đọc, quá 8 trích đoạn trên một nguồn) |
+| `content_limit` | Một giới hạn cỡ hay số mục đã cắt tài liệu (quá 42 lần tìm, quá 3 trang tự đọc, quá 8 trích đoạn trên một nguồn) |
 | `missing_support` | Một luận điểm mất trích đoạn hậu thuẫn |
 | `unsafe_content` | Một nguồn hay câu trích trượt phép quét tiêm prompt |
 | `freshness_out_of_window` / `freshness_uncertain` | Ngày nằm ngoài cửa sổ bạn yêu cầu hoặc muộn hơn ngày nào trên Trái Đất đã tới (bị gạt ra), hoặc thiếu hay độ tin cậy thấp |
@@ -174,7 +174,7 @@ liệt kê các bước của phiên chạy ngay khi chúng diễn ra.
   trả lời đó, và hai câu trả lời nghiên cứu trong cùng một cuộc trò chuyện giữ số của riêng mình.
 - Báo cáo mở trong trình đọc bắt đầu bằng một dòng nói đây là nội dung do AI tạo và không phải
   khuyến nghị đầu tư. Trong terminal và trong ứng dụng chat, dòng này đi cùng cuộc trò chuyện (xem
-  [Lệnh](lenh.md#chat)).
+  [Câu lệnh](lenh.md#chat)).
 - Khi phiên chạy đã có trong danh sách, "Mở dạng báo cáo" mở đúng câu trả lời của phiên chạy đó trong
   trình đọc, dù sau đó trong chat có nói gì thêm. Thẻ Đề xuất giữ nó cùng các kết quả nghiên cứu khác.
 - Phiên chạy bị dừng hoặc thất bại thì hiện câu của dịch vụ nền (daemon) ở chỗ các bước.

@@ -4,12 +4,12 @@ import type { UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { LedgerEntryWire, LedgerPreviewResponse } from '@/app/server/wire/money'
 import type { LedgerDraft, LedgerKind } from '@/web/state/trade'
 import type { FormFailure } from '@/web/ui/dialogs/field-errors'
+import type { AskedQuestion } from '@/web/ui/dialogs/price-confirm'
 import { formatDay } from '@/i18n'
 import {
   heldPositions,
   holdingsBlock,
-  homeRegion,
-  knownMarkets,
+  homeMarket,
   printDisplayOf,
   quotesBlock,
   watchedNames,
@@ -35,8 +35,8 @@ import {
 
 /** The kind a fresh form opens on. */
 const DEFAULT_KIND: LedgerKind = 'buy'
-// The daemon's zone is always known once the page is up; this only types the lookup.
-const FALLBACK_ZONE = 'UTC'
+// A market with no session never closes and the server dates it by the UTC day.
+const UTC_ZONE = 'UTC'
 const KEY_BYTES = 16
 const MARKET_SEPARATOR = ':'
 
@@ -95,7 +95,7 @@ export interface TradeForm {
   /** The market price the daemon measured the typed one against, when it is too far from it. */
   readonly farPrice: Signal<UnconfirmedPriceWire | undefined>
   readonly venues: Signal<readonly VenueChoice[]>
-  readonly question: Signal<string | undefined>
+  readonly question: Signal<AskedQuestion | undefined>
   readonly failure: Signal<FormFailure | undefined>
   /** The sentences the page itself gave a field it refused before sending, by the daemon's path. */
   readonly refused: Signal<ReadonlyMap<string, string>>
@@ -201,8 +201,7 @@ export function offerVenues(form: TradeForm): readonly VenueChoice[] {
 
 // Those holding the home region's market lead, so a form with no name yet opens at the venue there.
 function homeVenuesFirst(venues: readonly VenueChoice[]): readonly VenueChoice[] {
-  const region = homeRegion()
-  const home = knownMarkets.value.find((market) => market.region === region && market.ownsRegion)
+  const home = homeMarket()
   const holdsHome = (choice: VenueChoice): boolean =>
     home !== undefined && choice.markets.includes(home.market)
 
@@ -415,8 +414,13 @@ function groupedTexts(form: TradeForm): readonly (readonly [string, string])[] {
   }
 }
 
+// The day the ledger books on: the home region's market dates it, so the form never opens on a day
+// the ledger would refuse or on yesterday. The daemon's zone stands in only while markets load.
 function today(): string {
-  return buildDayKey(Date.now(), state.value?.timeZone ?? FALLBACK_ZONE)
+  const market = homeMarket()
+  const zone = (market === undefined ? state.value?.timeZone : market.session?.timeZone) ?? UTC_ZONE
+
+  return buildDayKey(Date.now(), zone)
 }
 
 // "market:ticker" names the market; a bare ticker is as typed.

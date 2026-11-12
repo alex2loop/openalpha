@@ -42,7 +42,7 @@ export const US_BRIEF_HOME: BriefHome<UsBoard> = Object.freeze({
 
       return { instrument: name.record.instrument, ...(turnover === undefined ? {} : { turnover }) }
     }),
-  // The US board ranks names by capitalisation, not by sector.
+  // The US board ranks names by capitalization, not by sector.
   sectorsOf: () => [],
   readEvents: readUsEvents,
 })

@@ -8,7 +8,7 @@ import { agenda, startAgenda } from '@/web/scene/data/agenda'
 import { alertStrip } from '@/web/scene/data/alert-strip'
 import { heldNewsPins, indexDrop, startBoard } from '@/web/scene/data/board'
 import { exDividends, startExDividends } from '@/web/scene/data/ex-dividends'
-import { homeMarket, regionPack, startHome } from '@/web/scene/data/home'
+import { regionPack } from '@/web/scene/data/home'
 import { ledItems, startLed } from '@/web/scene/data/led'
 import { roomOfRun, roomStatus, startRoomStatus } from '@/web/scene/data/room-status'
 import { sourceLights, startSourceLights } from '@/web/scene/data/source-lights'
@@ -69,6 +69,7 @@ import { onWireEvent } from '@/web/state/events'
 import { selectActor, selectedActor, takeFocusRequest } from '@/web/state/focus'
 import { unseenCalls } from '@/web/state/ideas'
 import { findRun, pending, runs } from '@/web/state/live'
+import { homeMarket } from '@/web/state/market'
 import { hasUnreadAlert, unread } from '@/web/state/notices'
 import {
   colorScheme,
@@ -196,7 +197,6 @@ function keepLastFrame(element: HTMLElement, draw: () => void): void {
 // stored calls, alerts, stops, runs or tasks to read, and no third-party weather feed to call.
 function startReads(): (() => void)[] {
   return [
-    startHome(),
     ...(isAnalysisOnly.value
       ? []
       : [
@@ -381,7 +381,7 @@ async function loadRenderer3d(): Promise<() => SceneRenderer> {
 
 // The home market's session zone, else the operator's `[locale] timezone`.
 function syncSceneZone(): void {
-  const timeZone = homeMarket.value?.session?.timeZone ?? state.value?.timeZone
+  const timeZone = homeMarket()?.session?.timeZone ?? state.value?.timeZone
 
   if (timeZone !== undefined) {
     untracked(() => setSceneZone(timeZone))

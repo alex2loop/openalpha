@@ -30,7 +30,6 @@ import type {
   SourceRegistry,
   TradingCalendar,
 } from '@/trading/markets/types'
-import type { QuoteConvention } from '@/trading/render/money'
 import { isAbortError } from '@/core/errors'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import {
@@ -101,7 +100,6 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
     listSources: () => deps.sources.list(),
     regions: () => deps.markets.regions(),
     markets: () => deps.markets.list().map((market) => market.manifest.id),
-    quoteConvention: (market) => quoteConventionOf(deps.markets, market),
     describeMarkets: () => deps.markets.list().map(describeMarket),
     marketDay: (market, now) => marketDayOf(deps.markets, market, now),
     ...instrumentReads(run),
@@ -411,25 +409,6 @@ async function runSectors(
   }
 
   return { ...result, caveats: dedupeCaveats([...result.caveats, ...ensured]) }
-}
-
-/** Absent rather than a fabricated convention: a market the registry does not list has no rule for
- *  printing its prices, and inventing one would label a number in a unit nobody declared. */
-function quoteConventionOf(
-  markets: MarketRegistry,
-  market: MarketRef
-): QuoteConvention | undefined {
-  const manifest = markets.list().find((entry) => entry.manifest.id === market)?.manifest
-
-  if (manifest === undefined) {
-    return undefined
-  }
-
-  return {
-    currency: manifest.currency,
-    unit: manifest.quoteUnit,
-    ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
-  }
 }
 
 /** Absent for a market the registry does not list or one that never closes, as its hours are. */

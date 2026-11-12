@@ -3,8 +3,7 @@ import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 import type { MarketWire } from '@/app/server/wire/market'
 import type { OverviewResponse } from '@/app/server/wire/overview'
 import type { PriceFormat } from '@/web/text/figures'
-import { homeMarket } from '@/web/scene/data/home'
-import { knownMarkets, overviewBlock } from '@/web/state/market'
+import { homeMarket, knownMarkets, overviewBlock } from '@/web/state/market'
 import { tapeRows } from '@/web/state/tape'
 
 /** The most levels one board item keeps: the polls since the page opened. */
@@ -97,7 +96,7 @@ export const boardItems: ReadonlySignal<readonly LedItem[]> = computed(() => {
 
 /** The home market's benchmark among the items; absent until the overview carries it. */
 export const homeIndex: ReadonlySignal<LedItem | undefined> = computed(() => {
-  const market = homeMarket.value
+  const market = homeMarket()
   const ticker = market?.benchmark?.ticker
 
   return entries.value.find(

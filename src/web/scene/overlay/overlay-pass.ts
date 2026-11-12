@@ -9,7 +9,6 @@ import type { ActorId, Rect, SimView, Size } from '@/web/scene/types'
 import { ambientMsOf } from '@/web/scene/budgets'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { requestSeries, startDeskReads } from '@/web/scene/data/desk-reads'
-import { homeMarket } from '@/web/scene/data/home'
 import { pastCalls, startPastCalls } from '@/web/scene/data/past-calls'
 import { ringsOf } from '@/web/scene/overlay/actor-focus'
 import { sceneGoals, wantedGoals } from '@/web/scene/overlay/actor-state'
@@ -58,6 +57,7 @@ import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { selectedActor } from '@/web/state/focus'
 import { pending, runs } from '@/web/state/live'
+import { homeMarket } from '@/web/state/market'
 import { reducedMotion } from '@/web/state/prefs'
 import { tr } from '@/web/text/tr'
 
@@ -161,7 +161,7 @@ export function readOverlayInputs(): void {
 // The analyst's ticker is read once per run and ticker, on the page's day.
 function askSeries(): void {
   const ref = analystSeriesOf(
-    { goals: wantedGoals.value, runs: runs.value, market: homeMarket.value?.market },
+    { goals: wantedGoals.value, runs: runs.value, market: homeMarket()?.market },
     pageMinute.value.day
   )
 

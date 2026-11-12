@@ -1,6 +1,9 @@
 import type { Dialect } from '@/core/types/storage'
 import { LLM_ATTEMPT_COLUMNS } from '@/persistence/stores/llm-attempt'
 
+/** The error a session swept stale at boot is stamped with; surfaces map it by string. */
+export const STALE_SESSION_MESSAGE = 'daemon restarted while session was active'
+
 // One owner of the session store's SQL text: lifecycle, transcript, attempt-linking, and route
 // cleanup statements. Callers bind parameters in the order each statement declares them.
 const PAYLOAD_COLS = 'role, content, tool_call_id, reasoning_blocks, is_error'
@@ -122,7 +125,7 @@ export function buildSessionSql(d: Dialect): SessionSql {
     ...buildClearSql(d),
     markStale:
       `UPDATE sessions SET status = 'stale', end_reason = 'daemon_restarted', ` +
-      `error_message = 'daemon restarted while session was active', ended_at = ${d.param(1)}, ` +
+      `error_message = '${STALE_SESSION_MESSAGE}', ended_at = ${d.param(1)}, ` +
       `active_run_id = NULL WHERE status = 'active' ` +
       `AND (active_run_id IS NULL OR last_activity_at < ${d.param(2)})`,
   }

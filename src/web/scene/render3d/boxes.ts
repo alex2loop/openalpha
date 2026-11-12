@@ -3,7 +3,7 @@ import { BoxGeometry, BufferAttribute, BufferGeometry, Color } from 'three'
 import { toUnits } from '@/web/scene/render3d/space'
 
 /** One box in world px: its floor corner (`x`, `z`), footprint `w` by `d`, base height `y`, its
- *  own height `h`, and a colour; `isRound` softens its edges. */
+ *  own height `h`, and a color; `isRound` softens its edges. */
 export interface Box {
   readonly x: number
   readonly z: number
@@ -40,7 +40,7 @@ export function box(spot: Spot, color: string, isRound?: boolean): Box {
   return { x, z, w, d, y, h, color, ...(isRound === true ? { isRound } : {}) }
 }
 
-/** One vertex-coloured geometry of every box, so a room's furniture is one draw call. */
+/** One vertex-colored geometry of every box, so a room's furniture is one draw call. */
 export function mergeBoxes(boxes: readonly Box[]): BufferGeometry {
   const sizes = boxes.map((piece) => (isRounded(piece) ? roundOf() : undefined))
   const vertices = sizes.reduce((sum, round) => sum + (round?.count ?? SHARP_VERTICES), 0)

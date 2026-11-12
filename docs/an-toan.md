@@ -488,7 +488,7 @@ Lỗi đặt lệnh đến từ `/trade` và `order_place`. Chúng chia theo vi�
 | `order.below_minimum` | Khối lượng thấp hơn mức tối thiểu của sàn. | Tăng khối lượng. |
 | `order.exit_below_minimum` | Tính theo giá cắt lỗ, vị thế nhỏ hơn mức lệnh tối thiểu của sàn nên không đặt được lệnh cắt lỗ. | Tăng khối lượng một chút. |
 | `order.unfilled` | Không khớp kịp và đã bị hủy. | Đặt lại nếu vẫn muốn. |
-| `order.book_moved` | Một lệnh khác đã đi ra trong lúc lệnh này chờ, nên hạn mức không còn cho phép. | Kiểm tra sổ rồi đặt lại. |
+| `order.book_moved` | Từ lúc bạn xem lệnh, sổ đã thay đổi nên hạn mức không còn cho phép; nói rõ điều đã đổi. | Xem lại lệnh rồi đặt lại nếu bạn vẫn muốn. |
 | `order.book_unpriced` | Có khoản nắm chưa có giá nên không kiểm tra được hạn mức cho lệnh mua. | `/portfolio` cho biết mã nào; `/refresh` thị trường của mã đó rồi đặt lại. |
 | `order.approval_bypassed` | Lệnh cần bước duyệt, mà cuộc trò chuyện này đang bỏ qua duyệt. | Chạy trong phiên `manual`, hoặc đặt thêm `[trading.orders] allow_unattended`. |
 | `order.buying_halted` | Chức năng mua đang tắt (`/trade halt`). Bán và lệnh thoát vẫn gửi được. | Chỉ bạn mới bật lại được. |

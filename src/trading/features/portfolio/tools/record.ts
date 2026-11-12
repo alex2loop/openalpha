@@ -50,6 +50,7 @@ export function createPortfolioRecordTool(
       const result = await portfolio.record({
         draft: args.draft,
         typedPrice,
+        requiresListed: true,
         idempotencyKey: ledgerIdempotencyKey(ctx),
         now,
         signal: ctx.signal,

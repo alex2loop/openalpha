@@ -33,7 +33,7 @@ export async function resolveSubject(
   return resolution
 }
 
-/** Why the name cannot be analysed at all, found as `resolveSubject` finds it; absent when it can. */
+/** Why the name cannot be analyzed at all, found as `resolveSubject` finds it; absent when it can. */
 export async function refusalOf(
   markets: MarketRegistry,
   request: SuggestionRequest

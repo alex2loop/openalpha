@@ -36,7 +36,7 @@ const MID_FONT_WEIGHT = 800
 const LINE_SHARE = Object.freeze({ x: 0.66, w: 0.32 })
 const STRIP = Object.freeze({ px: 7, gap: 14, weight: 700 })
 
-/** What an item reads on the board: the words or figures of its move, and the colour they take. */
+/** What an item reads on the board: the words or figures of its move, and the color they take. */
 interface Reading {
   readonly move: string
   readonly colour: string
@@ -59,7 +59,7 @@ function readingOf(item: Pick<LedItem, 'state' | 'changePct'>): Reading {
   }
 }
 
-// Colour tells the direction only: the page's up and down colours, or dim when flat or unknown.
+// Color tells the direction only: the page's up and down colors, or dim when flat or unknown.
 function directionOf(item: Pick<LedItem, 'changePct'>): string {
   const tone = toneOfPercent(item.changePct)
 

@@ -38,7 +38,7 @@ To chat with that agent directly, use `openalpha chat --agent deep-researcher`. 
 | `thorough` | same as `standard` | up to 2 for a complex question, otherwise at most 1 | interactive |
 
 A top-level `thorough` run needs someone to review the plan interactively. With nobody attached, it
-is cancelled before spending anything rather than running the most expensive depth unreviewed.
+is canceled before spending anything rather than running the most expensive depth unreviewed.
 
 ### A real run
 
@@ -99,7 +99,7 @@ Each claim is one of three kinds:
 
 - `factual` and `numeric` claims are sourced and must cite excerpts. A `numeric` claim also carries
   its value, unit and date exactly as written in the quote.
-- `inference` claims are the model's own reasoning, labelled as such so you can tell them from sourced
+- `inference` claims are the model's own reasoning, labeled as such so you can tell them from sourced
   statements.
 
 A sourced claim marked `forecast: true` states an expectation, estimate, price target or company
@@ -187,7 +187,7 @@ Other failures say which part broke:
 
 | Code | Meaning |
 | --- | --- |
-| `aborted` | You cancelled the run |
+| `aborted` | You canceled the run |
 | `budget_exhausted` | The run's cost budget ran out |
 | `capacity_exhausted` | Not enough delegated-call slots left for the work required |
 | `planner_failed` | No usable research plan |
@@ -251,7 +251,7 @@ Fetching is guarded:
   when a redirect crosses hosts;
 - non-text responses are rejected, and outbound requests are scanned for credential-shaped values.
 
-**OpenAlpha does not read or honour `robots.txt`.** Exclude sites you would rather not fetch by other
+**OpenAlpha does not read or honor `robots.txt`.** Exclude sites you would rather not fetch by other
 means.
 
 Hard ceilings apply to any single run whatever the configuration: 8 sources gathered per question, 8

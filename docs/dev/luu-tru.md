@@ -96,7 +96,7 @@ export `down`; bước sinh mã ghép chúng với id lấy từ tên tệp.
   trong sổ mà không được khai báo (hạ cấp hoặc migration bị xóa). `migrate` từ chối
   cơ sở dữ liệu có id mồ côi, trước khi sao lưu hay áp gì, bằng cách ném `SchemaAheadError`
   (mã `dbSchemaAhead`, không có đường dẫn): bản cũ đọc schema mới sẽ đọc sai dữ liệu. `migrateWithBackup`
-  của daemon diễn đạt nó thành `errors.dbSchemaAhead` kèm thư mục chứa các bản có thể khôi phục;
+  của dịch vụ nền diễn đạt nó thành `errors.dbSchemaAhead` kèm thư mục chứa các bản có thể khôi phục;
   trình duyệt ánh xạ mã này sang dòng riêng của nó.
 - **Sao lưu trước migration.** Chỉ SQLite, khi có `MigrateOptions.backup` và có thể còn migration chờ:
   `migrateWithBackup` truyền `backupSqlite` vào `pre-migration/`. Một lần kiểm sơ bộ lỗi thời chỉ có thể làm thừa hoặc bỏ lỡ một
@@ -206,7 +206,7 @@ cùng kết nối với câu xóa.
 - **Tra theo tiền tố.** `resolveIdPrefix` trả `found | not_found | ambiguous`; mã khớp đúng nguyên văn
   thắng một khớp dài hơn.
 - **Đọc.** `loadHistory(id, limit?)` trả `limit` dòng mới nhất theo thứ tự; `loadDetails` trả một
-  `SessionSnapshot` (chi tiết, tin nhắn đã lưu, các lần gọi, tổng đã gộp). `SessionStatus` là
+  `SessionSnapshot` (chi tiết, tin nhắn đã lưu, các lượt gọi, tổng đã gộp). `SessionStatus` là
   `'active' | 'done' | 'stale'`.
 
 ### Hàng đợi và rào chắn tuyến
@@ -247,4 +247,4 @@ nhắn nhận cho cuộc trò chuyện cũ không chạy nhầm dưới tuyến 
 - Hàng đợi cuộc trò chuyện và rào chắn tuyến: [`core/session-queue.ts`](../../src/core/session-queue.ts)
 - Nén ngữ cảnh: [`engine/compact/compactor.ts`](../../src/engine/compact/compactor.ts) - [`message-repair.ts`](../../src/engine/compact/message-repair.ts)
 - Khôi phục danh sách việc: [`engine/loop/todo.ts`](../../src/engine/loop/todo.ts)
-- CLI lịch sử: [`cli/commands/history.ts`](../../src/cli/commands/history.ts)
+- CLI lịch sử: [`cli/commands/history/history.ts`](../../src/cli/commands/history/history.ts)

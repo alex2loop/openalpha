@@ -15,6 +15,7 @@ import {
   buildRunResult,
   type CaughtVerdict,
   classifyCaught,
+  NO_REASON_MESSAGE,
   operatorFieldsOf,
   RUN_REASON_TO_LIFECYCLE,
   runFinally,
@@ -120,7 +121,7 @@ interface TurnScope {
 export async function driveRun(scope: TurnScope): Promise<RunResult> {
   const { run, drive } = scope
   const { deps, handle } = drive
-  let caught: CaughtVerdict = { reason: 'error', errorMessage: 'runOnce did not set a reason' }
+  let caught: CaughtVerdict = { reason: 'error', errorMessage: NO_REASON_MESSAGE }
   let completionCode: RunCompletionCode | undefined
   // Settled in `finally`: an entry left behind holds its abort controller forever, reports a
   // phantom run to `active()`, and stalls `drain()` for its whole timeout.

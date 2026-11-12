@@ -109,7 +109,7 @@ const createTradingStores = (options: CreateTradingStoresOptions): TradingStores
     macroExtract: createMacroExtractStore(deps),
     fxRate: createFxRateStore(deps),
     intradaySettings: createIntradaySettingsStore(deps),
-    orderIntent: createOrderIntentStore(deps),
+    orderIntent: createOrderIntentStore({ ...deps, logger: options.logger }),
     orderSettings: createOrderSettingsStore(deps),
     restingExit: createRestingExitStore(deps),
     themes: createThemeStore(deps),

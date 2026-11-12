@@ -16,6 +16,9 @@ export interface RecordLedgerOptions {
   readonly typedPrice?: TypedPrice
   /** Refuses a row in another currency that states no rate where one applies, as an edit is. */
   readonly requiresStatedRate?: true
+  /** Holds a name no stored list has until `typedPrice` is `confirmed`; set where the operator
+   *  typed the name, never for a venue's own fill. */
+  readonly requiresListed?: true
   readonly now: number
   readonly signal: AbortSignal
 }
@@ -32,6 +35,8 @@ export interface UpdateLedgerOptions {
   readonly ref: string
   readonly draft: LedgerTxnDraft
   readonly typedPrice?: TypedPrice
+  /** Holds a name this edit newly puts on the row, as a record's `requiresListed` does. */
+  readonly requiresListed?: true
   readonly now: number
   readonly signal: AbortSignal
 }

@@ -12,7 +12,7 @@ const LOOK_PATH = 'look'
 interface PartOption {
   readonly value: string
   readonly label: string
-  /** A colour part shows a swatch with its name for screen readers and the tooltip. */
+  /** A color part shows a swatch with its name for screen readers and the tooltip. */
   readonly swatch?: string
 }
 

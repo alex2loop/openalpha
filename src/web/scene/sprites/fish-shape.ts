@@ -9,7 +9,7 @@ import {
   type Vec3,
 } from '@/web/scene/sprites/animal-parts'
 
-/** Each fish's length in cm, and its colours. */
+/** Each fish's length in cm, and its colors. */
 export const FISH_LOOKS = Object.freeze({
   gold: { L: 30, body: '#FF8B2E', head: '#F0601E', belly: '#FFD9A8', fin: '#FF9F45' },
   pale: { L: 26, body: '#F7D25B', head: '#F2C23E', belly: '#FFF3CF', fin: '#F9DF86' },

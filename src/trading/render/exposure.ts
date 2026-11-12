@@ -1,7 +1,7 @@
 import type { Locale } from '@/core/types/locale'
 import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import { t } from '@/i18n'
-import { formatWholeFraction, renderDeclaredValue } from '@/trading/render/format'
+import { formatFraction, formatWholeFraction, renderDeclaredValue } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 
 /** One sentence per breach, whichever surface asked. A fold over weights takes the whole-percent
@@ -10,10 +10,10 @@ export function renderCapBreachLines(
   locale: Locale,
   breaches: readonly CapBreach[]
 ): readonly string[] {
-  return breaches.map((breach) => `${INDENT[1]}${renderBreach(locale, breach)}`)
+  return breaches.map((breach) => `${INDENT[1]}${renderCapBreach(locale, breach)}`)
 }
 
-function renderBreach(locale: Locale, breach: CapBreach): string {
+export function renderCapBreach(locale: Locale, breach: CapBreach): string {
   if (breach.kind === 'etf-unmeasured') {
     return t(locale, 'trading.render.exposure.etfUnmeasured', {
       segment: renderDeclaredValue(locale, `trading.segment.${breach.segment}`),
@@ -32,10 +32,16 @@ function renderBreach(locale: Locale, breach: CapBreach): string {
     )
   }
 
+  // Whole percents that read equal would state no breach, so the decimals earn their place.
+  const equalWhole =
+    formatWholeFraction(locale, breach.combinedPctNav) ===
+    formatWholeFraction(locale, breach.capPctNav)
+  const format = equalWhole ? formatFraction : formatWholeFraction
+
   return t(locale, 'trading.render.exposure.breach', {
     subject: subjectOf(locale, breach),
-    combined: formatWholeFraction(locale, breach.combinedPctNav),
-    cap: formatWholeFraction(locale, breach.capPctNav),
+    combined: format(locale, breach.combinedPctNav),
+    cap: format(locale, breach.capPctNav),
   })
 }
 

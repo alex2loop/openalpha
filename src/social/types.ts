@@ -5,7 +5,7 @@ import type { SocialLabel } from '@/social/skill/labels'
 export type HttpMethod = (typeof HTTP_METHODS)[number]
 
 /** One request shape the skill documents. `path` is relative to the API base, with `{name}` for a
- *  segment the skill wrote as a placeholder. No label: a non-GET the operator has not labelled. */
+ *  segment the skill wrote as a placeholder. No label: a non-GET the operator has not labeled. */
 export interface SocialEndpoint {
   readonly method: HttpMethod
   readonly path: string

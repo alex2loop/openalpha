@@ -3,6 +3,7 @@ import type {
   CurrencyCode,
   InstrumentRef,
   MarketRef,
+  QuoteUnit,
   SessionPhase,
   TradingDay,
   TradingSessionState,
@@ -273,6 +274,9 @@ export interface MarketDataOverview {
    *  publishes index levels: a level has no denomination, and labelling one with the market's
    *  currency states a unit it does not carry. */
   readonly priceCurrency?: CurrencyCode
+  /** What those prices are per, stamped by the read from the market's manifest: a gold price is one
+   *  number per lượng and another per ounce, which a currency alone does not say. */
+  readonly quoteUnit?: QuoteUnit
   /** The manifest's block glyph, carried on the read so a renderer can head this market's block
    *  without reaching into the market registry. */
   readonly icon: string
@@ -297,7 +301,7 @@ export interface MarketDataOverview {
   readonly turnoverReference?: MarketTurnoverReference
   readonly foreignNetValue?: number
   readonly proprietaryNetValue?: number
-  /** Capitalisation of the market's whole universe. */
+  /** Capitalization of the market's whole universe. */
   readonly marketCap?: number
   /** The largest constituent's share of `marketCap`, as a percentage — how concentrated the market
    *  is in one name. Bitcoin dominance, where the market is crypto. */

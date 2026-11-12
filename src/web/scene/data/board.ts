@@ -9,9 +9,8 @@ import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
 import { createSingleFlight } from '@/web/api/single-flight'
 import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
-import { homeMarket } from '@/web/scene/data/home'
 import { onWireEvent } from '@/web/state/events'
-import { isTradingPhase } from '@/web/state/market'
+import { homeMarket, isTradingPhase } from '@/web/state/market'
 import { notices } from '@/web/state/notices'
 import { state } from '@/web/state/session'
 import { buildDayKey, zoneParts } from '@/web/text/time'
@@ -130,7 +129,7 @@ function countLanded(held: string | undefined, next: string | undefined): void {
 // the first `/v1/markets` read) nothing is armed and nothing ends, so a morning notice opened after
 // the close never glows out of its session.
 function syncIndexDrop(): void {
-  const phase = homeMarket.value?.session?.phase
+  const phase = homeMarket()?.session?.phase
   const held = drop.peek()
 
   if (phase === undefined) {

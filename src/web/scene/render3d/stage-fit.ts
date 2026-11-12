@@ -8,7 +8,7 @@ const STAGE_FALLBACK = 0xffffff
 const MAX_PIXEL_RATIO = 2
 const paneSize = new Vector2()
 
-// The pane's stage colour behind the building, read once per scheme.
+// The pane's stage color behind the building, read once per scheme.
 export function syncStageColor(stage: {
   readonly canvas: HTMLCanvasElement
   readonly renderer: WebGLRenderer

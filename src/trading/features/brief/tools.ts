@@ -12,6 +12,7 @@ import { toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { invocationAddress, isManagedMutation } from '@/trading/kernel/surface/tool-approval'
 import { resolveRenderContext, TOOL_SURFACE } from '@/trading/render/format'
 import { renderRowValues } from '@/trading/render/section'
+import { unitOfSection } from '@/trading/render/section-values'
 import { joinToolDetail, renderRegionName, renderToolAction } from '@/trading/render/tool-detail'
 
 /** Section fields that state the operator's own money or return rather than a market's. A model reasons about
@@ -86,11 +87,20 @@ function agentSection(section: BriefSectionResult, locale: Locale): unknown {
     return section
   }
 
+  // The written prices already carry their unit; the slug names a catalog key a model cannot read.
+  const { quoteUnit: _sectionSlug, ...stated } = section
+
   return {
-    ...section,
-    rows: section.rows.map((row) =>
-      renderRowValues(locale, withoutOperatorValues(row), section.currency)
-    ),
+    ...stated,
+    rows: section.rows.map((row) => {
+      const { quoteUnit: _rowSlug, ...written } = renderRowValues(
+        locale,
+        withoutOperatorValues(row),
+        unitOfSection(section)
+      )
+
+      return written
+    }),
   }
 }
 

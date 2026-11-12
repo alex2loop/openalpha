@@ -19,7 +19,7 @@ export function spotSymbol(ticker: string): string {
  *  The scale never reaches a caller: a funding rate is a percentage and the open-interest reading
  *  is a ratio against its own mean, so both are contract-size invariant. It is a name, not a proxy,
  *  so it carries no substitution caveat. Re-derive with /fapi/v1/exchangeInfo when a contract is
- *  added; a name missing here leaves funding absent, which is the behaviour without the table. */
+ *  added; a name missing here leaves funding absent, which is the behavior without the table. */
 const FUTURES_CONTRACT_SYMBOLS: Readonly<Record<string, string>> = Object.freeze({
   BABYDOGE: '1MBABYDOGEUSDT',
   BOB: '1000000BOBUSDT',

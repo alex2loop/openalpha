@@ -161,7 +161,7 @@ function scoreLines(locale: Locale, score: number, context: RenderContext): read
 /** Weights and contributions rounded across the whole set rather than one row at a time: shares
  *  that each round on their own print a column summing to 99%, beside a score its own parts no
  *  longer add to. */
-function roundedDrivers(drivers: readonly MacroRiskDriver[]): readonly MacroRiskDriver[] {
+export function roundedDrivers(drivers: readonly MacroRiskDriver[]): readonly MacroRiskDriver[] {
   const weights = apportion(
     drivers.map((driver) => driver.weight),
     WEIGHT_QUANTUM

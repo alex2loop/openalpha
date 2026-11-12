@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact'
 import type { TradingPortfolioResponse } from '@/app/server/wire/trading'
 import {
   formatMoney,
-  formatSignedFraction,
+  formatSignedFixedFraction,
   formatSignedMoney,
   type Tone,
   toneOfMoney,
@@ -40,7 +40,7 @@ export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse })
         <FigureRow label={tr('ui.office.book.totalPnl')} tone={toneOf(totalPnlBase)}>
           {signedMoney(totalPnlBase)}
           {netDepositsBase !== undefined && netDepositsBase > 0 && (
-            <> ({formatSignedFraction(totalPnlBase / netDepositsBase)})</>
+            <> ({formatSignedFixedFraction(totalPnlBase / netDepositsBase)})</>
           )}
         </FigureRow>
       )}
@@ -48,7 +48,7 @@ export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse })
   )
 }
 
-/** `tone` colours the figure by its direction; absent, it is a plain amount. */
+/** `tone` colors the figure by its direction; absent, it is a plain amount. */
 function FigureRow({
   label,
   tone,

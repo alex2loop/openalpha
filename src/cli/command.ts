@@ -42,6 +42,7 @@ export interface Command {
   readonly kind: 'cmd'
   readonly name: string
   readonly summary: LocalizedText
+  readonly spec?: Spec
   needsFor(argv: readonly string[]): Promise<Required<Needs>>
   preflight(argv: readonly string[], path: readonly string[]): Promise<CommandRejection | undefined>
   exec(argv: readonly string[], app: CliApp, path: readonly string[]): Promise<number>
@@ -142,9 +143,8 @@ export function createCommand(def: CommandDef): Command {
     kind: 'cmd',
     name: def.name,
     summary: def.summary,
-    async needsFor(argv): Promise<Required<Needs>> {
-      return resolveNeedsForArgs(needs, argv)
-    },
+    ...(def.spec === undefined ? {} : { spec: def.spec }),
+    needsFor: async (argv) => resolveNeedsForArgs(needs, argv),
     async preflight(argv, path): Promise<CommandRejection | undefined> {
       if (hasHelp(argv)) {
         return undefined
@@ -323,13 +323,7 @@ export function createGroup(def: GroupDef): Group {
     throw new ConfigError(`group '${def.name}' default subcommand not found: ${def.default}`)
   }
 
-  const defaultTarget = (head: string | undefined): Command | Group | undefined => {
-    if (defaultSub === undefined || (head !== undefined && HELP_FLAGS.has(head))) {
-      return undefined
-    }
-
-    return head === undefined || head.startsWith('-') ? defaultSub : undefined
-  }
+  const defaultTarget = (head: string | undefined) => defaultTargetOf(defaultSub, head)
 
   return {
     kind: 'group',
@@ -382,6 +376,18 @@ export function createGroup(def: GroupDef): Group {
       return match.exec(rest, app, [...path, def.name])
     },
   }
+}
+
+// A bare invocation or one opening with a flag runs the default; `--help` stays the group's own.
+function defaultTargetOf(
+  defaultSub: Command | Group | undefined,
+  head: string | undefined
+): Command | Group | undefined {
+  if (defaultSub === undefined || (head !== undefined && HELP_FLAGS.has(head))) {
+    return undefined
+  }
+
+  return head === undefined || head.startsWith('-') ? defaultSub : undefined
 }
 
 interface GroupRouting {

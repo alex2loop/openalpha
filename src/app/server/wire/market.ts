@@ -44,9 +44,9 @@ type ScreenFactGroup =
   | 'flow'
   | 'derivatives'
 
-/** One thing a board reads for a name, written as the CLI lists it: the label capitalised, the
+/** One thing a board reads for a name, written as the CLI lists it: the label capitalized, the
  *  value with its unit. A factor's place among the board's names joins the reading of the same name,
- *  else it is a fact of its own, labelled with the factor and valued in plain words. Each reading
+ *  else it is a fact of its own, labeled with the factor and valued in plain words. Each reading
  *  once, in a fixed order. */
 export interface ScreenFactWire {
   readonly id: string
@@ -177,9 +177,12 @@ export type MacroResponse =
         readonly unit: 'percent' | 'level'
         readonly value: number
         readonly asOf: string
+        /** A share of 0 to 1, rounded across the drivers to whole percents that still sum as the
+         *  chat prints them. */
         readonly weight: number
         readonly bearishAt: number
         readonly bullishAt: number
+        /** Rounded across the drivers to two decimals that still sum as the chat prints them. */
         readonly contribution: number
       }[]
       /** The drivers with no reading, left out of the score; `label` in the operator's language. */
@@ -263,6 +266,9 @@ export interface MarketWire {
   readonly currency: string
   readonly quoteUnit: string
   readonly priceDisplay?: { readonly divisor: number; readonly decimals: number }
+  /** Every quote is a dealer board (two sides, no last trade), and an alert on it watches the buy
+   *  side. Absent otherwise. */
+  readonly quotesDealerBoard?: true
   readonly region: string
   /** Its calendar is its region's trading day; the owner of `homeRegion` is the default market. */
   readonly ownsRegion: boolean

@@ -173,7 +173,11 @@ export {
   PENDING_PREFIX,
   PREFS_PREFIX,
 } from '@/engine/hooks/user-preferences'
-export { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
+export {
+  HALT_CODE_SEPARATOR,
+  HALT_CODE_TO_REASON,
+  NO_REASON_MESSAGE,
+} from '@/engine/loop/finalize'
 export { isSpendCapHalt, PAUSED_MESSAGE } from '@/engine/loop/preflight'
 export { providerReasonOf } from '@/engine/loop/provider-reason'
 export { withoutResearchDepth } from '@/engine/loop/run-text'

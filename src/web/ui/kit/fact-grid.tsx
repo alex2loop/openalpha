@@ -98,7 +98,7 @@ function FactGroup({
   )
 }
 
-// A signed reading wears the up or down colour, so a fall reads as one before its number does.
+// A signed reading wears the up or down color, so a fall reads as one before its number does.
 function toneClassOf(value: string): string | undefined {
   if (value.startsWith(UP_GLYPH)) {
     return 'is-up-text'

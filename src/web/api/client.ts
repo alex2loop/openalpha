@@ -21,6 +21,7 @@ const API_ERROR_CODES = Object.freeze({
   invalid_body: true,
   conflict: true,
   price_unconfirmed: true,
+  name_unlisted: true,
   upstream_failed: true,
   too_many_streams: true,
   unavailable: true,

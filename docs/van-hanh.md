@@ -65,7 +65,7 @@ khác khi chúng khởi động, nên trang văn phòng và cuộc trò chuyện
 
 - Trong tối đa một phút sau khi khởi động, dữ liệu thị trường có thể vẫn đang được nạp, nên biểu đồ
   có thể còn thưa cho đến khi dữ liệu về đủ.
-- Các vòng đọc dữ liệu thị trường (cảnh báo, kết quả gợi ý, trích xuất vĩ mô, kết quả chủ đề, bản tin
+- Các vòng đọc dữ liệu thị trường (cảnh báo, kết quả đề xuất, trích xuất vĩ mô, kết quả chủ đề, bản tin
   và báo cáo trong phiên) chờ lượt đó kết thúc, dù kết thúc thế nào, rồi mới chạy lượt đầu, tối đa 60
   giây. Nhà cung cấp không trả lời cũng không giữ chúng lâu hơn: chúng chạy kèm một cảnh báo
   (`trading.boot_refresh_timeout`) còn lượt làm mới tiếp tục ở nền. Trò chuyện, bộ lập lịch, các kênh
@@ -80,7 +80,7 @@ một dòng duy nhất trong danh sách đang chạy. Thủ kho vào Kho dữ li
 hình tường. Đầu trang đếm nó đúng một lần vào số việc đang chạy; vòng làm mới vẫn hiện là đang chạy
 trong danh sách việc tự chạy. Khi xong, mục Hoạt động ghi "Làm mới dữ liệu", nguồn "lịch" (kèm "dừng"
 hoặc "lỗi" nếu lượt đó không xong). Lượt này không gọi mô hình, nên dòng của nó không ghi chi phí và
-không có lệnh gọi AI.
+không có lượt gọi AI.
 
 Một lượt chỉ hiện từ lần tải đầu tiên. Vì vậy lượt không có thị trường nào đang dùng, hay lượt thấy
 dữ liệu mọi thị trường vẫn mới, thì không hiện gì cả.
@@ -123,7 +123,7 @@ nơi để gửi tới.
 
 `openalpha start` vẫn khởi động khi thiếu khóa AI, khóa tìm kiếm web, biến của máy chủ MCP, token API
 hay bot token của kênh. Mỗi mục thiếu được in một dòng cảnh báo (xem
-[Lệnh](lenh.md#dịch-vụ-nền-và-chẩn-đoán)).
+[Câu lệnh](lenh.md#dịch-vụ-nền-và-chẩn-đoán)).
 
 Làm mới dữ liệu, cảnh báo giá, sổ lệnh và mọi vòng không cần AI vẫn chạy. Việc cần mô hình thì chờ:
 
@@ -272,7 +272,7 @@ Giờ bị lỡ thì bị bỏ qua chứ không chạy trễ. Việc cron trễ 
 sang lần kế tiếp theo lịch, không tính lần hỏng nào, và dòng lịch sử ghi `skipped (missed slot)`. Mặc định là 15
 phút: đủ cho một lần khởi động lại hay mất mạng ngắn, và đủ ngắn để việc buổi sáng không bao giờ được trả lời
 sau phiên mà nó dành cho. Vậy nếu dịch vụ nền tắt cả đêm rồi khởi động lúc 15:00 thì việc cron 07:30 (việc bạn thêm bằng `schedule add`) không chạy
-lúc 15:00; lần chạy kế tiếp là 07:30 của ngày khớp lịch tiếp theo. Việc chạy một lần thì vẫn chạy khi đến hạn, dù
+lúc 15:00; phiên chạy kế tiếp là 07:30 của ngày khớp lịch tiếp theo. Việc chạy một lần thì vẫn chạy khi đến hạn, dù
 trễ bao nhiêu. Workflow có cron trigger theo cùng hai quy tắc: mất mạng thì chờ có mạng, và giờ trễ quá
 `late_grace_ms` thì bị bỏ qua.
 
@@ -372,7 +372,7 @@ Tác vụ nhờ agent trả lời thì gửi câu trả lời dưới dòng nộ
 
 Phiên chạy không bao giờ xong (bị hủy, lỗi hay bị dừng) làm phiên chạy kế tiếp của tác vụ bị hoãn thêm
 `60 giây x 2^(số lần hỏng - 1)`, tối đa 30 phút - cùng khoảng chờ với việc theo lịch. Một phiên chạy
-xong xóa nó. Cùng khoảng chờ áp dụng cho phiên chạy đã xong nhưng không lưu được kết quả (lỗi lưu trữ) và lần
+xong xóa nó. Cùng khoảng chờ áp dụng cho phiên chạy đã xong nhưng không lưu được kết quả (lỗi lưu trữ) và phiên
 chạy ném lỗi: cả hai không được lặp lại mỗi 30 giây. Tác vụ đang chờ đơn giản là không được chọn: nó không bao giờ bị tắt, và không có gì
 được gửi đi trong lúc chờ.
 
@@ -387,7 +387,7 @@ chạy ném lỗi: cả hai không được lặp lại mỗi 30 giây. Tác v�
 | Phản hồi không hợp lệ | Vẫn tính là xong; không gửi gì |
 | Đích gửi không hợp lệ | Cảnh báo; các đích khác vẫn tiếp tục |
 | Bộ thông báo từ chối một đích | Cảnh báo; thông báo đó không được nhớ |
-| Chạm trần cam kết | Giữ các cam kết hiện có; số lượng được ghi log |
+| Chạm trần cam kết | Giữ các cam kết hiện có; số cam kết bị bỏ được ghi log |
 
 ## Khi không ghi được tệp log
 
@@ -724,8 +724,8 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
   - Bấm một agent của bạn trong văn phòng thì thẻ của nó mở ra (xem
     [Agent](tro-ly.md#từ-trang-văn-phòng)).
   - Hàng quay lại đưa bạn về chỗ vừa xem, và bảng thu gọn được thành một dải biểu tượng.
-- **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Trên màn hình rộng, kéo mép trái của khung (hoặc chọn mép đó rồi bấm phím mũi tên trái/phải) để đổi độ rộng; trình duyệt nhớ độ rộng này, và bấm đúp vào mép đưa khung về độ rộng mặc định. Các cuộc trò chuyện trước, kể cả của Telegram, tìm được (cuộc trò chuyện chưa có lời nào thì không được liệt kê), chia thành hôm nay, 7 ngày qua và cũ hơn theo tin nhắn cuối cùng (theo ngày của dịch vụ nền, không theo trình duyệt); mỗi dòng ghi giờ của tin nhắn cuối và số lượt trao đổi, một lượt là một câu bạn gửi cùng câu trả lời của nó, và tải thêm cuộc trò chuyện cũ khi bạn cần; chỉ những cuộc chat do trang mở mới nói tiếp được; khi đang mở cuộc trò chuyện của kênh khác, ô gõ ở cuối trang báo điều đó và cho bạn tiếp tục trong cuộc trò chuyện mới. Menu của mỗi dòng mở cuộc trò chuyện đó ở một thẻ riêng, trong thẻ chỉ có khung chat, và xóa được cuộc trò chuyện do trang hoặc CLI mở: dòng biến mất ngay và một thanh ở cuối trang cho bạn Hoàn tác trong vài giây (đồng hồ dừng khi thẻ bị ẩn; đóng thẻ trước thì không xóa gì). Cuộc trò chuyện còn câu trả lời đang chạy thì không xóa được, và cuộc trò chuyện Telegram không bao giờ bị xóa ở đây, vì đó cũng là lịch sử bên Telegram. Cửa sổ CLI còn mở trên cuộc trò chuyện vừa xóa thì cứ thế chat tiếp như một cuộc trò chuyện mới, và danh sách sẽ hiện lại cuộc đó khi nó có tin nhắn mới. Câu trả lời `/research` hiện các bước khi đang chạy và nguồn đánh số dưới câu trả lời (xem [Nghiên cứu sâu](nghien-cuu.md#trên-trang-văn-phòng)). Cuộc trò chuyện cũ bạn mở, và cuộc trò chuyện hiện tại sau khi tải lại trang, hiện mọi lượt như lúc đầu: các câu lệnh bạn gõ cùng câu trả lời, trình bày như khung chat đã hiện, và "Lệnh gọi AI" dưới câu trả lời có phiên chạy, liệt kê các lần gọi mô hình của nó (và "Diễn biến", khi phiên chạy đó có chia việc). Câu lệnh được lưu từ phiên bản này trở đi, trên mọi kênh; `/help` thì không lưu, và những nút cho thấy kết quả ngay tại chỗ (như Cập nhật dữ liệu) cũng không. Những câu trả lời đã lưu này chỉ để bạn đọc: trợ lý không bao giờ đọc lại chúng. Cuộn lên gần đầu thì tin nhắn cũ hơn tự tải thêm mà không làm mất chỗ bạn đang đọc; nút "Tải tin nhắn cũ hơn" vẫn còn để bấm. Khi đang xem cuộc trò chuyện của kênh khác, như Telegram hay CLI, tin nhắn mới ở đó tự hiện ở cuối, ngay khi trợ lý trả lời xong, còn câu trả lời của câu lệnh thì chậm nhất khoảng 15 giây; nếu bạn đang kéo lên đọc tin cũ thì trang không tự nhảy xuống mà hiện nút "Có tin nhắn mới, xem ngay". Một dòng dưới tiêu đề cho biết các câu trả lời do AI tạo và không phải khuyến nghị đầu tư.
-- **Ô câu lệnh.** Nổi trên phần chân khung cảnh văn phòng, hoặc trên ảnh văn phòng ở chế độ Tập trung; trên màn hình hẹp, ở khung Thông tin và Trò chuyện, nó nằm ở cuối trang: ai nhận câu bạn gõ và ô nhập (Enter là gửi; trên điện thoại còn có nút Gửi). Khi bạn gõ, chip agent và nút Trò chuyện thu lại chỉ còn biểu tượng; trên điện thoại chip agent và nút Gửi luôn chỉ là biểu tượng. Xem [Lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
+- **Trò chuyện.** Cuộc trò chuyện với trợ lý, nằm bên phải. Trên màn hình rộng, kéo mép trái của khung (hoặc chọn mép đó rồi bấm phím mũi tên trái/phải) để đổi độ rộng; trình duyệt nhớ độ rộng này, và bấm đúp vào mép đưa khung về độ rộng mặc định. Các cuộc trò chuyện trước, kể cả của Telegram, tìm được (cuộc trò chuyện chưa có lời nào thì không được liệt kê), chia thành hôm nay, 7 ngày qua và cũ hơn theo tin nhắn cuối cùng (theo ngày của dịch vụ nền, không theo trình duyệt); mỗi dòng ghi giờ của tin nhắn cuối và số lượt trao đổi, một lượt là một câu bạn gửi cùng câu trả lời của nó, và tải thêm cuộc trò chuyện cũ khi bạn cần; chỉ những cuộc chat do trang mở mới nói tiếp được; khi đang mở cuộc trò chuyện của kênh khác, ô gõ ở cuối trang báo điều đó và cho bạn tiếp tục trong cuộc trò chuyện mới. Menu của mỗi dòng mở cuộc trò chuyện đó ở một thẻ riêng, trong thẻ chỉ có khung chat, và xóa được cuộc trò chuyện do trang hoặc CLI mở: dòng biến mất ngay và một thanh ở cuối trang cho bạn Hoàn tác trong vài giây (đồng hồ dừng khi thẻ bị ẩn; đóng thẻ trước thì không xóa gì). Cuộc trò chuyện còn câu trả lời đang chạy thì không xóa được, và cuộc trò chuyện Telegram không bao giờ bị xóa ở đây, vì đó cũng là lịch sử bên Telegram. Cửa sổ CLI còn mở trên cuộc trò chuyện vừa xóa thì cứ thế chat tiếp như một cuộc trò chuyện mới, và danh sách sẽ hiện lại cuộc đó khi nó có tin nhắn mới. Câu trả lời `/research` hiện các bước khi đang chạy và nguồn đánh số dưới câu trả lời (xem [Nghiên cứu sâu](nghien-cuu.md#trên-trang-văn-phòng)). Cuộc trò chuyện cũ bạn mở, và cuộc trò chuyện hiện tại sau khi tải lại trang, hiện mọi lượt như lúc đầu: các câu lệnh bạn gõ cùng câu trả lời, trình bày như khung chat đã hiện, và "Lượt gọi AI" dưới câu trả lời có phiên chạy, liệt kê các lượt gọi mô hình của nó (và "Diễn biến", khi phiên chạy đó có chia việc). Câu lệnh được lưu từ phiên bản này trở đi, trên mọi kênh; `/help` thì không lưu, và những nút cho thấy kết quả ngay tại chỗ (như Cập nhật dữ liệu) cũng không. Những câu trả lời đã lưu này chỉ để bạn đọc: trợ lý không bao giờ đọc lại chúng. Cuộn lên gần đầu thì tin nhắn cũ hơn tự tải thêm mà không làm mất chỗ bạn đang đọc; nút "Tải tin nhắn cũ hơn" vẫn còn để bấm. Khi đang xem cuộc trò chuyện của kênh khác, như Telegram hay CLI, tin nhắn mới ở đó tự hiện ở cuối, ngay khi trợ lý trả lời xong, còn câu trả lời của câu lệnh thì chậm nhất khoảng 15 giây; nếu bạn đang kéo lên đọc tin cũ thì trang không tự nhảy xuống mà hiện nút "Có tin nhắn mới, xem ngay". Một dòng dưới tiêu đề cho biết các câu trả lời do AI tạo và không phải khuyến nghị đầu tư.
+- **Ô câu lệnh.** Nổi trên phần chân khung cảnh văn phòng, hoặc trên ảnh văn phòng ở chế độ Tập trung; trên màn hình hẹp, ở khung Thông tin và Trò chuyện, nó nằm ở cuối trang: ai nhận câu bạn gõ và ô nhập (Enter là gửi; trên điện thoại còn có nút Gửi). Khi bạn gõ, chip agent và nút Trò chuyện thu lại chỉ còn biểu tượng; trên điện thoại chip agent và nút Gửi luôn chỉ là biểu tượng. Xem [Câu lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng).
 - **Chuông và việc đang chạy.** Chuông liệt kê thông báo và các yêu cầu đang chờ bạn. Yêu cầu duyệt hỏi từ trang này được trả lời ngay trong chuông: duyệt một lần, ghi nhớ hoặc từ chối. Đồng hồ đếm lùi cho biết khi nào hết hạn, và yêu cầu hết giờ mà chưa trả lời thì bị từ chối. Mỗi yêu cầu chỉ được trả lời một lần: nếu nó hiện ở cả chuông lẫn khung chat thì chỉ một câu trả lời được gửi đi, và thẻ còn lại hiện đúng câu trả lời đó, kèm dòng "đã được trả lời" nếu bạn chọn khác ở thẻ này. Yêu cầu hỏi trên Telegram hay kênh khác vẫn được liệt kê nhưng trả lời ở nơi nó được hỏi. Danh sách việc cho thấy cái đang chạy (dừng được, sau một bước xác nhận; phiên chạy nào chia việc cho nhiều người thì có thêm dải "Diễn biến", mô tả ở thẻ agent trong [Agent](tro-ly.md#từ-trang-văn-phòng)), cái sắp chạy, cái đang chờ một sự kiện (kiểm tra theo chu kỳ, không tốn AI) và các việc tự chạy, kèm cách sửa việc nào đang lỗi; nút "Thêm lịch" đặt một việc cho trợ lý. Việc tự chạy cũng hiện tức thời: việc nào vừa bắt đầu làm (nạp dữ liệu thị trường ngay sau khi khởi động, làm mới dữ liệu, một lượt quét cảnh báo) được chip việc đang chạy đếm và hiện ngay trong mục đang chạy, xong thì tự biến mất.
 - **Chi phí.** Chip cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày; bấm để xem cả tháng, chi phí theo từng việc và dòng ngân sách, còn "Xem đủ báo cáo" mở báo cáo cho hôm nay, 7 hoặc 30 ngày qua, hay tháng này. Xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng).
 - **Khi trang mất dịch vụ nền.** Thanh ở chân trang cho biết lần cuối trang nhận được tin từ dịch vụ nền ("Trang chưa nhận được tin mới từ dịch vụ nền kể từ 14:32, nên chưa rõ việc nào đang chạy") cạnh đồng hồ đếm lùi lần thử lại. Từ đó trang không còn nói như thể việc vẫn đang chạy. Đồng hồ của các việc đang chạy dừng ở phút đó và chip đang chạy ghi "Chưa rõ". Danh sách việc báo rằng nó có thể đã khác kèm lúc cập nhật cuối; thẻ agent ghi "Chưa rõ" với cùng phút đó và cho thấy bước hiện tại đã chạy bao lâu lúc trang nhận tin cuối. Dải "Diễn biến" dừng các thanh đang chạy ở đó; dải nào mới mở sau lúc ấy thì nói chưa rõ cho tới khi dịch vụ nền trở lại. Nút "Dừng" chuyển sang mờ ở mọi nơi có nó, rê chuột vào thì có lý do, vì lệnh dừng sẽ không tới được dịch vụ nền; vòng chọn của văn phòng bỏ hẳn mục này. Trên điện thoại, thanh chỉ còn ngắn gọn (phút tin dừng và đồng hồ đếm lùi, rồi "Thử ngay") nên khung chat giữ được gần hết chiều cao, và danh sách việc đang mở dừng phía trên thanh thay vì chui xuống dưới. Nếu giữa chừng bạn bật bản 3D, dòng đang tải hoặc dòng quay về 2D xếp ngay dưới ghi chú "chưa rõ", đọc được cả hai. Văn phòng đứng yên dưới một dòng ghi chú, nằm giữa phần cảnh mà bảng đang mở chừa trống, và mỗi người nói rằng chưa rõ mình đang làm gì. Chat hiện cùng phút ấy phía trên cuộc trò chuyện, còn câu trả lời đang về dở ghi là dừng giữa chừng kèm giờ mất kết nối; phần đã làm được vẫn giữ trong nhật ký, và bạn gửi lại khi trang kết nối lại. Mỗi nơi chỉ nói một lần, ở chỗ nó thuộc về. Tất cả tự hết khi trang đã có bức tranh mới từ dịch vụ nền, chứ không phải ngay khi vừa thấy kết nối; câu trả lời đã đánh dấu là bị cắt vẫn giữ nguyên dấu. Mất kết nối dưới một giây thì không hiện gì, trang mở lúc dịch vụ nền hết chỗ cũng vậy. Bản web chạy cả engine trong trang nên không bao giờ mất nó.
@@ -944,4 +944,4 @@ Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xa
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 
 Xem thêm [an toàn và phê duyệt](an-toan.md), [ngân sách](ngan-sach.md), [giao dịch](giao-dich.md),
-cùng các tham chiếu [`config.toml`](cau-hinh.md) và [lệnh](lenh.md).
+cùng các tham chiếu [`config.toml`](cau-hinh.md) và [câu lệnh](lenh.md).

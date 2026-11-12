@@ -26,7 +26,7 @@ Không trang nào cần đọc code.
 | Trang | Nội dung |
 |---|---|
 | [cau-hinh.md](cau-hinh.md) | Mọi khóa trong `config.toml` |
-| [lenh.md](lenh.md) | Mọi lệnh CLI và lệnh gạch chéo |
+| [lenh.md](lenh.md) | Mọi câu lệnh CLI và câu lệnh gạch chéo |
 | [giao-dich.md](giao-dich.md) | Dữ liệu thị trường, đề xuất, sổ lệnh, danh mục, đặt lệnh |
 | [nguon-du-lieu.md](nguon-du-lieu.md) | Nguồn nào trả lời việc gì, cần khóa nào, khi một nguồn lỗi thì sao |
 | [tro-ly.md](tro-ly.md) | Viết một agent, ghép đội, kỹ năng, chọn mô hình |

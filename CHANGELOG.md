@@ -7,6 +7,35 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.6.2] - 2026-11-12
+
+Gold prices name their unit everywhere and gold alerts watch the price the shop pays you; orders re-check your caps right before they go out; a mistyped ticker is asked about before it reaches your ledger; and the web, the terminal and chat read figures, dates and Vietnamese terms the same way.
+> Giá vàng giờ ghi rõ đơn vị ở mọi nơi và cảnh báo giá vàng theo dõi giá tiệm mua vào; lệnh được kiểm lại hạn mức ngay trước khi gửi đi; mã gõ nhầm được hỏi lại trước khi vào sổ; và web, terminal, chat đọc số liệu, ngày tháng và thuật ngữ tiếng Việt giống nhau.
+
+### Changed
+
+- Gold prices show their unit, per lượng (tael) or per ounce, on every surface: prices, the market tab and its session card, the price tape, the brief, alerts, exit levels and analysis lines. A gold shop's board shows its buy and sell prices and the gap between them, never a "closing price".
+- A price alert on VN gold watches the buy price, what the shop pays you, the same side your holding is valued on, and every place it appears says so. Alerts you already set keep their level and are now read this way.
+- In Vietnamese, a suggestion is an "đề xuất", something you type is a "câu lệnh" and a call to the AI is a "lượt gọi", in the terminal, in chat, on the office page and in the guides; "lệnh" is kept for an order at an exchange.
+- The web reads figures like the terminal and chat: no "-0,00", macro and benchmark weights in whole percents that add up to 100, a portfolio's return in the same form as `/portfolio`, and grouped token counts.
+- Win rates and hit rates are a whole percent everywhere; a cap line that would round to its own cap shows two decimals instead.
+- AI spend in the terminal never reads "0,0000 USD" for a call that cost something; `/cost` shows its dates day-first, and large token counts read as "1,2M".
+- History says why a run stopped (turn limit, budget, a restart) in your language, followed by the provider's message when it adds something.
+- `openalpha logs --help`, `key --help`, `autostart --help` and `db migrate --help` mark the default subcommand and show its flags.
+- The web trade form opens on your home market's trading day, the day the terminal and chat propose.
+- Sector names use one capitalization per language, and English text uses US spelling.
+
+### Fixed
+
+- `/record` and `/update` no longer book a ticker no market lists. A typo such as `equity-vn:FPQ` is held with the closest name ("FPC?") and a button to confirm it as a real trade, for a delisted or newly listed name. The assistant and the web trade form ask the same way; trades read from your exchange are never held.
+- An order now re-checks your profile's position, segment and ETF caps just before it goes out. A cap the order prompt showed you passes only if it has not grown since you looked; one crossed or deepened in between, by another fill or a price move, refuses the order and says which cap, in your language.
+- `/rebalance` sells a fund you hold in a segment whose ETF cap is 0, whatever its score, and says why.
+- A ledger figure far beyond any real one (a slip of several zeros) is refused and named instead of breaking your book's totals.
+- A staged order whose saved record cannot be read keeps its confirm code, and `/trade` status no longer fails because of it.
+- Editing and deleting an agent at the same moment no longer race, so an edit cannot bring back a deleted agent.
+- Saving settings on the web is all or nothing.
+- The guides state how long macro documents are kept (at least 775 days), and `config.sample.toml` lists every built-in venue that cannot set markets.
+
 ## [1.6.1] - 2026-11-12
 
 Money, prices and your ledger now read the same on the web, in the terminal and in chat, with cents in a dollar book and every digit you recorded. An ETF cap of 0 now really keeps funds out, and a few rare failures that could lose a settings change or stop OpenAlpha are fixed.
@@ -845,6 +874,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.6.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.2
 [1.6.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.1
 [1.4.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.3
 [1.4.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.2

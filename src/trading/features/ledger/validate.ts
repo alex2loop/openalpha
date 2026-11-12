@@ -28,6 +28,14 @@ import { moneyParam } from '@/trading/render/money'
 // to a quantity.
 const COMPARISON_EPSILON = 1e-9
 
+// Far above any real amount, price, quantity or rate, and low enough that a product of any four
+// stays finite: one mistyped exponent would otherwise overflow to Infinity and turn the whole
+// book's cash into NaN.
+const MAXIMUM_LEDGER_FIGURE = 1e15
+
+const LEDGER_FIGURES = ['amount', 'price', 'quantity', 'fee', 'rate'] as const
+type LedgerFigure = (typeof LEDGER_FIGURES)[number]
+
 // The kinds whose correctness rests on settling the day they are recorded: the cash kinds and a
 // dividend clear on the same pass through the pending path, and a transfer moves both legs at once
 // without one. A lagged settlement day would mis-time either.
@@ -75,6 +83,7 @@ export function assertLedgerValid(
   const ordered = orderLedger(pending)
 
   for (const entry of ordered) {
+    assertFiguresPlausible(entry.transaction)
     assertVenueHoldsMarket(entry.transaction, options)
     assertVenueRegistered(entry.transaction, options)
     assertTransferCrossesVenues(entry.transaction)
@@ -250,6 +259,45 @@ function assertNotAhead(txn: LedgerTxn, today: TradingDay): void {
     key: 'errors.ledgerFutureDay',
     params: { day: { day: txn.at } },
   })
+}
+
+function assertFiguresPlausible(txn: LedgerTxn): void {
+  const figures = figuresOf(txn)
+  // The negated pass, so a NaN or an Infinity is refused too.
+  const name = LEDGER_FIGURES.find(
+    (figure) => !(Math.abs(figures[figure] ?? 0) <= MAXIMUM_LEDGER_FIGURE)
+  )
+
+  if (name === undefined) {
+    return
+  }
+
+  throw new ValidationError(`${txn.kind} on ${txn.at} has an implausible ${name}`, {
+    key: 'errors.ledgerFigureImplausible',
+    params: { day: { day: txn.at }, figure: { key: `trading.ledger.figure.${name}` } },
+  })
+}
+
+/** Every number the fold multiplies together, by its `trading.ledger.figure.*` name. */
+function figuresOf(txn: LedgerTxn): Readonly<Partial<Record<LedgerFigure, number>>> {
+  switch (txn.kind) {
+    case 'split':
+    case 'distribution':
+      return { quantity: txn.quantityDelta }
+    case 'transfer':
+      return { amount: txn.amount, fee: txn.fee, rate: txn.conversion.rate }
+    case 'buy':
+    case 'sell':
+    case 'rights':
+      return {
+        quantity: txn.quantity,
+        price: txn.unitPrice,
+        fee: txn.fee,
+        rate: txn.conversion.rate,
+      }
+    default:
+      return { amount: txn.amount, rate: txn.conversion.rate }
+  }
 }
 
 /** Currency is structural: the market declares it in its manifest, so "VN equities record in VND"

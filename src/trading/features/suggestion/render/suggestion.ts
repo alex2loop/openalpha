@@ -46,7 +46,7 @@ import { isBookCall } from '@/trading/kernel/operator/focus'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
   formatCount,
-  formatFraction,
+  formatWholeFraction,
   renderDeclaredValue,
   SECTION_ICONS,
 } from '@/trading/render/format'
@@ -313,8 +313,8 @@ export function renderCalibrationLine(
   return [
     `${INDENT[1]}${t(locale, 'trading.render.suggestion.calibration', {
       conviction: renderDeclaredValue(locale, `trading.conviction.${suggestion.conviction}`),
-      rate: formatFraction(locale, calibration.winRate),
-      range: renderRateRange(locale, calibration, formatFraction),
+      rate: formatWholeFraction(locale, calibration.winRate),
+      range: renderRateRange(locale, calibration, formatWholeFraction),
       count: formatCount(locale, calibration.resolvedCount),
     })}`,
   ]

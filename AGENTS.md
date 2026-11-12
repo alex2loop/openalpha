@@ -165,7 +165,7 @@ Anything not listed is derived or gate-checked.
 
 ### Venues
 
-A venue is where the operator's assets sit, modelled like a market.
+A venue is where the operator's assets sit, modeled like a market.
 
 - Same isolation gate: outside code imports `venues/<id>/venue.ts` only; no venue imports another, so venues have no `api.ts`. Shared plumbing (`venues/client-order-id.ts`, `venues/transport.ts`) sits at the `venues/` root; retry, budgets and timeouts come from `transport.ts`, never per venue.
 - `venue.ts` exports `create<Name>Venue(input): Venue` (manifest + the `SpotAdapter` the order path speaks through). A hand-traded venue has no adapter (`createManualVenue`); routing never selects it.
@@ -531,7 +531,7 @@ A scope narrowing a name is written `scope:ticker`, one token. `kernel/surface/s
 | Shape | Where | Why |
 |---|---|---|
 | named field | every MCP tool input | JSON has named keys; `instrumentQueryInput` is the one ticker-and-optional-market pair |
-| `scope:ticker`, optional | `/price`, `/suggest`, `/alert`, `/watchlist`, `/rebalance`, `/trade` | disambiguates a name inside a variadic or labelled line |
+| `scope:ticker`, optional | `/price`, `/suggest`, `/alert`, `/watchlist`, `/rebalance`, `/trade` | disambiguates a name inside a variadic or labeled line |
 | `scope:ticker`, required | `instrumentInputOf` | a tool write states the market it books against |
 | `scope:ticker`, optional, stored lists only | `/record`, `/update` | a write may drop the market only when the lists already stored, among markets a venue holds, name exactly one; no network lookup; the confirmation names the market. `/update` fills nothing else |
 | bare token, order-free | `/screen`, `/refresh`, `market_sentiment`, `sector_strength` | the market is the subject; no ticker to collide with |
@@ -544,7 +544,7 @@ One owner per unit, enforced by `scripts/check-display-contract.ts` (reads call 
 
 - Every rendered value goes through `trading/render/{format,datetime,money}.ts`. `format.ts` owns the unit; `render/number.ts` (called only by `format.ts`) owns the `Intl` option per unit. A surface never calls `Intl`, interpolates a raw value into copy, or hand-writes a separator, indent or glyph.
 - Copy comes from `t(locale, key, params)` for `[locale] language`; the clock from `[locale] timezone` (`TradingConfig.displayTimezone`, default: the host's zone), threaded as a parameter. Never `toLocaleString()` without a locale, a hardcoded timezone, or a user-facing string outside the catalogs (`src/i18n/locales/{en,vi}.json`, every key in both).
-- `en` resolves to `en-GB` for date order only (`DATE_ORDER_LOCALES`); both read day-first. `scripts/check-vi-terminology.ts` gates Vietnamese terms (`reduce` is *giảm bớt*, never *bán*).
+- `en` resolves to `en-GB` for date order only (`DATE_ORDER_LOCALES`); both read day-first. `scripts/check-vi-terminology.ts` gates Vietnamese terms: a bare *lệnh* is an exchange order (a typed command is *câu lệnh*, a suggestion *đề xuất*), *dịch vụ nền* not *daemon*, *mô hình* not *model*, *phiên chạy* not *lượt chạy*, *khối lượng* not *số lượng*, *cuộc trò chuyện* not *phiên chat*, *mình* not *tôi*, and `reduce` is *giảm bớt*, never *bán*.
 
 Dates and numbers:
 - `formatDay` (`@/i18n`, UTC-pinned calendar day; error messages pass `{ day }`), `formatClock` (configured zone), `formatInstant` (both), `formatPublishedDay` (citation epoch). A trading day is stamped by the session that produced it; every clock reads in the operator's one zone. The block states the session once; a section restates it only for a genuinely different instant.
@@ -558,7 +558,8 @@ Dates and numbers:
 Prices and quotes:
 - `formatQuotedPrice` is the only price renderer. A board-scaled market (`PriceDisplay.divisor > 1`) prints no currency; the scale is noted once per message. A price prints at its own currency's precision (`formatFixedPrice`); `RowUnit` carries decimals and code-naming apart. Aggregate money takes the section currency; a price never does.
 - An index publishes a level, not a price: `isLevelKind` (index futures too) carries no board scale or currency, `QuoteView` leaves `unit`, `currency`, `display` absent together, and a level takes no currency even in a section that has one. `MarketDataOverview.priceCurrency` differs from `currency` and is absent for level markets; never label VN-Index from `currency`.
-- A dealer board states no last trade: `Quote.board` carries both sides and the gap; surfaces print those cells, not a price pair. A plan trades against the side it fills (buy at `sellPrice`, sale at `buyPrice`; a buy's stop and target on `buyPrice` via `LevelRequest.exitPrice`). Exit watches and the book's valuation read that side through `exitPriceOf`; a `gold-shop` fill is moved onto the buy side by its spread in `recorded.ts`. Never place a level on one side and watch or value it on the other.
+- A price names its quote unit wherever the unit is not implied (`namesQuoteUnit`: gold-vn "VND/lượng" (en "VND/tael"), world gold "USD/oz"; shares and coins bare), through `renderQuoteUnit` on every surface. `MarketDataOverview.quoteUnit` travels beside `priceCurrency` onto a section; a row that names its own currency brings its own `quoteUnit`; money fields keep the bare currency.
+- A dealer board states no last trade: `Quote.board` carries both sides and the gap; surfaces print those cells, not a price pair. A plan trades against the side it fills (buy at `sellPrice`, sale at `buyPrice`; a buy's stop and target on `buyPrice` via `LevelRequest.exitPrice`). Exit watches, operator price alerts and the book's valuation read that side through `exitPriceOf`, and every surface that prints an alert names it (`manifest.quotesDealerBoard`, carried as `QuoteConvention.dealerBoard`, `MarketWire.quotesDealerBoard`); a `gold-shop` fill is moved onto the buy side by its spread in `recorded.ts`. Never place a level on one side and watch or value it on the other.
 - Never blend readings: show the settled close and the live price as separate dated rows (`PricePair`); live is absent when the market has not printed.
 - A close is dated by its own session (`closedOn`), never the block's `asOf`; a close with no session is dropped. `changeAgainstClose` owns the move; a provider's `changePct` is a rolling window on continuous markets, never taken verbatim.
 - Freshness is decided by the reading's session, not its instant: `isLiveObservation` compares `dayAt(observedAt)` to `resolveSettledDay` and checks age; `toLiveReading` applies the same age test. The market's quote capability enforces it, never the adapter. A failing reading drops to the stored close through `liveOrStoredQuote` (the one owner); a provider quote survives only for a name the store cannot price.
@@ -574,7 +575,7 @@ Windows, movers and layout:
 - `render/layout.ts` is the only file that builds `INLINE_SEPARATOR` (` · `) and `INDENT[0..3]`. The `━━━` rule marks which market a run of rows belongs to (`/brief`, `/overview`, multi-market ticker lists); one market needs none.
 - Say each fact once. Ready sections' caveats hoist to one list per message; only a failed section states its own. `renderCaveatLines` dedupes on the rendered sentence, not the code.
 - A progress line leads with its subject and a fanned-out count states its unit (`72/728 mã`); `/refresh` lines lead with the market, built once in `kernel/market/refresh.ts`. The subject travels as a nested keyed message (`{ market: { key: 'trading.market.crypto' } }`) resolved per surface locale; a deep reporter holds no `Locale`.
-- Label only what needs one (tickers, sectors, headlines and signed percents name themselves); continuation rows are labelled. Ledger write confirmations label every field (`ledger/fields.ts`); the history row does not.
+- Label only what needs one (tickers, sectors, headlines and signed percents name themselves); continuation rows are labeled. Ledger write confirmations label every field (`ledger/fields.ts`); the history row does not.
 
 ### Logging
 

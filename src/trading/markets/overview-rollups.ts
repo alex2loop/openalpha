@@ -28,7 +28,7 @@ export function rollupSections(overview: MarketDataOverview): readonly BriefSect
   ].filter((section) => section !== undefined)
 }
 
-/** Skipped where the market publishes a capitalisation: the market-size section states the same
+/** Skipped where the market publishes a capitalization: the market-size section states the same
  *  counts beside the size they belong to, and a board has one breadth, not two. */
 function breadthSection(overview: MarketDataOverview): BriefSectionResult | undefined {
   const rows =
@@ -39,7 +39,7 @@ function breadthSection(overview: MarketDataOverview): BriefSectionResult | unde
   return rows.length === 0 ? undefined : readySection(overview, { kind: 'breadth', rows })
 }
 
-/** Skipped where the market publishes a capitalisation: that section states the same traded value
+/** Skipped where the market publishes a capitalization: that section states the same traded value
  *  beside the size it belongs to, and a market has one turnover, not two. */
 function turnoverSection(overview: MarketDataOverview): BriefSectionResult | undefined {
   const rows = overview.marketCap === undefined ? turnoverRows(overview) : []

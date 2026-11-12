@@ -31,6 +31,7 @@ import { renderBoardScaleNotes } from '@/trading/render/money'
 import { liveMoveOf, renderPricePair, renderSessionRange } from '@/trading/render/price-pair'
 import { headRowFacts, labelledRowFacts } from '@/trading/render/section'
 import { renderSectionHeading } from '@/trading/render/section-heading'
+import { unitOfSection } from '@/trading/render/section-values'
 
 const MOVER_FIELDS: ReadonlySet<IntradayField> = new Set(Object.values(MOVER_KIND))
 
@@ -115,6 +116,7 @@ function toPricePair(context: RowContext, row: IntradayRow): PricePair | undefin
     timezone: context.timezone,
     ...(row.currency === undefined ? {} : { currency: row.currency }),
     ...(row.display === undefined ? {} : { display: row.display }),
+    ...(row.unit === undefined ? {} : { unit: row.unit }),
     ...(row.previousClose === undefined ? {} : { previousClose: row.previousClose }),
     live: {
       price,
@@ -321,9 +323,7 @@ function renderSettledField(
     return [`${INDENT[1]}${label} ${missing(locale)}`]
   }
 
-  const { currency } = settled
-
-  const unit = currency === undefined ? {} : { currency }
+  const unit = entry?.isLevel === true ? {} : unitOfSection(settled)
   const [lead, ...tail] = headRowFacts(locale, first, unit)
 
   return [
@@ -352,7 +352,7 @@ function renderContextSection(context: RowContext, section: BriefSectionResult):
   const { locale } = context
   const ready = section.status === 'ready' ? section : undefined
   const facts = (ready?.rows ?? []).flatMap((row) =>
-    labelledRowFacts(locale, row, ready?.currency === undefined ? {} : { currency: ready.currency })
+    labelledRowFacts(locale, row, ready === undefined ? {} : unitOfSection(ready))
   )
 
   return [

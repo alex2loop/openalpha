@@ -220,7 +220,7 @@ function fadeWithWall(quad: Pick<Quad, 'mesh' | 'wall'>): boolean {
   return true
 }
 
-// A screen glows in its own colours; a cork board takes its room's light like the wall it hangs
+// A screen glows in its own colors; a cork board takes its room's light like the wall it hangs
 // on, and fades with it. The map is set at once so the material never compiles without one.
 function createQuad(
   faces: ScreenFaces,

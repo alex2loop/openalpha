@@ -26,6 +26,8 @@ const DAY_PROPS: ReadonlySet<string> = new Set([
   'exitDay',
   'sellableFrom',
   'dataThroughDay',
+  'fromDay',
+  'toDay',
 ])
 const DAY_FORMATTER_RE = /^(?:formatTradingDay|formatDay)\(/
 

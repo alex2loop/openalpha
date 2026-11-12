@@ -14,7 +14,7 @@ import { formatStaleLine } from '@/web/text/stale'
 import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 
-/** What the dot over a head means, in words, so its colour is never the only cue. */
+/** What the dot over a head means, in words, so its color is never the only cue. */
 const STATUS_KEYS: Readonly<Record<ActorStatus, MessageKey>> = Object.freeze({
   free: 'ui.office.status.free',
   waiting: 'ui.office.status.waiting',

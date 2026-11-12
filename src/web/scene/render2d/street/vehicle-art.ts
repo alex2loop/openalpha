@@ -51,7 +51,7 @@ const TONES = Object.freeze({
   ink: '#FFFFFF',
 })
 
-/** What a vehicle's picture is painted from: its sprite, the vehicle, the pack's colours, the
+/** What a vehicle's picture is painted from: its sprite, the vehicle, the pack's colors, the
  *  detail level and the darkness step. */
 export interface Art {
   readonly g: CanvasRenderingContext2D

@@ -34,6 +34,7 @@ import { resolveSellableQuantities, sellableQuantityOf } from '@/trading/feature
 import { OrderError, OrderQuantityError } from '@/trading/features/order/types'
 import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 import { isSameInstrument } from '@/trading/kernel/instrument'
+import { toShownBreach } from '@/trading/kernel/operator/exposure'
 import { resolveTradeCost } from '@/trading/markets/cost'
 
 const UNSETTLED_MESSAGE = 'the sale is larger than the settled part of the position'
@@ -76,8 +77,8 @@ export async function prepareOrder(
   }
 
   const day = resolveDay(market, input.now)
-  const currency = market.manifest.currency
-  const segment = market.manifest.segment
+  const { currency, segment } = market.manifest
+  const classified = { segment, ...(instrumentKind === undefined ? {} : { instrumentKind }) }
   const notional = terms.quantity * terms.reference
   const caps = await capsFor(deps, {
     input,
@@ -85,13 +86,13 @@ export async function prepareOrder(
     currency,
     asOf: day,
     instrument,
-    segment,
     venue: venue.id,
-    ...(instrumentKind === undefined ? {} : { instrumentKind }),
+    ...classified,
   })
 
   return {
     instrument,
+    ...classified,
     venue: venue.id,
     symbol: terms.symbol,
     day,
@@ -305,6 +306,7 @@ export async function stageOrder(
     quantity: input.prepared.quantity,
     quotePrice: input.prepared.quotePrice,
     notionalBase: input.prepared.notionalBase,
+    shownBreaches: input.prepared.breaches.map(toShownBreach),
     createdAt: input.now,
     ...(input.prepared.limitPrice === undefined ? {} : { limitPrice: input.prepared.limitPrice }),
     ...input.prepared.exit,

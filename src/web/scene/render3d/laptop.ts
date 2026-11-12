@@ -84,7 +84,7 @@ export function createLaptop(root: Group, material: Material): Laptop {
   return laptop
 }
 
-// A unit box in the shell's colour, for the vertex-coloured room material.
+// A unit box in the shell's color, for the vertex-colored room material.
 function shellBox(): BoxGeometry {
   const geometry = new BoxGeometry(1, 1, 1)
   const tone = new Color(LAPTOP.shell)
@@ -165,7 +165,7 @@ function place(laptop: Laptop, seat: { readonly x: number; readonly y: number })
 }
 
 // The ticker (an idle desk's watched name with its price and move) over its closes, the line in
-// the move's direction colour.
+// the move's direction color.
 function paintLine(
   canvas: HTMLCanvasElement,
   line: { readonly closes: readonly number[]; readonly ticker: string; readonly label?: string }

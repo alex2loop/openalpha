@@ -179,7 +179,7 @@ function paintRaisedSheet(f: Figure): void {
   rect(cells, [19, b, 5, 8], 'paper')
   rect(cells, [20, 2 + b, 3, 1], 'line')
   rect(cells, [20, 4 + b, 3, 1], 'line')
-  // The mockup's third rule; a stamped sheet carries its verdict's colour there instead.
+  // The mockup's third rule; a stamped sheet carries its verdict's color there instead.
   rect(cells, [20, 6 + b, 2, 1], f.frame.sheet === 'blank' ? 'line' : 'stamp')
 }
 

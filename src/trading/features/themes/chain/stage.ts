@@ -26,7 +26,7 @@ import { buildSectorFacts, buildSectorFigures } from '@/trading/features/themes/
 import { shortlistSector } from '@/trading/features/themes/chain/shortlist'
 import { THEME_BENCHMARK } from '@/trading/features/themes/types'
 
-/** Companies read, and analysed, at a time. */
+/** Companies read, and analyzed, at a time. */
 const COMPANY_CONCURRENCY = 3
 
 interface ChainStageDeps {

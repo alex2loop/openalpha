@@ -10,7 +10,7 @@ import { formatSpendOfCap } from '@/cli/ui/format'
 import { formatSpendUsd, formatTokenCount, sentTokensOf } from '@/core/utils/cost'
 import { formatDuration } from '@/core/utils/duration'
 import { dayInZone, daysSinceMonday, MS_PER_DAY, parseIsoDay, utcDay } from '@/core/utils/time'
-import { pluralKey, t } from '@/i18n'
+import { formatDay, pluralKey, t } from '@/i18n'
 
 const PERIODS = ['day', 'week', 'month'] as const
 const MAX_RANGE_DAYS = 366
@@ -58,7 +58,12 @@ export const costCommand: Command = createCommand({
       period === 'day' ? await spend.forPeriod('day', nowMs) : await spend.forRange(range)
 
     app.out(style.heading(t(locale, 'cli.costHeading')))
-    app.out(t(locale, 'cli.costRangeLine', { from: range.fromDay, to: range.toDay }))
+    app.out(
+      t(locale, 'cli.costRangeLine', {
+        fromDay: formatDay(locale, range.fromDay),
+        toDay: formatDay(locale, range.toDay),
+      })
+    )
     app.out(t(locale, 'cli.costTotalLine', { cost: formatCost(app, total, period) }))
 
     if (flagBool(args, 'breakdown')) {

@@ -70,7 +70,7 @@ interface BlockHeadProps {
   readonly children?: ComponentChildren
 }
 
-/** A card's title on its colour tile, as every block in the panel heads itself. */
+/** A card's title on its color tile, as every block in the panel heads itself. */
 export function BlockHead({ title, colour, icon, children }: BlockHeadProps) {
   return (
     <h2 class="block-head">

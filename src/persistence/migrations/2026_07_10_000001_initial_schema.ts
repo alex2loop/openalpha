@@ -318,7 +318,7 @@ const HEARTBEAT_TABLES: readonly string[] = [
   'CREATE INDEX IF NOT EXISTS idx_heartbeat_commitments_due ON heartbeat_commitments (agent_id, task_name, due_at)',
 ]
 
-// `session_id` carries no foreign key: it records which session authorised the spend, and a slash
+// `session_id` carries no foreign key: it records which session authorized the spend, and a slash
 // command can pay before any agent run writes that session's row. A reference would either reject
 // the write or silently drop the attribution, and the ledger may lose neither. Because there is no
 // cascade, `SessionStore.remove` (stores/session/store.ts) is the one place that detaches these

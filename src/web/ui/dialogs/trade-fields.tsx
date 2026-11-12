@@ -17,6 +17,7 @@ import { IDENTIFIER_INPUT } from '@/web/ui/kit/identifier-input'
 import { Segmented } from '@/web/ui/kit/segmented'
 
 export const PRICE_FIELD_ID = 'trade-price'
+export const TICKER_FIELD_ID = 'trade-ticker'
 const MAIN_KINDS: readonly LedgerKind[] = Object.freeze(['buy', 'sell'])
 // The third button: it opens the menu of every other kind, on its first entry.
 const OTHER_CHOICE = 'other'
@@ -163,12 +164,12 @@ export function Field({ id, label, message, hint, isWide, children }: FieldProps
 export function TickerField({ form }: { readonly form: TradeForm }) {
   return (
     <Field
-      id="trade-ticker"
+      id={TICKER_FIELD_ID}
       label={tr('ui.office.common.ticker')}
       message={messageFor(form, 'instrument.ticker', 'instrument.market')}
     >
       <input
-        id="trade-ticker"
+        id={TICKER_FIELD_ID}
         type="text"
         class="mono"
         {...IDENTIFIER_INPUT}

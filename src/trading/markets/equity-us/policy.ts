@@ -85,7 +85,7 @@ export const US_UNIVERSE_STALE_MS = 7 * MS_PER_DAY
  *  market. */
 export const US_MINIMUM_UNIVERSE_SIZE = 5_000
 
-/** The board is the equities ranked by capitalisation: wide enough that a screen has a market to
+/** The board is the equities ranked by capitalization: wide enough that a screen has a market to
  *  choose from, narrow enough that a refresh asks the provider for hundreds of names, not
  *  thousands. The refresh keeps snapshots for a few dozen beyond it, so a held name that slips just
  *  past the rank stays on the board and keeps its evidence. */

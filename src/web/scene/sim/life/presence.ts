@@ -5,7 +5,7 @@ import type { ActorId, FloorId, LifeLine, RoomId } from '@/web/scene/types'
 import type { OfficeLife } from '@/web/scene/world/regions'
 import type { ClockParts } from '@/web/text/time'
 import { pageMinute } from '@/web/scene/clock/clock'
-import { homeMarket, regionPack } from '@/web/scene/data/home'
+import { regionPack } from '@/web/scene/data/home'
 import { isWalking } from '@/web/scene/sim/actors/walk'
 import { isLampNight } from '@/web/scene/sim/lamps'
 import { drawBetween } from '@/web/scene/sim/life/state'
@@ -14,6 +14,7 @@ import { STREET_DOOR } from '@/web/scene/world/doors'
 import { isInRange } from '@/web/scene/world/regions'
 import { roomAt } from '@/web/scene/world/rooms'
 import { findRun } from '@/web/state/live'
+import { homeMarket } from '@/web/state/market'
 import { forgetNightLamps } from '@/web/state/prefs'
 import { formatRunName } from '@/web/text/run-name'
 
@@ -92,7 +93,7 @@ export function napGlowOf(): number {
 export function stepPresence(state: LifeState, step: LifeStep): void {
   const { rhythm } = state
 
-  if (homeMarket.value !== undefined) {
+  if (homeMarket() !== undefined) {
     const isInstant = !step.canWalk || isJump(rhythm.seenAt, step.clock)
 
     settleTrips(state, step)

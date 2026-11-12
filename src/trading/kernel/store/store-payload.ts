@@ -7,12 +7,17 @@ import { type CaveatCode, isCaveatCode } from '@/trading/kernel/caveat'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { SOURCE_FRESHNESS } from '@/trading/kernel/source/source-result'
 
+/** One schema entry per key a stored type carries, so a key added to the type fails the typecheck at
+ *  its schema (`z.strictObject({...} satisfies StoredShape<T>)`) instead of making every stored row
+ *  unreadable. Pass the keys the payload holds when columns or derived values carry the rest. */
+export type StoredShape<T> = { readonly [K in keyof Required<T>]: z.ZodType }
+
 /** Caveats and provenance are stored as codes and stamps, never as localized prose: the renderer
  *  owns wording, so a locale change must not require rewriting history. */
 const caveatSchema = z.strictObject({
   code: z.string(),
   detail: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
-})
+} satisfies StoredShape<Omit<Caveat, 'severity'>>)
 
 /** A code the catalog has since retired is dropped on read, the way the renderer drops a message it
  *  can no longer fill. Refusing the whole row instead held every ticker with an old caveat for the
@@ -28,7 +33,7 @@ export const provenanceSchema = z.strictObject({
   fetchedAt: z.number().finite(),
   freshness: z.enum(SOURCE_FRESHNESS),
   observedAt: z.number().finite().optional(),
-})
+} satisfies StoredShape<SourceProvenance>)
 
 function toCaveat(code: CaveatCode, detail: Caveat['detail']): Caveat {
   return detail === undefined ? { code } : { code, detail }

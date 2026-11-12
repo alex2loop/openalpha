@@ -1,7 +1,7 @@
 import type { Point } from '@/web/scene/types'
 import { createSpriteCache } from '@/web/scene/sprites/sprite-cache'
 
-// Device px per world px where the street's detail steps up: flat colours below the first, signs
+// Device px per world px where the street's detail steps up: flat colors below the first, signs
 // and wordmarks from it, fine detail from the second.
 const DETAIL_STEPS = [2.2, 5] as const
 // The static canvas's px per world px at each detail level: a close zoom paints it finer, and the

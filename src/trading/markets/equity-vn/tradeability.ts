@@ -201,7 +201,7 @@ export function resolveDirectionBlock(
   return { kind: 'allowed' }
 }
 
-/** The cap less current foreign ownership, valued at the company's capitalisation so the answer is
+/** The cap less current foreign ownership, valued at the company's capitalization so the answer is
  *  money an order can be filled from. Room that cannot be measured passes: unmeasured is not the
  *  same claim as exhausted. */
 export function hasForeignRoom(

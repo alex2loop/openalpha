@@ -128,6 +128,8 @@ const MODEL_RE = /(?<![-{\w`.[/_])model(?![\w}\]`_-])(?! Context Protocol)/i
 const BARE_ORDER_RE = /(?<!câu |dòng )\blệnh(?!\s+gọi)/i
 const BARE_ORDER_WHY =
   'a bare "lệnh" is an exchange order; a command the operator types is "câu lệnh"'
+/** The same word inside a key that also talks about placing an order: `đặt lệnh` stays. */
+const BARE_TYPED_COMMAND_RE = /(?<!câu |dòng |đặt )\blệnh(?!\s+gọi)/i
 /** `bán` alone instructs a sell-out. `bán bớt` is explicitly partial, which is what a reduce is. */
 const BARE_SELL_RE = /\bbán(?!\s+bớt)/i
 /** The one namespace holding both vocabularies: every trading command is named `slash.trading*`,
@@ -152,16 +154,57 @@ const ORDER_SCOPES: readonly TermScope[] = Object.freeze([
   { key: 'channel.' },
   { key: 'pairing.' },
   { key: 'slash.', except: SLASH_TRADING },
+  { key: 'cli.', except: ['cli.doctorSafetyUnattended', 'cli.doctorVenueTradingOff'] },
+  {
+    key: 'errors.',
+    except: [
+      'errors.apiOrdersOff',
+      'errors.jobCommandUnattended',
+      'errors.ledgerTransferSameVenue',
+      'errors.orderNoExchangeAccount',
+    ],
+  },
+  { key: 'ui.replHelp' },
+  { key: 'ui.office.command.', except: ['ui.office.command.placeholderPhone'] },
+  { key: 'ui.office.edition.legal.privacy.' },
+  { key: 'ui.office.keys.' },
+  { key: 'ui.office.signIn.' },
+  { key: 'ui.office.stale.' },
+  { key: 'ui.office.update.' },
+])
+
+/** Keys under `trading.` and `slash.trading*`, which the order rule above leaves out, that still
+ *  name a command the operator types. */
+const TYPED_COMMAND_KEYS = Object.freeze([
+  'slash.tradingSourcesUsage',
+  'slash.tradingReflectUsage',
+  'trading.render.themes.scoreLegend',
+])
+
+/** Keys that grade or size a suggestion, which is "đề xuất" whether or not the page also talks about
+ *  the orders it leads to. The reduce, cap and crowding keys beside them mean a real trade and stay out. */
+const SUGGESTION_KEYS = Object.freeze([
+  'trading.caveat.suggestion.size-realized-scale',
+  'trading.render.suggestion.planReview',
+  'trading.render.suggestion.planReviewFund',
+  'trading.render.suggestion.planTakeProfitFund',
+  'trading.render.suggestion.planTimeStop',
+  'trading.scored.',
 ])
 
 const TERM_RULES: readonly TermRule[] = Object.freeze([
   ...SESSION_SCOPES.map((scope) => ({ ...scope, forbidden: [BARE_SESSION_RE], why: BARE_SESSION_WHY })),
   ...ORDER_SCOPES.map((scope) => ({ ...scope, forbidden: [BARE_ORDER_RE], why: BARE_ORDER_WHY })),
-  {
-    key: 'trading.focus.',
+  ...['trading.focus.', ...SUGGESTION_KEYS].map((key) => ({
+    key,
     forbidden: [BARE_ORDER_RE],
-    why: 'a resolved suggestion is "đề xuất"; a bare "lệnh" is an exchange order',
-  },
+    why: 'a suggestion is "đề xuất"; a bare "lệnh" is an exchange order',
+  })),
+  ...TYPED_COMMAND_KEYS.map((key) => ({
+    key,
+    forbidden: [BARE_TYPED_COMMAND_RE],
+    why: 'a command the operator types is "câu lệnh"; a bare "lệnh" is an exchange order',
+  })),
   ...REDUCE_KEYS.map((key) => ({ key, forbidden: REDUCE_BUY_TERMS, why: REDUCE_LEVELS_WHY })),
   {
     key: 'trading.action.reduce',
@@ -237,6 +280,11 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
     key: EVERY_KEY,
     forbidden: [/(?:lượt|lần) chạy/i],
     why: 'one execution is "phiên chạy"; "lượt" alone is the turn inside it, so "lượt chạy" names the smaller thing with the bigger word',
+  },
+  {
+    key: EVERY_KEY,
+    forbidden: [/(?:lệnh|lần) gọi (?:AI|mô hình|LLM)/i],
+    why: 'one model call is "lượt gọi"; "lệnh gọi" stays for a tool or API call',
   },
   {
     key: EVERY_KEY,

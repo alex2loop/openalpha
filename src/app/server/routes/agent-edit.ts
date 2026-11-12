@@ -203,22 +203,39 @@ async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response>
     throw fieldRefusal('id', 'id_fixed')
   }
 
-  const path = userAgentFile(ctx.app.config.paths.dataDir, id)
-  const existing = await readOwnFile(path)
+  const built = await editIfPresent(ctx, { id, body })
 
   // The file went after the registry last read it: the agent is gone.
-  if (existing === null) {
+  if (built === null) {
     return apiError('not_found')
   }
-
-  const toml = toAgentToml(body, toolNamesOf(ctx), existing)
-  const built = buildFrom(ctx, id, toml)
-
-  await replacePrivateFileAtomic({ path, content: toml })
 
   const failed = await reloadRefusal(ctx)
 
   return failed ?? json(toAgentDetailWire(built, true) satisfies AgentDetailWire)
+}
+
+// One turn of the registry's serial queue, so an edit that lost the race to a delete finds the file gone.
+function editIfPresent(
+  ctx: ApiRouteContext,
+  edit: { readonly id: AgentId; readonly body: AgentWriteBody }
+): Promise<AgentProfile | null> {
+  const path = userAgentFile(ctx.app.config.paths.dataDir, edit.id)
+
+  return ctx.app.resolve('liveAgents').serialize(async () => {
+    const existing = await readOwnFile(path)
+
+    if (existing === null) {
+      return null
+    }
+
+    const toml = toAgentToml(edit.body, toolNamesOf(ctx), existing)
+    const built = buildFrom(ctx, edit.id, toml)
+
+    await replacePrivateFileAtomic({ path, content: toml })
+
+    return built
+  })
 }
 
 async function readOwnFile(path: string): Promise<string | null> {
@@ -247,40 +264,57 @@ async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Respons
     return apiError('invalid_body')
   }
 
-  const path = userAgentFile(ctx.app.config.paths.dataDir, id)
-  const known = ctx.app.resolve('agents').has(id)
+  const outcome = await ctx.app.resolve('liveAgents').serialize(() => removeAgent(ctx, id))
 
-  if (known && !isOwn(ctx, id)) {
-    return notEditable(ctx, id)
+  if (outcome.kind === 'refused') {
+    return outcome.response
   }
-
-  // A file the last reload skipped is not in the registry but is still the operator's to remove.
-  if (!(known || (await Bun.file(path).exists()))) {
-    return apiError('not_found')
-  }
-
-  if (await ctx.app.resolve('socialService').isMember(id)) {
-    return apiError(
-      'conflict',
-      t(localeOf(ctx), 'cli.agentOnSocial', { agent: id, brand: BRAND.name })
-    )
-  }
-
-  const count = await pauseJobsOfAgent(ctx.app.resolve('jobStore'), id)
-
-  // Cleared so a later agent reusing the id is never born paused.
-  await ctx.app.resolve('agentPauseStore').resume([id])
-  await rm(dirname(path), { recursive: true, force: true })
 
   const failed = await reloadRefusal(ctx)
 
   // The agent is gone from disk either way, so the operator hears of it.
   ctx.app.resolve('bus').emit('daemon_notice', {
-    text: t(localeOf(ctx), deletedKey(count), { id, count }),
+    text: t(localeOf(ctx), deletedKey(outcome.paused), { id, count: outcome.paused }),
     at: Date.now(),
   })
 
-  return failed ?? json({ pausedSchedules: count } satisfies AgentDeletedWire)
+  return failed ?? json({ pausedSchedules: outcome.paused } satisfies AgentDeletedWire)
+}
+
+type RemoveOutcome =
+  | { readonly kind: 'refused'; readonly response: Response }
+  | { readonly kind: 'removed'; readonly paused: number }
+
+// One turn of the registry's serial queue, so no edit lands between the checks and the removal.
+async function removeAgent(ctx: ApiRouteContext, id: AgentId): Promise<RemoveOutcome> {
+  const path = userAgentFile(ctx.app.config.paths.dataDir, id)
+  const known = ctx.app.resolve('agents').has(id)
+
+  if (known && !isOwn(ctx, id)) {
+    return { kind: 'refused', response: notEditable(ctx, id) }
+  }
+
+  // A file the last reload skipped is not in the registry but is still the operator's to remove.
+  if (!(known || (await Bun.file(path).exists()))) {
+    return { kind: 'refused', response: apiError('not_found') }
+  }
+
+  if (await ctx.app.resolve('socialService').isMember(id)) {
+    const conflict = apiError(
+      'conflict',
+      t(localeOf(ctx), 'cli.agentOnSocial', { agent: id, brand: BRAND.name })
+    )
+
+    return { kind: 'refused', response: conflict }
+  }
+
+  const paused = await pauseJobsOfAgent(ctx.app.resolve('jobStore'), id)
+
+  // Cleared so a later agent reusing the id is never born paused.
+  await ctx.app.resolve('agentPauseStore').resume([id])
+  await rm(dirname(path), { recursive: true, force: true })
+
+  return { kind: 'removed', paused }
 }
 
 async function handleReload(_req: Request, ctx: ApiRouteContext): Promise<Response> {

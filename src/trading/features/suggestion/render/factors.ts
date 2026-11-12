@@ -14,7 +14,6 @@ import { scoreBand } from '@/trading/markets/factor-scoring'
 import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
-  formatFraction,
   formatScore,
   formatScoreValue,
   formatWholeFraction,
@@ -312,7 +311,7 @@ function recordLine(input: FactorSectionInput, factor: FactorResult): string | u
 
   return t(input.locale, 'trading.render.suggestion.factorRecord', {
     reading: t(input.locale, `trading.attribution.${reading}`),
-    rate: formatFraction(input.locale, bucket.hitRate),
+    rate: formatWholeFraction(input.locale, bucket.hitRate),
     hits: formatCount(input.locale, bucket.hitCount),
     count: formatCount(input.locale, bucket.resolvedCount),
   })

@@ -13,6 +13,7 @@ import type {
   CurrencyCode,
   InstrumentRef,
   PriceDisplay,
+  QuoteUnit,
   TradingDay,
 } from '@/trading/kernel/instrument'
 import type { MacroSeriesId } from '@/trading/kernel/market/macro-series'
@@ -77,6 +78,9 @@ export interface AnalysisRecord {
   readonly boardScale?: { readonly currency: CurrencyCode; readonly display: PriceDisplay }
   /** The currency the money readings are in. Absent on a row stored before it was kept. */
   readonly currency?: CurrencyCode
+  /** The measure the prices are per, where the ticker does not imply it (world gold: per ounce).
+   *  Absent on a row stored before it was kept, which prints the bare currency. */
+  readonly quoteUnit?: QuoteUnit
   /** The medians of the name's own sector, beside the readings of the name that have one. Absent
    *  where the market has no sector view of the name or the sector is too thin to state one. */
   readonly sector?: NonNullable<NameContext['sector']>
@@ -99,7 +103,7 @@ export interface AnalysisRecord {
 }
 
 export type AnalysisFailure =
-  /** The name could not be analysed, for the reason `/suggest` would give. */
+  /** The name could not be analyzed, for the reason `/suggest` would give. */
   | {
       readonly kind: 'refused'
       readonly refusal: Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>

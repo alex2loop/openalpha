@@ -311,7 +311,7 @@ function isCompleteTable(lines: readonly string[]): boolean {
 
 /** A grid padded past the terminal wraps mid-cell, and every column below the wrap stops lining
  *  up — the shape that carried the meaning is the first thing lost. Too narrow, each row becomes
- *  its own block instead, labelled by the header. Nothing is truncated: a board is data, and a
+ *  its own block instead, labeled by the header. Nothing is truncated: a board is data, and a
  *  clipped price reads as a different number. */
 function renderTable(lines: readonly string[]): string {
   const header = tableCells(lines[0] ?? '')

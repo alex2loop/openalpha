@@ -177,7 +177,7 @@ interface AnalysisCall {
   readonly ctx: SlashContext
 }
 
-// Without a key no model call is made: a name no key could analyse says why, as on the installed
+// Without a key no model call is made: a name no key could analyze says why, as on the installed
 // version, and any other name gets the line that says which key unlocks it. Saying why reads the
 // name, which may ask a data provider.
 async function analyse(

@@ -20,6 +20,7 @@ import {
   PRICE_FIELD_ID,
   PricedFields,
   shownPaths,
+  TICKER_FIELD_ID,
   useVenues,
 } from '@/web/ui/dialogs/trade-fields'
 import { FxFailure, RateField, usePreview } from '@/web/ui/dialogs/trade-fx'
@@ -107,7 +108,7 @@ function TradeBody({ open }: { readonly open: OpenTrade }) {
           question={question.value}
           isBusy={form.isBusy.value}
           onConfirm={() => confirm(open)}
-          onEdit={() => editPrice(form)}
+          onEdit={() => editQuestioned(form)}
         />
       )}
     </div>
@@ -150,9 +151,11 @@ function canSave(form: TradeForm): boolean {
   )
 }
 
-function editPrice(form: TradeForm): void {
+function editQuestioned(form: TradeForm): void {
+  const fieldId = form.question.value?.isName === true ? TICKER_FIELD_ID : PRICE_FIELD_ID
+
   form.question.value = undefined
-  document.getElementById(PRICE_FIELD_ID)?.focus()
+  document.getElementById(fieldId)?.focus()
 }
 
 interface Attempt {
@@ -161,19 +164,17 @@ interface Attempt {
   readonly key: string
 }
 
-// `unconfirmed` lets the daemon compare a trade's price with the market; a price it doubts comes
+// `unconfirmed` lets the daemon compare a trade's price and name with the market; one it doubts comes
 // back as a question, and only the operator's yes sends the same draft as `confirmed`. A row with no
-// price is sent as it stands.
+// price or name is sent as it stands: nothing there to doubt.
 function submit(open: OpenTrade): void {
   begin(open, (draft, key) =>
-    shapeOf(draft.kind) === 'priced'
-      ? submitWithPriceConfirm(
-          (typedPrice) => write(open.form, { draft, typedPrice, key }),
-          (question) => {
-            open.form.question.value = question
-          }
-        )
-      : write(open.form, { draft, key })
+    submitWithPriceConfirm(
+      (typedPrice) => write(open.form, { draft, typedPrice, key }),
+      (question) => {
+        open.form.question.value = question
+      }
+    )
   )
 }
 
@@ -243,7 +244,7 @@ function askDelete(entry: LedgerEntryWire): void {
   })
 }
 
-// The operator recorded this row once, so its price is theirs to stand by. A row in another
+// The operator recorded this row once, so its price and name are theirs to stand by. A row in another
 // currency states its booked rate again only where the daemon still asks for one.
 async function restoreTrade(entry: LedgerEntryWire, key: string): Promise<undefined> {
   const draft = toLedgerDraft(entry)
@@ -252,8 +253,5 @@ async function restoreTrade(entry: LedgerEntryWire, key: string): Promise<undefi
     rate === undefined ? {} : await previewLedger({ draft }, new AbortController().signal)
   const stated = withStatedRate(draft, preview.fxRate === undefined ? undefined : rate)
 
-  await recordTrade(
-    { draft: stated, ...(shapeOf(draft.kind) === 'priced' ? { typedPrice: 'confirmed' } : {}) },
-    key
-  )
+  await recordTrade({ draft: stated, typedPrice: 'confirmed' }, key)
 }

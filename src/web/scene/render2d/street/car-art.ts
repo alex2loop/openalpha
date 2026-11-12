@@ -91,7 +91,7 @@ interface Cabin {
 }
 
 /** A car or taxi seen from the side on the north street, or end on in a side street, in its
- *  pack colour; a taxi carries its roof sign. */
+ *  pack color; a taxi carries its roof sign. */
 export function paintCar(art: Art): void {
   const { vehicle, pack } = art
   const colours = pack.vehicles.colours

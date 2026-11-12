@@ -158,13 +158,21 @@ function levelSection(kind: BriefSectionKind, rows: readonly BriefAlertRow[]): B
   })
 }
 
+/** A dealer board's price is its buy side, so it prints under the board's own buy cell. */
 function toLevelRow(row: BriefAlertRow): BriefSectionRow {
   return {
     ticker: row.instrument.ticker,
     condition: row.condition,
     threshold: row.threshold,
-    observedPrice: row.observedPrice,
-    ...(row.currency === undefined || row.board !== undefined ? {} : { currency: row.currency }),
+    ...(row.dealerBoard === true
+      ? { buyPrice: row.observedPrice }
+      : { observedPrice: row.observedPrice }),
+    ...(row.currency === undefined || row.board !== undefined
+      ? {}
+      : {
+          currency: row.currency,
+          ...(row.quoteUnit === undefined ? {} : { quoteUnit: row.quoteUnit }),
+        }),
   }
 }
 

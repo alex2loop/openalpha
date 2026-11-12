@@ -266,7 +266,7 @@ function traderRow(view: DebateView, debate: StoredDebateFull): string {
   )
 }
 
-/** The conditions a `wait` is waiting on, labelled once with the rest indented under the label, and
+/** The conditions a `wait` is waiting on, labeled once with the rest indented under the label, and
  *  a size the trader asked to cut. Full policy size is the default the deterministic sizer already
  *  applies, so naming it would add a line that says nothing; on a held run only a refusal names its
  *  size, because any other reads as an order the verdict just declined. */

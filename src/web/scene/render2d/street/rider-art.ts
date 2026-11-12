@@ -14,7 +14,7 @@ import { type Art, dirOf, fill, isAlongX, toneOf } from '@/web/scene/render2d/st
 import { PALETTE } from '@/web/scene/sprites/palette'
 import { tr } from '@/web/text/tr'
 
-// Plain colours only: no maker's paint, no mark on a jacket or a box.
+// Plain colors only: no maker's paint, no mark on a jacket or a box.
 const BODY_TONES: Readonly<Record<BikeShape, readonly string[]>> = Object.freeze({
   'step-through': ['#C23B3B', '#2B2E36', '#2F5D9E', '#E8E6E0', '#3C8A5C'],
   scooter: ['#E8E6E0', '#B33A3A', '#2F5D9E', '#2B2E36', '#9AA3AE', '#C9B98A'],
@@ -63,7 +63,7 @@ const HAILING_TONES = ['#4DAE78', '#35A5B2', '#E56A3E'] as const
 const MASK_TONES = ['#E9E6DD', '#7FB3D9', '#2E3340', '#E9E6DD'] as const
 const PANT_TONES = ['#2E3340', '#3B4458', '#5B6272', '#2D3A4F', '#7A6E5C'] as const
 const PUPIL = Object.freeze({ shirt: '#F2F0EA', pants: '#2D3A4F' })
-// Shares out of a hundred: helmets (a sport rider favours a full face), side-saddle pillions.
+// Shares out of a hundred: helmets (a sport rider favors a full face), side-saddle pillions.
 const HELMET_ROLL = Object.freeze({ fullSport: 60, half: 50, visor: 78 })
 const SIDE_SADDLE_ROLL = 27
 const ROLL_MIX = 2654435761
@@ -94,7 +94,7 @@ const TONES = Object.freeze({
   ink: '#FFFFFF',
   fallback: '#262932',
 })
-// Bits of the look seed each colour is drawn from.
+// Bits of the look seed each color is drawn from.
 const LOOK_BITS = Object.freeze({
   helmet: 3,
   jacket: 6,
@@ -269,7 +269,7 @@ interface Looks {
   readonly pants: string
 }
 
-// A standing person's colours from the look seed.
+// A standing person's colors from the look seed.
 function looksOf(art: Art): Looks {
   const { look } = art.vehicle
 
@@ -279,8 +279,8 @@ function looksOf(art: Art): Looks {
   }
 }
 
-// The model art for a motorbike: every colour from the look seed; a ride-hailing or delivery
-// rider wears a plain jacket, a delivery box in its colour.
+// The model art for a motorbike: every color from the look seed; a ride-hailing or delivery
+// rider wears a plain jacket, a delivery box in its color.
 function modelOf(art: Art): BikeArt {
   const { vehicle } = art
   const { look, gear } = vehicle

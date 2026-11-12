@@ -266,7 +266,7 @@ export interface ScreenResult {
 export interface SectorStrength {
   readonly sector: string
   readonly memberCount: number
-  /** This session's capitalisation-weighted move across members that traded it. The excess returns
+  /** This session's capitalization-weighted move across members that traded it. The excess returns
    *  below are 20- and 60-session leadership; this is the only field that answers "today". */
   readonly sessionReturn?: number
   /** Leadership over the index. Absent, with `score`, where the market's index series could not
@@ -341,6 +341,9 @@ export interface QuoteBoardItem {
   readonly ticker: Ticker
   readonly region: Region
   readonly currency: CurrencyCode
+  /** The measure `last` is per, so a row of one market beside another's does not read as comparable
+   *  numbers. */
+  readonly unit: QuoteUnit
   readonly kind: Exclude<InstrumentKind, 'fx'>
   readonly market: MarketRef
   readonly assetClass: AssetClass

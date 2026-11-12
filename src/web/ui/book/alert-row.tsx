@@ -2,7 +2,7 @@ import { useSignal } from '@preact/signals'
 
 import type { AlertWire } from '@/app/server/wire/market'
 import { formatDay } from '@/i18n'
-import { findQuote } from '@/web/state/market'
+import { findMarket, findQuote } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { disableAlert, restoreAlert } from '@/web/state/watch'
 import { formatMarketPrice } from '@/web/text/market-price'
@@ -25,16 +25,18 @@ interface AlertRowProps {
 export function AlertRow({ alert, withTicker }: AlertRowProps) {
   const failure = useSignal<string | undefined>(undefined)
   const dir = tr(`trading.alert.condition.${alert.condition}`)
-  const level = formatMarketPrice(
-    alert.instrument.market,
-    alert.threshold,
-    findQuote(alert.instrument.ticker, alert.instrument.market)
-  )
+  const quote = findQuote(alert.instrument.ticker, alert.instrument.market)
+  const level = formatMarketPrice(alert.instrument.market, alert.threshold, quote)
 
   return (
     <>
       <div class="row alert-row">
-        <AlertText alert={alert} withTicker={withTicker} words={{ dir, level }} />
+        <AlertText
+          alert={alert}
+          withTicker={withTicker}
+          words={{ dir, level }}
+          isBuySide={findMarket(alert.instrument.market)?.quotesDealerBoard === true}
+        />
         <AlertSetDate createdAt={alert.createdAt} />
         <button
           type="button"
@@ -53,9 +55,11 @@ export function AlertRow({ alert, withTicker }: AlertRowProps) {
 
 interface AlertTextProps extends AlertRowProps {
   readonly words: { readonly dir: string; readonly level: string }
+  /** A dealer board's alert watches the buy price, and the line says so. */
+  readonly isBuySide: boolean
 }
 
-function AlertText({ alert, withTicker, words }: AlertTextProps) {
+function AlertText({ alert, withTicker, words, isBuySide }: AlertTextProps) {
   const timeZone = state.value?.timeZone
   const firedAt =
     alert.state === 'active' || alert.state === 'disabled'
@@ -69,7 +73,7 @@ function AlertText({ alert, withTicker, words }: AlertTextProps) {
           <TickerLink ticker={alert.instrument.ticker} market={alert.instrument.market} />{' '}
         </b>
       )}
-      {tr('ui.office.book.alertLine', words)}
+      {tr(isBuySide ? 'ui.office.book.alertLineBuy' : 'ui.office.book.alertLine', words)}
       {firedAt !== undefined && timeZone !== undefined && (
         <span class="alert-fired">
           {' '}

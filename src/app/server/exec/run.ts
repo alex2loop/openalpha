@@ -40,7 +40,7 @@ export async function runExec(
     command = (await resolveCommandPath(argv, commands)).join(' ')
     logger.info('api.exec_started', { command })
 
-    // The whole command runs inside its terminal, so colour, width and prompts read the connection.
+    // The whole command runs inside its terminal, so color, width and prompts read the connection.
     const code = await withTerminal(terminal, () => runCli(execApp, argv, commands))
 
     if (code === 0 && AGENT_WRITE_COMMANDS.has(command)) {

@@ -253,7 +253,7 @@ thành viên khác vào phiên của mình. Zalo Personal điền nó từ `data
 - với một thông báo, chỉ nhãn của nó;
 - với mọi thứ khác, một dòng chỉ dẫn.
 
-Dòng chân của phiên chạy (chi phí LLM, token, số lần gọi mô hình) được giấu khỏi mô hình như một con số của
+Dòng chân của phiên chạy (chi phí LLM, token, số lượt gọi mô hình) được giấu khỏi mô hình như một con số của
 người vận hành: nó bị cắt khỏi nội dung tin được trả lời, và đoạn bôi chọn chạm vào nó thì lùi về cả phần
 thân không có dòng chân. Dòng chân gửi thành một tin riêng không bao giờ được ghi lại, nên trả lời vào nó
 chỉ nhận dòng chỉ dẫn. Một tin trong hộp thư được phát lại vẫn giữ `replyTo` nhưng gặp bảng rỗng sau khi
@@ -274,7 +274,7 @@ plugin khai báo không ghi đè được nó.
 
 ### Đoạn dẫn không bao giờ được lưu
 
-`runExchange` truyền ghi chú khoảng im lặng và đoạn dẫn trả lời qua `RunInput.lead`, một lần cho mỗi lượt
+`runExchange` truyền ghi chú khoảng im lặng và đoạn dẫn trả lời qua `RunInput.lead`, một lần cho mỗi phiên
 chạy. Engine thêm nó thành một tin người dùng tạm thời ngay trước lời của người vận hành, giống cách nó
 khôi phục danh sách việc cần làm: mô hình đọc được trong lượt đó, còn `history show` và lịch sử chat qua
 `/v1` chỉ hiện đúng những gì người vận hành đã gõ. Phiên, tuyến và lịch sử không đổi, và `/new` vẫn là cách

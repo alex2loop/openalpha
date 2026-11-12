@@ -1,7 +1,7 @@
 import type { HolidayId } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 
-// The crown colours of the Tết weeks (peach blossom, apricot) and of the Thanksgiving week
+// The crown colors of the Tết weeks (peach blossom, apricot) and of the Thanksgiving week
 // (orange, rust), for the crowns that are not green.
 const CROWNS: Readonly<Partial<Record<HolidayId, readonly [string, string]>>> = Object.freeze({
   tet: ['#F5A3BB', '#F6D24A'],
@@ -18,7 +18,7 @@ const GLOW_R = 1.7
 const GLOW_FROM_DARK = 0.3
 const GLOW_ALPHA = 0.3
 
-/** The crown colour a tree of this `look` wears on `holiday`: blossom in the Tết weeks and autumn
+/** The crown color a tree of this `look` wears on `holiday`: blossom in the Tết weeks and autumn
  *  leaves at Thanksgiving for all but the green look; none the rest of the year. */
 export function crownOf(holiday: HolidayId | undefined, look: number): string | undefined {
   const turn = look % LOOKS
@@ -30,7 +30,7 @@ export function crownOf(holiday: HolidayId | undefined, look: number): string | 
   return CROWNS[holiday]?.[turn - 1]
 }
 
-/** Christmas lights scattered over a crown centred at `x`, `y`: coloured bulbs, glowing after
+/** Christmas lights scattered over a crown centred at `x`, `y`: colored bulbs, glowing after
  *  dusk. */
 export function paintCrownLights(
   g: CanvasRenderingContext2D,

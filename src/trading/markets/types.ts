@@ -153,6 +153,9 @@ export interface MarketManifest {
    *  suggestion that says 27,550 makes the reader cross-check against a number their broker app
    *  never shows. Absent means prices render as plain amounts. */
   readonly priceDisplay?: PriceDisplay
+  /** Set where every quote is a dealer board: two sides, no last trade. A level on it is watched on
+   *  the buy side, so a surface naming that side asks this rather than reading a quote first. */
+  readonly quotesDealerBoard?: true
   readonly strategyVersion: string
   readonly calculationVersions: readonly CalculationVersion[]
   readonly factorIds: readonly FactorId[]

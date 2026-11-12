@@ -87,7 +87,7 @@ function withReadStamps(
 function pricesSection(overview: MarketDataOverview): BriefSectionResult | undefined {
   const rows = overview.rows.filter(isPricePair).map(toPriceRow)
 
-  return rows.length === 0 ? undefined : priceSection(overview, rows)
+  return rows.length === 0 ? undefined : priceSection(overview, { kind: 'market-prices', rows })
 }
 
 function quotesSection(overview: MarketDataOverview): BriefSectionResult | undefined {
@@ -402,7 +402,7 @@ function rangeSection(overview: MarketDataOverview): BriefSectionResult | undefi
     return undefined
   }
 
-  return readySection(overview, {
+  return priceSection(overview, {
     kind: 'range',
     rows: [
       { support: range.support, supportPct: range.supportPct },

@@ -34,11 +34,11 @@ type WireTopic =
   | 'preference_saved'
 
 /** The progress topics: their wire line is rendered (and may be dropped) before the event is built,
- *  so the normaliser takes it ready. */
+ *  so the normalizer takes it ready. */
 type ProgressTopic = 'run_progress' | 'command_progress'
 
 /** The topics whose wire line is the daemon's own sentence, rendered by the caller that holds the
- *  locale, so the normaliser takes it ready. */
+ *  locale, so the normalizer takes it ready. */
 type NotedTopic = 'order_filled' | 'budget_exhausted'
 
 // The bus carries the full ChannelId union; the v1 wire narrows to these. An unmapped channel

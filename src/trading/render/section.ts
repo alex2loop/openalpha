@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { CurrencyCode, TradingDay } from '@/trading/kernel/instrument'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type {
   BriefField,
   BriefSectionResult,
@@ -15,14 +15,14 @@ import { INDENT, INLINE_SEPARATOR, toRowLines } from '@/trading/render/layout'
 import { renderHeadlineCells } from '@/trading/render/price-pair'
 import { renderFactLines, toSectionFacts } from '@/trading/render/section-facts'
 import { renderSectionHeading, toUnavailableText } from '@/trading/render/section-heading'
-import { type PriceContext, toPricePair } from '@/trading/render/section-price'
-import { type RowUnit, renderValue } from '@/trading/render/section-values'
+import { type PriceContext, priceContextOf, toPricePair } from '@/trading/render/section-price'
+import { type RowUnit, renderValue, unitOfSection } from '@/trading/render/section-values'
 
 // Fields whose rendered value already says what it is: a ticker names itself, the side that crossed
 // the spread names itself, the price beside it is the only bare amount on the row, a signed percent
 // carries its own arrow and sign, and a driver is named by the series it points at under a section
 // header that already says these are the drivers.
-// Labelling them prints the field's own name at the reader ("change % ▲ 1,31%"), which is the
+// Labeling them prints the field's own name at the reader ("change % ▲ 1,31%"), which is the
 // mechanism, not the fact. Every other field keeps its label, because its number is ambiguous
 // without one. `valuePct` joins them because its only rows pair it with the `driver` that names it;
 // the basis, which used to share the field, now has `basisPct` and keeps its label. A board names
@@ -105,8 +105,8 @@ export function toBriefSectionText(
 
   const priceContext: PriceRowContext = {
     context,
+    price: priceContextOf(context.timezone, section),
     ...(section.asOf === undefined ? {} : { statedDay: section.asOf }),
-    ...(section.currency === undefined ? {} : { currency: section.currency }),
   }
 
   return {
@@ -137,7 +137,7 @@ function fieldRows(
   section: ReadySection,
   context: RenderContext
 ): readonly string[] {
-  const { currency } = section
+  const unit = unitOfSection(section)
   const [first, ...rest] = section.rows
 
   if (first === undefined) {
@@ -145,10 +145,8 @@ function fieldRows(
   }
 
   return [
-    ...toRowLines(headRowFacts(locale, first, unitOf(currency)), context, 1),
-    ...rest.flatMap((row) =>
-      toRowLines(labelledRowFacts(locale, row, unitOf(currency)), context, 1)
-    ),
+    ...toRowLines(headRowFacts(locale, first, unit), context, 1),
+    ...rest.flatMap((row) => toRowLines(labelledRowFacts(locale, row, unit), context, 1)),
   ]
 }
 
@@ -165,13 +163,7 @@ export function headRowFacts(
   if (entries.length === 1 && only !== undefined) {
     const [field] = only
 
-    return [
-      linkedValue(
-        locale,
-        renderValue(locale, only, unitOf(currencyOf(row, unit.currency), unit.stated)),
-        { field, row }
-      ),
-    ]
+    return [linkedValue(locale, renderValue(locale, only, rowUnitOf(row, unit)), { field, row })]
   }
 
   return labelledRowFacts(locale, row, unit)
@@ -179,7 +171,8 @@ export function headRowFacts(
 
 interface PriceRowContext {
   readonly context: RenderContext
-  readonly currency?: CurrencyCode
+  /** The clock and the unit a pair is read in, taken from the section the row sits under. */
+  readonly price: PriceContext
   /** The session the section's block already states, so a close of that day is not dated again. */
   readonly statedDay?: TradingDay
 }
@@ -193,7 +186,7 @@ function renderPriceRow(
   row: BriefSectionRow,
   price: PriceRowContext
 ): readonly string[] {
-  const pair = toPricePair(row, priceContextOf(price))
+  const pair = toPricePair(row, price.price)
   const { cells } =
     pair === undefined
       ? { cells: [] }
@@ -208,47 +201,36 @@ function renderPriceRow(
   return toRowLines([String(row.ticker ?? ''), ...cells], price.context, 1)
 }
 
-/** The clock and the unit a pair is read in, taken from the destination the row renders for. */
-function priceContextOf(price: PriceRowContext): PriceContext {
-  return {
-    timezone: price.context.timezone,
-    ...(price.currency === undefined ? {} : { currency: price.currency }),
-  }
-}
-
 /** For a row something above it names - a section title, or the field label it rides on. A lone
  *  value then needs no label of its own, because that namer already gave it one. */
-function renderRow(locale: Locale, row: BriefSectionRow, currency?: CurrencyCode): string {
+function renderRow(locale: Locale, row: BriefSectionRow): string {
   const entries = fieldEntries(row)
   const [only] = entries
 
   if (entries.length === 1 && only !== undefined) {
     const [field] = only
 
-    return linkedValue(locale, renderValue(locale, only, unitOf(currencyOf(row, currency))), {
-      field,
-      row,
-    })
+    return linkedValue(locale, renderValue(locale, only, rowUnitOf(row, {})), { field, row })
   }
 
-  return renderLabelledRow(locale, row, unitOf(currency))
+  return renderLabelledRow(locale, row)
 }
 
-/** Spread rather than assigned, because `exactOptionalPropertyTypes` rejects an absent currency
- *  handed over as a present-and-undefined field. */
-function unitOf(currency?: CurrencyCode, stated?: true): RowUnit {
+/** A row's own unit wins over its section's: a section states one unit for rows that share it, and a
+ *  row carries one only where its neighbours are quoted in something else - so a row naming its own
+ *  currency brings its own measure with it, never the section's. The row's is read back from an
+ *  untyped payload, so a value that is not a currency code falls through to the section's rather
+ *  than labeling the row with whatever was stored. */
+function rowUnitOf(row: BriefSectionRow, unit: RowUnit): RowUnit {
+  if (typeof row.currency !== 'string' || !isCurrencyCode(row.currency)) {
+    return unit
+  }
+
   return {
-    ...(currency === undefined ? {} : { currency }),
-    ...(stated === undefined ? {} : { stated }),
+    currency: row.currency,
+    ...(typeof row.quoteUnit === 'string' ? { quoteUnit: row.quoteUnit } : {}),
+    ...(unit.stated === undefined ? {} : { stated: unit.stated }),
   }
-}
-
-/** A row's own currency wins over its section's: a section states one unit for rows that share it,
- *  and a row carries one only where its neighbours are quoted in something else. The row's is read
- *  back from an untyped payload, so a value that is not a currency code falls through to the
- *  section's rather than labelling the row with whatever was stored. */
-function currencyOf(row: BriefSectionRow, currency?: CurrencyCode): CurrencyCode | undefined {
-  return typeof row.currency === 'string' && isCurrencyCode(row.currency) ? row.currency : currency
 }
 
 /** A row's values written the way this renderer prints them, for a reader handed the row without
@@ -256,9 +238,9 @@ function currencyOf(row: BriefSectionRow, currency?: CurrencyCode): CurrencyCode
 export function renderRowValues(
   locale: Locale,
   row: BriefSectionRow,
-  currency?: CurrencyCode
+  sectionUnit: RowUnit = {}
 ): Readonly<Record<string, string>> {
-  const unit = unitOf(currencyOf(row, currency))
+  const unit = rowUnitOf(row, sectionUnit)
 
   return Object.fromEntries(
     Object.entries(row).flatMap(([field, value]) =>
@@ -284,7 +266,7 @@ export function labelledRowFacts(
   row: BriefSectionRow,
   unit: RowUnit = {}
 ): readonly string[] {
-  const cells = unitOf(currencyOf(row, unit.currency), unit.stated)
+  const cells = rowUnitOf(row, unit)
   const params = labelParams(row)
 
   return fieldEntries(row).map((entry) => {

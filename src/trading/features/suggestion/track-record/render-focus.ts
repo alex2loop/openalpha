@@ -9,7 +9,7 @@ import { formatDay, pluralKey, t } from '@/i18n'
 import { hasAgreementSample } from '@/trading/features/suggestion/track-record/agreement'
 import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { renderFocusLabel } from '@/trading/render/focus'
-import { formatCount, formatFraction, SECTION_ICONS } from '@/trading/render/format'
+import { formatCount, formatWholeFraction, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, renderSectionTitle } from '@/trading/render/layout'
 
 interface Counts {
@@ -22,8 +22,8 @@ function countParams(locale: Locale, counts: Counts): Record<string, string> {
   return {
     count: formatCount(locale, counts.resolvedCount),
     wins: formatCount(locale, counts.winCount),
-    rate: counts.winRate === undefined ? '' : formatFraction(locale, counts.winRate),
-    range: counts.winRate === undefined ? '' : renderRateRange(locale, counts, formatFraction),
+    rate: counts.winRate === undefined ? '' : formatWholeFraction(locale, counts.winRate),
+    range: counts.winRate === undefined ? '' : renderRateRange(locale, counts, formatWholeFraction),
   }
 }
 
@@ -85,7 +85,7 @@ function renderAgreementLines(
 
   return [
     t(locale, 'trading.focus.agreement', {
-      pct: formatFraction(locale, agreement.matchedCount / agreement.comparedCount),
+      pct: formatWholeFraction(locale, agreement.matchedCount / agreement.comparedCount),
       count,
     }),
     ...(agreement.contrarianCount === 0

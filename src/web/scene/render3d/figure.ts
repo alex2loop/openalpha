@@ -33,7 +33,7 @@ export interface BuiltFigure {
   readonly parts?: readonly { readonly parent: Group; readonly geometry: BufferGeometry }[]
 }
 
-/** The colours a look is baked in; pastel, as the sprites' bodies. */
+/** The colors a look is baked in; pastel, as the sprites' bodies. */
 interface Tones {
   readonly skin: string
   readonly hair: string

@@ -1,17 +1,36 @@
+import { z } from 'zod'
+
+import type { Logger } from '@/core/logging/logger'
 import type {
   OrderSide,
   OrderType,
   StagedOrder,
   UnmirroredIntent,
 } from '@/trading/features/order/types'
+import type { ShownBreach } from '@/trading/kernel/operator/exposure'
+import type { StoredShape } from '@/trading/kernel/store/store-payload'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
-import { assertNotAborted } from '@/core/errors'
+import { assertNotAborted, StorageError } from '@/core/errors'
+import { formatErrForLog } from '@/core/security/credentials'
 import { marketRef, ticker, venueRef } from '@/trading/kernel/instrument'
+import { parseJson } from '@/trading/kernel/store/store-row'
 
 const COLUMNS =
   'token, client_order_id, market, ticker, venue, symbol, side, order_type, quantity, limit_price, ' +
-  'take_profit, stop_loss, quote_price, notional_base, created_at'
-const COLUMN_COUNT = 15
+  'take_profit, stop_loss, quote_price, notional_base, shown_breaches, created_at'
+const COLUMN_COUNT = 16
+
+const shownBreachesSchema = z.array(
+  z
+    .strictObject({
+      subject: z.string(),
+      combinedPctNav: z.number().finite().optional(),
+    } satisfies StoredShape<ShownBreach>)
+    .transform(
+      ({ subject, combinedPctNav }): ShownBreach =>
+        combinedPctNav === undefined ? { subject } : { subject, combinedPctNav }
+    )
+)
 
 interface IntentRow {
   readonly token: string
@@ -28,6 +47,8 @@ interface IntentRow {
   readonly stop_loss: number | null
   readonly quote_price: number
   readonly notional_base: number
+  /** JSON array of `ShownBreach`. Null on a row staged before the column existed. */
+  readonly shown_breaches: string | null
   readonly created_at: number
 }
 
@@ -99,7 +120,11 @@ export interface OrderIntentStore {
   sweepExpired(input: SweepInput): Promise<void>
 }
 
-export function createOrderIntentStore(deps: StoreDeps): OrderIntentStore {
+interface OrderIntentStoreDeps extends StoreDeps {
+  readonly logger: Logger
+}
+
+export function createOrderIntentStore(deps: OrderIntentStoreDeps): OrderIntentStore {
   return {
     stage: (order, signal) => stage(deps, order, signal),
     claim: (input) => claim(deps, input),
@@ -132,6 +157,7 @@ async function stage(deps: StoreDeps, order: StagedOrder, signal: AbortSignal): 
       order.stopLoss ?? null,
       order.quotePrice,
       order.notionalBase,
+      JSON.stringify(order.shownBreaches),
       order.createdAt,
     ]
   )
@@ -139,8 +165,12 @@ async function stage(deps: StoreDeps, order: StagedOrder, signal: AbortSignal): 
 
 /** The conditional update decides, not the read: two confirms racing both see an unconsumed row,
  *  and only the one whose `UPDATE` changes it may place. A row that already names an order or
- *  carries a failure was placed once and is never claimable. */
-async function claim(deps: StoreDeps, input: ClaimIntentInput): Promise<StagedOrder | undefined> {
+ *  carries a failure was placed once and is never claimable. The row is read before it is consumed,
+ *  so a row that cannot be read keeps its token rather than burning it. */
+async function claim(
+  deps: OrderIntentStoreDeps,
+  input: ClaimIntentInput
+): Promise<StagedOrder | undefined> {
   assertNotAborted(input.signal)
 
   const p = deps.dialect.param
@@ -156,17 +186,20 @@ async function claim(deps: StoreDeps, input: ClaimIntentInput): Promise<StagedOr
     return undefined
   }
 
+  const staged = toStagedOrder(row)
   const consumed = await deps.db.execute(
     `UPDATE order_intents SET consumed_at = ${p(1)} ` +
       `WHERE token = ${p(2)} AND consumed_at IS NULL AND order_id IS NULL AND failure IS NULL`,
     [input.now, input.token]
   )
 
-  return consumed.changes === 1 ? toStagedOrder(row) : undefined
+  return consumed.changes === 1 ? staged : undefined
 }
 
+/** A row that cannot be read leaves the list rather than failing it, so one bad row cannot take
+ *  `/trade` status down with it. */
 async function listStaged(
-  deps: StoreDeps,
+  deps: OrderIntentStoreDeps,
   input: StagedListInput
 ): Promise<readonly StagedOrder[]> {
   assertNotAborted(input.signal)
@@ -178,7 +211,24 @@ async function listStaged(
     [input.notBefore, input.limit]
   )
 
-  return rows.map(toStagedOrder)
+  return rows.flatMap((row) => readableIntent(deps, row))
+}
+
+function readableIntent(deps: OrderIntentStoreDeps, row: IntentRow): readonly StagedOrder[] {
+  try {
+    return [toStagedOrder(row)]
+  } catch (err: unknown) {
+    if (err instanceof StorageError) {
+      deps.logger.warn('order.intent_row_unreadable', {
+        token: row.token,
+        err: formatErrForLog(err),
+      })
+
+      return []
+    }
+
+    throw err
+  }
 }
 
 async function recordOutcome(deps: StoreDeps, input: OutcomeInput): Promise<void> {
@@ -265,7 +315,9 @@ async function sweepExpired(deps: StoreDeps, input: SweepInput): Promise<void> {
 }
 
 /** The `side` and `order_type` casts are safe because both columns carry a CHECK admitting exactly
- *  the literals of their union — the database refuses any other value at write time. */
+ *  the literals of their union — the database refuses any other value at write time. A row with no
+ *  `shown_breaches` reads as none shown, so every breach measured at its confirm is new and refuses
+ *  the order: a legacy row never lets an unseen ceiling through. */
 function toStagedOrder(row: IntentRow): StagedOrder {
   return {
     token: row.token,
@@ -278,6 +330,12 @@ function toStagedOrder(row: IntentRow): StagedOrder {
     quantity: row.quantity,
     quotePrice: row.quote_price,
     notionalBase: row.notional_base,
+    shownBreaches:
+      row.shown_breaches === null
+        ? []
+        : parseJson(row.shown_breaches, 'staged order breaches', (value) =>
+            shownBreachesSchema.parse(value)
+          ),
     createdAt: row.created_at,
     ...(row.limit_price === null ? {} : { limitPrice: row.limit_price }),
     ...(row.take_profit === null ? {} : { takeProfit: row.take_profit }),

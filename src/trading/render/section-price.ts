@@ -1,14 +1,28 @@
-import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { CurrencyCode, QuoteUnit } from '@/trading/kernel/instrument'
 import type { PreviousClose } from '@/trading/kernel/market/market-capability'
 import type { BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import type { LiveReading, PricePair } from '@/trading/render/price-pair'
 import { tradingDay } from '@/trading/kernel/instrument'
 
 /** What the section states about every price under it: the reader's clock, and the unit its prices
- *  are quoted in where they have one. */
+ *  are quoted in where they have one - the currency, and the measure it is per where the ticker does
+ *  not imply it. */
 export interface PriceContext {
   readonly timezone: string
   readonly currency?: CurrencyCode
+  readonly unit?: QuoteUnit
+}
+
+/** The context a ready section gives every price row under it. */
+export function priceContextOf(
+  timezone: string,
+  section: { readonly currency?: CurrencyCode; readonly quoteUnit?: QuoteUnit }
+): PriceContext {
+  return {
+    timezone,
+    ...(section.currency === undefined ? {} : { currency: section.currency }),
+    ...(section.quoteUnit === undefined ? {} : { unit: section.quoteUnit }),
+  }
 }
 
 /** The pair a section row can actually state: a settled close, a live reading, or both. Absent when
@@ -23,8 +37,7 @@ export function toPricePair(row: BriefSectionRow, context: PriceContext): PriceP
   }
 
   return {
-    timezone: context.timezone,
-    ...(context.currency === undefined ? {} : { currency: context.currency }),
+    ...context,
     ...(previousClose === undefined ? {} : { previousClose }),
     ...(live === undefined ? {} : { live }),
   }

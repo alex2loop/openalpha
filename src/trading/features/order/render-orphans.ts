@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { OrphanExit } from '@/trading/features/order/types'
+import type { OrphanExit } from '@/trading/features/order/exit-coverage'
 import type { VenueRef } from '@/trading/kernel/instrument'
 import { t } from '@/i18n'
 import {

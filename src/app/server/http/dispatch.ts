@@ -15,7 +15,7 @@ import { ChannelError, ConflictError, isCancellation, ValidationError } from '@/
 import { FieldValidationError } from '@/core/field-errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { bindLocale, t } from '@/i18n'
-import { PriceUnconfirmedError } from '@/trading/api'
+import { InstrumentUnlistedError, PriceUnconfirmedError } from '@/trading/api'
 
 export const SET_COOKIE = 'Set-Cookie'
 const PARAM_PREFIX = ':'
@@ -249,6 +249,10 @@ function toErrorExtras(locale: Locale, err: unknown): ApiErrorExtras {
 export function toErrorCode(err: unknown): ApiErrorCode {
   if (err instanceof PriceUnconfirmedError) {
     return 'price_unconfirmed'
+  }
+
+  if (err instanceof InstrumentUnlistedError) {
+    return 'name_unlisted'
   }
 
   if (err instanceof ValidationError) {

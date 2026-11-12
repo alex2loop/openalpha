@@ -73,7 +73,7 @@ export function syncLamps(fixtures: LampPools, frame: LampFrame): boolean {
 }
 
 // As the mockup's: every pool shares one strength, blended over the floor by day and added to it
-// by night; the instances carry the bare warm colour.
+// by night; the instances carry the bare warm color.
 function blendLampPools(
   material: MeshBasicMaterial,
   at: { readonly isNight: boolean; readonly lampGlow: number }
@@ -156,7 +156,7 @@ function placeDeskLamps(fixtures: LampPools, frame: LampFrame): void {
 }
 
 /** A soft round glow lying on the floor, or tilted to face the camera. */
-export // Additive light: the instance colour is the light's colour times its strength.
+export // Additive light: the instance color is the light's color times its strength.
 function glowAt(
   pool: Pool,
   spec: {

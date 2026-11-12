@@ -18,26 +18,35 @@ export function readySection(
   overview: MarketDataOverview,
   section: ReadySection
 ): BriefSectionResult {
-  return { ...openSection(overview, section), currency: overview.currency }
+  return {
+    ...openSection(overview, section),
+    currency: overview.currency,
+    ...(overview.quoteUnit === undefined ? {} : { quoteUnit: overview.quoteUnit }),
+  }
 }
 
-/** The prices block, whose currency is what its prices are quoted in rather than what this market's
- *  money is. The two differ wherever a market publishes levels: an index is a number, and stamping
- *  it `VND` states a denomination it does not have. */
+/** A block of prices, whose currency is what its prices are quoted in rather than what this market's
+ *  money is, and whose unit goes with it. The two differ wherever a market publishes levels: an
+ *  index is a number, and stamping it `VND` states a denomination it does not have. */
 export function priceSection(
   overview: MarketDataOverview,
-  rows: readonly BriefSectionRow[]
+  section: ReadySection
 ): BriefSectionResult {
   return {
-    ...openSection(overview, { kind: 'market-prices', rows }),
-    ...(overview.priceCurrency === undefined ? {} : { currency: overview.priceCurrency }),
+    ...openSection(overview, section),
+    ...(overview.priceCurrency === undefined
+      ? {}
+      : {
+          currency: overview.priceCurrency,
+          ...(overview.quoteUnit === undefined ? {} : { quoteUnit: overview.quoteUnit }),
+        }),
   }
 }
 
 function openSection(
   overview: MarketDataOverview,
   { kind, rows, titleParams }: ReadySection
-): Omit<Extract<BriefSectionResult, { status: 'ready' }>, 'currency'> {
+): Omit<Extract<BriefSectionResult, { status: 'ready' }>, 'currency' | 'quoteUnit'> {
   return {
     kind,
     market: overview.market,

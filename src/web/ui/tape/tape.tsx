@@ -1,12 +1,14 @@
 import { useSignal } from '@preact/signals'
 import { useEffect, useRef } from 'preact/hooks'
 
+import { namesQuoteUnit } from '@/i18n'
 import { isFirstRunOver } from '@/web/state/first-run'
-import { freshCalls, keyOf, stopBreaches } from '@/web/state/market'
+import { findMarket, freshCalls, keyOf, stopBreaches } from '@/web/state/market'
 import { reducedMotion } from '@/web/state/prefs'
 import { type TapeRow, tapeRows } from '@/web/state/tape'
 import { formatPrice, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
+import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
 
@@ -79,13 +81,21 @@ function TapeCell({ row, note, isCopy }: TapeCellProps) {
       <b>
         <TickerLink ticker={row.ticker} market={row.market} isHidden={isCopy} />
       </b>
-      <span class="tape-price">{formatPrice(row.price, row.display)}</span>
+      <span class="tape-price">{formatTapePrice(row)}</span>
       <span>{joinInline([formatSignedPercent(row.changePct), ...noteOf(note)])}</span>
     </span>
   )
 }
 
-// The mark a breach or a fresh call adds after the move, in the pill's own colour.
+// A share or a coin prints as its figure; a market whose unit its ticker does not imply (gold) names
+// it beside the currency, as every other price does.
+function formatTapePrice(row: TapeRow): string {
+  return namesQuoteUnit(findMarket(row.market)?.quoteUnit)
+    ? formatMarketPrice(row.market, row.price, { isLevel: row.display === undefined })
+    : formatPrice(row.price, row.display)
+}
+
+// The mark a breach or a fresh call adds after the move, in the pill's own color.
 function noteOf(note: Note): readonly string[] {
   if (note === undefined) {
     return []

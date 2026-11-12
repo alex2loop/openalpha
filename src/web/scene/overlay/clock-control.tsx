@@ -13,7 +13,8 @@ import {
   sceneZone,
   setClock,
 } from '@/web/scene/clock/clock'
-import { homeMarket, regionPack } from '@/web/scene/data/home'
+import { regionPack } from '@/web/scene/data/home'
+import { homeMarket } from '@/web/state/market'
 import { reducedMotion } from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
 import { formatClock, formatHourOfDay } from '@/web/text/time'
@@ -130,7 +131,7 @@ function ClockBody() {
 
 // Named only when the office keeps another zone than the operator's.
 function ZoneNote() {
-  const market = homeMarket.value
+  const market = homeMarket()
 
   const timeZone = state.value?.timeZone
 

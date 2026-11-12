@@ -172,6 +172,14 @@ export function homeRegion(): string | undefined {
   return marketsBlock.view.value.data?.homeRegion
 }
 
+/** The market that owns the operator's region: its calendar dates the ledger's day. Absent until the
+ *  markets are read. */
+export function homeMarket(): MarketWire | undefined {
+  const region = homeRegion()
+
+  return knownMarkets.value.find((market) => market.region === region && market.ownsRegion)
+}
+
 /** A market in this phase still trades today: open, or in its lunch break. */
 export function isTradingPhase(phase: SessionPhase): boolean {
   return TRADING_PHASES.has(phase)

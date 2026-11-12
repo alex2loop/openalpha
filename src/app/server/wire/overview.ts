@@ -60,7 +60,7 @@ export interface OverviewMoverWire {
   readonly turnover: number
 }
 
-/** One reading, written as the CLI lists it: the label capitalised and the value with its unit.
+/** One reading, written as the CLI lists it: the label capitalized and the value with its unit.
  *  Where it stands against its own history is left out: this wire states readings, not placings. */
 interface OverviewFactWire {
   readonly id: string

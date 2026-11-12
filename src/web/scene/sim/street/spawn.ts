@@ -15,7 +15,7 @@ const SPAWN_GAP_PX = 6
 const EDGE_GAP_PX = 2
 const PACE_FROM = 0.88
 const PACE_SPAN = 0.24
-/** A vehicle's look seed is drawn below this: enough bits for every colour a painter takes from it. */
+/** A vehicle's look seed is drawn below this: enough bits for every color a painter takes from it. */
 export const LOOK_SEEDS = 0x4_00_00
 // Length along the way and width across it, in world px.
 const SIZES: Readonly<Record<Exclude<VehicleKind, 'car'> | CarSize, readonly [number, number]>> =
@@ -95,7 +95,7 @@ function isClear(
   return true
 }
 
-// The look: size or shape from the pack's mix, the rider's gear and passenger, a colour seed.
+// The look: size or shape from the pack's mix, the rider's gear and passenger, a color seed.
 function dress(traffic: SpawnWorld, vehicle: Vehicle, kind: VehicleKind): void {
   const { rng, pack } = traffic
   const mix = pack.vehicles

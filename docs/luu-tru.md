@@ -49,7 +49,7 @@ Nó **không** có nghĩa là `db stats` đang che một migration hỏng.
 | Bảng | Giữ gì |
 | --- | --- |
 | `sessions`, `session_messages` | Vòng đời cuộc trò chuyện và bản ghi hội thoại. Không có tổng lượng dùng lưu riêng: mỗi lần đọc, tổng theo cuộc trò chuyện được cộng lại từ `llm_attempts`, nên không thể lệch. |
-| `llm_attempts` | Sổ chỉ ghi thêm: từng lần gọi mô hình và chi phí toàn cục. |
+| `llm_attempts` | Sổ chỉ ghi thêm: từng lượt gọi mô hình và chi phí toàn cục. |
 | `runs` | Một dòng cho mỗi câu lệnh chạy lâu, và mỗi phiên chạy của agent đã kết thúc mà câu trả lời đến tay bạn (cùng các phiên chạy con do chúng khởi động). Trang hoạt động liệt kê từ đây. Chi phí của một phiên chạy được đọc từ `llm_attempts`, không chép vào đây. |
 | `notices` | Chuông thông báo: mọi thông báo dịch vụ nền phát ra cho bạn, chứ không phải chỉ để cập nhật màn hình trong chốc lát (cảnh báo, điểm dừng lỗ, bản tin sáng, lệnh khớp, yêu cầu duyệt, ngân sách cạn, những câu dịch vụ nền tự ghi). Kèm theo là các kênh đã nhận và việc bạn đã đọc chưa. |
 | `bindings`, `pairings` | Bí danh định tuyến chat và trạng thái ghép nối kênh. |
@@ -96,17 +96,18 @@ không cho điều đó xảy ra.
 
 **Lệnh.** `order_intents` và `resting_exits` thuộc về tính năng đặt lệnh, và cả hai đều bền:
 
-- ý định đã dựng giữ các điều khoản bạn đã xem và token để xác nhận chúng;
+- ý định đã dựng giữ các điều khoản bạn đã xem, các trần bị vượt mà câu hỏi xác nhận đã nêu, và token để
+  xác nhận chúng;
 - dòng kết cục ghi lại một lệnh đã đặt được nhưng không ghi được vào sổ;
 - dòng đang treo là lệnh chốt lời hoặc cắt lỗ đang chạy ở đúng sàn nó nêu tên. Một công cụ có thể có một
   lệnh mỗi sàn.
 
 `first_missed_at` là lúc sàn bắt đầu báo không có lệnh đó. Cột này được xóa ngay khi sàn trả lời lại.
 
-**Phân tích.** `suggestion_analyses` giữ những gì một lần chạy chỉ-phân-tích đã đọc và lập luận: bên tăng, bên
+**Phân tích.** `suggestion_analyses` giữ những gì một phiên chạy chỉ-phân-tích đã đọc và lập luận: bên tăng, bên
 giảm và các luận điểm mà dữ liệu đã đối chiếu. Bảng tách khỏi `suggestions` vì nó không nêu kết luận, khối
 lượng, giá vào, cắt lỗ hay mục tiêu nên không bao giờ được chấm điểm. Bảng này bền, vì một nhận định là câu
-trả lời của mô hình trên một gói bằng chứng không thể dựng lại. Bảng còn giữ giá đóng cửa của phiên mà lần chạy dựa vào, danh sách đặt nó cạnh giá hiện tại; dòng cũ hơn không có giá này nên không hiện dòng giá. `/suggest` của bản cài trên máy không ghi
+trả lời của mô hình trên một gói bằng chứng không thể dựng lại. Bảng còn giữ giá đóng cửa của phiên mà phiên chạy dựa vào, danh sách đặt nó cạnh giá hiện tại; dòng cũ hơn không có giá này nên không hiện dòng giá. `/suggest` của bản cài trên máy không ghi
 dòng nào; các dòng đến từ cơ sở dữ liệu khôi phục từ bản web và được `GET /v1/analyses` liệt kê.
 Mọi màn hình hiển thị một nhận định đều mở đầu bằng dòng nói đây là nội dung do AI tạo, và không màn nào kết thúc bằng việc nghiêng về một bên.
 
@@ -221,8 +222,8 @@ Một mục inbox được nhận việc tối đa 3 lần trước khi bị đ�
 | Việc lập lịch | Việc chạy một lần đã chạy xong và đã tắt bị xóa sau `days` tính từ giờ chạy, cùng lịch sử chạy của nó. Việc chạy một lần bị tạm dừng khi chưa chạy, và mọi việc lặp lại hay theo sự kiện, được giữ. |
 | Lệnh thoát đang chờ | Dòng đã khớp hoặc đã đóng bị xóa sau `days` tính từ lúc đặt. Dòng còn sống không bao giờ bị cắt. |
 | Phiên chạy chủ đề và các nhận định | Bị xóa sau `days`, trừ lượt mà một kết quả còn dẫn tới, hai lượt mới nhất của mỗi chủ đề, lượt mới nhất và lượt đầy đủ mới nhất. |
-| Gợi ý | Gợi ý đã chấm bị xóa sau `history_days` tính từ lúc chốt, lệnh giữ sau `history_days` tính từ lúc tạo. Gợi ý chưa chấm không bao giờ bị xóa, và mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động và trọng tâm, nên kế hoạch đang đứng và kế hoạch thoát luôn còn. Gợi ý, `factor_log` và `theme_outcomes` được giữ ít nhất một năm dù `history_days` ngắn hơn, vì kết quả theo dõi nhìn lại xa như vậy. |
-| Nguồn yếu tố của gợi ý đã chấm | Khi gợi ý đã chấm chốt quá `days` và không nằm trong mười dòng mới nhất của mã đó, các dấu nguồn dưới từng yếu tố được làm rỗng. Điểm, trọng số, kết quả, luận điểm, tranh luận và các mức giá vẫn giữ, và gợi ý vẫn ghi nguồn một lần. |
+| Đề xuất | Đề xuất đã chấm bị xóa sau `history_days` tính từ lúc chốt, đề xuất giữ sau `history_days` tính từ lúc tạo. Đề xuất chưa chấm không bao giờ bị xóa, và mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động và trọng tâm, nên kế hoạch đang đứng và kế hoạch thoát luôn còn. Đề xuất, `factor_log` và `theme_outcomes` được giữ ít nhất một năm dù `history_days` ngắn hơn, vì kết quả theo dõi nhìn lại xa như vậy. |
+| Nguồn yếu tố của đề xuất đã chấm | Khi đề xuất đã chấm chốt quá `days` và không nằm trong mười dòng mới nhất của mã đó, các dấu nguồn dưới từng yếu tố được làm rỗng. Điểm, trọng số, kết quả, luận điểm, tranh luận và các mức giá vẫn giữ, và đề xuất vẫn ghi nguồn một lần. |
 | `factor_log`, `theme_outcomes` | Dòng đã chốt bị xóa sau `history_days` tính từ lúc chốt. Dòng đang chờ không bao giờ bị cắt. |
 | `nav_snapshots` | Bị xóa sau `history_days`, tính từ lúc ghi. |
 | `series_points`, `series_provenance` | Bị xóa sau `history_days`, tính từ lúc tải hoặc trích xuất, nhưng được giữ ít nhất bằng khoảng nhìn lại của phép so sánh vĩ mô cùng kỳ (khoảng 500 ngày). |
@@ -241,7 +242,7 @@ Dịch vụ nền tự dọn một lần lúc khởi động, rồi dọn theo c
 - Các mục inbox vẫn dùng `inbox_days`. Kết quả theo dõi dùng `history_days` (không bao giờ dưới
   `--older-than`). `llm_attempts` giữ cửa sổ 400 ngày riêng.
 - Bảng nào được giữ lâu hơn `history_days` vì nơi đọc nó cần, lệnh in cửa sổ của bảng đó ngay dưới cửa sổ
-  lịch sử. Lệnh cũng đếm số gợi ý đã chấm được làm rỗng nguồn yếu tố.
+  lịch sử. Câu lệnh cũng đếm số đề xuất đã chấm được làm rỗng nguồn yếu tố.
 
 Các dòng được xóa theo trang 5.000 dòng, mỗi trang một giao dịch, nên tồn đọng lớn không giữ khóa ghi lâu.
 Mỗi lượt dọn tối đa 20 trang cho mỗi loại, và để phần còn lại cho lượt sau. SQLite dùng lại các trang đã
@@ -403,8 +404,8 @@ openalpha history clear --agent analyst --yes
 ```
 
 `history show` nhận mã cuộc trò chuyện đầy đủ, hoặc một tiền tố chỉ khớp một cuộc trò chuyện. Nó hiện trạng
-thái, các tin nhắn theo thứ tự, tổng token và chi phí lũy kế, cùng các lần gọi mô hình đứng sau từng tin
-nhắn của trợ lý. Những lần gọi không gắn với tin nhắn nào, như khi nén hội thoại, được hiện riêng.
+thái, các tin nhắn theo thứ tự, tổng token và chi phí lũy kế, cùng các lượt gọi mô hình đứng sau từng tin
+nhắn của trợ lý. Những lượt gọi không gắn với tin nhắn nào, như khi nén hội thoại, được hiện riêng.
 Dòng lệnh và câu trả lời chỉ giữ để xem lại trong lịch sử chat được đánh dấu riêng, vì mô hình không
 đọc chúng.
 
@@ -430,7 +431,7 @@ stateDiagram-v2
 
 Mỗi lượt xong được ghi ngay, nên nếu tiến trình chết đột ngột thì bạn chỉ mất đúng lượt đang dở. Khi một
 phiên chạy kết thúc, các tin nhắn còn lại được ghi trước, rồi mới ghi kết cục. Lượng dùng của cuộc trò chuyện
-được tính lại từ các lần gọi mô hình đã lưu, chứ không giữ thành một tổng riêng.
+được tính lại từ các lượt gọi mô hình đã lưu, chứ không giữ thành một tổng riêng.
 
 Khi dịch vụ nền khởi động, các cuộc trò chuyện còn đánh dấu `active` do một phiên chạy đã chết để lại sẽ
 chuyển thành `stale`, kèm lý do là khởi động lại. Bản ghi hội thoại của chúng vẫn dùng tiếp được: một phiên
@@ -440,11 +441,11 @@ chạy sau sẽ kích hoạt lại đúng cuộc trò chuyện đó.
 
 Tin nhắn chỉ được ghi thêm và xếp theo thứ tự trong cuộc trò chuyện. Mỗi tin ghi lại phiên chạy tạo ra nó,
 vai, nội dung, liên kết với lời gọi công cụ, dấu lỗi và thời điểm tạo. Tin nhắn của trợ lý liên kết tới các
-lần gọi mô hình đứng sau nó. Nhờ vậy các lần thử lại và dự phòng được giữ, mà không bị tính là những câu
+lượt gọi mô hình đứng sau nó. Nhờ vậy các lần thử lại và dự phòng được giữ, mà không bị tính là những câu
 trả lời riêng.
 
 `llm_attempts` là sổ gốc, lưu lâu dài, cho cả chi phí theo cuộc trò chuyện lẫn chi phí toàn cục. Xóa một
-cuộc trò chuyện thì xóa luôn tin nhắn của nó, nhưng các dòng lần gọi chỉ bị **gỡ liên kết**, không bị xóa.
+cuộc trò chuyện thì xóa luôn tin nhắn của nó, nhưng các dòng lượt gọi chỉ bị **gỡ liên kết**, không bị xóa.
 
 ### Mỗi lúc một phiên chạy
 
@@ -490,7 +491,7 @@ Kết quả `todo_write` chỉ là một tin nhắn công cụ bình thường. 
 xóa nó, trong lúc agent vẫn đang làm theo danh sách.
 
 Để tránh mất danh sách, phiên chạy giữ một bản sao riêng ngoài bản ghi hội thoại. Nó ghi lại danh sách
-trước lần gọi mô hình kế tiếp, khi không còn kết quả `todo_write` hay thông báo khôi phục nào trước đó còn
+trước lượt gọi mô hình kế tiếp, khi không còn kết quả `todo_write` hay thông báo khôi phục nào trước đó còn
 thấy được. Danh sách đang hiển thị không bao giờ bị nhân đôi. Nên cuộc trò chuyện dài chỉ tốn một tin nhắn
 cho mỗi lần nén, không phải một tin nhắn mỗi lượt.
 
@@ -510,14 +511,14 @@ Các phê duyệt đã cấp cũng chỉ áp dụng trong cuộc trò chuyện v
 cả hai.
 
 Hai thứ này không làm đổi bản ghi hội thoại đã lưu. Mô hình và kết cục phê duyệt vẫn xem được qua các
-dòng lần gọi và dòng công cụ đã lưu.
+dòng lượt gọi và dòng công cụ đã lưu.
 
 ### Cuộc trò chuyện được ủy quyền
 
 Agent được ủy quyền dùng cuộc trò chuyện tạm thời riêng. Chúng thừa hưởng tín hiệu hủy và dùng chung cây
 ngân sách của agent cha, nhưng không nạp và không ghi thêm vào bản ghi hội thoại của agent cha.
 
-Các lần gọi mô hình của chúng giữ mã phiên chạy con và cha, và được tính tiền vào cuộc trò chuyện gốc. Nhờ
+Các lượt gọi mô hình của chúng giữ mã phiên chạy con và cha, và được tính tiền vào cuộc trò chuyện gốc. Nhờ
 vậy chi tiêu vẫn kiểm toán được, mà phần hội thoại nháp riêng không trộn vào lịch sử của bạn.
 
 ### Lưu giữ và hành vi khi hỏng
@@ -529,9 +530,9 @@ vậy chi tiêu vẫn kiểm toán được, mà phần hội thoại nháp riê
 | Hàng đợi của một cuộc trò chuyện chạm mười tác vụ đang chờ | Việc mới bị từ chối với `queue_full`. |
 | Tuyến đổi trong lúc việc cũ còn trong hàng đợi | Việc cũ bị hủy trước khi nó kịp chạy. |
 | Nhà cung cấp cho khâu tóm tắt hỏng | Ngữ cảnh gần đây đã sửa vẫn tiếp tục, kèm một dấu cắt ngắn. |
-| Khâu nén xóa một danh sách việc đang hoạt động | Phiên chạy ghi lại nó trước lần gọi mô hình kế tiếp. |
+| Khâu nén xóa một danh sách việc đang hoạt động | Phiên chạy ghi lại nó trước lượt gọi mô hình kế tiếp. |
 | Cuộc trò chuyện không hoạt động vượt `[retention].days` | Cuộc trò chuyện, tuyến và tin nhắn bị xóa. |
-| Cuộc trò chuyện bị xóa thủ công | Các lần gọi mô hình vẫn còn, chỉ bị bỏ liên kết tới cuộc trò chuyện. |
+| Cuộc trò chuyện bị xóa thủ công | Các lượt gọi mô hình vẫn còn, chỉ bị bỏ liên kết tới cuộc trò chuyện. |
 
 Cuộc trò chuyện đang hoạt động không bị cắt theo tuổi. Tuyến cuộc trò chuyện theo cửa sổ chung
 `[retention].days`. Offset polling là mốc theo dõi riêng của kênh và được giữ vô thời hạn.

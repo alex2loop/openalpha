@@ -4,13 +4,13 @@ import type { AlertCreateBody, AlertWire } from '@/app/server/wire/market'
 import type { TypedPrice } from '@/app/server/wire/vocab'
 import { sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { alertsBlock, findQuote } from '@/web/state/market'
+import { alertsBlock, findMarket, findQuote } from '@/web/state/market'
 import { toDecimal } from '@/web/text/decimal'
 import { formatMarketPrice, toWholeUnits } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { describeFailure, type FormFailure } from '@/web/ui/dialogs/field-errors'
 import { FieldNote } from '@/web/ui/dialogs/field-note'
-import { submitWithPriceConfirm } from '@/web/ui/dialogs/price-confirm'
+import { type AskedQuestion, submitWithPriceConfirm } from '@/web/ui/dialogs/price-confirm'
 import { PriceQuestion } from '@/web/ui/dialogs/price-question'
 import { Button } from '@/web/ui/kit/button'
 import { type ModalHandle, openModal } from '@/web/ui/kit/modal'
@@ -35,7 +35,7 @@ interface OpenAlert {
   readonly condition: Signal<Condition>
   readonly level: Signal<string>
   readonly levelNeeded: Signal<boolean>
-  readonly question: Signal<string | undefined>
+  readonly question: Signal<AskedQuestion | undefined>
   readonly failure: Signal<FormFailure | undefined>
   readonly isBusy: Signal<boolean>
   handle?: ModalHandle
@@ -65,6 +65,8 @@ export function openAlertDialog(request: AlertRequest): void {
 function AlertBody({ open }: { readonly open: OpenAlert }) {
   const { request, question, failure } = open
   const quote = findQuote(request.ticker, request.market)
+  const market = request.market ?? quote?.market
+  const isBuySide = market !== undefined && findMarket(market)?.quotesDealerBoard === true
 
   return (
     <div class="dialog-form">
@@ -73,13 +75,17 @@ function AlertBody({ open }: { readonly open: OpenAlert }) {
           {failure.value.top}
         </p>
       )}
-      <DirectionField open={open} />
+      <DirectionField open={open} isBuySide={isBuySide} />
       <LevelField open={open} />
       {quote !== undefined && (
         <p class="meta">
-          {tr('ui.office.alert.now', {
-            price: formatMarketPrice(quote.market, quote.last, quote),
-          })}
+          {quote.board === undefined
+            ? tr('ui.office.alert.now', {
+                price: formatMarketPrice(quote.market, quote.last, quote),
+              })
+            : tr('ui.office.alert.nowBuy', {
+                price: formatMarketPrice(quote.market, quote.board.buyPrice, quote),
+              })}
         </p>
       )}
       {question.value !== undefined && (
@@ -94,12 +100,20 @@ function AlertBody({ open }: { readonly open: OpenAlert }) {
   )
 }
 
-function DirectionField({ open }: { readonly open: OpenAlert }) {
+function DirectionField({
+  open,
+  isBuySide,
+}: {
+  readonly open: OpenAlert
+  readonly isBuySide: boolean
+}) {
+  const label = tr(isBuySide ? 'ui.office.alert.directionBuy' : 'ui.office.alert.direction')
+
   return (
     <div class="form-field">
-      <span class="form-label">{tr('ui.office.alert.direction')}</span>
+      <span class="form-label">{label}</span>
       <Segmented
-        label={tr('ui.office.alert.direction')}
+        label={label}
         value={open.condition.value}
         options={CONDITIONS.map((value) => ({
           value,

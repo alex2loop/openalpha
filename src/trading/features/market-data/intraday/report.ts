@@ -25,6 +25,7 @@ import { INTRADAY_CONTEXT_KINDS } from '@/trading/features/market-data/intraday/
 import { buildInstrumentKey, dedupeInstruments, isLevelKind } from '@/trading/kernel/instrument'
 import { sessionPhase } from '@/trading/markets/calendar'
 import { overviewSections } from '@/trading/markets/overview-sections'
+import { quotedInOf } from '@/trading/render/money'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** Each list is capped separately so one long book cannot crowd the other out of the message. */
@@ -169,12 +170,25 @@ function indexRows(
     .map((row) => ({
       ticker: row.instrument.ticker,
       market: overview.market,
-      ...(overview.priceCurrency === undefined ? {} : { currency: overview.priceCurrency }),
+      ...indexQuoted(overview),
       observed: indexFreshness(row, overview.asOf, clock),
       ...indexReading(row),
       ...(row.live?.session === undefined ? {} : { session: row.live.session }),
       ...settledClose(row),
     }))
+}
+
+/** A row quoted in money names its currency and what the price is per (world gold: USD/oz); a level
+ *  names neither. */
+function indexQuoted(overview: MarketDataOverview): Pick<IntradayRow, 'currency' | 'unit'> {
+  if (overview.priceCurrency === undefined) {
+    return {}
+  }
+
+  return {
+    currency: overview.priceCurrency,
+    ...(overview.quoteUnit === undefined ? {} : { unit: overview.quoteUnit }),
+  }
 }
 
 /** `MarketDataOverviewRow.live` is present only while the reading is fresher than the settled
@@ -273,14 +287,12 @@ function isFailedGap(item: QuoteBoardItem): boolean {
 function quotedFieldsOf(
   deps: IntradayReportDeps,
   item: QuoteBoardItem
-): Pick<IntradayRow, 'currency' | 'display'> {
+): Pick<IntradayRow, 'currency' | 'display' | 'unit'> {
   if (isLevelKind(item.kind)) {
     return {}
   }
 
-  const display = deps.marketData.quoteConvention(item.market)?.display
-
-  return { currency: item.currency, ...(display === undefined ? {} : { display }) }
+  return { currency: item.currency, ...quotedInOf(deps.marketData.quoteConvention(item.market)) }
 }
 
 /** The markets this book touches beyond the one the report covers. Their overviews were already

@@ -52,7 +52,7 @@ each fill part of.
   - **Backup.** Backup uses `VACUUM INTO` (`persistence/backup.ts`). The copy is written into a
     `mkdtemp` staging folder (`.staging-*`, `0700`) beside the target, then `chmod 0600`, fsynced,
     renamed into place, and the parent directory fsynced (an fsync failure fails the backup). This is
-    because `VACUUM INTO` honours the umask, and the copy must never be readable by others while it is
+    because `VACUUM INTO` honors the umask, and the copy must never be readable by others while it is
     written.
   - **Pruning.** `backupAndPrune` writes a copy, then clears orphaned staging folders and drops the
     oldest past `keep` (`KEEP_BACKUPS`, 7, unless the caller passes a count). The retention sweep calls
@@ -86,7 +86,7 @@ A migration is `{ id, reversibility, up, down? }` (`persistence/types.ts`). The 
   applies only ids absent from the `_migrations` ledger. `resolveMigrations` merges core with the
   extras trading and plugins append, sorts by id and rejects duplicates (`StorageError`).
 - **One locked transaction.** Read-decide-apply-record runs inside one transaction, so two booting
-  processes cannot both compute the same pending list. SQLite serialises through `BEGIN IMMEDIATE`;
+  processes cannot both compute the same pending list. SQLite serializes through `BEGIN IMMEDIATE`;
   PostgreSQL takes `pg_advisory_xact_lock(hashtext('persistence_migrations'))` and sets
   `statement_timeout` and `idle_in_transaction_session_timeout` to 0 for the transaction. The batch
   is all-or-nothing: a failure rolls back migrations applied earlier in the same call.
@@ -216,7 +216,7 @@ same connection as its delete.
 
 ### Queue and route fencing
 
-`core/session-queue.ts` serialises work per session on a promise tail with `MAX_QUEUE_DEPTH` = 10;
+`core/session-queue.ts` serializes work per session on a promise tail with `MAX_QUEUE_DEPTH` = 10;
 past it the caller gets `RunHalted('queue_full')`. A route switch (`/new`) goes through a route
 fence with a per-route generation: it waits for held leases, invalidates queued work, drops the
 stored route, then admits work for the new generation, so a message accepted for the old session
@@ -252,4 +252,4 @@ cannot run under the new route.
 - Session queue and route fencing: [`core/session-queue.ts`](../../../src/core/session-queue.ts)
 - Context compaction: [`engine/compact/compactor.ts`](../../../src/engine/compact/compactor.ts) - [`message-repair.ts`](../../../src/engine/compact/message-repair.ts)
 - Todo list restoration: [`engine/loop/todo.ts`](../../../src/engine/loop/todo.ts)
-- History CLI: [`cli/commands/history.ts`](../../../src/cli/commands/history.ts)
+- History CLI: [`cli/commands/history/history.ts`](../../../src/cli/commands/history/history.ts)

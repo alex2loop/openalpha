@@ -26,7 +26,6 @@ import { renderAttributionSections } from '@/trading/render/attribution'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
   formatCount,
-  formatFraction,
   formatRatio,
   formatSignedFraction,
   formatWholeFraction,
@@ -311,8 +310,8 @@ function renderConvictionLine(locale: Locale, bucket: RatedBucket): string {
     band: t(locale, CONVICTION_KEYS[bucket.convictionBand]),
     hits: formatCount(locale, bucket.winCount),
     n: formatCount(locale, bucket.resolvedCount),
-    rate: formatFraction(locale, bucket.winRate),
-    range: renderRateRange(locale, bucket, formatFraction),
+    rate: formatWholeFraction(locale, bucket.winRate),
+    range: renderRateRange(locale, bucket, formatWholeFraction),
     avg: formatSignedFraction(locale, bucket.meanReturnPct),
   }
 
@@ -322,7 +321,7 @@ function renderConvictionLine(locale: Locale, bucket: RatedBucket): string {
 
   return t(locale, 'trading.render.reflect.convictionLineBenchmarked', {
     ...shared,
-    beatRate: formatFraction(locale, bucket.benchmarkBeatRate),
+    beatRate: formatWholeFraction(locale, bucket.benchmarkBeatRate),
     beat: formatCount(locale, bucket.benchmarkBeatCount),
     vsIndexN: formatCount(locale, bucket.benchmarkComparedCount),
   })

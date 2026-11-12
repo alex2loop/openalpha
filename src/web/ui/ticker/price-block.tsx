@@ -6,28 +6,17 @@ import { formatDay, termOfKind, termOfTicker, translateDisplayText } from '@/i18
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
-import {
-  findMarket,
-  findQuote,
-  keyOf,
-  printDisplayOf,
-  quotesBlock,
-  stopsBlock,
-} from '@/web/state/market'
+import { findMarket, findQuote, keyOf, quotesBlock, stopsBlock } from '@/web/state/market'
 import { isRefreshable, useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
-import {
-  formatCompactAmount,
-  formatPrice,
-  formatSignedPercent,
-  toneOfPercent,
-} from '@/web/text/figures'
+import { formatCompactAmount, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 import { INLINE_SEPARATOR, joinInline } from '@/web/text/glyphs'
 import {
   boardScaleNotes,
   formatDealerBoard,
   formatMarketPrice,
+  formatMarketRange,
   toTickFormatter,
 } from '@/web/text/market-price'
 import { sectorName } from '@/web/text/segment'
@@ -133,7 +122,8 @@ function toLabelTail(sector: string | undefined): string {
 
 // A market that is trading shows its live price, not the close the board fell back to: one read
 // when the page opens, the same one the Lấy giá mới button makes. A market with no session never
-// closes, so it is always trading.
+// closes, so it is always trading. A market with no price history of its own (a dealer's board) has
+// nothing stored to show, so its live read is made at any hour.
 function useLiveWhileTrading(
   { ticker, market }: { readonly ticker: string; readonly market: string },
   { quote, live }: { readonly quote: TradingQuoteWire | undefined; readonly live: LiveQuote }
@@ -142,13 +132,14 @@ function useLiveWhileTrading(
   const held = findMarket(market)
   const isOpen = held !== undefined && (held.session === undefined || held.session.phase === 'open')
   const canQuote = state.value?.capabilities.quotes !== false
+  const isLiveOnly = held?.hasBars === false
   const isClose = quote === undefined || quote.closedOn !== undefined
 
   useEffect(() => {
-    if (isBoardKnown && isOpen && canQuote && isClose) {
+    if (isBoardKnown && (isOpen || isLiveOnly) && canQuote && isClose) {
       live.refresh()
     }
-  }, [ticker, market, isBoardKnown, isOpen])
+  }, [ticker, market, isBoardKnown, isOpen, isLiveOnly])
 }
 
 interface PriceBodyProps extends PriceBlockProps {
@@ -227,16 +218,19 @@ function PriceHead({ market, facts, range }: PriceHeadProps) {
           {tr('ui.office.ticker.stale', { time: formatWhen(facts.staleAt, timeZone) })}
         </p>
       )}
-      <p class="big-figure">
-        {formatMarketPrice(market, facts.value, facts)}{' '}
-        {facts.changePct !== undefined && (
-          <span class={`pill is-${toneOfPercent(facts.changePct)}`}>
-            {formatSignedPercent(facts.changePct)}
-          </span>
-        )}
-      </p>
-      {facts.board !== undefined && <DealerLine market={market} board={facts.board} />}
-      {range !== undefined && <p class="meta">{formatSessionRange(market, range)}</p>}
+      {facts.board === undefined ? (
+        <p class="big-figure">
+          {formatMarketPrice(market, facts.value, facts)}{' '}
+          {facts.changePct !== undefined && (
+            <span class={`pill is-${toneOfPercent(facts.changePct)}`}>
+              {formatSignedPercent(facts.changePct)}
+            </span>
+          )}
+        </p>
+      ) : (
+        <DealerLine market={market} board={facts.board} />
+      )}
+      {range !== undefined && <p class="meta">{formatSessionRange(market, range, facts)}</p>}
       {facts.close !== undefined && (
         <p class="meta">
           {tr('ui.office.ticker.closeRow', {
@@ -258,7 +252,12 @@ function DealerLine({
 }) {
   const { sides, spread } = formatDealerBoard(market, board)
 
-  return <p class="meta">{joinInline([sides, ...(spread === undefined ? [] : [spread])])}</p>
+  return (
+    <>
+      <p class="lead">{sides}</p>
+      {spread !== undefined && <p class="meta">{spread}</p>}
+    </>
+  )
 }
 
 // A live session's range when the quote carries one, else the last settled bar's, dated either way.
@@ -284,12 +283,14 @@ function sessionRangeOf(
   }
 }
 
-function formatSessionRange(market: string, range: SessionRangeWire): string {
-  const display = printDisplayOf(market)
+function formatSessionRange(
+  market: string,
+  range: SessionRangeWire,
+  reading: Pick<PriceFacts, 'isLevel'>
+): string {
   const bounds = {
     day: formatDay(locale.value, range.day),
-    low: formatPrice(range.low, display),
-    high: formatPrice(range.high, display),
+    ...formatMarketRange(market, range, reading),
   }
 
   return range.volume === undefined
@@ -357,7 +358,7 @@ function resolvePrice(
       ...(quote.changePct === undefined ? {} : { changePct: quote.changePct }),
       isLevel: quote.isLevel,
       ...(quote.board === undefined ? {} : { board: quote.board }),
-      session: describeSession(market, quote.closedOn),
+      session: quote.board === undefined ? describeSession(market, quote.closedOn) : '',
       ...toQuoteTimes(quote),
       ...liveClose(quote, bars),
     }

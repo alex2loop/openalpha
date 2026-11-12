@@ -130,7 +130,7 @@ nguồn nhưng bị trừ điểm. Chỉ có ngày từ trang thì tính là rú
 
 Ngày sau ngày muộn nhất trên Trái Đất là trường hợp khác: đó là ngày sai ở mọi độ tin cậy, nên bước nhận bằng chứng gạt
 nguồn đó ra (cả luận điểm số không phải dự báo có `effectiveOn` sau ngày đó), không cần cửa sổ độ mới.
-Ngày đó là thời điểm của lượt chạy đọc ở múi giờ đi trước nhất (`LATEST_DAY_ZONE`, UTC+14), lấy một lần cùng `now`, nên bài đề ngày mai ở nơi người đọc chưa tới vẫn được giữ. Ngày thiếu thì
+Ngày đó là thời điểm của phiên chạy đọc ở múi giờ đi trước nhất (`LATEST_DAY_ZONE`, UTC+14), lấy một lần cùng `now`, nên bài đề ngày mai ở nơi người đọc chưa tới vẫn được giữ. Ngày thiếu thì
 vẫn thiếu.
 
 ### Quy tắc độ phủ

@@ -60,7 +60,7 @@ export interface InfoFace {
   readonly at: readonly [x: number, y: number, z: number]
   readonly size: readonly [w: number, h: number]
   readonly tilt: number
-  /** A screen glows in its own colours; paper and a clock take the room's light. */
+  /** A screen glows in its own colors; paper and a clock take the room's light. */
   readonly isGlowing: boolean
   /** The north wall a hung face fades with. */
   readonly wallAt?: { readonly x: number; readonly wallZ: number }

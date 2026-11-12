@@ -152,7 +152,7 @@ function glowBehind(
 }
 
 // The badge in px round its centre, facing the camera along z, as the mockup's `markGeo`: each
-// part is its centre (x, y), width, height, depth and colour.
+// part is its centre (x, y), width, height, depth and color.
 function markGeometry(tone: SceneMark['tone']): BufferGeometry {
   const c = MARK_TONES[tone]
   const parts: readonly (readonly [number, number, number, number, number, string])[] = [

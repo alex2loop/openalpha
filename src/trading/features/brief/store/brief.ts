@@ -8,7 +8,7 @@ import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
 import { LOCALES } from '@/core/types/locale'
 import { briefSnapshotId } from '@/trading/features/brief/types'
-import { currencyCode, marketRef, tradingDay } from '@/trading/kernel/instrument'
+import { currencyCode, marketRef, quoteUnit, tradingDay } from '@/trading/kernel/instrument'
 import {
   BRIEF_FIELDS,
   BRIEF_RENDER_VERSION,
@@ -17,6 +17,7 @@ import {
 import {
   caveatsSchema,
   provenanceSchema,
+  type StoredShape,
   toMember,
   toProvenance,
 } from '@/trading/kernel/store/store-payload'
@@ -37,10 +38,11 @@ const readySectionSchema = z.strictObject({
   // what sends the service back to rebuild instead of rendering a field the catalog cannot name.
   rows: z.array(z.partialRecord(z.enum(BRIEF_FIELDS), z.union([z.string(), z.number()]))),
   currency: z.string().optional(),
+  quoteUnit: z.string().optional(),
   titleParams: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
   provenance: z.array(provenanceSchema),
   caveats: caveatsSchema,
-})
+} satisfies StoredShape<Extract<BriefSectionResult, { status: 'ready' }>>)
 
 const absentSectionSchema = z.strictObject({
   kind: z.enum(BRIEF_SECTION_ORDER),
@@ -49,7 +51,7 @@ const absentSectionSchema = z.strictObject({
   icon: z.string().optional(),
   asOf: z.string().optional(),
   caveats: caveatsSchema,
-})
+} satisfies StoredShape<Exclude<BriefSectionResult, { status: 'ready' }>>)
 
 // Section order is the stored order: the composer decides it once and a reader never re-sorts.
 const payloadSchema = z.strictObject({
@@ -59,6 +61,8 @@ const payloadSchema = z.strictObject({
   caveats: caveatsSchema,
   scorecardMonth: z.string().optional(),
 })
+
+type StoredSection = z.infer<typeof payloadSchema>['sections'][number]
 
 interface BriefSnapshotRow {
   readonly id: string
@@ -227,16 +231,15 @@ function toBriefSnapshot(row: BriefSnapshotRow): BriefSnapshot | null {
   }
 }
 
-function toSection(raw: z.infer<typeof payloadSchema>['sections'][number]): BriefSectionResult {
+function toSection(raw: StoredSection): BriefSectionResult {
   if (raw.status === 'ready') {
     return {
       kind: raw.kind,
       status: raw.status,
-      ...(raw.market === undefined ? {} : { market: marketRef(raw.market) }),
-      ...(raw.icon === undefined ? {} : { icon: raw.icon }),
-      ...(raw.asOf === undefined ? {} : { asOf: tradingDay(raw.asOf) }),
+      ...toSectionOrigin(raw),
       rows: raw.rows,
       ...(raw.currency === undefined ? {} : { currency: currencyCode(raw.currency) }),
+      ...(raw.quoteUnit === undefined ? {} : { quoteUnit: quoteUnit(raw.quoteUnit) }),
       ...(raw.titleParams === undefined ? {} : { titleParams: raw.titleParams }),
       provenance: raw.provenance.map(toProvenance),
       caveats: raw.caveats,
@@ -246,9 +249,16 @@ function toSection(raw: z.infer<typeof payloadSchema>['sections'][number]): Brie
   return {
     kind: raw.kind,
     status: raw.status,
+    ...toSectionOrigin(raw),
+    caveats: raw.caveats,
+  }
+}
+
+/** Which market's block a section belongs to, its glyph and the session it describes. */
+function toSectionOrigin(raw: StoredSection): Pick<BriefSectionResult, 'market' | 'icon' | 'asOf'> {
+  return {
     ...(raw.market === undefined ? {} : { market: marketRef(raw.market) }),
     ...(raw.icon === undefined ? {} : { icon: raw.icon }),
     ...(raw.asOf === undefined ? {} : { asOf: tradingDay(raw.asOf) }),
-    caveats: raw.caveats,
   }
 }

@@ -98,7 +98,7 @@ Vài nguồn ít hiển nhiên làm gì:
 
 - `vndirect` đứng đầu giá VN vì dòng giá của nó được ghi ngay khi thị trường đang giao dịch.
   - Nó không phục vụ chỉ số. Giá chỉ số đi tới `vietcap-chart`. Lịch sử chỉ số đi tới `vndirect-index`, rồi `entrade`, rồi `vietcap-chart`.
-  - `vndirect-index` là lịch sử chỉ số của công ty chứng khoán, tách riêng khỏi `vndirect` để một bên hỏng không làm bên kia bị tạm dừng. Nó có mọi chỉ số mà daemon đọc, lùi sâu nhiều năm, và giá đóng cửa của nó trùng với các nhà cung cấp khác trên mọi chỉ số đã đo.
+  - `vndirect-index` là lịch sử chỉ số của công ty chứng khoán, tách riêng khỏi `vndirect` để một bên hỏng không làm bên kia bị tạm dừng. Nó có mọi chỉ số mà dịch vụ nền đọc, lùi sâu nhiều năm, và giá đóng cửa của nó trùng với các nhà cung cấp khác trên mọi chỉ số đã đo.
   - `vps` đứng cuối. Nó có mặt cho các chỉ số chuẩn ETF (VNDIAMOND, VNX50...) mà `entrade` không phục vụ, để một lần bị từ chối không làm mất tất cả.
   - `vps-board` là bảng giá của VPS, máy chủ thứ hai khác với `vps`. Nó dự phòng cho `vietcap` ở hai danh sách VN30 và VN100, và chỉ trả lời khi mọi mã VN30 của nó đều nằm trong danh sách VN100 của chính nó. Danh sách VN100 của nó đã cũ khi đo, nên nó có thể không trả lời gì, khi đó các nhóm đã lưu được giữ nguyên.
 - `vietcap-board` đọc cả bảng giá VN trong một lần gọi. Nó dự phòng cho `vndirect` ở cả bảng giá trực tiếp lẫn room ngoại (số cổ phiếu nhà đầu tư nước ngoài còn được mua).

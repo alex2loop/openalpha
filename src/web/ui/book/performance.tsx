@@ -5,7 +5,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { NAV_WINDOWS, navWindow, pickNavWindow } from '@/web/state/book'
 import { locale } from '@/web/state/session'
-import { formatFixedFraction, formatSignedFraction } from '@/web/text/figures'
+import { formatFixedFraction, formatSignedFraction, formatWholeFraction } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { NavChart } from '@/web/ui/book/nav-chart'
@@ -115,7 +115,7 @@ function BenchmarkLine({ nav }: { readonly nav: TradingNavResponse }) {
 
   const legs = benchmark.legs.map(
     (leg) =>
-      `${leg.instrument?.ticker ?? tr('trading.render.nav.cashLeg')} ${formatFixedFraction(leg.weight)}`
+      `${leg.instrument?.ticker ?? tr('trading.render.nav.cashLeg')} ${formatWholeFraction(leg.weight)}`
   )
 
   return (

@@ -1,6 +1,14 @@
 import type { Locale } from '@/core/types/locale'
 import type { CurrencyCode, MarketRef, PriceDisplay, QuoteUnit } from '@/trading/kernel/instrument'
-import { isIsoCurrency, isSubUnit, minorUnitsOf, priceDecimals, t } from '@/i18n'
+import {
+  isIsoCurrency,
+  isSubUnit,
+  minorUnitsOf,
+  namesQuoteUnit,
+  priceDecimals,
+  renderQuoteUnit,
+  t,
+} from '@/i18n'
 import {
   formatAmount,
   formatCount,
@@ -39,7 +47,7 @@ function boardPrice(locale: Locale, value: number, display: PriceDisplay): strin
  *  Significant digits take over below one unit only for a token with no minor units of its own,
  *  where a balance of 0.00002 is a real holding. A currency that declares its own precision is the
  *  authority on what it can express, and an amount under that is zero rather than a figure needing
- *  more digits: a realised P/L of 1,455e-11 printed fourteen decimals and an up arrow in a USD
+ *  more digits: a realized P/L of 1,455e-11 printed fourteen decimals and an up arrow in a USD
  *  book, and rounded away unseen in a đồng one. A price is the other question and keeps every
  *  digit either way — see `formatFixedPrice`. */
 export function formatMoney(locale: Locale, value: number, currency: CurrencyCode): string {
@@ -64,6 +72,8 @@ export interface QuoteConvention {
   readonly currency: CurrencyCode
   readonly unit: QuoteUnit
   readonly display?: PriceDisplay
+  /** Set where the market quotes a dealer board: a level on it is watched on the buy side. */
+  readonly dealerBoard?: true
 }
 
 /** A price and the convention it prints in. The currency is its own field rather than the market's,
@@ -72,14 +82,18 @@ export interface QuotedIn {
   readonly currency: CurrencyCode
   readonly unit?: QuoteUnit
   readonly display?: PriceDisplay
+  /** The price is a dealer board's buy side, which the line carrying it names. */
+  readonly dealerBoard?: true
   /** Joins the currency to its number with a no-break space, for a cell a narrow screen may wrap. */
   readonly bindCurrency?: boolean
 }
 
 /** The convention's optional halves, ready to spread into a `QuotedIn` — or nothing at all when
  *  the registry had no convention for that market. `exactOptionalPropertyTypes` rejects forwarding
- *  an optional field any other way, and every price-bearing surface needs the same two. */
-export function quotedInOf(convention?: QuoteConvention): Pick<QuotedIn, 'unit' | 'display'> {
+ *  an optional field any other way, and every price-bearing surface needs the same three. */
+export function quotedInOf(
+  convention?: QuoteConvention
+): Pick<QuotedIn, 'unit' | 'display' | 'dealerBoard'> {
   if (convention === undefined) {
     return {}
   }
@@ -87,15 +101,9 @@ export function quotedInOf(convention?: QuoteConvention): Pick<QuotedIn, 'unit' 
   return {
     unit: convention.unit,
     ...(convention.display === undefined ? {} : { display: convention.display }),
+    ...(convention.dealerBoard === undefined ? {} : { dealerBoard: convention.dealerBoard }),
   }
 }
-
-/** Units the instrument already implies: a share price is per share and a coin price per coin, so
- *  naming it states the mechanism rather than the fact. Anything else is a measure the ticker does
- *  not carry — the same gold reading is one number per lượng and another per ounce — and is spelled
- *  out beside the price. Listing what is implied rather than what is spelled means a market
- *  quoting a new measure is labelled without an edit here. */
-const IMPLIED_UNITS: ReadonlySet<string> = new Set(['currency-per-share', 'currency-per-coin'])
 
 const NO_BREAK_SPACE = '\u00A0'
 
@@ -137,7 +145,7 @@ export function formatRecordedPrice(locale: Locale, value: number, quote: Record
       : boardPrice(locale, value, quote.display)
   const text = labelled(locale, price, quote)
 
-  return quote.ticker === undefined || namesUnit(quote.unit) ? text : `${text}/${quote.ticker}`
+  return quote.ticker === undefined || namesQuoteUnit(quote.unit) ? text : `${text}/${quote.ticker}`
 }
 
 /** Money on the same surface, for the same reason: a fee is checked against what the venue billed. */
@@ -145,7 +153,7 @@ export function formatRecordedMoney(locale: Locale, value: number, currency: Cur
   return `${formatExactAmount(locale, value)} ${currency}`
 }
 
-/** A board-scaled price carries no currency code: labelling board points as đồng is exactly the
+/** A board-scaled price carries no currency code: labeling board points as đồng is exactly the
  *  misreading the convention prevents, and `isBoardScaled` is where that rule already lives. */
 function labelled(locale: Locale, price: string, quote: QuotedIn): string {
   if (isBoardScaled(quote.display)) {
@@ -154,7 +162,7 @@ function labelled(locale: Locale, price: string, quote: QuotedIn): string {
 
   const gap = quote.bindCurrency === true ? NO_BREAK_SPACE : ' '
 
-  return `${price}${gap}${quotedIn(locale, quote.currency, quote.unit)}`
+  return `${price}${gap}${renderQuoteUnit(locale, quote.currency, quote.unit)}`
 }
 
 /** A compact magnitude with the money it is in — a market cap or a turnover, where the digits are
@@ -214,16 +222,6 @@ export function renderBoardScale(
     divisor: formatCount(locale, display.divisor),
     currency,
   })
-}
-
-function quotedIn(locale: Locale, currency: CurrencyCode, unit?: QuoteUnit): string {
-  return namesUnit(unit)
-    ? renderDeclaredValue(locale, `trading.quote-unit.${unit}`, { currency })
-    : currency
-}
-
-function namesUnit(unit: QuoteUnit | undefined): unit is QuoteUnit {
-  return unit !== undefined && !IMPLIED_UNITS.has(unit)
 }
 
 export function formatSignedMoney(locale: Locale, value: number, currency: CurrencyCode): string {

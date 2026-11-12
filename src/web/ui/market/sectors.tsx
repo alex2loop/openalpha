@@ -5,7 +5,7 @@ import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { findMarket, selectRegionOverview } from '@/web/state/market'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale } from '@/web/state/session'
-import { formatSignedFraction, PERCENT } from '@/web/text/figures'
+import { formatSignedFixedFraction, PERCENT } from '@/web/text/figures'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 import { PieIcon } from '@/web/ui/kit/icons'
@@ -74,7 +74,7 @@ function sectorRow(entry: SectorsResponse['sectors'][number]): RankedRow {
   return {
     key: entry.sector,
     label: sectorName(entry.sector),
-    figure: entry.score === undefined ? '' : formatSignedFraction(entry.score),
+    figure: entry.score === undefined ? '' : formatSignedFixedFraction(entry.score),
     changePct: entry.sessionReturn === undefined ? undefined : entry.sessionReturn * PERCENT,
   }
 }
@@ -89,9 +89,9 @@ function excessRow(entry: SectorsResponse['sectors'][number]): RankedRow {
   return {
     ...sectorRow(entry),
     figure: tr('ui.office.market.sectorsExcess', {
-      short: formatSignedFraction(entry.excessReturnShort),
+      short: formatSignedFixedFraction(entry.excessReturnShort),
       shortSessions: EXCESS_SHORT_SESSIONS,
-      long: formatSignedFraction(entry.excessReturnLong),
+      long: formatSignedFixedFraction(entry.excessReturnLong),
       longSessions: EXCESS_LONG_SESSIONS,
     }),
   }

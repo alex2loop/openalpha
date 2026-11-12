@@ -2,30 +2,29 @@ import type { CliApp } from '@/cli/types'
 import type { AgentId } from '@/core/ids'
 import type { Locale } from '@/core/types/locale'
 import type { LLMUsageTotals } from '@/core/types/usage'
-import type {
-  LLMAttempt,
-  SessionDetails,
-  SessionSnapshot,
-  StoredSessionMessage,
-} from '@/persistence/api'
+import type { SessionDetails, SessionSnapshot } from '@/persistence/api'
 import { createCommand, createGroup, type Group } from '@/cli/command'
+import { printMessages, printUnlinkedAttempts } from '@/cli/commands/history/transcript'
 import { terminalErrorMessage, usage } from '@/cli/error-output'
 import { renderLocalized } from '@/cli/help'
 import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
 import { flagBool, flagString, parseIntFlagStrict } from '@/cli/parsing/args'
 import { fail, style, success } from '@/cli/ui/colors'
-import { formatSessionEnd, formatSessionRow, formatSessionStatus } from '@/cli/ui/format'
+import {
+  formatSessionEnd,
+  formatSessionError,
+  formatSessionRow,
+  formatSessionStatus,
+} from '@/cli/ui/format'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { agentId, sessionId as brandSessionId, type SessionId } from '@/core/ids'
 import { formatSpendUsd } from '@/core/utils/cost'
 import { sanitizeDisplayText } from '@/core/utils/text'
 import { pluralKey, renderAiLabel, t } from '@/i18n'
-import { formatInstant } from '@/trading/api'
+import { formatCount, formatInstant } from '@/trading/api'
 
 const DEFAULT_LIMIT = 20
 const MAX_HISTORY_LIMIT = 10_000
-const CONTENT_PREVIEW_CHARS = 200
-const INDENT = '    '
 
 const historyListCommand = createCommand({
   name: 'list',
@@ -141,7 +140,9 @@ function printMetadata(app: CliApp, session: SessionDetails): void {
 
   if (session.errorMessage !== undefined && session.errorMessage.length > 0) {
     app.out(
-      t(locale, 'cli.historyFieldError', { value: sanitizeDisplayText(session.errorMessage) })
+      t(locale, 'cli.historyFieldError', {
+        value: sanitizeDisplayText(formatSessionError(locale, session.errorMessage)),
+      })
     )
   }
 
@@ -169,162 +170,20 @@ function printTotals(app: CliApp, totals: LLMUsageTotals): void {
   const locale = app.config.locale.language
   app.out(style.heading(t(locale, 'cli.historyTotalsHeading')))
   app.out(t(locale, 'cli.historyTotalCost', { value: formatSpendUsd(locale, totals.costUsd) }))
-  app.out(t(locale, 'cli.historyTotalInput', { value: totals.inputTokens }))
-  app.out(t(locale, 'cli.historyTotalOutput', { value: totals.outputTokens }))
-  app.out(t(locale, 'cli.historyTotalCacheRead', { value: totals.cacheReadTokens }))
-  app.out(t(locale, 'cli.historyTotalCacheWrite', { value: totals.cacheWriteTokens }))
-  app.out(t(locale, 'cli.historyTotalReasoning', { value: totals.reasoningTokens }))
-  app.out(t(locale, 'cli.historyTotalModelCalls', { value: totals.modelCalls }))
-}
-
-function printMessages(
-  app: CliApp,
-  messages: readonly StoredSessionMessage[],
-  attempts: readonly LLMAttempt[]
-): void {
-  const { language: locale, timezone } = app.config.locale
-  app.out(style.heading(t(locale, 'cli.historyMessagesHeading', { count: messages.length })))
-
-  const byMessageIdx = buildMessageAttemptsMap(attempts)
-
-  for (const stored of messages) {
-    const idx = stored.idx.toString().padStart(3)
-    const role = stored.message.role.padEnd(9)
-    const origin =
-      stored.runId === undefined ? '' : `  ${t(locale, 'cli.historyRun', { run: stored.runId })}`
-    const shown = stored.displayOnly === true ? `  ${t(locale, 'cli.historyDisplayOnly')}` : ''
-
-    app.out(
-      `  ${idx}  ${role} ${formatInstant(locale, stored.createdAt, timezone)}${origin}${shown}`
-    )
-    app.out(`      ${formatMessageContent(stored.message)}`)
-
-    if (stored.message.role === 'assistant') {
-      const linked = byMessageIdx.get(stored.idx) ?? []
-
-      if (linked.length > 0) {
-        printMessageGenerationCost(app, linked)
-      }
-    }
-  }
-}
-
-function buildMessageAttemptsMap(attempts: readonly LLMAttempt[]): Map<number, LLMAttempt[]> {
-  const map = new Map<number, LLMAttempt[]>()
-
-  for (const attempt of attempts) {
-    if (attempt.messageIdx === null) {
-      continue
-    }
-
-    const group = map.get(attempt.messageIdx)
-
-    if (group === undefined) {
-      map.set(attempt.messageIdx, [attempt])
-    } else {
-      group.push(attempt)
-    }
-  }
-
-  return map
-}
-
-function printMessageGenerationCost(app: CliApp, attempts: readonly LLMAttempt[]): void {
-  const locale = app.config.locale.language
-  const sum = sumAttempts(attempts)
-
+  app.out(t(locale, 'cli.historyTotalInput', { value: formatCount(locale, totals.inputTokens) }))
+  app.out(t(locale, 'cli.historyTotalOutput', { value: formatCount(locale, totals.outputTokens) }))
   app.out(
-    `${INDENT}${t(locale, 'cli.historyGeneration', { cost: formatSpendUsd(locale, sum.costUsd), tokens: tokenCounts(locale, sum) })}`
-  )
-
-  for (const attempt of attempts) {
-    printAttemptDetails(app, attempt, INDENT)
-  }
-}
-
-function printAttemptDetails(app: CliApp, attempt: LLMAttempt, indent: string): void {
-  const locale = app.config.locale.language
-  const outcome =
-    attempt.outcome === 'success' ? attempt.outcome : `${attempt.outcome} (${attempt.errorCode})`
-  const run = t(locale, 'cli.historyRun', { run: attempt.runId })
-  const parent =
-    attempt.parentRunId === undefined
-      ? ''
-      : ` ${t(locale, 'cli.historyParentRun', { run: attempt.parentRunId })}`
-
-  app.out(
-    `${indent}${t(locale, 'cli.historyAttempt', { agent: attempt.agentId, model: `${attempt.provider}/${attempt.model}`, outcome })}`
-  )
-  app.out(`${indent}  ${run}${parent}`)
-  app.out(
-    `${indent}  ${t(locale, 'cli.historyAttemptCost', { cost: formatSpendUsd(locale, attempt.costUsd), tokens: tokenCounts(locale, attempt) })}`
+    t(locale, 'cli.historyTotalCacheRead', { value: formatCount(locale, totals.cacheReadTokens) })
   )
   app.out(
-    `${indent}  ${t(locale, 'cli.historyAttemptSources', { usage: attempt.usageSource, cost: attempt.costSource, latencyMs: attempt.latencyMs })}`
+    t(locale, 'cli.historyTotalCacheWrite', { value: formatCount(locale, totals.cacheWriteTokens) })
   )
-}
-
-function tokenCounts(
-  locale: Locale,
-  counts: Pick<
-    LLMAttempt,
-    'inputTokens' | 'outputTokens' | 'cacheReadTokens' | 'cacheWriteTokens' | 'reasoningTokens'
-  >
-): string {
-  return t(locale, 'cli.historyTokens', {
-    input: counts.inputTokens,
-    output: counts.outputTokens,
-    cacheRead: counts.cacheReadTokens,
-    cacheWrite: counts.cacheWriteTokens,
-    reasoning: counts.reasoningTokens,
-  })
-}
-
-function printUnlinkedAttempts(app: CliApp, attempts: readonly LLMAttempt[]): void {
-  const { language: locale, timezone } = app.config.locale
-  app.out(style.heading(t(locale, 'cli.historyUnlinkedHeading', { count: attempts.length })))
-
-  for (const attempt of attempts) {
-    app.out(`  ${attempt.kind} · ${formatInstant(locale, attempt.settledAt, timezone)}`)
-    printAttemptDetails(app, attempt, INDENT)
-  }
-}
-
-interface AttemptSum {
-  readonly costUsd: number
-  readonly inputTokens: number
-  readonly outputTokens: number
-  readonly cacheReadTokens: number
-  readonly cacheWriteTokens: number
-  readonly reasoningTokens: number
-}
-
-function sumAttempts(attempts: readonly LLMAttempt[]): AttemptSum {
-  return attempts.reduce(
-    (acc, a) => ({
-      costUsd: acc.costUsd + a.costUsd,
-      inputTokens: acc.inputTokens + a.inputTokens,
-      outputTokens: acc.outputTokens + a.outputTokens,
-      cacheReadTokens: acc.cacheReadTokens + a.cacheReadTokens,
-      cacheWriteTokens: acc.cacheWriteTokens + a.cacheWriteTokens,
-      reasoningTokens: acc.reasoningTokens + a.reasoningTokens,
-    }),
-    {
-      costUsd: 0,
-      inputTokens: 0,
-      outputTokens: 0,
-      cacheReadTokens: 0,
-      cacheWriteTokens: 0,
-      reasoningTokens: 0,
-    }
+  app.out(
+    t(locale, 'cli.historyTotalReasoning', { value: formatCount(locale, totals.reasoningTokens) })
   )
-}
-
-function formatMessageContent(message: StoredSessionMessage['message']): string {
-  const text =
-    typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
-
-  return sanitizeDisplayText(text).slice(0, CONTENT_PREVIEW_CHARS)
+  app.out(
+    t(locale, 'cli.historyTotalModelCalls', { value: formatCount(locale, totals.modelCalls) })
+  )
 }
 
 const historyDeleteCommand = createCommand({

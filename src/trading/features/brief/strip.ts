@@ -12,8 +12,8 @@ import { marketRef } from '@/trading/kernel/instrument'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { ABSENT_CELL } from '@/trading/render/number'
 import { renderHeadlineCells } from '@/trading/render/price-pair'
-import { toPricePair } from '@/trading/render/section-price'
-import { renderValue } from '@/trading/render/section-values'
+import { priceContextOf, toPricePair } from '@/trading/render/section-price'
+import { renderValue, unitOfSection } from '@/trading/render/section-values'
 
 /** The market whose prices date the session the brief describes. */
 const SESSION_MARKET = marketRef('equity-vn')
@@ -144,17 +144,16 @@ function readRow(
   context: RenderContext
 ): StripReading | undefined {
   const { section, row, field, session } = place
-  const currency = section.currency === undefined ? {} : { currency: section.currency }
 
   if (field !== undefined) {
     const value = row[field]
 
     return value === undefined
       ? undefined
-      : { amount: renderValue(locale, [field, value], currency) }
+      : { amount: renderValue(locale, [field, value], unitOfSection(section)) }
   }
 
-  const pair = toPricePair(row, { timezone: context.timezone, ...currency })
+  const pair = toPricePair(row, priceContextOf(context.timezone, section))
   const { cells, settledOn } =
     pair === undefined
       ? { cells: [] }

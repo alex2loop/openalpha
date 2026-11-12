@@ -37,9 +37,9 @@ const TONE = Object.freeze({
   titleInk: '#B9C4EE',
   status: '#8FA0C8',
 })
-/** The cursor's colour. */
+/** The cursor's color. */
 export const CURSOR_TONE = '#D7E0F5'
-// A line's colour by what it is: the command, a step done, the step under way.
+// A line's color by what it is: the command, a step done, the step under way.
 const LINE_TONE: Readonly<Record<ScreenLine['kind'], string>> = Object.freeze({
   command: '#8DB4FF',
   done: '#6FE3D6',

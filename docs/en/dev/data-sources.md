@@ -336,7 +336,7 @@ the monthly series no free daily feed has.
 - A `vietcap-statements` call returns eight years, so `annual_accounts` is neither durable nor archived: a refetch rebuilds it.
   A quarter is kept with a balance sheet and income statement alone, because the provider files its cash flow later; a year still needs all three statements. A partial quarter leaves its cash lines absent, and every trailing sum, free cash flow and cash conversion that needs them goes absent with it, never zero. The `cash_flow_source_id` column is set when the cash lines came from `cafef-statements`.
   The 34 quarters go to `quarterly_accounts` and are read as a trailing year past the newest audited one, and the newest five also as quarter rows against the same quarter a year earlier (`AccountsHistory.quarters`, built in `markets/accounts-quarters.ts`).
-- A bank is recognised from its balance sheet, never its sector. The provider zero-fills the codes of other families, so a
+- A bank is recognized from its balance sheet, never its sector. The provider zero-fills the codes of other families, so a
   positive customer-loans line (`bsb104`) marks a bank and `isBankLines` (`kernel/market/annual-accounts.ts`) tests for it. The
   optional `NOTE` section costs only the bank lines when absent. Outflow lines are stored sign-flipped (`OUTFLOW_LINES`).
 - `cashFlowToDate` is `cafef-statements`' year-to-date cash-flow table for one quarter.
@@ -831,7 +831,7 @@ the whole scope and writes it to `MarketDataStore`; features read the store. The
 (`kernel/market/refresh.ts`): `instruments`, `bars`, `fundamentals`, `flows`, `macro`, `accounts`, `premium`, `index-ratios`.
 `foreignRoom` and `indexMembership` resolve inside the universe refresh, because they only mean something attached to the listing
 set being replaced. A screen cannot issue one live request per name, and evidence must be stable across a session.
-The membership read runs under its own short budget (`MEMBERSHIP_BUDGET_MS`, 5 s) and is cancelled past it, because a basket label is
+The membership read runs under its own short budget (`MEMBERSHIP_BUDGET_MS`, 5 s) and is canceled past it, because a basket label is
 never worth holding the universe for; the universe then settles without it, keeps the stored tiers (none on a first load) and carries
 `source.index-membership-unavailable`. Daemon and browser alike.
 

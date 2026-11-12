@@ -37,7 +37,7 @@ import {
 type Rect4 = readonly [number, number, number, number]
 
 const PERSON_PREFIX = 'person'
-// A passer-by's colours come from the street palette; an office person keeps their own, listed
+// A passer-by's colors come from the street palette; an office person keeps their own, listed
 // first in each palette.
 const STREET = STREET_PEOPLE
 const OWN_SKINS = LOOK_PARTS.body.map((body) => RAMP.skin[body][1])
@@ -55,7 +55,7 @@ const PACKS = ['#C9544A', '#3F7FC5', '#E0A13A', '#5CA27A', '#8E5BB5'] as const
 // A pupil wears the street's navy trousers.
 const PUPIL_PANTS = OWN_PANTS.length + 3
 const FRAMES = 7
-// Bits of a passer-by's look seed each colour is drawn from.
+// Bits of a passer-by's look seed each color is drawn from.
 const LOOK_BITS = Object.freeze({ hair: 2, shirt: 4, pants: 7, pack: 9 })
 const TONES = Object.freeze({
   black: '#000000',
@@ -122,7 +122,7 @@ const ITEM_SHAPES = Object.freeze({
   ],
 } as const satisfies Record<ErrandItem, readonly [Rect4, Rect4]>)
 
-/** What a person's picture is painted from: their colours, pose and the darkness. */
+/** What a person's picture is painted from: their colors, pose and the darkness. */
 interface Figure {
   readonly g: CanvasRenderingContext2D
   readonly person: PersonView

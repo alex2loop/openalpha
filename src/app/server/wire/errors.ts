@@ -16,6 +16,7 @@ export type ApiErrorCode =
   | 'invalid_body'
   | 'conflict'
   | 'price_unconfirmed'
+  | 'name_unlisted'
   | 'upstream_failed'
   | 'too_many_streams'
   | 'unavailable'
@@ -64,6 +65,7 @@ export const API_ERROR_STATUS: Readonly<Record<ApiErrorCode, number>> = {
   invalid_body: 400,
   conflict: 409,
   price_unconfirmed: 422,
+  name_unlisted: 422,
   upstream_failed: 502,
   too_many_streams: 503,
   unavailable: 503,

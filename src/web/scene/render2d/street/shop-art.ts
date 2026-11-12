@@ -59,7 +59,7 @@ const NEON: Readonly<Partial<Record<ShopKind, string>>> = Object.freeze({
 const PLAIN_SIGN: ShopSign = Object.freeze({ band: '#8A93A6', ink: '#FFFFFF' })
 const TABLE = Object.freeze({ leg: '#6B6B75', top: '#F2EFE6', minWidth: 10, at: [0.27, 0.74] })
 
-/** A shop front's colours: its sign band and the ink on it, and its awning stripes. */
+/** A shop front's colors: its sign band and the ink on it, and its awning stripes. */
 interface KindLook {
   readonly band: string
   readonly ink: string
@@ -170,7 +170,7 @@ function paintAlley(front: ShopFront): void {
   }
 }
 
-// The sign band: the kind's colour, its word (from the middle detail up; one ink bar below that)
+// The sign band: the kind's color, its word (from the middle detail up; one ink bar below that)
 // and, lit, a glow and the kind's tube.
 function paintSign(front: ShopFront): void {
   const { g, w, look, shop } = front
@@ -263,7 +263,7 @@ function halvesOf(word: string): readonly [string, string] | undefined {
   return best
 }
 
-// An open sign shows its colours, lit or not; a closed one dims further.
+// An open sign shows its colors, lit or not; a closed one dims further.
 function signTone(front: ShopFront): (hex: string) => string {
   const { shop, isLit } = front
   const share = shop.isOpen ? SHUT_NIGHT.open : SHUT_NIGHT.closed

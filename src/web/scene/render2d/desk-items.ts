@@ -329,7 +329,7 @@ function slotFills(
   return []
 }
 
-// A sheet lies turned on the desk over its shadow; on a board it is pinned upright, note-coloured.
+// A sheet lies turned on the desk over its shadow; on a board it is pinned upright, note-colored.
 function sheetOf(
   row: DeskProp,
   at: { readonly slot: number; readonly surface: Surface2d }
@@ -357,7 +357,7 @@ function sheetOf(
   ]
 }
 
-// The alert lamp's dome, either colour, worked out once.
+// The alert lamp's dome, either color, worked out once.
 function domeOf(row: DeskProp, surface: Surface2d): NonNullable<Drawn['dome']> {
   const { dx, dz, w, rise, h } = LAMP_DOME
 

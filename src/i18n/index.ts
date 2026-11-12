@@ -9,6 +9,7 @@ import en from '@/i18n/locales/en.json'
 import vi from '@/i18n/locales/vi.json'
 
 import { GLOSSARY_GROUPS, GLOSSARY_TERMS, tickersOfTerm } from './glossary'
+import { namesQuoteUnit } from './precision'
 
 export {
   foldGlossaryText,
@@ -32,6 +33,7 @@ export {
   isSubUnit,
   minorUnitsOf,
   NUMBER_FORMATS,
+  namesQuoteUnit,
   priceDecimals,
   SUB_UNIT_SIGNIFICANT_DIGITS,
 } from './precision'
@@ -233,6 +235,14 @@ function translateDynamic(
   params?: Record<string, string | number>
 ): string {
   return t(locale, key as MessageKey, params)
+}
+
+/** The currency a price is in, then the measure it is per where the instrument does not imply it:
+ *  `VND/lượng`, `USD/oz`; a share or a coin is the bare currency. */
+export function renderQuoteUnit(locale: Locale, currency: string, unit?: string): string {
+  return namesQuoteUnit(unit)
+    ? translateDynamic(locale, `trading.quote-unit.${unit}`, { currency })
+    : currency
 }
 
 // A direct namespace lookup, so a tool name never has to be asserted into `MessageKey`. Every

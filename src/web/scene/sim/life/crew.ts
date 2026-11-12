@@ -3,7 +3,7 @@ import type { LifeState, LifeStep } from '@/web/scene/sim/life/state'
 import type { Goal } from '@/web/scene/sim/vocabulary'
 import type { ActorId, CrewRole, Point } from '@/web/scene/types'
 import type { ClockParts } from '@/web/text/time'
-import { homeMarket, regionPack } from '@/web/scene/data/home'
+import { regionPack } from '@/web/scene/data/home'
 import { CREW_IDS } from '@/web/scene/sim/actors/roster'
 import { isWalking } from '@/web/scene/sim/actors/walk'
 import { setBlock } from '@/web/scene/sim/life/blocks'
@@ -25,6 +25,7 @@ import { FLOORS, GROUND_FLOOR } from '@/web/scene/world/floors'
 import { propsOn, wetSignRectOf } from '@/web/scene/world/props'
 import { isWithin } from '@/web/scene/world/regions'
 import { CREW_POSTS } from '@/web/scene/world/seats'
+import { homeMarket } from '@/web/state/market'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
 const RECEPTIONIST: CrewRole = 'receptionist'
@@ -88,7 +89,7 @@ export function createCrewState(): CrewState {
  *  the late afternoon of a trading day. Walks need motion; without it, and on the first step once
  *  `/v1/markets` has answered, they stand at their places at once. */
 export function stepCrew(state: LifeState, step: LifeStep): void {
-  if (homeMarket.value === undefined) {
+  if (homeMarket() === undefined) {
     return
   }
 

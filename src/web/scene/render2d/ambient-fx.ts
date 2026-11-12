@@ -98,7 +98,7 @@ export function nextAmbientFxAt(sim: SimView, nowMs: number): number {
     return isStirring ? beatAt : Number.POSITIVE_INFINITY
   }
 
-  // The strip and the StandBy colour wake the loop only inside their own windows, the colour at
+  // The strip and the StandBy color wake the loop only inside their own windows, the color at
   // its slower step.
   return Math.min(
     isFast(fx) || isStirring ? beatAt : Number.POSITIVE_INFINITY,

@@ -26,7 +26,7 @@ export function isBlockedIpv4(ip: string): boolean {
   const n = ipToInt(ip)
 
   if (n === null) {
-    // fail-CLOSED - invalid IPv4 is refused, matching isBlockedIpv6 behaviour
+    // fail-CLOSED - invalid IPv4 is refused, matching isBlockedIpv6 behavior
     return true
   }
 

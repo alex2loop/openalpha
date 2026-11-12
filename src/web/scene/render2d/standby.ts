@@ -4,12 +4,12 @@ import { DEVICE_TONES, moveToneOf } from '@/web/scene/sprites/palette'
 import { paintPixelText, pixelTextWidth } from '@/web/scene/sprites/pixel-font'
 import { MINUTES_PER_HOUR } from '@/web/text/time-units'
 
-/** What a StandBy phone propped on a desk shows: drifting colour, a small clock and the index's
+/** What a StandBy phone propped on a desk shows: drifting color, a small clock and the index's
  *  move, or the time large. */
 type StandbyView = 'flow' | 'widgets' | 'clocks'
 
 const STANDBY_PHASES = 6
-/** The drifting colour steps once this often on the ambient clock. */
+/** The drifting color steps once this often on the ambient clock. */
 export const STANDBY_STEP_MS = 1200
 // The screen is this many world px; its digits are 3x5 dots, a dot some whole device px.
 const SCREEN_W = 10
@@ -129,7 +129,7 @@ function paintBigClock(
   fill(g, [x + 8, y + 3, 1, 1], tones.hole)
 }
 
-// The drifting colour's step: on the stands' ambient clock while it runs, else the page minute's.
+// The drifting color's step: on the stands' ambient clock while it runs, else the page minute's.
 function flowPhaseOf(scene: PaintScene): number {
   const step = scene.fx?.standby === true ? scene.fx.standbyMs / STANDBY_STEP_MS : scene.minuteOfDay
 
@@ -178,7 +178,7 @@ function clockOf(minuteOfDay: number): string {
 }
 
 // The digits in device px over the screen at (x + 1, y + 1): the time centred on the clock, the
-// time over the index's move on the widgets, the time low on the drifting colour.
+// time over the index's move on the widgets, the time low on the drifting color.
 function paintStandbyText(
   g: CanvasRenderingContext2D,
   at: {

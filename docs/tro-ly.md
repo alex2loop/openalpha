@@ -27,7 +27,7 @@ Chưa có thư mục `agents/` là chuyện bình thường, không phải lỗi
 
 `openalpha agent list` và `show <id>` để xem; `show` còn in công cụ, danh sách ủy quyền, trần số lượt và số agent con
 mà agent được phép gọi. `remove <id>` xóa một agent của bạn, tạm dừng các lịch chạy đang bật của nó và không chạm được vào agent có
-sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Lệnh](lenh.md).
+sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Câu lệnh](lenh.md).
 
 ### Từ trang văn phòng
 
@@ -65,7 +65,7 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
   nền (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ dịch vụ
   nền, nên luôn là con số thật. Chi phí của chúng tính vào phiên chạy của agent cha, và một nút dừng cả
   phiên chạy, gồm cả các agent con.
-- Dưới câu trả lời của một phiên chạy đã xong, thẻ *Kết quả* có một khối "Lệnh gọi AI" đang đóng, giống khối trên dòng của một việc và dưới câu trả lời chat đã xong: các lệnh gọi mô hình của phiên chạy đó và agent con của nó, kèm chi phí từng lệnh gọi và kết thúc ra sao (xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng)).
+- Dưới câu trả lời của một phiên chạy đã xong, thẻ *Kết quả* có một khối "Lượt gọi AI" đang đóng, giống khối trên dòng của một việc và dưới câu trả lời chat đã xong: các lượt gọi mô hình của phiên chạy đó và agent con của nó, kèm chi phí từng lượt gọi và kết thúc ra sao (xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng)).
 - Agent mới hay vừa sửa được kiểm tra như dịch vụ nền kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
   ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
 - Trang tạo tối đa 50 agent của riêng bạn, tính cả tệp nạp lỗi; quá mức đó nó yêu cầu bạn xóa bớt một agent trước.
@@ -200,7 +200,7 @@ nhắc của agent. Phần còn lại chỉ thu hẹp:
 
 Đề xuất của agent có phạm vi được lưu dưới `focus_key` riêng, được chấm và báo cáo tách biệt. Chúng không bao giờ
 dời một mức cắt lỗ đang giữ, nâng nó hay kích hoạt cảnh báo, và không vào bản tin sáng. Chúng hiển thị là "ý
-kiến thứ hai từ <phạm vi>", không kèm tỷ trọng, số lượng hay khối lệnh - một cuốn sổ, một kế hoạch. `/suggest <mã>`
+kiến thứ hai từ <phạm vi>", không kèm tỷ trọng, khối lượng hay khối lệnh - một cuốn sổ, một kế hoạch. `/suggest <mã>`
 luôn là đề xuất điều khiển danh mục. Một agent được ủy quyền giữ nguyên phạm vi của agent gốc, nên đề xuất của nó
 không bao giờ vô tình thành đề xuất của danh mục. Chi tiết: [giao dịch](giao-dich.md).
 
@@ -214,7 +214,7 @@ chọn trên cùng mã, cùng ngày. Quy tắc, cùng cỡ mẫu tối thiểu �
 **`max_daily_usd` - phần của hôm nay.** Dưới `[budget] max_daily_usd`, mỗi agent có thể có mức trần riêng. Xem
 [mức trần theo agent](ngan-sach.md#mức-trần-theo-agent).
 
-**Tạm dừng.** `openalpha agent pause <id>` tắt một agent của bạn và `agent resume` bật lại ([Lệnh](lenh.md)). Persona
+**Tạm dừng.** `openalpha agent pause <id>` tắt một agent của bạn và `agent resume` bật lại ([Câu lệnh](lenh.md)). Persona
 tranh luận không tạm dừng được: làm vậy sẽ hỏng mọi đề xuất.
 
 - Việc tạm dừng được đọc ở mỗi phiên chạy, nên nó tới một dịch vụ nền đang chạy ngay lập tức, không cần khởi động lại.
@@ -378,7 +378,7 @@ phân giải được thì không nhận khối nào.
 | `research-reviewer` | Nội bộ, không có công cụ. Chấm điểm báo cáo dựa trên bằng chứng của nó. |
 
 Các worker `research-*` do khâu điều phối nghiên cứu chạy, với hồ sơ cố định, chỉ đúng những công cụ vai đó cần và
-danh sách ủy quyền rỗng. Giống các persona giao dịch bên dưới, chúng chỉ trả lời bên trong một lượt chạy: `/agent`,
+danh sách ủy quyền rỗng. Giống các persona giao dịch bên dưới, chúng chỉ trả lời bên trong một phiên chạy: `/agent`,
 `agent bind`, `chat --agent` và `--agent` của một job đều coi chúng là agent không tồn tại.
 
 Phần giao dịch thêm các persona đáng tin: các vai tranh luận `bull-researcher`, `bear-researcher`,
@@ -400,7 +400,7 @@ công cụ của agent đó quyết định.
 openalpha chat --agent deep-researcher
 ```
 
-`/research` không đụng tới ràng buộc `/agent` của bạn ([Lệnh](lenh.md)). `openalpha chat --agent deep-researcher` là cửa
+`/research` không đụng tới ràng buộc `/agent` của bạn ([Câu lệnh](lenh.md)). `openalpha chat --agent deep-researcher` là cửa
 vào tiền cảnh rõ ràng.
 
 Gọi `research` trực tiếp bất cứ khi nào các khẳng định thời sự hoặc từ bên ngoài cần bằng chứng nhiều nguồn. Một con

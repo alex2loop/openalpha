@@ -27,7 +27,7 @@ import {
   SIDE_MARKS,
 } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR, renderSectionTitle } from '@/trading/render/layout'
-import { formatMoney, formatQuotedPrice } from '@/trading/render/money'
+import { formatMoney, formatQuotedPrice, quotedInOf } from '@/trading/render/money'
 import { ABSENT_CELL } from '@/trading/render/number'
 
 const REASON_SEPARATOR = '; '
@@ -312,7 +312,7 @@ export function renderUnmirroredLines(
       `trading.order.unmirrored.reason.${intent.failure}`,
       intent.failure
     ),
-    // Labelled because it is the handle the operator searches the exchange with, and a bare id
+    // Labeled because it is the handle the operator searches the exchange with, and a bare id
     // beside a quantity and a price says nothing about which of them it is.
     ...(intent.orderId === undefined
       ? []
@@ -378,4 +378,12 @@ function unprotectedLine(input: ReceiptInput): string {
 
 function triggerText(input: ReceiptInput, value: number | undefined): string {
   return value === undefined ? ABSENT_CELL : formatQuotedPrice(input.locale, value, input.quotedIn)
+}
+
+/** What a price on this order prints against: its currency, with the market's own unit and display. */
+export function quotedInFor(
+  prepared: Pick<PreparedOrder, 'currency'>,
+  convention: QuoteConvention | undefined
+): QuotedIn {
+  return { currency: prepared.currency, ...quotedInOf(convention) }
 }

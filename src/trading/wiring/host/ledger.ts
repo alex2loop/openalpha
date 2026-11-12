@@ -81,6 +81,7 @@ export function ledgerMethods(deps: TradingHostDeps): LedgerMethods {
             ref: request.entryId,
             draft: parseDraft(schemas.edit, request.draft),
             ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+            requiresListed: true,
             now: scope.now,
             signal: scope.signal,
           })
@@ -120,6 +121,7 @@ function previewLedger(
         draft: parseDraft(schemas.record, request.draft),
         ...(request.entryId === undefined ? {} : { replacing: request.entryId }),
         ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
+        requiresListed: true,
         now: scope.now,
         signal: scope.signal,
       })
@@ -145,6 +147,7 @@ function recordLedger(
         ...(request.typedPrice === undefined ? {} : { typedPrice: request.typedPrice }),
         idempotencyKey: request.idempotencyKey,
         requiresStatedRate: true,
+        requiresListed: true,
         now: scope.now,
         signal: scope.signal,
       })

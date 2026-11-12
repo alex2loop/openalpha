@@ -7,7 +7,7 @@ import type { DetailLevel } from '@/web/scene/sim/life/animal-model'
 type Rotation = readonly [number, number, number, number, number, number, number, number, number]
 type Vec = readonly [number, number, number]
 
-// Rings round each ellipsoid at a detail level, as the mockup's `ellGeo`; the colours are shaded a
+// Rings round each ellipsoid at a detail level, as the mockup's `ellGeo`; the colors are shaded a
 // step down so the room's light brings them to the 2D tones.
 const RINGS: Readonly<Record<DetailLevel, number>> = Object.freeze({ 0: 8, 1: 12, 2: 12 })
 const SHADE = 0.82
@@ -15,7 +15,7 @@ const SHADE = 0.82
 const BAND = Object.freeze({ grow: 1.07, rings: 3 })
 const IDENTITY: Rotation = [1, 0, 0, 0, 1, 0, 0, 0, 1]
 
-/** Every ellipsoid of the model at rest in one vertex-coloured geometry, in the model's units;
+/** Every ellipsoid of the model at rest in one vertex-colored geometry, in the model's units;
  *  each vertex is skinned to its part, the bone at that part's index in `parts`. The caller
  *  disposes it. */
 export function buildAnimalGeometry(

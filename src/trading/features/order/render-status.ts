@@ -1,10 +1,6 @@
 import type { Locale } from '@/core/types/locale'
-import type {
-  RestingExitRow,
-  StagedOrder,
-  TradeStatus,
-  UnguardedPosition,
-} from '@/trading/features/order/types'
+import type { UnguardedPosition } from '@/trading/features/order/exit-coverage'
+import type { RestingExitRow, StagedOrder, TradeStatus } from '@/trading/features/order/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
 import { pluralKey, t } from '@/i18n'

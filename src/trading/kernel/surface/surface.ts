@@ -37,8 +37,9 @@ const PERCENT_PER_UNIT = 100
 const DECIMAL_RE = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/
 
 /** Set by the surfaces where the operator types a price: `unconfirmed` refuses one far from the
- *  market with `PriceUnconfirmedError`, `confirmed` writes it as typed. Unset is never checked: a
- *  writer holding a venue's figure, or a client that never asks. */
+ *  market with `PriceUnconfirmedError`, `confirmed` writes it as typed and also accepts a name no
+ *  stored list has (`InstrumentUnlistedError`). Unset is never checked: a writer holding a venue's
+ *  figure, or a client that never asks. */
 export const TYPED_PRICES = Object.freeze(['unconfirmed', 'confirmed'] as const)
 export type TypedPrice = (typeof TYPED_PRICES)[number]
 
@@ -368,7 +369,7 @@ export const priceConfirmedInput = z
   .literal(true)
   .optional()
   .describe(
-    'True only after the operator confirmed a price the tool refused as far from the market. Omit otherwise.'
+    'True only after the operator confirmed a price the tool refused as far from the market, or a name the tool refused as not in its stored list. Omit otherwise.'
   )
 
 export function toTypedPrice(priceConfirmed: true | undefined): TypedPrice {

@@ -316,6 +316,7 @@ function buildOrder(parts: OrderParts): OrderService | undefined {
     onFilled: deps.onFilled,
     findProfile: (signal) => deps.stores.profile.find(signal),
     quoteOf: (instrument, now, signal) => quoteOf(marketData, instrument, { now, signal }),
+    quoteConvention: (market) => marketData.quoteConvention(market),
     findRecordedFill: async (venue, orderId, signal) =>
       (
         await deps.stores.ledger.findByIdempotency({

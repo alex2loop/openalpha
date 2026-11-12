@@ -10,7 +10,7 @@ import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, ValidationError } from '@/core/errors'
 import { marketRef, tradingDay } from '@/trading/kernel/instrument'
 import { REFRESH_DATA_KINDS, REFRESH_KIND_STATUSES } from '@/trading/kernel/market/refresh'
-import { caveatsSchema, toMember } from '@/trading/kernel/store/store-payload'
+import { caveatsSchema, type StoredShape, toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson } from '@/trading/kernel/store/store-row'
 
 const ATTEMPT_KEYS = ['market', 'kind']
@@ -18,6 +18,10 @@ const ATTEMPT_COLS = ['as_of', 'attempted_at', 'payload']
 /** `fresh` is a policy skip, never an attempt: persisting it would let a skipped kind suppress the
  *  next boot's repair of work no provider performed. */
 const SETTLED_STATUSES = REFRESH_KIND_STATUSES.filter((status) => status !== 'fresh')
+
+/** The kind is a key column; the rest is never stored: restated targets, provenance and timing are
+ *  not read back from an attempt. */
+type UnstoredResultKey = 'kind' | 'restatedTargets' | 'provenance' | 'elapsedMs'
 
 const outcomeSchema = z.strictObject({
   status: z.enum(SETTLED_STATUSES),
@@ -27,7 +31,7 @@ const outcomeSchema = z.strictObject({
   recordCount: z.number().int().nonnegative(),
   coveredFrom: z.string().min(1).optional(),
   caveats: caveatsSchema,
-})
+} satisfies StoredShape<Omit<RefreshKindResult, UnstoredResultKey>>)
 
 interface AttemptRow {
   readonly market: string

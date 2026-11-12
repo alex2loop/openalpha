@@ -187,7 +187,7 @@ function renderPriceLines(
   record: AnalysisRecord,
   last: number | undefined
 ): readonly string[] {
-  const { evidenceClose: close, boardScale, currency } = record
+  const { evidenceClose: close, boardScale, currency, quoteUnit } = record
 
   if (close === undefined || !(close > 0)) {
     return []
@@ -195,6 +195,7 @@ function renderPriceLines(
 
   const quote = {
     ...(currency === undefined ? {} : { currency }),
+    ...(quoteUnit === undefined ? {} : { unit: quoteUnit }),
     ...(boardScale === undefined ? {} : { display: boardScale.display }),
   }
   const parts = [

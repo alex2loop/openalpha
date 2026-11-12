@@ -32,7 +32,7 @@ interface RankableName {
   }
   readonly fundamental: FundamentalSnapshot | null
   readonly closes: readonly number[]
-  /** A year of average daily traded value. Ranked against the company's own capitalisation, never
+  /** A year of average daily traded value. Ranked against the company's own capitalization, never
    *  on its own: đồng traded is mostly a restatement of size, while the share of the company that
    *  changed hands is the speculation the published factor measures. */
   readonly annualTurnover?: number
@@ -49,7 +49,7 @@ export function valuePercentiles(names: readonly RankableName[]): ReadonlyMap<Ti
 }
 
 /** Ranked inside size groups rather than across the whole board. The published VN turnover leg
- *  carries its premium only under a size-neutral sort: capitalisation and turnover rate run
+ *  carries its premium only under a size-neutral sort: capitalization and turnover rate run
  *  strongly opposite among names that cleared a đồng-turnover gate, so an unconditional rank spends
  *  itself restating `size` with the sign flipped and the two legs cancel. */
 export function speculativeTurnoverPercentiles(
@@ -60,8 +60,8 @@ export function speculativeTurnoverPercentiles(
   return new Map(sizeGroups(names).flatMap((group) => [...boardRanks(group, rates)]))
 }
 
-/** The board halved at the median capitalisation of the names a rank is measured against, which is
- *  the split the published model sorts on. A name with no capitalisation joins neither half rather
+/** The board halved at the median capitalization of the names a rank is measured against, which is
+ *  the split the published model sorts on. A name with no capitalization joins neither half rather
  *  than defaulting into the smaller one — it has no turnover rate to rank either way, and a missing
  *  figure standing in for the smallest is how an absent reading becomes a score. An unmeasurable
  *  median leaves the board whole rather than splitting it arbitrarily. */
@@ -96,11 +96,11 @@ function sizeGroups(names: readonly RankableName[]): readonly (readonly Rankable
   return [larger, smaller]
 }
 
-/** How much of the company changes hands in a day, as traded value over capitalisation. The share
+/** How much of the company changes hands in a day, as traded value over capitalization. The share
  *  count the published factor divides by is recoverable, and the two rank this board 0,975 alike,
  *  so the extra field buys nothing: the price in each leg cancels only approximately, since the
  *  numerator averages a year of prices and the denominator carries today's. A name with no
- *  capitalisation, or no turnover reading, is unmeasured rather than measured at zero. */
+ *  capitalization, or no turnover reading, is unmeasured rather than measured at zero. */
 function turnoverRates(names: readonly RankableName[]): ReadonlyMap<Ticker, number> {
   const rates = new Map<Ticker, number>()
 
@@ -163,7 +163,7 @@ function rankedPopulation(names: readonly RankableName[]): readonly RankableName
   return screened.length === 0 ? names : screened
 }
 
-/** Capitalisation where it is a usable number. Absent rather than zero: a name the fundamentals
+/** Capitalization where it is a usable number. Absent rather than zero: a name the fundamentals
  *  refresh has not reached is unmeasured, not small. */
 function positiveMarketCap(name: RankableName): number | undefined {
   const marketCap = name.fundamental?.marketCap

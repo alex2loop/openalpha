@@ -13,7 +13,7 @@ interface FundamentalsOptions {
   readonly request: MarketDataRefreshRequest
 }
 
-/** One live read answers every equity; only the largest by capitalisation, and the names the
+/** One live read answers every equity; only the largest by capitalization, and the names the
  *  operator holds or watches, are stored, because a snapshot is kept for every day it is written
  *  and nothing reads the others. That bounds the store's growth to the kept set a day, however many
  *  names the listing holds. */

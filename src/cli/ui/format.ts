@@ -1,10 +1,15 @@
 import type { ChannelDefinition } from '@/channels/api'
+import type { HaltCode } from '@/core/errors'
 import type { Locale } from '@/core/types/locale'
 import type { RunResultReason } from '@/core/types/run'
 import type { MessageKey } from '@/i18n'
 import type { SessionStatus, SessionSummary } from '@/persistence/api'
+import { BRAND } from '@/core/brand'
+import { HALT_SPEC } from '@/core/errors'
 import { formatSpendUsd } from '@/core/utils/cost'
+import { HALT_CODE_SEPARATOR, NO_REASON_MESSAGE } from '@/engine/api'
 import { t } from '@/i18n'
+import { STALE_SESSION_MESSAGE } from '@/persistence/api'
 import { formatInstant } from '@/trading/api'
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
@@ -30,6 +35,8 @@ const SESSION_END_KEYS = Object.freeze({
   daemon_restarted: 'cli.sessionEndRestarted',
 } as const satisfies Record<RunResultReason | 'daemon_restarted', MessageKey>)
 const END_KEY_BY_REASON: ReadonlyMap<string, MessageKey> = new Map(Object.entries(SESSION_END_KEYS))
+// A halted run stores `<halt code><separator><detail>`; the code is worded, the detail trails it.
+const HALT_DETAIL_MAX_WIDTH = 80
 
 /** Spend, and how much of the cap it is when one is set (a cap of 0 or less means none). */
 export function formatSpendOfCap(locale: Locale, spentUsd: number, capUsd: number): string {
@@ -106,6 +113,41 @@ export function formatSessionEnd(locale: Locale, reason: string): string {
   const key = END_KEY_BY_REASON.get(reason)
 
   return key === undefined ? reason : t(locale, key)
+}
+
+/** A stored run error in the reader's language: a halt code's own wording, the restart note or the
+ *  no-reason note. Any other message prints as stored. */
+export function formatSessionError(locale: Locale, message: string): string {
+  if (message === STALE_SESSION_MESSAGE) {
+    return t(locale, 'cli.historyErrorRestarted')
+  }
+
+  if (message === NO_REASON_MESSAGE) {
+    return t(locale, 'cli.historyErrorNoReason')
+  }
+
+  const split = message.indexOf(HALT_CODE_SEPARATOR)
+  const code = split === -1 ? message : message.slice(0, split)
+
+  if (!isHaltCode(code)) {
+    return message
+  }
+
+  const sentence = t(locale, HALT_SPEC[code].messageKey, { brand: BRAND.name })
+  const detail = split === -1 ? '' : message.slice(split + HALT_CODE_SEPARATOR.length).trim()
+
+  if (detail === '' || detail === code) {
+    return sentence
+  }
+
+  return t(locale, 'cli.historyErrorDetail', {
+    message: sentence,
+    detail: truncateDisplay(detail, HALT_DETAIL_MAX_WIDTH),
+  })
+}
+
+function isHaltCode(value: string): value is HaltCode {
+  return Object.hasOwn(HALT_SPEC, value)
 }
 
 /** One row per session, on the operator's own clock, for every command that lists them. */

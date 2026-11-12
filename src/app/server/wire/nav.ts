@@ -12,6 +12,8 @@ interface NavPointWire {
 export interface NavBenchmarkWire {
   readonly legs: readonly {
     readonly segment: string
+    /** A share of 0 to 1, rounded across the legs to whole percents that still sum as the chat
+     *  prints them. */
     readonly weight: number
     readonly instrument?: InstrumentRefWire
   }[]

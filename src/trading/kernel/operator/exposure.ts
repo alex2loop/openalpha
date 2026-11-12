@@ -37,6 +37,33 @@ export type CapBreach =
       readonly capPctNav: number
     }
 
+/** What the confirm keeps of a breach the prompt named: what it is of, and how far it stood. A
+ *  ceiling the operator was shown only grows as the book fills, so the confirm passes it while it
+ *  has not grown past this figure; `etf-unmeasured` has no weight to state, so none is kept. */
+export interface ShownBreach {
+  readonly subject: string
+  readonly combinedPctNav?: number
+}
+
+export function toShownBreach(breach: CapBreach): ShownBreach {
+  const subject = breachSubject(breach)
+
+  return breach.kind === 'etf-unmeasured'
+    ? { subject }
+    : { subject, combinedPctNav: breach.combinedPctNav }
+}
+
+function breachSubject(breach: CapBreach): string {
+  switch (breach.kind) {
+    case 'position':
+      return `${breach.kind}:${breach.ticker}`
+    case 'sector':
+      return `${breach.kind}:${breach.sector}`
+    default:
+      return `${breach.kind}:${breach.segment}`
+  }
+}
+
 /** A cap at or below zero is a segment the sizer already refused, so nothing sized could have landed
  *  there and a "breach" of it would be arithmetic on a limit nobody hit. */
 export function isBreached(combinedPctNav: number, capPctNav: number): boolean {

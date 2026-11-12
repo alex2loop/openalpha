@@ -1,6 +1,6 @@
 import type { HttpMethod } from '@/social/types'
 
-/** The closed set an endpoint is labelled from. The label, never the method, decides what happens
+/** The closed set an endpoint is labeled from. The label, never the method, decides what happens
  *  to a request. */
 export const SOCIAL_LABELS = Object.freeze([
   'read',

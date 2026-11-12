@@ -14,7 +14,7 @@ export interface PendingLabel {
 export type AiLabeler = (sessionId: SessionId) => PendingLabel | undefined
 
 /** The label a session's first delivered reply carries since this daemon started: a session that was
- *  labelled once is not labelled again until a restart, which covers a session from before the
+ *  labeled once is not labeled again until a restart, which covers a session from before the
  *  label existed. Held in memory so no lookup can fail; a capped map only ever repeats a label. */
 export function createAiLabeler(locale: Locale): AiLabeler {
   const delivered = lruMap<SessionId, true>(LABELLED_SESSION_CAPACITY)

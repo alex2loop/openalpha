@@ -1,11 +1,10 @@
 import type { OrderServiceDeps } from '@/trading/features/order/deps'
+import type { ExitCoverage, UnguardedPosition } from '@/trading/features/order/exit-coverage'
 import type {
-  ExitCoverage,
   RestingExit,
   RestingExitRow,
   StagedOrder,
   TradeStatus,
-  UnguardedPosition,
 } from '@/trading/features/order/types'
 import type { VenueRef } from '@/trading/kernel/instrument'
 import type { StopCover } from '@/trading/kernel/operator/alert'

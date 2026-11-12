@@ -200,7 +200,7 @@ Mọi mô hình phải gọi được công cụ và trả JSON đúng schema. M
 
 #### Chọn mô hình cho các nhóm nghiên cứu
 
-Chọn theo tải công việc, không theo số lượng agent:
+Chọn theo tải công việc, không theo số agent:
 
 - **`research-heavy` (chỉ crawler).** Mỗi câu hỏi nghiên cứu một lời gọi, mang tối đa 8 nguồn đã truy
   hồi, mỗi nguồn cắt ở 4000 ký tự - khoảng 8-10k token đầu vào. Khâu truy hồi lưu tối đa 64 KiB văn bản
@@ -356,7 +356,7 @@ vào cấu hình bạn xem.
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
 | `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, phiên chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
-| `history_days` | số nguyên | `1095` | Số dương, không nhỏ hơn `days` (đặt nhỏ hơn thì cấu hình bị từ chối khi nạp; bỏ trống thì không bao giờ dưới `days`). Giữ bao lâu kết quả theo dõi: gợi ý đã chấm và lệnh giữ (mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động, gợi ý chưa chấm thì không bao giờ bị xóa), dòng factor log và kết quả chủ đề đã chốt, ảnh chụp NAV, điểm số liệu vĩ mô cùng nguồn của chúng. Tài liệu vĩ mô được giữ ít nhất 800 ngày, để bộ trích xuất không phải trả tiền đọc lại một tháng. |
+| `history_days` | số nguyên | `1095` | Số dương, không nhỏ hơn `days` (đặt nhỏ hơn thì cấu hình bị từ chối khi nạp; bỏ trống thì không bao giờ dưới `days`). Giữ bao lâu kết quả theo dõi: đề xuất đã chấm và đề xuất giữ (mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động, đề xuất chưa chấm thì không bao giờ bị xóa), dòng factor log và kết quả chủ đề đã chốt, ảnh chụp NAV, điểm số liệu vĩ mô cùng nguồn của chúng. Tài liệu vĩ mô được giữ ít nhất 775 ngày (khoảng 25 tháng), để bộ trích xuất không phải trả tiền đọc lại một tháng. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
 | `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
 
@@ -774,7 +774,7 @@ Các mục con tùy chọn: `suggestions`, `markets`, `briefs`, `intraday`, `ale
 
 ```toml
 [trading.suggestions]
-cooldown_sessions = 0          # số phiên chờ trước khi cùng một mã được gợi ý lại; 0 = mọi phiên
+cooldown_sessions = 0          # số phiên chờ trước khi cùng một mã được đề xuất lại; 0 = mọi phiên
 debate_mode = "full"           # full: phe mua, phe bán, quản lý danh mục và người giao dịch; lean: một chuyên gia phân tích, rẻ hơn
 
 [trading.markets.equity-vn]
@@ -941,7 +941,7 @@ lịch của khu vực `[locale] region`, không bao giờ từ `[locale] timezo
 Bản tin là bức tranh trước giờ mở cửa, nên `send_time` phải sớm hơn giờ mở cửa của thị trường chính.
 Đặt muộn hơn thì dịch vụ nền từ chối khởi động, thay vì lặng lẽ bỏ bản tin mỗi sáng.
 
-Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục gợi ý
+Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục đề xuất
 trong bản tin đều suy ra từ nó và từ phần đang nắm trong sổ.
 
 Mọi vòng lặp giao dịch tự khởi động và không làm gì khi không có việc phù hợp. Ngoại lệ là đối chiếu

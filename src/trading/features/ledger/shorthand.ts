@@ -64,7 +64,7 @@ interface ShorthandDeps {
   readonly marketData: Pick<MarketDataService, 'quoteConvention'>
 }
 
-/** The pieces of a buy, sell or rights line that were typed, each recognised by its shape. */
+/** The pieces of a buy, sell or rights line that were typed, each recognized by its shape. */
 interface TypedLine {
   readonly kind: string
   readonly venue?: VenueRef

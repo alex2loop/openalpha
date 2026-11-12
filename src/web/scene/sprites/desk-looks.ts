@@ -2,7 +2,7 @@ import type { DeskPropType } from '@/web/scene/world/desk-props'
 import { OUTLINE, PALETTE } from '@/web/scene/sprites/palette'
 
 /** One box of a desk piece, from the piece's spot: x and depth offsets, width, depth, rise above
- *  the surface and height in world px, and its colour. Both renderers build it the same. */
+ *  the surface and height in world px, and its color. Both renderers build it the same. */
 export type ShapeBox = readonly [
   dx: number,
   dz: number,

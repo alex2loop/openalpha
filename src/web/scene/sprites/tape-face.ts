@@ -28,7 +28,7 @@ interface TapeBoard {
 }
 
 /** The tape's first rows for the wall board, derived once per change of the tape or the page's
- *  up and down colours. */
+ *  up and down colors. */
 export const tapeBoard: ReadonlySignal<TapeBoard> = computed(() => {
   const rows = tapeRows.value.slice(0, BOARD_ROWS).map((row) => ({
     name: row.ticker,

@@ -1,13 +1,8 @@
 import type { OverviewResponse } from '@/app/server/wire/overview'
 import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
-import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
-import {
-  formatPrice,
-  formatSignedCompactAmount,
-  formatSignedPercent,
-  toneOfPercent,
-} from '@/web/text/figures'
-import { formatDealerBoard } from '@/web/text/market-price'
+import { findMarket } from '@/web/state/market'
+import { formatSignedCompactAmount, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { formatDealerBoard, formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { Term } from '@/web/ui/glossary/term'
 import { MarketName } from '@/web/ui/market/market-name'
@@ -108,18 +103,14 @@ function OverviewRow({ row, currency, hasBoard }: OverviewRowProps) {
   }
 
   // A level market (an index) has no price currency and prints its bare level.
-  const { market } = row.instrument
-  const price = formatPrice(row.price, currency === undefined ? undefined : printDisplayOf(market))
-  const hasBoardScale = priceDisplayOf(market) !== undefined
+  const reading = currency === undefined ? { isLevel: true } : { currency }
 
   return (
     <div class="row">
       <b>
         <TickerLink ticker={row.instrument.ticker} market={row.instrument.market} />
       </b>
-      <span class="row-price">
-        {!hasBoardScale && currency !== undefined ? `${price} ${currency}` : price}
-      </span>
+      <span class="row-price">{formatMarketPrice(row.instrument.market, row.price, reading)}</span>
       {hasBoard && (
         <span class={`pill is-${toneOfPercent(row.changePct)}`}>
           {formatSignedPercent(row.changePct)}

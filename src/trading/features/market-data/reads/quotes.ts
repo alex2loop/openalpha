@@ -6,7 +6,7 @@ import type {
   MarketDataQuoteRequest,
   MarketDataService,
 } from '@/trading/features/market-data/types'
-import type { InstrumentKind } from '@/trading/kernel/instrument'
+import type { InstrumentKind, MarketRef } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
 import type { InstrumentRequest, QuoteView } from '@/trading/kernel/market/market-capability'
 import type {
@@ -16,7 +16,7 @@ import type {
 } from '@/trading/kernel/market/market-data'
 import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
-import type { Market, MarketManifest } from '@/trading/markets/types'
+import type { Market, MarketManifest, MarketRegistry } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'
 import { definedOnly } from '@/core/utils/collections'
 import { withinRange } from '@/trading/features/market-data/market-data-run'
@@ -84,11 +84,13 @@ export async function runQuote(
   )
 }
 
-/** What the registry says of one name without a price read: its convention and its sector. */
+/** What the registry says of one name or market without a price read: its convention and its
+ *  sector. */
 export function instrumentReads(
   deps: MarketDataRunDeps
-): Pick<MarketDataService, 'instrumentQuoteConvention' | 'instrumentSector'> {
+): Pick<MarketDataService, 'instrumentQuoteConvention' | 'instrumentSector' | 'quoteConvention'> {
   return {
+    quoteConvention: (market) => quoteConventionOf(deps.markets, market),
     instrumentQuoteConvention: (options) => runQuoteConvention(deps, options),
     instrumentSector: (options) => runInstrumentSector(deps, options),
   }
@@ -102,20 +104,33 @@ async function runQuoteConvention(
 ): Promise<QuoteConvention | undefined> {
   const resolved = await resolveInstrument(deps.markets, options)
 
-  if (resolved.kind === 'unresolved') {
+  if (resolved.kind === 'unresolved' || isLevelKind(resolved.instrumentKind)) {
     return undefined
   }
 
-  const { unit, currency, display } = quotedFieldsOf(
-    resolved.market.manifest,
-    resolved.instrumentKind
-  )
+  return toQuoteConvention(resolved.market.manifest)
+}
 
-  if (unit === undefined || currency === undefined) {
-    return undefined
+/** Absent rather than a fabricated convention: a market the registry does not list has no rule for
+ *  printing its prices, and inventing one would label a number in a unit nobody declared. */
+function quoteConventionOf(
+  markets: MarketRegistry,
+  market: MarketRef
+): QuoteConvention | undefined {
+  const manifest = markets.list().find((entry) => entry.manifest.id === market)?.manifest
+
+  return manifest === undefined ? undefined : toQuoteConvention(manifest)
+}
+
+/** How a market prints a price, and whether it quotes a dealer board: the one builder behind a
+ *  market's convention and a name's. */
+function toQuoteConvention(manifest: MarketManifest): QuoteConvention {
+  return {
+    currency: manifest.currency,
+    unit: manifest.quoteUnit,
+    ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
+    ...(manifest.quotesDealerBoard === true ? { dealerBoard: true as const } : {}),
   }
-
-  return { unit, currency, ...(display === undefined ? {} : { display }) }
 }
 
 /** The sector the market files the name under, read from stored listings only, so a card can name
@@ -135,7 +150,7 @@ async function runInstrumentSector(
   return resolved.kind === 'resolved' ? resolved.sector : undefined
 }
 
-/** Absent for a level: labelling it in đồng and dividing it by the board scale is exactly the
+/** Absent for a level: labeling it in đồng and dividing it by the board scale is exactly the
  *  misreading the convention exists to prevent. */
 function quotedFieldsOf(
   manifest: MarketManifest,

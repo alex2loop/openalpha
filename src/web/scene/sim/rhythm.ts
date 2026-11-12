@@ -8,7 +8,7 @@ import type { ClockParts } from '@/web/text/time'
 import { clockMode, pageMinute } from '@/web/scene/clock/clock'
 import { toMinute } from '@/web/scene/data/agenda'
 import { exDividendToday } from '@/web/scene/data/ex-dividends'
-import { homeMarket, marketList, regionPack } from '@/web/scene/data/home'
+import { regionPack } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
 import { ownActorIdOf } from '@/web/scene/sim/actors/roster'
 import { begin } from '@/web/scene/sim/life/schedule'
@@ -17,6 +17,7 @@ import { propsOn } from '@/web/scene/world/props'
 import { isInRange, type SpecialDay, specialDaysOf } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { agents } from '@/web/state/agents'
+import { homeMarket, knownMarkets } from '@/web/state/market'
 import { zoneParts } from '@/web/text/time'
 
 const INCOME_GOAL = 'income'
@@ -52,7 +53,7 @@ interface Moment {
 /** The home market's phase on the page clock; absent for a market without session hours, where
  *  nothing that follows the trading day happens. */
 export const homePhase: ReadonlySignal<SessionPhase | undefined> = computed(() => {
-  const session = homeMarket.value?.session
+  const session = homeMarket()?.session
 
   return session === undefined
     ? undefined
@@ -62,7 +63,7 @@ export const homePhase: ReadonlySignal<SessionPhase | undefined> = computed(() =
 /** The page minute's moment, from `homeMarket` and `homePhase`. A market without a session trades
  *  every day and has none of the session's moments. */
 export const moment: ReadonlySignal<Moment> = computed(() => {
-  const session = homeMarket.value?.session
+  const session = homeMarket()?.session
   const clock = pageMinute.value
   const phase = homePhase.value
   const tradingDay = session === undefined || session.today !== clock.day || session.tradesToday
@@ -156,7 +157,7 @@ export const isOfficeClosed: ReadonlySignal<boolean> = computed(() => {
 
   return (
     isClosedPhase(homePhase.value) &&
-    marketList.value.every(
+    knownMarkets.value.every(
       (market) =>
         !market.enabled ||
         (market.session !== undefined &&
@@ -228,7 +229,7 @@ function isAuction(
 // The ex-dividend hold ends when the lunch nap starts, else when the session closes.
 function exDayHoldEnd(): number {
   const { nap } = regionPack.value.officeLife
-  const close = homeMarket.value?.session?.close
+  const close = homeMarket()?.session?.close
 
   const hasNap = nap[1] > nap[0]
 
