@@ -1,3 +1,4 @@
+import type { BookRefusals } from '@/trading/features/order/book-moved'
 import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { FilledOrder } from '@/trading/features/order/mirror'
 import type { SubmitInput } from '@/trading/features/order/poll'
@@ -9,6 +10,7 @@ import type {
   OrderService,
 } from '@/trading/features/order/types'
 import { formatErrForLog } from '@/core/security/credentials'
+import { BookMovedError } from '@/trading/features/order/book-moved'
 import { createOrderConfirm } from '@/trading/features/order/confirm'
 import {
   assertRestsExits,
@@ -16,7 +18,11 @@ import {
   placeExit,
   setRestingExit,
 } from '@/trading/features/order/exit'
-import { assertBookPriced, breachedCaps } from '@/trading/features/order/exposure'
+import {
+  assertBookPriced,
+  breachedCaps,
+  RECHECK_TOLERANCE_PCT_NAV,
+} from '@/trading/features/order/exposure'
 import { assertBuyingAllowed, setHalted } from '@/trading/features/order/halt'
 import { createOrderIntents } from '@/trading/features/order/intents'
 import { mirrorFilledOrder, settleSignal } from '@/trading/features/order/mirror'
@@ -29,6 +35,7 @@ import {
   rejectionsFor,
   stageOrder,
 } from '@/trading/features/order/prepare'
+import { quotedInFor } from '@/trading/features/order/render'
 import { adapterFor } from '@/trading/features/order/routing'
 import { resolveSellableQuantities } from '@/trading/features/order/sellable'
 import {
@@ -42,7 +49,6 @@ import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 /** What a row says when the order left this process and its fate is unknown. Not an `OrderError`
  *  code: those name why one call failed, and this names a row a human still has to close. */
 const UNRECONCILED_FAILURE = 'unreconciled'
-const REFUSAL_SEPARATOR = ', '
 
 export function createOrderService(deps: OrderServiceDeps): OrderService {
   // One write to an exchange at a time. Both races this closes are the same shape — read the state,
@@ -125,8 +131,8 @@ async function assertBookStillAllows(deps: OrderServiceDeps, input: ExecuteInput
   const { staged } = input
   const refusals = await bookCapRefusals(deps, input)
 
-  if (refusals.length > 0) {
-    throw new OrderError('order.book_moved', refusals.join(REFUSAL_SEPARATOR))
+  if (refusals.rejections.length > 0 || refusals.breaches.length > 0) {
+    throw new BookMovedError(refusals)
   }
 
   if (staged.side === 'sell') {
@@ -140,16 +146,14 @@ async function assertBookStillAllows(deps: OrderServiceDeps, input: ExecuteInput
   }
 }
 
-/** The caps as they stand now, as the codes that refuse the order. `prepare` measured them against a
- *  book an order still going out has not written to yet, so the verdict is taken again where
- *  nothing else can be placed in between; otherwise two confirms read one book and both clear a
- *  ceiling only one may. A profile ceiling counts only where it crosses one this order's own
- *  prepare did not measure: the re-check refuses only a ceiling the book crossed since. A holding
- *  that lost its price since then refuses the buy here too. Every other term is this order's own. */
-async function bookCapRefusals(
-  deps: OrderServiceDeps,
-  input: ExecuteInput
-): Promise<readonly string[]> {
+/** The caps as they stand now, as what refuses the order. `prepare` measured them against a book an
+ *  order still going out has not written to yet, so the verdict is taken again where nothing else
+ *  can be placed in between; otherwise two confirms read one book and both clear a ceiling only
+ *  one may. A profile ceiling refuses only where it crosses one the confirm-time prepare did not
+ *  measure, and then only past `RECHECK_TOLERANCE_PCT_NAV`: what that prepare measured passes as
+ *  the order the operator confirmed. A holding that lost its price since then refuses the buy
+ *  here too. Every other term is this order's own. */
+async function bookCapRefusals(deps: OrderServiceDeps, input: ExecuteInput): Promise<BookRefusals> {
   const { prepared, staged } = input
   const [book, unmirrored, profile] = await Promise.all([
     deps.portfolio
@@ -182,15 +186,17 @@ async function bookCapRefusals(
           segment: prepared.segment,
           notionalBase: prepared.notionalBase,
           accepted: prepared.breaches,
+          tolerancePctNav: RECHECK_TOLERANCE_PCT_NAV,
           ...(prepared.instrumentKind === undefined
             ? {}
             : { instrumentKind: prepared.instrumentKind }),
         })
 
-  return [
-    ...rejections.map((rejection) => rejection.code),
-    ...breaches.map((breach) => breach.kind),
-  ]
+  return {
+    rejections,
+    breaches,
+    quotedIn: quotedInFor(prepared, deps.quoteConvention(prepared.instrument.market)),
+  }
 }
 
 /** Written before the order leaves, so a process that dies while the exchange holds it leaves a

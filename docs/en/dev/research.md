@@ -32,7 +32,7 @@ are `plan`, `crawl`, `synthesize` and `review`. `/research` runs this through th
 
 Profiles map to internal depths: `quick` is `light`, `standard` is `medium`, `thorough` is `deep`
 (`RESEARCH_PROFILE_DEPTHS`). `light` skips the planner and asks one question. A top-level `thorough`
-run requires an interactive plan reviewer and is cancelled before spending anything without one.
+run requires an interactive plan reviewer and is canceled before spending anything without one.
 
 ## Retrieval runs before the model
 

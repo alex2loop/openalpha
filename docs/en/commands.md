@@ -278,7 +278,7 @@ budget and branch budget weight. Then it waits for one decision:
 | `q` or Escape | Cancel the run |
 
 You get **exactly one** edit. After that the plan offers only start or cancel. With nobody to ask
-(piped stdin or no terminal), a `thorough` run is cancelled before it spends anything. `quick` and
+(piped stdin or no terminal), a `thorough` run is canceled before it spends anything. `quick` and
 `standard` show no plan selector, and delegated research never prompts.
 
 In a channel the plan arrives as a message with Start and Cancel buttons and no edit. Only an
@@ -931,7 +931,7 @@ split on a name held at two brokers is two rows, not one applied pro rata.
   that way, so you can fix a row with `/update` if you bought over P2P.
 
 **`/record sync <venue>`** books every fill the venue reports that your book has no row for, using
-the exchange's own quantity, price and fee. A limit order that filled only partly before you cancelled
+the exchange's own quantity, price and fee. A limit order that filled only partly before you canceled
 it is synced for the part that filled.
 
 - Binance lists trades coin by coin, so its sync reads the coins in your book plus the ones you hold,

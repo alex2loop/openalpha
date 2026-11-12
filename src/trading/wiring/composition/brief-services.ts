@@ -186,7 +186,9 @@ async function toAlertRows(
         condition: row.condition,
         threshold: board ? row.threshold / divisor : row.threshold,
         observedPrice: board ? row.observedPrice / divisor : row.observedPrice,
-        ...(convention === undefined ? {} : { currency: convention.currency }),
+        ...(convention === undefined
+          ? {}
+          : { currency: convention.currency, quoteUnit: convention.unit }),
         ...(board ? { board: { segment, divisor } } : {}),
       }
     })

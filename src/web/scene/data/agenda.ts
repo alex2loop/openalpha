@@ -9,9 +9,10 @@ import { startPoll } from '@/web/api/poll'
 import { ROUTES } from '@/web/api/routes'
 import { pageMinute, sceneZone } from '@/web/scene/clock/clock'
 import { exDividendToday } from '@/web/scene/data/ex-dividends'
-import { homeMarket, regionPack } from '@/web/scene/data/home'
+import { regionPack } from '@/web/scene/data/home'
 import { alertCounts } from '@/web/scene/data/room-status'
 import { specialDaysOf } from '@/web/scene/world/regions'
+import { homeMarket } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { readText } from '@/web/text/fields'
 import { joinInline } from '@/web/text/glyphs'
@@ -98,7 +99,7 @@ function buildAgenda(): AgendaModel {
     .map((item) => toRow(item, items[nextIndex], now))
   const next = rows.find((row) => row.state === 'next')
   const watching = alertCounts.value.alerts
-  const closedLine = closedTodayLine(homeMarket.value)
+  const closedLine = closedTodayLine(homeMarket())
   const noteLine = noteLineOf()
   const remaining = items.filter(
     (item) => item.minute > now && item.minute < MINUTES_PER_DAY
@@ -157,7 +158,7 @@ function timedItems(): TimedItem[] {
   return [
     ...briefItems,
     ...(state.value?.schedules ?? []).flatMap(jobItems),
-    ...sessionItems(homeMarket.value),
+    ...sessionItems(homeMarket()),
   ]
 }
 
@@ -259,7 +260,7 @@ function closedTodayLine(market: MarketWire | undefined): string | undefined {
 
 // The day's own marks, from the pack's calendar and the held names' ex-dividend dates.
 function noteLineOf(): string | undefined {
-  const tradesToday = homeMarket.value?.session?.tradesToday !== false
+  const tradesToday = homeMarket()?.session?.tradesToday !== false
   const days = specialDaysOf(pageMinute.value.day, regionPack.value, tradesToday)
   const tickers = [...new Set(exDividendToday.value.map((held) => held.ticker))]
   const notes = [

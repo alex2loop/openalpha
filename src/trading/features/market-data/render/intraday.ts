@@ -323,9 +323,7 @@ function renderSettledField(
     return [`${INDENT[1]}${label} ${missing(locale)}`]
   }
 
-  const { currency } = settled
-
-  const unit = currency === undefined ? {} : { currency }
+  const unit = entry?.isLevel === true ? {} : unitOfSection(settled)
   const [lead, ...tail] = headRowFacts(locale, first, unit)
 
   return [

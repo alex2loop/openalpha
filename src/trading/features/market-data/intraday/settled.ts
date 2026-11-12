@@ -6,7 +6,6 @@ import type {
   MarketDataOverview,
   MarketLeader,
   MarketMovers,
-  MarketRange,
 } from '@/trading/kernel/market/market-overview'
 import type { BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import { MOVER_KIND } from '@/trading/kernel/market/market-overview'
@@ -36,13 +35,14 @@ export function toSettled(overview: MarketDataOverview): IntradaySettled {
     ...(movers === undefined
       ? []
       : [{ field: MOVER_KIND[movers.window], rows: moverRows(movers) }]),
-    rangeField(overview.range),
+    rangeField(overview),
     { field: 'boards', rows: boardRows(overview.boards) },
   ]
 
   return {
     day: overview.asOf,
     currency: overview.currency,
+    ...(overview.quoteUnit === undefined ? {} : { quoteUnit: overview.quoteUnit }),
     fields: built.filter((entry) => entry.rows.length > 0),
   }
 }
@@ -67,7 +67,7 @@ function moverRows(movers: MarketMovers): readonly BriefSectionRow[] {
 
 /** The window rides the label rather than a row: a swing measured over a month and one measured over
  *  a year are different numbers under the same two words, and `/overview` already states it. */
-function rangeField(range: MarketRange | undefined): IntradaySettledField {
+function rangeField({ range, priceCurrency }: MarketDataOverview): IntradaySettledField {
   if (range === undefined) {
     return { field: 'range', rows: [] }
   }
@@ -79,5 +79,6 @@ function rangeField(range: MarketRange | undefined): IntradaySettledField {
       { resistance: range.resistance, resistancePct: range.resistancePct },
     ],
     labelParams: { sessions: range.sessions },
+    ...(priceCurrency === undefined ? { isLevel: true } : {}),
   }
 }

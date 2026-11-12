@@ -181,6 +181,7 @@ function toRecord(parts: RecordParts): AnalysisRecord {
     headlines: uncitedHeadlines(read.evidence.sources, citations),
     figures: read.figures,
     currency: subject.market.manifest.currency,
+    quoteUnit: subject.market.manifest.quoteUnit,
     ...read.context,
     ...boardScaleOf(subject.market.manifest),
     caveats: read.evidence.caveats,

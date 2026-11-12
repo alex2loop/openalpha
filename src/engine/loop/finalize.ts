@@ -16,6 +16,9 @@ import { textOf, toolCallIdsOf } from '@/core/utils/message'
 import { toolResultMessage } from '@/engine/loop/turn'
 import { isCriticalHook } from '@/engine/types/run'
 
+// A halt stores its error as `<halt code>` + this + the scrubbed detail; history reads it back.
+export const HALT_CODE_SEPARATOR = ': '
+
 // The stable caller-facing reason derived from a halt code. The halt code itself is preserved on
 // RunResult.haltCode for typed display; errorMessage carries scrubbed diagnostic detail only.
 export const HALT_CODE_TO_REASON: Readonly<Record<HaltCode, RunResultReason>> = {
@@ -163,7 +166,7 @@ export function classifyCaught(
       reason: HALT_CODE_TO_REASON[err.code],
       haltCode: err.code,
       ...(err.detail === undefined ? {} : { haltDetail: err.detail }),
-      errorMessage: `${err.code}: ${scrubCredentials(err.message)}`,
+      errorMessage: `${err.code}${HALT_CODE_SEPARATOR}${scrubCredentials(err.message)}`,
     }
   }
 

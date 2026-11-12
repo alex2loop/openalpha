@@ -21,7 +21,7 @@ import { EMPTY_LLM_USAGE_TOTALS } from '@/core/types/usage'
 import { agentCapRejection } from '@/engine/budget/agent-cap'
 import { assembleRun } from '@/engine/loop/context'
 import { createSteeringInbox, driveRun } from '@/engine/loop/drive'
-import { HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
+import { HALT_CODE_SEPARATOR, HALT_CODE_TO_REASON } from '@/engine/loop/finalize'
 import {
   abortedBeforeStartResult,
   agentNotFoundResult,
@@ -303,7 +303,7 @@ function resultForPreRegistrationFailure(err: unknown): RunResult {
       // classifyCaught's treatment of abort.
       ...(err.code === 'abort' ? {} : { haltCode: err.code }),
       ...(err.detail === undefined ? {} : { haltDetail: err.detail }),
-      errorMessage: `${err.code}: ${scrubCredentials(err.message)}`,
+      errorMessage: `${err.code}${HALT_CODE_SEPARATOR}${scrubCredentials(err.message)}`,
     }
   }
 

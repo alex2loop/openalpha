@@ -25,7 +25,7 @@ một API kernel bị nới rộng, một thị trường chạm vào thị trư
 mà bỏ qua hợp đồng hiển thị, một log key dùng hai lần, một chuỗi locale còn thiếu, một tệp quá
 400 dòng, một export không có ai dùng, và một tệp không entry point nào tới được.
 
-**Kiểm chứng hành vi bằng một lượt chạy thật**, vì các cổng chỉ chứng minh được cấu trúc. Sửa
+**Kiểm chứng hành vi bằng một phiên chạy thật**, vì các cổng chỉ chứng minh được cấu trúc. Sửa
 một thị trường thì phải chạy `/suggest` hoặc `/screen` trên thị trường đó và đọc kết quả.
 
 ## Cài đặt
@@ -53,7 +53,9 @@ Bản ngắn:
 - **Không có chuỗi hiển thị cho người dùng nằm ngoài catalog locale**, và cả `en` lẫn `vi`
   phải có đủ mọi khóa. Thiếu khóa nào thì hệ thống báo lỗi ngay lúc khởi động và liệt
   kê đúng khóa đó. Thuật ngữ tiếng Việt được `scripts/check-vi-terminology.ts` (trong `lint:arch`)
-  canh: `reduce` là *giảm bớt*, không bao giờ là *bán*.
+  canh: *lệnh* đứng một mình là lệnh đặt ở sàn (câu gõ vào là *câu lệnh*, gợi ý là *đề xuất*),
+  *dịch vụ nền* chứ không *daemon*, *mô hình* chứ không *model*, *phiên chạy* chứ không *lượt chạy*,
+  *khối lượng* chứ không *số lượng*, và `reduce` là *giảm bớt*, không bao giờ là *bán*.
 - **Mọi giá trị được in ra đều đi qua hợp đồng hiển thị** trong `trading/render/`. Một mức
   giá, một phần trăm và một số lượng - mỗi loại chỉ có một nơi lo việc hiển thị, và cổng kiểm
   quét tới từng chỗ gọi.

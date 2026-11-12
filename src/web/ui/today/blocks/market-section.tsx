@@ -103,14 +103,14 @@ function OverviewRow({ row, currency, hasBoard }: OverviewRowProps) {
   }
 
   // A level market (an index) has no price currency and prints its bare level.
+  const reading = currency === undefined ? { isLevel: true } : { currency }
+
   return (
     <div class="row">
       <b>
         <TickerLink ticker={row.instrument.ticker} market={row.instrument.market} />
       </b>
-      <span class="row-price">
-        {formatMarketPrice(row.instrument.market, row.price, { isLevel: currency === undefined })}
-      </span>
+      <span class="row-price">{formatMarketPrice(row.instrument.market, row.price, reading)}</span>
       {hasBoard && (
         <span class={`pill is-${toneOfPercent(row.changePct)}`}>
           {formatSignedPercent(row.changePct)}

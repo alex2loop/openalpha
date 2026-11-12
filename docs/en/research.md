@@ -38,7 +38,7 @@ To chat with that agent directly, use `openalpha chat --agent deep-researcher`. 
 | `thorough` | same as `standard` | up to 2 for a complex question, otherwise at most 1 | interactive |
 
 A top-level `thorough` run needs someone to review the plan interactively. With nobody attached, it
-is cancelled before spending anything rather than running the most expensive depth unreviewed.
+is canceled before spending anything rather than running the most expensive depth unreviewed.
 
 ### A real run
 
@@ -187,7 +187,7 @@ Other failures say which part broke:
 
 | Code | Meaning |
 | --- | --- |
-| `aborted` | You cancelled the run |
+| `aborted` | You canceled the run |
 | `budget_exhausted` | The run's cost budget ran out |
 | `capacity_exhausted` | Not enough delegated-call slots left for the work required |
 | `planner_failed` | No usable research plan |

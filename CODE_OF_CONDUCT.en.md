@@ -10,16 +10,16 @@ This project is a trading research tool, so a lot of its discussions are argumen
 whether a number is right. Those arguments are the point. What is out of scope is turning
 one into an argument about a person.
 
-## Expected behaviour
+## Expected behavior
 
 - **Say what you measured.** "This is wrong" is a claim; "this is wrong, here is the run
   that shows it" is a contribution.
 - **Accept a decline.** [CONTRIBUTING.en.md](CONTRIBUTING.en.md) lists the settled decisions and
   the reasoning, so a decline is usually a scope call rather than a verdict on your work.
 - **Assume less context, not bad faith.** Most disagreements here are about a market's
-  behaviour that one of you has seen and the other has not.
+  behavior that one of you has seen and the other has not.
 
-## Unacceptable behaviour
+## Unacceptable behavior
 
 - Harassment, insults, or personal attacks — in issues, pull requests, commit messages, or
   any other project space.

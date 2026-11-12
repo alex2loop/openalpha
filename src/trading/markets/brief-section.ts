@@ -25,15 +25,15 @@ export function readySection(
   }
 }
 
-/** The prices block, whose currency is what its prices are quoted in rather than what this market's
- *  money is, and whose unit goes with it. The two differ wherever a market publishes levels: an index is a number, and stamping
- *  it `VND` states a denomination it does not have. */
+/** A block of prices, whose currency is what its prices are quoted in rather than what this market's
+ *  money is, and whose unit goes with it. The two differ wherever a market publishes levels: an
+ *  index is a number, and stamping it `VND` states a denomination it does not have. */
 export function priceSection(
   overview: MarketDataOverview,
-  rows: readonly BriefSectionRow[]
+  section: ReadySection
 ): BriefSectionResult {
   return {
-    ...openSection(overview, { kind: 'market-prices', rows }),
+    ...openSection(overview, section),
     ...(overview.priceCurrency === undefined
       ? {}
       : {

@@ -11,7 +11,7 @@ import type { OrderRequest, OrderService, PreparedOrder } from '@/trading/featur
 import type { TradingCosts } from '@/trading/kernel/config'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { TradeCost } from '@/trading/markets/cost'
-import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
+import type { QuoteConvention } from '@/trading/render/money'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { BRAND } from '@/core/brand'
 import { translateToolError } from '@/i18n'
@@ -23,6 +23,7 @@ import {
   TRADE_ACTIONS,
 } from '@/trading/features/order/parse'
 import {
+  quotedInFor,
   renderCapRejections,
   renderExitOutcome,
   renderOrderPrompt,
@@ -256,7 +257,7 @@ async function runStage(
       request,
       staged,
       prepared,
-      quotedIn: quotedInFor(prepared, quoteConventionsFrom(deps, prepared)),
+      quotedIn: quotedInFor(prepared, deps.marketData.quoteConvention(prepared.instrument.market)),
       ...costFor(deps, prepared),
     }),
   }
@@ -295,7 +296,7 @@ async function runConfirm(
       locale: ctx.locale,
       executed,
       staged,
-      quotedIn: quotedInFor(prepared, quoteConventions),
+      quotedIn: quotedInFor(prepared, quoteConventions.get(prepared.instrument.market)),
       quoteConventions,
       costs: deps.costs,
     }),
@@ -368,7 +369,10 @@ async function runSetExit(
 }
 
 function rejected(deps: TradeCommandDeps, locale: Locale, prepared: PreparedOrder): SlashResult {
-  const quotedIn = quotedInFor(prepared, quoteConventionsFrom(deps, prepared))
+  const quotedIn = quotedInFor(
+    prepared,
+    deps.marketData.quoteConvention(prepared.instrument.market)
+  )
 
   return {
     kind: 'message',
@@ -393,14 +397,4 @@ function quoteConventionsFrom(
   prepared: PreparedOrder
 ): ReadonlyMap<MarketRef, QuoteConvention> {
   return quoteConventionsFor(deps.marketData, [prepared.instrument])
-}
-
-function quotedInFor(
-  prepared: PreparedOrder,
-  conventions: ReadonlyMap<MarketRef, QuoteConvention>
-): QuotedIn {
-  return {
-    currency: prepared.currency,
-    ...quotedInOf(conventions.get(prepared.instrument.market)),
-  }
 }

@@ -6,11 +6,11 @@ import type { Member } from '@/web/scene/sim/team/members'
 import type { ActorId, BurstView, TeamLine, TeamSay } from '@/web/scene/types'
 import type { onWireEvent } from '@/web/state/events'
 import type { Run } from '@/web/state/live'
-import { marketList } from '@/web/scene/data/home'
 import { childActorIdOf, ownActorIdOf } from '@/web/scene/sim/actors/roster'
 import { isKept, moment } from '@/web/scene/sim/rhythm'
 import { agentRunOf } from '@/web/scene/sim/team/goals'
 import { isAtHome } from '@/web/scene/sim/team/members'
+import { knownMarkets } from '@/web/state/market'
 
 /** How long a line on the team floor stays. */
 const TEAM_LINE_MS = 6_000
@@ -131,7 +131,7 @@ export function isOnDuty(state: TeamState, member: Member): boolean {
   const markets = state.deps.agents.value.find((agent) => agent.id === agentId)?.focus?.markets
 
   return (markets ?? []).some((id) => {
-    const held = marketList.value.find((market) => market.market === id)
+    const held = knownMarkets.value.find((market) => market.market === id)
 
     return held?.enabled === true && (held.session?.tradesToday ?? true)
   })

@@ -5,10 +5,17 @@ import type { OrderSettingsStore } from '@/trading/features/order/store/order-se
 import type { RestingExitStore } from '@/trading/features/order/store/resting-exit'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { OrderPolicy, TradingCosts } from '@/trading/kernel/config'
-import type { CurrencyCode, InstrumentRef, TradingDay, VenueRef } from '@/trading/kernel/instrument'
+import type {
+  CurrencyCode,
+  InstrumentRef,
+  MarketRef,
+  TradingDay,
+  VenueRef,
+} from '@/trading/kernel/instrument'
 import type { OrderFilledListener } from '@/trading/kernel/operator/notice'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { MarketRegistry } from '@/trading/markets/types'
+import type { QuoteConvention } from '@/trading/render/money'
 import type { VenueRegistry } from '@/trading/venues/types'
 
 interface ConversionInput {
@@ -37,6 +44,8 @@ export interface OrderServiceDeps {
   readonly logger: Logger
   /** The live price the caps, the drift check and the prompt all read. */
   quoteOf(instrument: InstrumentRef, now: number, signal: AbortSignal): Promise<number>
+  /** How the market prints a price, so a refusal reads in the units the confirm prompt used. */
+  quoteConvention(market: MarketRef): QuoteConvention | undefined
   toBaseCurrency(input: ConversionInput): Promise<number>
   /** The row the book already holds for this venue fill, under the key `/record sync` books it by.
    *  A function rather than the ledger store: this path needs that one row and nothing else the

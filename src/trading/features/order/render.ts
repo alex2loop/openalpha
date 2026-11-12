@@ -27,7 +27,7 @@ import {
   SIDE_MARKS,
 } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR, renderSectionTitle } from '@/trading/render/layout'
-import { formatMoney, formatQuotedPrice } from '@/trading/render/money'
+import { formatMoney, formatQuotedPrice, quotedInOf } from '@/trading/render/money'
 import { ABSENT_CELL } from '@/trading/render/number'
 
 const REASON_SEPARATOR = '; '
@@ -378,4 +378,12 @@ function unprotectedLine(input: ReceiptInput): string {
 
 function triggerText(input: ReceiptInput, value: number | undefined): string {
   return value === undefined ? ABSENT_CELL : formatQuotedPrice(input.locale, value, input.quotedIn)
+}
+
+/** What a price on this order prints against: its currency, with the market's own unit and display. */
+export function quotedInFor(
+  prepared: Pick<PreparedOrder, 'currency'>,
+  convention: QuoteConvention | undefined
+): QuotedIn {
+  return { currency: prepared.currency, ...quotedInOf(convention) }
 }

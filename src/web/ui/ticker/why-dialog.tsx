@@ -10,7 +10,7 @@ import { runCommand } from '@/web/state/command'
 import { isAdvanced } from '@/web/state/prefs'
 import { locale, state } from '@/web/state/session'
 import { citationsOf } from '@/web/text/card-sources'
-import { formatTrimmedSignedFraction, toneOfFraction } from '@/web/text/figures'
+import { formatSignedFraction, toneOfFraction } from '@/web/text/figures'
 import { ABSENT_CELL } from '@/web/text/glyphs'
 import { outcomeNameOf } from '@/web/text/outcome'
 import { formatWhen } from '@/web/text/time'
@@ -157,7 +157,7 @@ function PastResult({ call }: { readonly call: SuggestionWire }) {
       ) : (
         <div class="stack">
           <p class={`lead is-${toneOfFraction(outcome.returnPct)}-text`}>
-            {formatTrimmedSignedFraction(outcome.returnPct)}
+            {formatSignedFraction(outcome.returnPct)}
           </p>
           <p>
             {tr('ui.office.why.outcome', {

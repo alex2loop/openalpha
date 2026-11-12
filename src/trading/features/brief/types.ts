@@ -25,6 +25,7 @@ import type {
   CurrencyCode,
   InstrumentRef,
   PortfolioSegment,
+  QuoteUnit,
   Region,
   TradingDay,
 } from '@/trading/kernel/instrument'
@@ -244,7 +245,7 @@ interface BriefSummaryOptions {
 }
 
 /** What both level sections print: a name, which side of which level it crossed, and the currency
- *  the two prices are in. Declared here rather than taken from the alerts feature's own rows,
+ *  and measure the two prices are in. Declared here rather than taken from the alerts feature's own rows,
  *  because the brief is what needs the currency and a stored alert row has no market to ask. */
 export interface BriefAlertRow {
   readonly instrument: InstrumentRef
@@ -253,6 +254,8 @@ export interface BriefAlertRow {
   readonly observedPrice: number
   /** Absent for a market the registry does not list, which prints the price bare. */
   readonly currency?: CurrencyCode
+  /** The measure the prices are per, where the ticker does not imply it (gold: lượng, ounce). */
+  readonly quoteUnit?: QuoteUnit
   /** Set where the market quotes a scaled board: both prices are already in board points, as every
    *  other surface prints them, and the brief states the scale once. */
   readonly board?: { readonly segment: PortfolioSegment; readonly divisor: number }

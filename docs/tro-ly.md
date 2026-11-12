@@ -200,7 +200,7 @@ nhắc của agent. Phần còn lại chỉ thu hẹp:
 
 Đề xuất của agent có phạm vi được lưu dưới `focus_key` riêng, được chấm và báo cáo tách biệt. Chúng không bao giờ
 dời một mức cắt lỗ đang giữ, nâng nó hay kích hoạt cảnh báo, và không vào bản tin sáng. Chúng hiển thị là "ý
-kiến thứ hai từ <phạm vi>", không kèm tỷ trọng, số lượng hay khối lệnh - một cuốn sổ, một kế hoạch. `/suggest <mã>`
+kiến thứ hai từ <phạm vi>", không kèm tỷ trọng, khối lượng hay khối lệnh - một cuốn sổ, một kế hoạch. `/suggest <mã>`
 luôn là đề xuất điều khiển danh mục. Một agent được ủy quyền giữ nguyên phạm vi của agent gốc, nên đề xuất của nó
 không bao giờ vô tình thành đề xuất của danh mục. Chi tiết: [giao dịch](giao-dich.md).
 
@@ -378,7 +378,7 @@ phân giải được thì không nhận khối nào.
 | `research-reviewer` | Nội bộ, không có công cụ. Chấm điểm báo cáo dựa trên bằng chứng của nó. |
 
 Các worker `research-*` do khâu điều phối nghiên cứu chạy, với hồ sơ cố định, chỉ đúng những công cụ vai đó cần và
-danh sách ủy quyền rỗng. Giống các persona giao dịch bên dưới, chúng chỉ trả lời bên trong một lượt chạy: `/agent`,
+danh sách ủy quyền rỗng. Giống các persona giao dịch bên dưới, chúng chỉ trả lời bên trong một phiên chạy: `/agent`,
 `agent bind`, `chat --agent` và `--agent` của một job đều coi chúng là agent không tồn tại.
 
 Phần giao dịch thêm các persona đáng tin: các vai tranh luận `bull-researcher`, `bear-researcher`,

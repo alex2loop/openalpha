@@ -72,7 +72,7 @@ The gate checks the child's allowlist, not the parent's: a rostered child may us
 directly, and a tool absent from the child blocks before approval.
 
 A child inherits the parent's `AbortSignal` and `Budget`, gets a fresh private ephemeral session (never written to
-the durable transcript), and is discarded when the parent run ends. Cancelling the foreground run aborts every
+the durable transcript), and is discarded when the parent run ends. Canceling the foreground run aborts every
 in-flight child in order; cleanup is idempotent and never throws. Research workers follow the same rules. There
 is no background task, research id, async control command or durable resume.
 
@@ -289,7 +289,7 @@ first attempt, 500 ms backoff, 60 s transient cooldown, 900 s credential cooldow
 Adapters ([ai/adapters/runner.ts](../../../src/ai/adapters/runner.ts)) emit normalized text, reasoning, tool calls,
 usage and completion events. One malformed frame is skipped and logged; an unusable or incomplete stream fails the
 attempt. The total stream is capped at 4 MiB, or 1 KiB per output token when larger, and the response reader is
-cancelled in cleanup on success, failure, timeout and abort. A provider request never follows a redirect
+canceled in cleanup on success, failure, timeout and abort. A provider request never follows a redirect
 (`redirect: 'error'` in `openSseStream`, so a key header never goes on to another address); one fails the attempt as a
 `transient` network error.
 

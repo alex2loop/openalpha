@@ -274,7 +274,7 @@ Hạn ngạch và ngân sách độc lập nhau. Một cây có thể cạn số
 | Ghi lần thử bị hỏng | Thử lại, rồi khoản chi vào tệp chi chưa ghi và lỗi lan ra; nếu bước đó cũng hỏng thì việc tốn tiền dừng khi đang có hạn mức (`ledger_unavailable`) |
 | Tiến trình khởi động lại | Tổng ngày và tháng dựng lại từ sổ chi phí và tệp chi chưa ghi |
 
-Xem thêm [tham chiếu `config.toml`](cau-hinh.md), [tham chiếu lệnh](lenh.md), và
+Xem thêm [tham chiếu `config.toml`](cau-hinh.md), [tham chiếu câu lệnh](lenh.md), và
 [đội agent](tro-ly.md#đội-và-ủy-quyền) cho chính hợp đồng ủy quyền.
 
 Bên trong: [dev/ngan-sach.md](dev/ngan-sach.md).

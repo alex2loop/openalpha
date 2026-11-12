@@ -36,7 +36,7 @@ suggests: the one surface that places an order asks you every single time.
 | **Allow once** | Runs this exact call, once. |
 | **Remember** | Allows it for the chat session or MCP connection. Not offered for a tool that declines it, or for a call whose arguments were too long to show whole. |
 
-Anything unrecognized, malformed, expired or undeliverable blocks the call. Cancelling ends the wait
+Anything unrecognized, malformed, expired or undeliverable blocks the call. Canceling ends the wait
 and the run.
 
 Remember is never offered to scheduled jobs or delegated children. It is also never offered for
@@ -260,7 +260,7 @@ That covers provider tokens, agent and skill files, plugin installs, logs, scrat
   request is pinned to the validated address. That is what stops DNS rebinding.
 - **Redirects.** At most five hops, each destination rechecked. A cross-host redirect loses sensitive
   headers (this path is GET or HEAD only, so no body can leak).
-- **Abort.** Cancelling propagates through DNS resolution and the request.
+- **Abort.** Canceling propagates through DNS resolution and the request.
 
 An external MCP server's HTTP endpoint is rechecked on every request and follows no redirect, but it
 is not address-pinned, so the rebind window between check and call stays open.
@@ -391,7 +391,7 @@ When a run stops early, the CLI exits with the code below and prints the sentenc
 | `session_busy` | 12 | This session already has a run in progress. | Wait, stop it with `/stop`, or start fresh with `/new`. A run that died without cleaning up frees the session after `[loop] max_duration_ms` plus five minutes. |
 | `loop` | 15 | The agent kept repeating the same tool calls. | Rephrase, or steer it with another message. If it is fanning out over many distinct calls, raise `[loop] max_tool_calls`. |
 | `agent_paused` | 16 | The agent is paused. | `openalpha agent resume <id>`. |
-| `abort` | 130 | You cancelled. | Send a new message to start again. |
+| `abort` | 130 | You canceled. | Send a new message to start again. |
 
 A run that runs out of time (no exit code of its own) says "Timed out before the agent finished".
 Send another message to continue, or raise `[loop] max_duration_ms`.
@@ -466,7 +466,7 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 | `order.unmirrorable_fee` | Filled, but the fee currency cannot be booked automatically. | Record the trade by hand. |
 | `order.fee_unreported` | Filled, but the exchange still had not listed the trade's fee after a few quick re-reads. | Wait a minute, then run `/record sync <venue>`; it books the fill once the exchange lists it. |
 | `order.unpriced_fill` | The venue reported a fill with no price. | Record the trade by hand. |
-| `order.fill_timeout` | The order is still live at the exchange and could not be cancelled. | Settle it at the exchange; `/trade reconcile` lists it so you can close it out. |
+| `order.fill_timeout` | The order is still live at the exchange and could not be canceled. | Settle it at the exchange; `/trade reconcile` lists it so you can close it out. |
 | `order.exit_failed` | Filled, but the take-profit/stop-loss could not be placed. | The position has no stop. Set one with `/trade exit`. |
 
 **The book is untouched.** Nothing moved; fix the cause and try again:
@@ -481,7 +481,7 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 | `order.clock_skew` | Your clock is too far from the exchange's. | Fix the system clock. |
 | `order.below_minimum` | Quantity below the exchange minimum. | Raise the size. |
 | `order.exit_below_minimum` | At the stop price the position would be below the exchange's minimum order, so its stop could not be placed. | Raise the size a little. |
-| `order.unfilled` | Did not fill in time and was cancelled. | Place again if you still want it. |
+| `order.unfilled` | Did not fill in time and was canceled. | Place again if you still want it. |
 | `order.book_moved` | Another order went out while this one waited, so the caps no longer allow it. | Check the book and place again. |
 | `order.book_unpriced` | A holding in your book has no price right now, so the caps cannot be checked against it. | `/portfolio` names the holding; `/refresh` its market, then place again. |
 | `order.approval_bypassed` | Orders need an approval prompt, and this session bypassed it. | Run it in a `manual` session, or also set `[trading.orders] allow_unattended`. |

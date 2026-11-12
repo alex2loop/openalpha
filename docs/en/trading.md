@@ -459,7 +459,7 @@ When a name has risen 25% or more over its last seven settled sessions, the plan
 
 This was measured on 2026-10-15 over 81 names' hourly bars, counting the limit as filled only when a trade went through it after it was placed. On the plan's own exits it beat buying at the quote by 2.4% a trade (t 3.2, 85% filled).
 
-The plan tells you to rest the order on the exchange as good-til-cancelled, because `/trade` only places orders that fill on the spot. The rule is part of the market's level policy, not a setting.
+The plan tells you to rest the order on the exchange as good-til-canceled, because `/trade` only places orders that fill on the spot. The rule is part of the market's level policy, not a setting.
 
 #### Size
 
@@ -1648,11 +1648,11 @@ When a resting stop or take-profit fills at the exchange, the next pass over res
 
 **`/record sync <venue>`** is the third way those rows are created, and it takes the same path. It differs only in how it selects: it asks the venue what it filled, then books what the book has no row for. Validation, calculation and confirmation are shared.
 
-A limit order that filled only partly before you cancelled it is now synced for the part that filled.
+A limit order that filled only partly before you canceled it is now synced for the part that filled.
 
 - A fill is matched by the venue's own order id (`<venue>:<orderId>`, the key `/trade` books its own fills under too), and by the figures themselves against a row you typed by hand. A fill is left alone when it matches a hand-typed row that no fill has claimed yet, on venue, instrument, day, side and quantity. Each typed row absorbs at most one fill.
 - Each fill's market is resolved against the markets that venue holds, and no others. When no detector can be reached, the venue's own listing answers instead, read at most once per run, and only when exactly one of the venue's markets could claim the ticker. A ticker no market lists, or one that two claim, is skipped rather than guessed.
-- Fills are booked oldest first across instruments. A name the book could take only part of is not taken at all: if a sync fails or is cancelled part way, it takes back what it had booked of any name it had not finished, so it never leaves a half-booked position. Rows an earlier run left behind are yours to delete.
+- Fills are booked oldest first across instruments. A name the book could take only part of is not taken at all: if a sync fails or is canceled part way, it takes back what it had booked of any name it had not finished, so it never leaves a half-booked position. Rows an earlier run left behind are yours to delete.
 
 Allocation has no surface of its own: `portfolio_rebalance` and `/rebalance` report segment targets and per-name changes as one plain-language plan.
 
@@ -1778,8 +1778,8 @@ When an order is refused for size (a sale larger than what has settled, or than 
 - Each staged order has its own token, claimed before the exchange is reached. A token already used, placed or expired is refused, so a bare `/trade confirm` can never place the same order twice. An order that already carries an order id or a failure is never listed as waiting for `/trade confirm`.
 - Before an order leaves, an in-flight marker is written. If the process dies while the exchange holds the order, the marker survives, `/trade reconcile` lists it, and the caps count it until it is settled. An order that cannot be recorded this way is not sent. Every later outcome replaces the marker.
 - `/trade` books its fill under the venue's own order id, the same key `/record sync` uses, and dates the row by the session the fill traded in rather than the moment you confirmed. Whichever of the two writes second finds the row already there, inside the ledger's write lock, and books nothing, so the cash is debited once even when both run at the same moment. If `/record sync` booked the fill while `/trade` was still waiting on it, `/trade` adopts that row.
-- A run cancelled after the exchange took an order still marks it for `/trade reconcile` and, for an order left resting, tries to cancel it.
-- One cancelled between the fill and the ledger write leaves an unrecorded row with the reason `order.mirror_aborted`, still charged against the caps and listed by `/trade reconcile`.
+- A run canceled after the exchange took an order still marks it for `/trade reconcile` and, for an order left resting, tries to cancel it.
+- One canceled between the fill and the ledger write leaves an unrecorded row with the reason `order.mirror_aborted`, still charged against the caps and listed by `/trade reconcile`.
 
 `/trade reconcile` also asks each venue that rests exits what it holds under a client id this setup
 minted, and lists any with no live row. The exit check reads rows alone, so such an exit (a crash
@@ -1843,7 +1843,7 @@ To remove a resting take-profit/stop-loss:
 /trade cancel okx:BTC
 ```
 
-Name the venue when two of them hold a resting exit on the same instrument. That is refused rather than guessed, since cancelling either silently would leave the other resting behind a message saying it is gone. Two exits at one venue are not ambiguous: both are cancelled, so nothing is left resting there.
+Name the venue when two of them hold a resting exit on the same instrument. That is refused rather than guessed, since canceling either silently would leave the other resting behind a message saying it is gone. Two exits at one venue are not ambiguous: both are canceled, so nothing is left resting there.
 
 ### 6. Guard a position you already hold
 
@@ -1934,7 +1934,7 @@ Every write to an exchange (a confirm, an exit, a cancel) runs one at a time. Th
 - The caps are whole-book: spendable cash and the open-trade count. Two confirms running together would each measure a book the other has not written to, and both clear a ceiling only one may.
 - Two `/trade exit` calls running together would each read *nothing resting* and place, leaving the second exit the conflict guard exists to prevent.
 
-The caps are read **again** inside that window, and so are the saved profile's position, segment and ETF ceilings. Only a ceiling the book has crossed since the order was prepared refuses it; one the prompt already showed you stands. An order the book no longer allows is refused with `order.book_moved` rather than trimmed, because the size and the levels are what you said yes to. A holding that lost its price in the meantime refuses the buy with `order.book_unpriced`.
+The caps are read **again** inside that window, and so are the saved profile's position, segment and ETF ceilings. The confirm prepares the order again: a breach measured then passes as the order you confirmed, and a ceiling crossed after that check refuses it. The check allows a small margin of 0.05% of the portfolio for price moves between the two, which never applies to a cap of 0 or to an ETF share that could not be measured. An order the book no longer allows is refused with `order.book_moved`, which says in your language which limit it crossed, rather than trimmed, because the size and the levels are what you said yes to. A holding that lost its price in the meantime refuses the buy with `order.book_unpriced`.
 
 ### 9. Verify, in this order
 
@@ -1944,7 +1944,7 @@ Each step is a distinct failure this design exists to prevent. The early ones st
 - [ ] **Signing** - reaching a prompt at all proves the timestamp, digest, signed path and body are right. They fail identically, so isolate this first.
 - [ ] **Confirm within five minutes**, same chat, same user - it places, rather than silently doing nothing.
 - [ ] **Base-unit sizing** - a market buy of `0.001 BTC` fills about 0.001 BTC. Read the receipt, not the request.
-- [ ] **Rest and cancel** - a limit far from the market rests, then is cancelled at the poll cap (about 20s).
+- [ ] **Rest and cancel** - a limit far from the market rests, then is canceled at the poll cap (about 20s).
 - [ ] **Partial fill** - one near the market that half-fills keeps polling rather than booking the half.
 - [ ] **Exit round trip** - the receipt shows both legs, one live OCO at OKX. Move the demo price through the take-profit and the next reconcile tick (about 60s) books the exit. **Run it twice: one ledger row, not two.**
 - [ ] **Exit on a held position** - with a position open and no exit resting, `/trade exit <ticker> sl <price>` places one OCO leg at OKX and the receipt names the covered quantity.

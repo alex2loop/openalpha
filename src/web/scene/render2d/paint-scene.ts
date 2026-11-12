@@ -4,7 +4,7 @@ import type { SimView } from '@/web/scene/types'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { agenda } from '@/web/scene/data/agenda'
 import { alertStrip } from '@/web/scene/data/alert-strip'
-import { homeMarket, wallClockMinutes } from '@/web/scene/data/home'
+import { wallClockMinutes } from '@/web/scene/data/home'
 import { homeIndex } from '@/web/scene/data/led'
 import { isPrintingRun, roomStatus } from '@/web/scene/data/room-status'
 import { sourceLights } from '@/web/scene/data/source-lights'
@@ -13,6 +13,7 @@ import { boardCaptions } from '@/web/scene/sim/board-captions'
 import { detailOf } from '@/web/scene/sim/life/animal-model'
 import { boardNotes } from '@/web/scene/sprites/screens'
 import { APPROVAL_KIND, pending } from '@/web/state/live'
+import { homeMarket } from '@/web/state/market'
 import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
 
 // Where the day of the month starts in a `YYYY-MM-DD` day.
@@ -32,7 +33,7 @@ export function buildPaintScene(input: {
   const storeParams = roomStatus.value.get('store')?.runs[0]?.progress?.params
   const refreshShare = shareOf(storeParams)
   const named = storeParams?.market
-  const refreshMarket = typeof named === 'string' ? named : homeMarket.value?.market
+  const refreshMarket = typeof named === 'string' ? named : homeMarket()?.market
   const lib = roomStatus.value.get('lib')?.runs[0]
 
   return {

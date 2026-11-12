@@ -4,11 +4,11 @@ import type { SuggestionWire } from '@/app/server/wire/trading'
 import type { OutcomeVerdict } from '@/app/server/wire/vocab'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { homeMarket } from '@/web/scene/data/home'
 import { toParamText } from '@/web/scene/data/room-status'
 import { setCapped } from '@/web/state/capped-map'
 import { onWireEvent } from '@/web/state/events'
 import { type Run, runs } from '@/web/state/live'
+import { homeMarket } from '@/web/state/market'
 import { outcomeNameOf } from '@/web/text/outcome'
 
 const MAX_MEMORY_READS = 20
@@ -44,7 +44,7 @@ export function startPastCalls(): () => void {
   const reads = new AbortController()
   const asked = new Map<string, true>()
   const stopEffect = effect(() => {
-    const market = homeMarket.value?.market
+    const market = homeMarket()?.market
 
     for (const run of runs.value) {
       const ticker = market === undefined ? undefined : debatedTicker(run)

@@ -23,6 +23,7 @@ import {
   ticker as brandTicker,
   currencyCode,
   marketRef,
+  quoteUnit,
   tradingDay,
 } from '@/trading/kernel/instrument'
 import { MACRO_SERIES_IDS } from '@/trading/kernel/market/macro-series'
@@ -71,6 +72,7 @@ const payloadSchema = z.strictObject({
     })
     .optional(),
   currency: z.string().optional(),
+  quoteUnit: z.string().optional(),
   // A block a later build cannot read costs that block, never the analysis around it: a renamed
   // event kind, metric id or series id would otherwise leave the whole row off the page.
   sector: z
@@ -167,6 +169,7 @@ async function create(
         figures: record.figures,
         boardScale: record.boardScale,
         currency: record.currency,
+        quoteUnit: record.quoteUnit,
         sector: record.sector,
         upcoming: record.upcoming,
         backdrop: record.backdrop,
@@ -266,11 +269,12 @@ function toRecord(row: AnalysisRow): AnalysisRecord {
 /** The groups stored beside the figures, each present only where the run read it. */
 function contextOf(
   payload: AnalysisPayload
-): Pick<AnalysisRecord, 'currency' | 'sector' | 'upcoming' | 'backdrop'> {
+): Pick<AnalysisRecord, 'currency' | 'quoteUnit' | 'sector' | 'upcoming' | 'backdrop'> {
   const { backdrop } = payload
 
   return {
     ...(payload.currency === undefined ? {} : { currency: currencyCode(payload.currency) }),
+    ...(payload.quoteUnit === undefined ? {} : { quoteUnit: quoteUnit(payload.quoteUnit) }),
     ...(payload.sector === undefined ? {} : { sector: toSector(payload.sector) }),
     ...(payload.upcoming === undefined
       ? {}

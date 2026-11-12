@@ -164,7 +164,12 @@ function toLevelRow(row: BriefAlertRow): BriefSectionRow {
     condition: row.condition,
     threshold: row.threshold,
     observedPrice: row.observedPrice,
-    ...(row.currency === undefined || row.board !== undefined ? {} : { currency: row.currency }),
+    ...(row.currency === undefined || row.board !== undefined
+      ? {}
+      : {
+          currency: row.currency,
+          ...(row.quoteUnit === undefined ? {} : { quoteUnit: row.quoteUnit }),
+        }),
   }
 }
 

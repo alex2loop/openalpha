@@ -4,8 +4,7 @@ import type { InstrumentRefWire } from '@/app/server/wire/trading'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { pageMinute } from '@/web/scene/clock/clock'
-import { marketList } from '@/web/scene/data/home'
-import { heldPositions, keyOf } from '@/web/state/market'
+import { heldPositions, keyOf, knownMarkets } from '@/web/state/market'
 import { shiftDay } from '@/web/text/time-units'
 
 /** The most held names whose events are read, once each a day. */
@@ -69,7 +68,7 @@ export function startExDividends(): () => void {
 
 // The held names an event source covers, at most `MAX_EVENT_READS`.
 function namesOf(held: readonly InstrumentRefWire[]): InstrumentRefWire[] {
-  const markets = marketList.value
+  const markets = knownMarkets.value
 
   return held
     .filter((name) => markets.find((market) => market.market === name.market)?.hasEvents === true)

@@ -507,7 +507,7 @@ scratch conversation into your history.
 | Process stops during a turn | Completed prior turns remain; the session becomes `stale` at daemon start. |
 | Two messages target one session | They run one after the other, in arrival order. |
 | Per-session queue reaches ten pending tasks | New work fails with `queue_full`. |
-| Route changes while old work is queued | Old work is cancelled before it can run. |
+| Route changes while old work is queued | Old work is canceled before it can run. |
 | Compaction summary provider fails | Repaired recent context continues with a truncation marker. |
 | Compaction removes an active todo list | The run re-appends it before the next model call. |
 | Non-active session exceeds `[retention].days` | Session, route and messages are removed. |

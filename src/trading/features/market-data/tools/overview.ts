@@ -43,7 +43,8 @@ export function createMarketOverviewTool(
       const overviews = await marketData.overview({ now: Date.now(), signal: ctx.signal })
 
       return toAgentJson(
-        overviews.map((overview) =>
+        // The quote unit slug stays home: a written price already carries its unit.
+        overviews.map(({ quoteUnit: _slug, ...overview }) =>
           toPayload(
             overview,
             { locale: ctx.locale, price: priceWriterOf(marketData, overview, ctx.locale) },

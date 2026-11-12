@@ -1145,7 +1145,7 @@ Một giá trị cấu hình vừa sai theo mặc định vừa không có cách
 
 Sổ lệnh là nguồn sự thật duy nhất. Vị thế, tiền mặt và NAV đều được tính từ các dòng sổ lệnh, không bao giờ là số dư lưu riêng có thể lệch khỏi các bút toán đã tạo ra chúng.
 
-Một vị thế được xác định theo mã **và sàn**. Cùng một coin ở hai nơi lưu ký là hai vị thế, với hai giá vốn và hai số lượng đã chốt. Một lệnh bán ở sàn này giải phóng giá vốn của sàn đó, không phải một mức bình quân gồm cả coin nằm ở nơi khác.
+Một vị thế được xác định theo mã **và sàn**. Cùng một coin ở hai nơi lưu ký là hai vị thế, với hai giá vốn và hai khối lượng đã chốt. Một lệnh bán ở sàn này giải phóng giá vốn của sàn đó, không phải một mức bình quân gồm cả coin nằm ở nơi khác.
 
 `/portfolio` gộp chúng lại thành một dòng (một mức phơi nhiễm, một tỷ trọng, một giá vốn trộn). Nó chỉ thêm một dòng sàn bên dưới khi một khoản nắm thật sự nằm trên nhiều sàn. Tiền mặt cũng được giữ theo từng sàn; điều đó dẫn tới gì được nói rõ ở cuối trang này.
 
@@ -1171,7 +1171,7 @@ Mỗi dòng có một id, thời điểm được ghi lần đầu, thời đi�
 | `distribution` | công cụ, độ lệch khối lượng có dấu, ngày | chỉ khối lượng |
 | `transfer` | từ sàn, tới sàn, số tiền, tiền tệ, phí, ngày | tiền chuyển giữa hai sàn của bạn; nạp ròng không đổi; phí tính ở nguồn |
 
-Điều chỉnh số lượng cổ phần (`split`, `distribution`) không dời đồng tiền nào, nên nó không nhận tiền tệ cũng không nhận tỷ giá FX. Cú pháp làm cho bút toán sai không thể viết ra, thay vì kiểm sau.
+Điều chỉnh khối lượng cổ phần (`split`, `distribution`) không dời đồng tiền nào, nên nó không nhận tiền tệ cũng không nhận tỷ giá FX. Cú pháp làm cho bút toán sai không thể viết ra, thay vì kiểm sau.
 
 **Mọi dòng nêu một công cụ đều nêu một sàn.** Sàn mà registry không biết, hoặc không thể giữ thị trường của dòng đó, bị từ chối. Kể cả `split`: một sàn không giữ được thị trường thì không có vị thế để điều chỉnh. Một dòng tiền mặt nêu một sàn và không nêu công cụ.
 
@@ -1921,7 +1921,7 @@ Mọi lần ghi lên một sàn (xác nhận, lối thoát, hủy) chạy từng
 - Các trần tính trên cả cuốn sổ: tiền mặt chi được và số lệnh đang mở. Hai lần xác nhận chạy cùng lúc sẽ mỗi cái đo một cuốn sổ mà cái kia chưa ghi vào, và cả hai cùng vượt qua một trần mà chỉ một cái được phép.
 - Hai lời gọi `/trade exit` chạy cùng lúc sẽ mỗi cái đọc *không có gì đang treo* và đặt, để lại lối thoát thứ hai mà chốt chặn xung đột sinh ra để ngăn.
 
-Các trần được đọc **lại** bên trong cửa sổ đó, kể cả trần vị thế, trần nhóm và trần ETF của hồ sơ đã lưu. Chỉ trần mà cuốn sổ đã vượt kể từ lúc lệnh được soạn mới khiến lệnh bị từ chối; trần mà lời nhắc đã cho bạn thấy thì vẫn giữ nguyên. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved` thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`.
+Các trần được đọc **lại** bên trong cửa sổ đó, kể cả trần vị thế, trần nhóm và trần ETF của hồ sơ đã lưu. Lần xác nhận soạn lại lệnh: vượt trần đo được lúc đó thì vẫn được coi là lệnh bạn đã xác nhận, còn trần bị vượt sau bước kiểm tra đó thì lệnh bị từ chối. Bước kiểm tra cho một biên nhỏ bằng 0,05% danh mục để bù cho giá nhích giữa hai lần kiểm tra; biên này không áp dụng cho trần bằng 0 hay phần ETF chưa đo được. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved`, nói bằng ngôn ngữ của bạn là đã vượt giới hạn nào, thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`.
 
 ### 9. Kiểm chứng, theo đúng thứ tự này
 

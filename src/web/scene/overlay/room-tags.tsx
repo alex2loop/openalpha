@@ -3,7 +3,6 @@ import { signal } from '@preact/signals'
 import type { SceneRenderer } from '@/web/scene/renderer'
 import type { RoomId } from '@/web/scene/types'
 import { type MessageKey, pluralKey } from '@/i18n'
-import { marketList } from '@/web/scene/data/home'
 import { type RoomStatus, roomStatus } from '@/web/scene/data/room-status'
 import { toOverlayFont } from '@/web/scene/overlay/placement'
 import { isOfficeOpen } from '@/web/scene/sim/director'
@@ -11,7 +10,7 @@ import { isOfficeClosed, moment } from '@/web/scene/sim/rhythm'
 import { placeOnPane, projection, view, zoomToRoom } from '@/web/scene/view'
 import { type RoomDef, roomsOn } from '@/web/scene/world/rooms'
 import { focusRun } from '@/web/state/focus'
-import { isTradingPhase } from '@/web/state/market'
+import { isTradingPhase, knownMarkets } from '@/web/state/market'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
@@ -205,7 +204,7 @@ function alertsLine(status: RoomStatus | undefined): string | undefined {
 function tradingWatched(status: RoomStatus | undefined): string | undefined {
   const watched = status?.markets
 
-  return marketList.value.find(
+  return knownMarkets.value.find(
     (market) =>
       watched?.has(market.market) === true &&
       (market.session === undefined || isTradingPhase(market.session.phase))

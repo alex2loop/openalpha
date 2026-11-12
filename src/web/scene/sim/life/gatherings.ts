@@ -4,7 +4,6 @@ import type { LifeLine, Point } from '@/web/scene/types'
 import { clockMode, pageNow } from '@/web/scene/clock/clock'
 import { toMinute } from '@/web/scene/data/agenda'
 import { indexDrop } from '@/web/scene/data/board'
-import { homeMarket } from '@/web/scene/data/home'
 import { distance } from '@/web/scene/sim/actors/nav'
 import { OFFICE_FLOOR } from '@/web/scene/sim/life/presence'
 import { begin } from '@/web/scene/sim/life/schedule'
@@ -22,6 +21,7 @@ import { propsOn } from '@/web/scene/world/props'
 import { isInRange } from '@/web/scene/world/regions'
 import { createRng, seedOf } from '@/web/scene/world/rng'
 import { LOBBY_WATCH_SPOTS } from '@/web/scene/world/seats'
+import { homeMarket } from '@/web/state/market'
 import { MS_PER_MINUTE } from '@/web/text/time-units'
 
 const LIBRARY_ROOM = 'lib'
@@ -57,7 +57,7 @@ export function stepGatherings(state: LifeState, step: LifeStep): void {
 
 // Every free person at their seat stands and watches the lobby screens until the auction ends.
 function stepAuction(state: LifeState, step: LifeStep): void {
-  const auction = homeMarket.value?.session?.closeAuction
+  const auction = homeMarket()?.session?.closeAuction
 
   if (!(moment.value.closingAuction && step.canWalk) || auction === undefined) {
     return
@@ -210,7 +210,7 @@ function speedOf(): number {
 }
 
 function indexNameOf(): string {
-  const market = homeMarket.value
+  const market = homeMarket()
 
   return market?.benchmark?.ticker ?? market?.label ?? ''
 }

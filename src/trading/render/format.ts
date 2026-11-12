@@ -223,8 +223,9 @@ export function formatFixedPercent(locale: Locale, percent: number): string {
   return formatFixedFraction(locale, percent / PERCENT_PER_UNIT)
 }
 
-/** A 0-1 index as whole percent. Coverage and agreement are folds over weights, not measured
- *  quantities: a second decimal on them claims a resolution the fold never had. */
+/** A 0-1 share as whole percent: coverage, agreement and tranche shares are folds over weights, and
+ *  win, hit, beat and agreement rates are counted over samples too small for more. A second decimal
+ *  on any of them claims a resolution it never had. */
 export function formatWholeFraction(locale: Locale, fraction: number): string {
   return formatNumber(locale, 'percentWhole', fraction)
 }

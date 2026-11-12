@@ -314,11 +314,10 @@ const MONEY_FIELDS: ReadonlySet<BriefField> = new Set([
   'turnover',
 ])
 
-/** Prices that take the currency the surface resolved for their row - the section's own where it
- *  quotes one currency throughout, the row's where the rows come from different markets. A level
- *  the operator is watching is a price like the rest. A section publishing levels rather than
- *  prices declares no currency and these stay bare, which is what keeps an index from being
- *  stamped with a denomination it does not have. */
+/** Prices that take the currency the surface resolved for their row: the section's own where it
+ *  quotes one currency throughout, the row's where rows come from different markets. A watched
+ *  level and a swing's edges are prices too. A section publishing levels declares no currency, so
+ *  these stay bare and an index is never stamped with a denomination it lacks. */
 const PRICE_FIELDS: ReadonlySet<BriefField> = new Set([
   'buyPrice',
   'cashPerShare',
@@ -326,7 +325,9 @@ const PRICE_FIELDS: ReadonlySet<BriefField> = new Set([
   'last',
   'observedPrice',
   'previousClose',
+  'resistance',
   'sellPrice',
+  'support',
   'threshold',
 ])
 

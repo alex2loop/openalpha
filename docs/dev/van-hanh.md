@@ -129,8 +129,8 @@ sau khâu kết thúc, nên lỗi gửi không bao giờ làm hỏng phiên ch�
 
 Nhịp nào thấy có việc đến hạn mà chưa chạy thì hỏi bộ thăm dò khả năng kết nối dùng chung
 (`core/utils/reachability`: một lần tra tên miền của host mà các vòng giao dịch chờ, ngân sách 5 giây, bị cắt khi
-bộ lập lịch dừng) trước. Việc còn đang chạy từ nhịp trước không được tính, nên một lần chạy dài không tốn lần tra
-nào. Mất mạng thì nhịp trả về trước khi nhận việc nào, nên các việc vẫn đến hạn và không có lần chạy nào để hỏng;
+bộ lập lịch dừng) trước. Việc còn đang chạy từ nhịp trước không được tính, nên một phiên chạy dài không tốn lần tra
+nào. Mất mạng thì nhịp trả về trước khi nhận việc nào, nên các việc vẫn đến hạn và không có phiên chạy nào để hỏng;
 `scheduler.tick_offline` được ghi một lần cho mỗi đợt mất mạng, và một nhịp không còn việc nào bị giữ lại thì kết
 thúc đợt đó.
 

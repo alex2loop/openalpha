@@ -11,9 +11,6 @@ import { buildRunResult } from '@/engine/loop/finalize'
 /** The `errorMessage` of a run refused because its agent spent its own daily cap. */
 export const AGENT_CAP_MESSAGE = 'Agent daily cap reached'
 
-/** The `errorMessage` of a run stopped before its first turn. */
-export const ABORTED_BEFORE_START_MESSAGE = 'Aborted before first turn'
-
 /** The `errorMessage` of a run refused because its agent is paused. Uncounted by the scheduler for
  *  the same reason: a paused agent's job is skipped, not failed. */
 export const PAUSED_MESSAGE = 'Agent paused'
@@ -44,7 +41,7 @@ export function preflightRun(
   if (signals.some((signal) => signal?.aborted)) {
     return buildRunResult(state, 'aborted', {
       workStarted: false,
-      errorMessage: ABORTED_BEFORE_START_MESSAGE,
+      errorMessage: 'Aborted before first turn',
     })
   }
 
@@ -105,7 +102,7 @@ export function abortedBeforeStartResult(): RunResult {
     reason: 'aborted',
     text: '',
     workStarted: false,
-    errorMessage: ABORTED_BEFORE_START_MESSAGE,
+    errorMessage: 'Aborted before first turn',
     totals: EMPTY_LLM_USAGE_TOTALS,
   }
 }

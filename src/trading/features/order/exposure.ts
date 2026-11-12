@@ -7,6 +7,11 @@ import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
 import { etfBreaches, isBreached } from '@/trading/kernel/operator/exposure'
 import { isSegmentDisabled, positionCapOf } from '@/trading/kernel/operator/profile'
 
+/** What the write window forgives a ceiling by, as a fraction of NAV. Sizing lands a buy right at
+ *  its cap, and the book is priced again seconds later, so a tick would otherwise turn an order the
+ *  operator approved into a breach. */
+export const RECHECK_TOLERANCE_PCT_NAV = 0.0005
+
 interface OrderExposureInput {
   readonly profile: UserProfile
   readonly book: ValuedBook
@@ -17,9 +22,12 @@ interface OrderExposureInput {
   readonly instrumentKind?: InstrumentKind
   /** The order's value in the book's own currency, as the caps beside it are measured. */
   readonly notionalBase: number
-  /** The breaches this order's own prepare measured; the re-check refuses only a ceiling the book
+  /** The breaches measured when the order was last prepared; the re-check refuses only a ceiling
    *  crossed since. */
   readonly accepted?: readonly CapBreach[]
+  /** How far past a positive ceiling a weight may land and still hold, as a fraction of NAV. Only
+   *  the write window sets it; a ceiling of zero is a closed bucket and takes none. */
+  readonly tolerancePctNav?: number
 }
 
 /** A buy against a saved profile is judged by weights of NAV, and a book with an unpriced holding
@@ -50,12 +58,23 @@ export function breachedCaps(input: OrderExposureInput): readonly CapBreach[] {
 
   const addedPctNav = input.notionalBase / navBase
   const accepted = new Set((input.accepted ?? []).map(breachSubject))
+  const tolerancePctNav = input.tolerancePctNav ?? 0
 
   return [
     ...positionBreach(input, addedPctNav),
     ...segmentBreach(input, addedPctNav),
     ...etfBreach(input, addedPctNav),
-  ].filter((breach) => !accepted.has(breachSubject(breach)))
+  ].filter(
+    (breach) => !(accepted.has(breachSubject(breach)) || isWithinTolerance(breach, tolerancePctNav))
+  )
+}
+
+function isWithinTolerance(breach: CapBreach, tolerancePctNav: number): boolean {
+  return (
+    breach.kind !== 'etf-unmeasured' &&
+    breach.capPctNav > 0 &&
+    breach.combinedPctNav - breach.capPctNav <= Math.min(tolerancePctNav, breach.capPctNav)
+  )
 }
 
 /** What a breach is of, not by how far: one the prompt carried only grows as the book fills. */

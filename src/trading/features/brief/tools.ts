@@ -87,11 +87,20 @@ function agentSection(section: BriefSectionResult, locale: Locale): unknown {
     return section
   }
 
+  // The written prices already carry their unit; the slug names a catalog key a model cannot read.
+  const { quoteUnit: _sectionSlug, ...stated } = section
+
   return {
-    ...section,
-    rows: section.rows.map((row) =>
-      renderRowValues(locale, withoutOperatorValues(row), unitOfSection(section))
-    ),
+    ...stated,
+    rows: section.rows.map((row) => {
+      const { quoteUnit: _rowSlug, ...written } = renderRowValues(
+        locale,
+        withoutOperatorValues(row),
+        unitOfSection(section)
+      )
+
+      return written
+    }),
   }
 }
 

@@ -16,12 +16,14 @@ Vietnamese now calls a suggestion an "đề xuất" and a typed command a "câu 
 
 - In Vietnamese, a suggestion is "đề xuất" and something you type is a "câu lệnh", in the terminal, in chat and on the office page; "lệnh" is kept for an order at an exchange.
 - Web gold prices show their unit, per tael or per ounce, as chat does.
+- Gold prices on price alerts, exit levels, analysis price lines and the price tape show that unit too.
 - The web trade form opens on your home market's trading day, the same day the terminal and chat propose (the UTC day for a market that trades around the clock).
 - Web figures read like the rest: no "-0,00", macro and benchmark moves in whole percents, a portfolio's return in the same form as `/portfolio`, and token counts grouped.
 - In the terminal, a billed call too small for four decimals keeps two significant digits, so AI spend never reads "0,0000 USD" for a call that cost something.
 - Win rates and hit rates, in chat as well, are a whole percent everywhere.
 - `/cost` shows the dates of the range it covers, and token counts in the millions read as "1,2M".
-- A history error is written in your language.
+- History shows why a run stopped (turn limit, budget, restart and the like) in your language, followed by the provider's message when it adds something; any other detail is shown as recorded.
+- The app's English text uses US spelling ("canceled", "behavior", "labeled").
 - `openalpha logs --help`, `key --help`, `autostart --help` and `db migrate --help` mark the default subcommand and show its flags.
 - 1.6.1's "AI spend reads the same everywhere" applies to the terminal and chat. The web keeps cents in its header chip, as the budgets guide describes.
 - Documentation: Vietnamese and English pages use the same terms and spelling as the app, and the commands guide lists the real argument names.
@@ -29,7 +31,8 @@ Vietnamese now calls a suggestion an "đề xuất" and a typed command a "câu 
 ### Fixed
 
 - `/rebalance` now sells a fund you hold in a segment whose ETF cap is 0, whatever its score.
-- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included; only a ceiling the book crossed since the order was prepared refuses it.
+- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included. A breach measured when you confirm passes as the order you confirmed; a ceiling crossed after that check refuses it, with a small margin of 0.05% of the portfolio for price moves that never applies to a cap of 0 or an ETF share that could not be measured.
+- A refused order says in your language which limit it crossed.
 - A ledger figure above 1e15 (amount, price, quantity, fee or rate) is refused as implausible instead of being saved.
 - Editing and deleting an agent at the same moment no longer race, so an edit cannot bring back a deleted agent.
 - Saving settings on the web is all or nothing: a failed save leaves your settings as they were.

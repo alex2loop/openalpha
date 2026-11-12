@@ -5,11 +5,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { NAV_WINDOWS, navWindow, pickNavWindow } from '@/web/state/book'
 import { locale } from '@/web/state/session'
-import {
-  formatFixedFraction,
-  formatTrimmedSignedFraction,
-  formatWholeFraction,
-} from '@/web/text/figures'
+import { formatFixedFraction, formatSignedFraction, formatWholeFraction } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { NavChart } from '@/web/ui/book/nav-chart'
@@ -75,7 +71,7 @@ function NavBody({ nav, span }: { readonly nav: TradingNavResponse; readonly spa
       <p>
         {tr('trading.render.nav.return', {
           window: tr(`trading.render.nav.window.${span}`),
-          change: formatTrimmedSignedFraction(nav.periodReturn),
+          change: formatSignedFraction(nav.periodReturn),
         })}
       </p>
       <BenchmarkLine nav={nav} />
@@ -126,7 +122,7 @@ function BenchmarkLine({ nav }: { readonly nav: TradingNavResponse }) {
     <p>
       {tr('trading.render.nav.benchmark', {
         legs: joinInline(legs),
-        change: formatTrimmedSignedFraction(benchmark.periodReturn),
+        change: formatSignedFraction(benchmark.periodReturn),
       })}
     </p>
   )

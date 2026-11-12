@@ -79,12 +79,17 @@ export interface IntradaySettledField {
    *  the same label over a different window is a different number. Absent where the field was not
    *  measured, which is what drops the window rather than printing one nothing stands behind. */
   readonly labelParams?: Readonly<Record<string, string | number>>
+  /** The rows are index levels, which take no currency even in a block that has one. */
+  readonly isLevel?: true
 }
 
 export interface IntradaySettled {
   readonly day: TradingDay
   /** What every money figure in the block is denominated in. */
   readonly currency: CurrencyCode
+  /** What the block's prices are per, carried the way `IntradayRow.unit` is: absent where the market
+   *  quotes none, and only a price field prints it. */
+  readonly quoteUnit?: QuoteUnit
   readonly fields: readonly IntradaySettledField[]
 }
 

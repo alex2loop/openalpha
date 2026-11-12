@@ -17,8 +17,10 @@ const TICK_DIGITS_MAX = 8
 const TICK_TOLERANCE = 1e-6
 
 /** What a price's reading says of its name: a quote, or the facts drawn from one. */
-interface LevelReading {
+interface PriceReading {
   readonly isLevel?: boolean
+  /** The currency the reading is in, for a price printed before the markets block has loaded. */
+  readonly currency?: string
 }
 
 /** A price as its market prints it: a board-scaled market without a currency, any other beside its
@@ -26,7 +28,7 @@ interface LevelReading {
 export function formatMarketPrice(
   market: string,
   value: number | undefined,
-  reading?: LevelReading
+  reading?: PriceReading
 ): string {
   if (value === undefined) {
     return ABSENT_CELL
@@ -65,8 +67,8 @@ export function formatDealerBoard(
   }
 }
 
-function withCurrency(market: string, price: string, reading?: LevelReading): string {
-  const currency = findMarket(market)?.currency
+function withCurrency(market: string, price: string, reading?: PriceReading): string {
+  const currency = findMarket(market)?.currency ?? reading?.currency
 
   return reading?.isLevel !== true && priceDisplayOf(market) === undefined && currency !== undefined
     ? `${price} ${quoteUnitOf(market, currency)}`
@@ -82,7 +84,7 @@ function quoteUnitOf(market: string, currency: string): string {
  *  prints no `,00`. */
 export function toTickFormatter(
   market: string,
-  reading?: LevelReading
+  reading?: PriceReading
 ): (value: number, step: number) => string {
   const divisor = reading?.isLevel === true ? 1 : (priceDisplayOf(market)?.divisor ?? 1)
 
@@ -103,11 +105,11 @@ function decimalsOf(step: number): number {
 }
 
 // The figure alone, in the market's board scale, for a place the currency is said once nearby.
-function formatBarePrice(market: string, value: number, reading?: LevelReading): string {
+function formatBarePrice(market: string, value: number, reading?: PriceReading): string {
   return formatPrice(value, displayOf(market, reading))
 }
 
-function displayOf(market: string, reading?: LevelReading): ReturnType<typeof printDisplayOf> {
+function displayOf(market: string, reading?: PriceReading): ReturnType<typeof printDisplayOf> {
   return reading?.isLevel === true ? undefined : printDisplayOf(market)
 }
 

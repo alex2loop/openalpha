@@ -831,7 +831,7 @@ the whole scope and writes it to `MarketDataStore`; features read the store. The
 (`kernel/market/refresh.ts`): `instruments`, `bars`, `fundamentals`, `flows`, `macro`, `accounts`, `premium`, `index-ratios`.
 `foreignRoom` and `indexMembership` resolve inside the universe refresh, because they only mean something attached to the listing
 set being replaced. A screen cannot issue one live request per name, and evidence must be stable across a session.
-The membership read runs under its own short budget (`MEMBERSHIP_BUDGET_MS`, 5 s) and is cancelled past it, because a basket label is
+The membership read runs under its own short budget (`MEMBERSHIP_BUDGET_MS`, 5 s) and is canceled past it, because a basket label is
 never worth holding the universe for; the universe then settles without it, keeps the stored tiers (none on a first load) and carries
 `source.index-membership-unavailable`. Daemon and browser alike.
 

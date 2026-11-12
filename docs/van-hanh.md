@@ -65,7 +65,7 @@ khác khi chúng khởi động, nên trang văn phòng và cuộc trò chuyện
 
 - Trong tối đa một phút sau khi khởi động, dữ liệu thị trường có thể vẫn đang được nạp, nên biểu đồ
   có thể còn thưa cho đến khi dữ liệu về đủ.
-- Các vòng đọc dữ liệu thị trường (cảnh báo, kết quả gợi ý, trích xuất vĩ mô, kết quả chủ đề, bản tin
+- Các vòng đọc dữ liệu thị trường (cảnh báo, kết quả đề xuất, trích xuất vĩ mô, kết quả chủ đề, bản tin
   và báo cáo trong phiên) chờ lượt đó kết thúc, dù kết thúc thế nào, rồi mới chạy lượt đầu, tối đa 60
   giây. Nhà cung cấp không trả lời cũng không giữ chúng lâu hơn: chúng chạy kèm một cảnh báo
   (`trading.boot_refresh_timeout`) còn lượt làm mới tiếp tục ở nền. Trò chuyện, bộ lập lịch, các kênh
@@ -272,7 +272,7 @@ Giờ bị lỡ thì bị bỏ qua chứ không chạy trễ. Việc cron trễ 
 sang lần kế tiếp theo lịch, không tính lần hỏng nào, và dòng lịch sử ghi `skipped (missed slot)`. Mặc định là 15
 phút: đủ cho một lần khởi động lại hay mất mạng ngắn, và đủ ngắn để việc buổi sáng không bao giờ được trả lời
 sau phiên mà nó dành cho. Vậy nếu dịch vụ nền tắt cả đêm rồi khởi động lúc 15:00 thì việc cron 07:30 (việc bạn thêm bằng `schedule add`) không chạy
-lúc 15:00; lần chạy kế tiếp là 07:30 của ngày khớp lịch tiếp theo. Việc chạy một lần thì vẫn chạy khi đến hạn, dù
+lúc 15:00; phiên chạy kế tiếp là 07:30 của ngày khớp lịch tiếp theo. Việc chạy một lần thì vẫn chạy khi đến hạn, dù
 trễ bao nhiêu. Workflow có cron trigger theo cùng hai quy tắc: mất mạng thì chờ có mạng, và giờ trễ quá
 `late_grace_ms` thì bị bỏ qua.
 
@@ -944,4 +944,4 @@ Giao diện (sáng, tối hoặc theo hệ thống), cặp màu tăng giảm (xa
 Bên trong: [dev/van-hanh.md](dev/van-hanh.md).
 
 Xem thêm [an toàn và phê duyệt](an-toan.md), [ngân sách](ngan-sach.md), [giao dịch](giao-dich.md),
-cùng các tham chiếu [`config.toml`](cau-hinh.md) và [lệnh](lenh.md).
+cùng các tham chiếu [`config.toml`](cau-hinh.md) và [câu lệnh](lenh.md).

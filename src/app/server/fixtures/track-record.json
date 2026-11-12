@@ -128,12 +128,14 @@
   },
   "text": {
     "summary": [
-      "Lịch sử hiệu quả · 23 lệnh gần nhất đã chấm điểm trên 16 mã",
-      "Tôi đã đưa ra 107 lệnh có giá vào và mục tiêu - 23 đã có kết quả, 84 vẫn đang mở.",
-      "Trung bình ▼ -2,95% mỗi lệnh, trung vị ▼ -7,57% · đạt mục tiêu 17% số lần (4 trên 23)",
+      "Thành tích đề xuất · 23 đề xuất gần nhất đã chấm điểm trên 16 mã",
+      "Mình đã đưa ra 107 đề xuất có giá vào lệnh và mục tiêu - 23 đã có kết quả, 84 vẫn đang mở.",
+      "Trung bình ▼ -2,95% mỗi đề xuất, trung vị ▼ -7,57% · có lãi 17% số lần (4 trên 23; nhiều khả năng trong khoảng 7%-37%)",
       "Kết quả này đến từ nhiều phiên bản chiến lược khác nhau, nên đừng đọc tổng số quá chặt."
     ],
-    "byConviction": ["Mức tin cậy cao: trúng 40% (10 lệnh), trung bình ▲ 1,2%"],
+    "byConviction": [
+      "Mức tin cậy cao: 4/10 đúng (40%; nhiều khả năng trong khoảng 17%-69%), TB ▲ 1,2%"
+    ],
     "acted": ["Bạn đã thực hiện 1 trong 23 đề xuất gần nhất đã có kết quả."],
     "closed": [
       {

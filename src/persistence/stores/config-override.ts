@@ -5,13 +5,13 @@ interface OverrideRow {
   readonly payload: string
 }
 
-/** The settings an operator changed, kept as one opaque payload per section: the host that wrote it
- *  validates what it reads back, since only it knows the shape. */
 interface OverrideWrite {
   readonly section: string
   readonly payload: string
 }
 
+/** The settings an operator changed, kept as one opaque payload per section: the host that wrote it
+ *  validates what it reads back, since only it knows the shape. */
 export interface ConfigOverrideStore {
   /** Absent when the section was never written. */
   read(section: string, signal: AbortSignal): Promise<string | undefined>

@@ -25,7 +25,7 @@ import, a widened kernel API, a market reaching into a sibling, a rendered numbe
 skipped the display contract, a log key used twice, a missing locale string, a file over
 400 lines, an export with no consumer, and a file no entry point can reach.
 
-**Verify behaviour with a live run**, because the gates only prove structure. A change to
+**Verify behavior with a live run**, because the gates only prove structure. A change to
 a market means running `/suggest` or `/screen` against it and reading the output.
 
 ## Setup
@@ -53,7 +53,9 @@ The short version:
 - **Errors are typed.** Never `throw new Error()`; use the hierarchy.
 - **No user-facing string outside the locale catalogs**, and both `en` and `vi` must
   carry every key. A missing key makes startup fail and list exactly what is missing. Vietnamese
-  terminology is gated by `scripts/check-vi-terminology.ts` (in `lint:arch`): `reduce` is
+  terminology is gated by `scripts/check-vi-terminology.ts` (in `lint:arch`): a bare *lệnh* is an
+  exchange order (a typed command is *câu lệnh*, a suggestion *đề xuất*), *dịch vụ nền* not *daemon*,
+  *mô hình* not *model*, *phiên chạy* not *lượt chạy*, *khối lượng* not *số lượng*, and `reduce` is
   *giảm bớt*, never *bán*.
 - **Every rendered value goes through the display contract** in `trading/render/`. A
   price, a percent and a count each have one place that formats them, and the gate checks every call site.
@@ -86,7 +88,7 @@ venue cannot reach a surface.
 - **Conventional commits**: `feat:`, `fix:`, `docs:`, `chore:`. The subject line says what
   changed for a user, not which files moved.
 - **Say what you verified.** Which gates, and which live command you ran.
-- **Call out behaviour changes explicitly.** A silent change to how a level, a size or a
+- **Call out behavior changes explicitly.** A silent change to how a level, a size or a
   cap is computed is the one thing review cannot catch by reading a diff.
 
 ## Things that will be turned down
@@ -104,6 +106,6 @@ Not to be discouraging — these are settled decisions, and the reasoning is in 
 ## Reporting a bug
 
 Open an issue with the command you ran, what you expected, and what you got. Include the
-market, since behaviour is market-specific in more places than you would guess.
+market, since behavior is market-specific in more places than you would guess.
 
 For anything with security impact, use [SECURITY.en.md](SECURITY.en.md) instead — not an issue.

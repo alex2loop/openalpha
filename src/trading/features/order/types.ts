@@ -301,8 +301,10 @@ export interface PreparedOrder {
    *  settlement asset. */
   readonly currency: CurrencyCode
   readonly rejections: readonly CapRejection[]
-  /** The breaches this order's own prepare measured; the re-check refuses only a ceiling the book
-   *  crossed since. */
+  /** Ceilings this buy would cross as this prepare measured them, stated on the prompt. At confirm
+   *  the order is prepared again and what that measures passes as the order the operator confirmed;
+   *  the write window refuses only a ceiling crossed after it. Always empty on a sell, which takes
+   *  exposure off. */
   readonly breaches: readonly CapBreach[]
 }
 

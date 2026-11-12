@@ -9,12 +9,7 @@ import { formatDay, pluralKey, t } from '@/i18n'
 import { hasAgreementSample } from '@/trading/features/suggestion/track-record/agreement'
 import { renderRateRange } from '@/trading/features/suggestion/track-record/rate-range'
 import { renderFocusLabel } from '@/trading/render/focus'
-import {
-  formatCount,
-  formatFraction,
-  formatWholeFraction,
-  SECTION_ICONS,
-} from '@/trading/render/format'
+import { formatCount, formatWholeFraction, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, renderSectionTitle } from '@/trading/render/layout'
 
 interface Counts {
@@ -90,7 +85,7 @@ function renderAgreementLines(
 
   return [
     t(locale, 'trading.focus.agreement', {
-      pct: formatFraction(locale, agreement.matchedCount / agreement.comparedCount),
+      pct: formatWholeFraction(locale, agreement.matchedCount / agreement.comparedCount),
       count,
     }),
     ...(agreement.contrarianCount === 0

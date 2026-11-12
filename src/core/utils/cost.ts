@@ -7,6 +7,9 @@ import type { LLMUsageTotals } from '@/core/types/usage'
 const SPEND_DECIMALS = 4
 const SPEND_ROUNDS_TO_ZERO_BELOW = 0.5 * 10 ** -SPEND_DECIMALS
 const SPEND_SMALL_DIGITS = 2
+// Stored costs are whole nano-USD, so anything smaller is float residue (a limit less its spend),
+// not money.
+const NANO_USD = 1e-9
 const THOUSAND = 1_000
 const MILLION = 1_000_000
 const COMPACT_DECIMALS = 1
@@ -46,12 +49,14 @@ function smallSpendFormat(locale: string): Intl.NumberFormat {
 
 /** LLM spend as a reader sees it, in their digit separators. */
 export function formatSpendUsd(locale: string, usd: number): string {
-  if (usd !== 0 && Math.abs(usd) < SPEND_ROUNDS_TO_ZERO_BELOW) {
-    return `${smallSpendFormat(locale).format(usd)} USD`
+  // Below a nano-USD is zero, which also folds -0 that would otherwise print as `-0,0000`.
+  const spend = Math.abs(usd) < NANO_USD ? 0 : usd
+
+  if (spend !== 0 && Math.abs(spend) < SPEND_ROUNDS_TO_ZERO_BELOW) {
+    return `${smallSpendFormat(locale).format(spend)} USD`
   }
 
-  // `usd === 0` also catches -0, which would otherwise print as `-0,0000`.
-  return `${fixedFormat(locale, SPEND_DECIMALS).format(usd === 0 ? 0 : usd)} USD`
+  return `${fixedFormat(locale, SPEND_DECIMALS).format(spend)} USD`
 }
 
 export function formatTokenCount(locale: string, n: number): string {

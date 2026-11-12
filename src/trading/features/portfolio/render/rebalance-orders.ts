@@ -274,6 +274,11 @@ function renderChangeReason(locale: Locale, row: PositionChange): string {
     case 'off-policy':
       return t(locale, 'trading.render.rebalance.reasonOffPolicy', { segment })
     case 'over-cap':
+      // A zero ETF cap is the profile keeping funds out of the segment, so the sale is whole.
+      if (reason.limit === 'etf' && reason.cap === 0) {
+        return t(locale, 'trading.render.rebalance.reasonOverCapClosed', { segment })
+      }
+
       return t(locale, 'trading.render.rebalance.reasonOverCap', {
         limit: renderDeclaredValue(locale, `trading.cap.${reason.limit}`),
         cap: formatFraction(locale, reason.cap),

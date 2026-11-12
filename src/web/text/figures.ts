@@ -252,13 +252,13 @@ export function formatSignedPercent(value: number | undefined): string {
 }
 
 /** As `formatSignedPercent`, for a field given as a fraction (`returnPct`, `0.05` is 5%). */
-export function formatSignedFraction(fraction: number | undefined): string {
+export function formatSignedFixedFraction(fraction: number | undefined): string {
   return formatSignedPercent(fraction === undefined ? undefined : fraction * PERCENT)
 }
 
-/** As `formatSignedFraction` without trailing zeros (`▲ 12,5%`), for a figure a sentence carries
- *  rather than a row in a stack. */
-export function formatTrimmedSignedFraction(fraction: number | undefined): string {
+/** As `formatSignedFixedFraction` without trailing zeros (`▲ 12,5%`), for a figure a sentence
+ *  carries rather than a row in a stack. */
+export function formatSignedFraction(fraction: number | undefined): string {
   return withArrow(fraction, (shown) => printed(sharedFormatter('percent'), shown))
 }
 

@@ -96,7 +96,7 @@ export `down`; bước sinh mã ghép chúng với id lấy từ tên tệp.
   trong sổ mà không được khai báo (hạ cấp hoặc migration bị xóa). `migrate` từ chối
   cơ sở dữ liệu có id mồ côi, trước khi sao lưu hay áp gì, bằng cách ném `SchemaAheadError`
   (mã `dbSchemaAhead`, không có đường dẫn): bản cũ đọc schema mới sẽ đọc sai dữ liệu. `migrateWithBackup`
-  của daemon diễn đạt nó thành `errors.dbSchemaAhead` kèm thư mục chứa các bản có thể khôi phục;
+  của dịch vụ nền diễn đạt nó thành `errors.dbSchemaAhead` kèm thư mục chứa các bản có thể khôi phục;
   trình duyệt ánh xạ mã này sang dòng riêng của nó.
 - **Sao lưu trước migration.** Chỉ SQLite, khi có `MigrateOptions.backup` và có thể còn migration chờ:
   `migrateWithBackup` truyền `backupSqlite` vào `pre-migration/`. Một lần kiểm sơ bộ lỗi thời chỉ có thể làm thừa hoặc bỏ lỡ một

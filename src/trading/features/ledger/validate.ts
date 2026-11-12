@@ -33,6 +33,9 @@ const COMPARISON_EPSILON = 1e-9
 // book's cash into NaN.
 const MAXIMUM_LEDGER_FIGURE = 1e15
 
+const LEDGER_FIGURES = ['amount', 'price', 'quantity', 'fee', 'rate'] as const
+type LedgerFigure = (typeof LEDGER_FIGURES)[number]
+
 // The kinds whose correctness rests on settling the day they are recorded: the cash kinds and a
 // dividend clear on the same pass through the pending path, and a transfer moves both legs at once
 // without one. A lagged settlement day would mis-time either.
@@ -259,31 +262,41 @@ function assertNotAhead(txn: LedgerTxn, today: TradingDay): void {
 }
 
 function assertFiguresPlausible(txn: LedgerTxn): void {
-  // Written as the passing case so a NaN or an Infinity fails it too.
-  if (figuresOf(txn).every((figure) => Math.abs(figure) <= MAXIMUM_LEDGER_FIGURE)) {
+  const figures = figuresOf(txn)
+  // The negated pass, so a NaN or an Infinity is refused too.
+  const name = LEDGER_FIGURES.find(
+    (figure) => !(Math.abs(figures[figure] ?? 0) <= MAXIMUM_LEDGER_FIGURE)
+  )
+
+  if (name === undefined) {
     return
   }
 
-  throw new ValidationError(`${txn.kind} on ${txn.at} carries a figure beyond any plausible size`, {
+  throw new ValidationError(`${txn.kind} on ${txn.at} has an implausible ${name}`, {
     key: 'errors.ledgerFigureImplausible',
-    params: { day: { day: txn.at } },
+    params: { day: { day: txn.at }, figure: { key: `trading.ledger.figure.${name}` } },
   })
 }
 
-/** Every number a row states or converts by: what the fold multiplies together. */
-function figuresOf(txn: LedgerTxn): readonly number[] {
+/** Every number the fold multiplies together, by its `trading.ledger.figure.*` name. */
+function figuresOf(txn: LedgerTxn): Readonly<Partial<Record<LedgerFigure, number>>> {
   switch (txn.kind) {
     case 'split':
     case 'distribution':
-      return [txn.quantityDelta]
+      return { quantity: txn.quantityDelta }
     case 'transfer':
-      return [txn.amount, txn.fee, txn.conversion.rate]
+      return { amount: txn.amount, fee: txn.fee, rate: txn.conversion.rate }
     case 'buy':
     case 'sell':
     case 'rights':
-      return [txn.quantity, txn.unitPrice, txn.fee, txn.conversion.rate]
+      return {
+        quantity: txn.quantity,
+        price: txn.unitPrice,
+        fee: txn.fee,
+        rate: txn.conversion.rate,
+      }
     default:
-      return [txn.amount, txn.conversion.rate]
+      return { amount: txn.amount, rate: txn.conversion.rate }
   }
 }
 
