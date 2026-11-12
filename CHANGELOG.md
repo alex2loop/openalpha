@@ -31,8 +31,10 @@ Vietnamese now calls a suggestion an "đề xuất" and a typed command a "câu 
 ### Fixed
 
 - `/rebalance` now sells a fund you hold in a segment whose ETF cap is 0, whatever its score.
-- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included. Only the ceilings the order prompt named pass as the order you confirmed; one crossed since you looked (another fill, a price jump) refuses it and says which, with a small margin of 0.05% of the portfolio for price moves that never applies to a cap of 0 or an ETF share that could not be measured.
+- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included. A ceiling the order prompt named passes as the order you confirmed only if it has not grown past the figure you were shown plus a small margin of 0.05% of the portfolio for price moves (never applied to a cap of 0 or an ETF share that could not be measured); one crossed or deepened since you looked (another fill, a price jump) refuses the order and says which.
 - A refused order says in your language which limit it crossed.
+- A staged order whose saved record cannot be read keeps its confirm code, and `/trade` status skips that one record instead of failing.
+- Market tab: the world gold row in the session card shows "USD/oz" like the other gold prices, and a gold shop board's ticker page shows its buy and sell prices with the gap, with no closing-price label; the gold range line shows its unit too, and a shop board's price loads on the first visit.
 - A ledger figure above 1e15 (amount, price, quantity, fee or rate) is refused as implausible instead of being saved.
 - Editing and deleting an agent at the same moment no longer race, so an edit cannot bring back a deleted agent.
 - Saving settings on the web is all or nothing: a failed save leaves your settings as they were.

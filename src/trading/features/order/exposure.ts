@@ -1,10 +1,10 @@
 import type { ValuedBook } from '@/trading/features/portfolio/types'
 import type { InstrumentKind, InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
-import type { BreachSubject, CapBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach, ShownBreach } from '@/trading/kernel/operator/exposure'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { OrderError } from '@/trading/features/order/types'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
-import { breachSubject, etfBreaches, isBreached } from '@/trading/kernel/operator/exposure'
+import { etfBreaches, isBreached, toShownBreach } from '@/trading/kernel/operator/exposure'
 import { isSegmentDisabled, positionCapOf } from '@/trading/kernel/operator/profile'
 
 /** What the write window forgives a ceiling by, as a fraction of NAV. Sizing lands a buy right at
@@ -22,9 +22,9 @@ interface OrderExposureInput {
   readonly instrumentKind?: InstrumentKind
   /** The order's value in the book's own currency, as the caps beside it are measured. */
   readonly notionalBase: number
-  /** The breaches the operator was shown when the order was staged; the re-check refuses only a
-   *  ceiling that is not among them. */
-  readonly accepted?: readonly BreachSubject[]
+  /** The breaches the operator was shown when the order was staged; the re-check refuses a ceiling
+   *  that is not among them, or that has grown past the weight shown by more than the tolerance. */
+  readonly accepted?: readonly ShownBreach[]
   /** How far past a positive ceiling a weight may land and still hold, as a fraction of NAV. Only
    *  the write window sets it; a ceiling of zero is a closed bucket and takes none. */
   readonly tolerancePctNav?: number
@@ -57,7 +57,7 @@ export function breachedCaps(input: OrderExposureInput): readonly CapBreach[] {
   }
 
   const addedPctNav = input.notionalBase / navBase
-  const accepted = new Set(input.accepted)
+  const shown = new Map((input.accepted ?? []).map((seen) => [seen.subject, seen]))
   const tolerancePctNav = input.tolerancePctNav ?? 0
 
   return [
@@ -65,7 +65,32 @@ export function breachedCaps(input: OrderExposureInput): readonly CapBreach[] {
     ...segmentBreach(input, addedPctNav),
     ...etfBreach(input, addedPctNav),
   ].filter(
-    (breach) => !(accepted.has(breachSubject(breach)) || isWithinTolerance(breach, tolerancePctNav))
+    (breach) =>
+      !(isStillShown(breach, shown, tolerancePctNav) || isWithinTolerance(breach, tolerancePctNav))
+  )
+}
+
+/** A shown ceiling passes at the weight it was shown, give or take the tolerance: past that the
+ *  operator confirmed a smaller breach than the one this would be. A shown weight that was never
+ *  kept cannot be compared, so it refuses. */
+function isStillShown(
+  breach: CapBreach,
+  shown: ReadonlyMap<string, ShownBreach>,
+  tolerancePctNav: number
+): boolean {
+  const seen = shown.get(toShownBreach(breach).subject)
+
+  if (seen === undefined) {
+    return false
+  }
+
+  if (breach.kind === 'etf-unmeasured') {
+    return true
+  }
+
+  return (
+    seen.combinedPctNav !== undefined &&
+    breach.combinedPctNav <= seen.combinedPctNav + tolerancePctNav
   )
 }
 

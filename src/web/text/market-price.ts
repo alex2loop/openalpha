@@ -37,6 +37,19 @@ export function formatMarketPrice(
   return withCurrency(market, formatBarePrice(market, value, reading), reading)
 }
 
+/** A range's two ends as the market prints a price, with the currency and measure said once, after
+ *  the upper end, where the market has no board scale. */
+export function formatMarketRange(
+  market: string,
+  range: { readonly low: number; readonly high: number },
+  reading?: PriceReading
+): { readonly low: string; readonly high: string } {
+  return {
+    low: formatBarePrice(market, range.low, reading),
+    high: formatMarketPrice(market, range.high, reading),
+  }
+}
+
 /** A price as a ledger row records it: every digit, since the reader checks it against a fill. A
  *  board-scaled market keeps its board form and no currency; any other names the row's currency. */
 export function formatRecordedMarketPrice(market: string, value: number, currency: string): string {

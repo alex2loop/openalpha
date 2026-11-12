@@ -37,11 +37,23 @@ export type CapBreach =
       readonly capPctNav: number
     }
 
-/** What a breach is of, not by how far: a ceiling the operator was shown only grows as the book
- *  fills, so the confirm matches on this and not on the figures. */
-export type BreachSubject = string
+/** What the confirm keeps of a breach the prompt named: what it is of, and how far it stood. A
+ *  ceiling the operator was shown only grows as the book fills, so the confirm passes it while it
+ *  has not grown past this figure; `etf-unmeasured` has no weight to state, so none is kept. */
+export interface ShownBreach {
+  readonly subject: string
+  readonly combinedPctNav?: number
+}
 
-export function breachSubject(breach: CapBreach): BreachSubject {
+export function toShownBreach(breach: CapBreach): ShownBreach {
+  const subject = breachSubject(breach)
+
+  return breach.kind === 'etf-unmeasured'
+    ? { subject }
+    : { subject, combinedPctNav: breach.combinedPctNav }
+}
+
+function breachSubject(breach: CapBreach): string {
   switch (breach.kind) {
     case 'position':
       return `${breach.kind}:${breach.ticker}`

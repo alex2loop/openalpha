@@ -20,8 +20,6 @@ import { parseJson } from '@/trading/kernel/store/store-row'
 
 const MACRO_KEYS = ['region', 'day', 'formula_version']
 const MACRO_COLS = ['created_at', 'regime', 'score_regime', 'payload']
-/** How far back an observation lookup scans for a day that actually carries the series. Rows are
- *  per (day, version), so this is sessions only when one version is in play. */
 
 /** What the row's columns carry beside the payload. */
 type MacroColumnKey = 'region' | 'asOf' | 'createdAt' | 'formulaVersion' | 'regime' | 'scoreRegime'

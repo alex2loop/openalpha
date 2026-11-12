@@ -16,7 +16,7 @@ import type {
   VenueRef,
 } from '@/trading/kernel/instrument'
 import type { StopCover } from '@/trading/kernel/operator/alert'
-import type { BreachSubject, CapBreach } from '@/trading/kernel/operator/exposure'
+import type { CapBreach, ShownBreach } from '@/trading/kernel/operator/exposure'
 import type {
   ExitReceipt,
   OrderReceipt,
@@ -185,9 +185,10 @@ export interface StagedOrder {
   /** The estimated notional in the book's currency, so a placed order the ledger has not yet seen
    *  still counts against the cash a later order may spend. */
   readonly notionalBase: number
-  /** The ceilings the prompt named when this was staged; empty on a row staged without any, and on
-   *  one stored before they were kept, where none is known to have been shown. */
-  readonly shownBreaches: readonly BreachSubject[]
+  /** The ceilings the prompt named when this was staged, each with the weight it showed; empty on a
+   *  row staged without any, and on one stored before they were kept, where none is known to have
+   *  been shown. */
+  readonly shownBreaches: readonly ShownBreach[]
   readonly createdAt: number
 }
 

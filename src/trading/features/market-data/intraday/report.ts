@@ -170,12 +170,25 @@ function indexRows(
     .map((row) => ({
       ticker: row.instrument.ticker,
       market: overview.market,
-      ...(overview.priceCurrency === undefined ? {} : { currency: overview.priceCurrency }),
+      ...indexQuoted(overview),
       observed: indexFreshness(row, overview.asOf, clock),
       ...indexReading(row),
       ...(row.live?.session === undefined ? {} : { session: row.live.session }),
       ...settledClose(row),
     }))
+}
+
+/** A row quoted in money names its currency and what the price is per (world gold: USD/oz); a level
+ *  names neither. */
+function indexQuoted(overview: MarketDataOverview): Pick<IntradayRow, 'currency' | 'unit'> {
+  if (overview.priceCurrency === undefined) {
+    return {}
+  }
+
+  return {
+    currency: overview.priceCurrency,
+    ...(overview.quoteUnit === undefined ? {} : { unit: overview.quoteUnit }),
+  }
 }
 
 /** `MarketDataOverviewRow.live` is present only while the reading is fresher than the settled
