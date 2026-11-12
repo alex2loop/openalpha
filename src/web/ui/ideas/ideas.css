@@ -184,7 +184,7 @@ button.research-row {
 }
 
 .record-model > :first-child {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* The rate carries its range, so it may wrap, between words, instead of squeezing the model's name. */

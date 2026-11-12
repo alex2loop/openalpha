@@ -79,9 +79,8 @@ function HoldingFacts({ position, stop, currency }: HoldingFactsProps) {
       )}
       <Fact
         label={tr('ui.office.book.pnl')}
-        value={formatSignedMoney(position.unrealizedPnlBase, currency)}
+        value={`${formatSignedMoney(position.unrealizedPnlBase, currency)} (${formatSignedPercent(move)})`}
         tone={toneOfMoney(position.unrealizedPnlBase, currency)}
-        note={formatSignedPercent(move)}
       />
       <Fact label={tr('ui.office.ticker.weight')} value={formatFixedFraction(weight)} />
       {stop?.stop !== undefined && (
@@ -98,17 +97,13 @@ interface FactProps {
   readonly label: string
   readonly value: string
   readonly tone?: 'up' | 'down' | 'flat'
-  readonly note?: string
 }
 
-function Fact({ label, value, tone, note }: FactProps) {
+function Fact({ label, value, tone }: FactProps) {
   return (
     <div>
       <dt>{label}</dt>
-      <dd class={tone === undefined ? '' : `is-${tone}-text`}>
-        {value}
-        {note !== undefined && <span class="meta"> {note}</span>}
-      </dd>
+      <dd class={tone === undefined ? '' : `is-${tone}-text`}>{value}</dd>
     </div>
   )
 }
