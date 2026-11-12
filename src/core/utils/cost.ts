@@ -24,11 +24,6 @@ function fixedFormat(locale: string, digits: number): Intl.NumberFormat {
   return formatter
 }
 
-/** The stable `$0.0142` that locale-free engine errors print; a reader-facing figure uses `formatSpendUsd`. */
-export function formatUsd(usd: number): string {
-  return `$${usd.toFixed(SPEND_DECIMALS)}`
-}
-
 /** LLM spend as a reader sees it, in their digit separators. */
 export function formatSpendUsd(locale: string, usd: number): string {
   return `${fixedFormat(locale, SPEND_DECIMALS).format(usd)} USD`

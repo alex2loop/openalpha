@@ -148,7 +148,7 @@ function ByModel({
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.record.byModel')}</h3>
-      <div class="row-list">
+      <div class="record-models">
         {models.map((model) => (
           <div key={model.model} class="record-model">
             <span>{model.model}</span>

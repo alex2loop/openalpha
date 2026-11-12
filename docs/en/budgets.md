@@ -117,7 +117,7 @@ With the API on, the app shows cost before a run and after it.
 
 The [office page](operations.md#the-office-page) keeps cost in view without a command:
 
-- **The chip.** The AI cost chip in the header shows today's spend against the daily cap, for example "0.42 / 2.00 USD". With no cap set, it shows the spend alone. It turns to caution in two cases: spend passes the warning share (`soft_warn_ratio`) of the daily or monthly cap, or a budget warning or stop has fired today.
+- **The chip.** The AI cost chip in the header shows today's spend against the daily cap, for example "0.42 / 2.00 USD". With no cap set, and on a phone, it shows the spend alone; the popover still has the cap. It turns to caution in two cases: spend passes the warning share (`soft_warn_ratio`) of the daily or monthly cap, or a budget warning or stop has fired today.
 - **The popover.** Click the chip to see today and the month against their caps, and "By job today": each job of today with what it cost, a parent including its child agents' share. It repeats the rule that matters. The bell tells you at the warning share, and at the cap new runs stop. "Change budget" goes straight to the budget row.
 - **The full report.** "See the full report" opens today, the last 7 days, the last 30 days or this month, counted by the daemon's own days. It shows the total for the period, the highest day, a bar per day on a USD scale with its dates, and three folds: by job, by agent and by model, with each model's calls and failed calls.
   - A line above the bars names the day under the pointer or focus, the latest day otherwise. Click a bar for that day's runs, each with its AI calls.

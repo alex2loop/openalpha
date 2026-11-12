@@ -2,7 +2,6 @@ import type { ResolvedConfig } from '@/core/config/resolve'
 import type { BudgetReservation } from '@/core/types/budget'
 import type { Budget } from '@/engine/types/cost'
 import { RunHalted } from '@/core/errors'
-import { formatUsd } from '@/core/utils/cost'
 
 export interface BudgetLedger {
   readonly limitUsd: number
@@ -32,8 +31,7 @@ export function chargeBudget(ledger: BudgetLedger, usd: number): void {
   ledger.spentUsd += usd
 
   if (ledger.spentUsd + ledger.reservedUsd > ledger.limitUsd) {
-    // A delegated child's limit is a slice of the parent, never a round configured cap.
-    throw new RunHalted('budget', `per-run budget cap of ${formatUsd(ledger.limitUsd)} reached`)
+    throw new RunHalted('budget', 'per-run budget cap reached')
   }
 }
 

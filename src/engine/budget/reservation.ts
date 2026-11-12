@@ -2,7 +2,6 @@ import type { CostReservation, CostTrackerSnapshot } from '@/engine/types/cost'
 import type { RunView } from '@/engine/types/run'
 import { type BudgetHaltDetail, RunHalted } from '@/core/errors'
 import { scrubCredentials } from '@/core/security/credentials'
-import { formatUsd } from '@/core/utils/cost'
 import { emitIfExhausted } from '@/engine/budget/exhaustion'
 import { isPositiveFinite, normalizeActualUsd } from '@/engine/budget/run-budget'
 // Side-effect import: merges engine's BusEventMap declarations so bus.emit('budget_warning') typechecks.
@@ -29,11 +28,7 @@ export async function reserveRequiredLlmCost(
   const admission = await admitLlmCost(run, estimateUsd)
 
   if (admission.status === 'rejected') {
-    throw new RunHalted(
-      'budget',
-      rejectionMessage(run, estimateUsd, admission.rejection),
-      admission.rejection
-    )
+    throw new RunHalted('budget', rejectionMessage(admission.rejection), admission.rejection)
   }
 
   return admission.reservation
@@ -161,10 +156,10 @@ function capRejection(
   return undefined
 }
 
-function rejectionMessage(run: RunView, estimateUsd: number, rejection: BudgetHaltDetail): string {
+function rejectionMessage(rejection: BudgetHaltDetail): string {
   switch (rejection) {
     case 'run_budget':
-      return `Estimated LLM call cost ${formatUsd(estimateUsd)} exceeds remaining per-run budget ${formatUsd(run.state.budget.remainingUsd())}`
+      return 'Estimated LLM call cost exceeds remaining per-run budget'
     case 'daily_cap':
       return 'Daily cap would be exceeded by estimated LLM call cost'
     case 'monthly_cap':
