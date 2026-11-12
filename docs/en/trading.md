@@ -1766,6 +1766,8 @@ outright when the run's approval mode is `bypass`, unless `[trading.orders] allo
   is not waved through.
 - A buy into a segment you have switched off (both its caps are 0) is a breach too: `/trade` shows it and
   `order_place` refuses it. A segment with no caps recorded at all is not switched off.
+- An ETF cap of 0 keeps ETFs out of that segment: buying one there is a breach the same way, while
+  ordinary shares in the segment are unaffected.
 
 With a saved profile, a buy is refused while any holding in the book has no price (`order.book_unpriced`), on `/trade` and `order_place` alike. Without a price for every holding there is no total, so no position, segment or ETF cap can be measured, and an order that skipped them would clear them all. `/portfolio` names the holding; `/refresh` its market to load a price, then place the order again. A sell, and a buy with no saved profile, are not held back.
 

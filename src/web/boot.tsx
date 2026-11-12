@@ -23,6 +23,7 @@ import { startUpdate } from '@/web/state/update'
 import { startAgentFormRequests } from '@/web/ui/agent/form/agent-form'
 import { createKeyHandler } from '@/web/ui/keys/keys'
 import { openKeysDialog } from '@/web/ui/keys/keys-dialog'
+import { RenderBoundary } from '@/web/ui/shell/render-boundary'
 
 const ROOT_ID = 'root'
 
@@ -47,7 +48,7 @@ export function renderPage(view: ComponentChild): void {
     return
   }
 
-  render(view, root)
+  render(<RenderBoundary>{view}</RenderBoundary>, root)
   // A page restored from the back-forward cache has no socket, polls or loads left: start over.
   addEventListener('pageshow', (event) => (event.persisted ? location.reload() : undefined))
 }

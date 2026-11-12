@@ -204,7 +204,7 @@ async function runClear(target: ClearScope, args: ParsedArgs, ops: ClearOps): Pr
     success(
       t(locale, countedKey(target.messages.cleared, result.count), {
         count: result.count,
-        bytes: formatBytes(result.bytes),
+        bytes: formatBytes(locale, result.bytes),
       })
     )
   )
@@ -232,7 +232,7 @@ function reportDryRun(target: ClearScope, preview: ClearOutcome): number {
   app.out(
     t(locale, countedKey(target.messages.preview, preview.count), {
       count: preview.count,
-      bytes: formatBytes(preview.bytes),
+      bytes: formatBytes(locale, preview.bytes),
       scope,
     })
   )

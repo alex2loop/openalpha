@@ -41,7 +41,7 @@ import {
   resetPersistence,
   restoreSqlite,
 } from '@/persistence/node-api'
-import { HISTORY_FLOOR_DAYS } from '@/trading/api'
+import { formatCount, HISTORY_FLOOR_DAYS } from '@/trading/api'
 
 const dbIntegrityCommand = createCommand({
   name: 'integrity',
@@ -146,36 +146,43 @@ const dbCleanupCommand = createCommand({
   },
 })
 
+const RETENTION_COUNT_FIELDS = [
+  ['sessions', 'cli.dbFieldSessions'],
+  ['sessionRoutes', 'cli.dbFieldSessionRoutes'],
+  ['memory', 'cli.dbFieldMemory'],
+  ['schedulerRuns', 'cli.dbFieldSchedulerRuns'],
+  ['inbox', 'cli.dbFieldInbox'],
+  ['inboxAbandoned', 'cli.dbFieldInboxAbandoned'],
+  ['pairings', 'cli.dbFieldPairings'],
+  ['alertsTerminal', 'cli.dbFieldAlertsTerminal'],
+  ['briefSnapshots', 'cli.dbFieldBriefSnapshots'],
+  ['llmAttempts', 'cli.dbFieldLlmAttempts'],
+  ['runs', 'cli.dbFieldRuns'],
+  ['notices', 'cli.dbFieldNotices'],
+  ['restingExits', 'cli.dbFieldRestingExits'],
+  ['spentJobs', 'cli.dbFieldSpentJobs'],
+  ['suggestions', 'cli.dbFieldSuggestions'],
+  ['factorLog', 'cli.dbFieldFactorLog'],
+  ['themeOutcomes', 'cli.dbFieldThemeOutcomes'],
+  ['themeReads', 'cli.dbFieldThemeReads'],
+  ['themeRuns', 'cli.dbFieldThemeRuns'],
+  ['navSnapshots', 'cli.dbFieldNavSnapshots'],
+  ['seriesPoints', 'cli.dbFieldSeriesPoints'],
+  ['seriesProvenance', 'cli.dbFieldSeriesProvenance'],
+  ['macroDocuments', 'cli.dbFieldMacroDocuments'],
+  ['suggestionEvidence', 'cli.dbFieldSuggestionEvidence'],
+] as const satisfies readonly (readonly [keyof RetentionCounts, MessageKey])[]
+
 function printRetentionCounts(app: CliApp, counts: RetentionCounts, config: RetentionConfig): void {
   const locale = app.config.locale.language
   app.out(t(locale, 'cli.dbFieldGeneralWindow', { value: config.retentionDays }))
   app.out(t(locale, 'cli.dbFieldHistoryWindow', { value: config.historyRetentionDays }))
   printFlooredWindows(app, config)
   app.out(t(locale, 'cli.dbFieldInboxWindow', { value: config.inboxRetentionDays }))
-  app.out(t(locale, 'cli.dbFieldSessions', { value: counts.sessions }))
-  app.out(t(locale, 'cli.dbFieldSessionRoutes', { value: counts.sessionRoutes }))
-  app.out(t(locale, 'cli.dbFieldMemory', { value: counts.memory }))
-  app.out(t(locale, 'cli.dbFieldSchedulerRuns', { value: counts.schedulerRuns }))
-  app.out(t(locale, 'cli.dbFieldInbox', { value: counts.inbox }))
-  app.out(t(locale, 'cli.dbFieldInboxAbandoned', { value: counts.inboxAbandoned }))
-  app.out(t(locale, 'cli.dbFieldPairings', { value: counts.pairings }))
-  app.out(t(locale, 'cli.dbFieldAlertsTerminal', { value: counts.alertsTerminal }))
-  app.out(t(locale, 'cli.dbFieldBriefSnapshots', { value: counts.briefSnapshots }))
-  app.out(t(locale, 'cli.dbFieldLlmAttempts', { value: counts.llmAttempts }))
-  app.out(t(locale, 'cli.dbFieldRuns', { value: counts.runs }))
-  app.out(t(locale, 'cli.dbFieldNotices', { value: counts.notices }))
-  app.out(t(locale, 'cli.dbFieldRestingExits', { value: counts.restingExits }))
-  app.out(t(locale, 'cli.dbFieldSpentJobs', { value: counts.spentJobs }))
-  app.out(t(locale, 'cli.dbFieldSuggestions', { value: counts.suggestions }))
-  app.out(t(locale, 'cli.dbFieldFactorLog', { value: counts.factorLog }))
-  app.out(t(locale, 'cli.dbFieldThemeOutcomes', { value: counts.themeOutcomes }))
-  app.out(t(locale, 'cli.dbFieldThemeReads', { value: counts.themeReads }))
-  app.out(t(locale, 'cli.dbFieldThemeRuns', { value: counts.themeRuns }))
-  app.out(t(locale, 'cli.dbFieldNavSnapshots', { value: counts.navSnapshots }))
-  app.out(t(locale, 'cli.dbFieldSeriesPoints', { value: counts.seriesPoints }))
-  app.out(t(locale, 'cli.dbFieldSeriesProvenance', { value: counts.seriesProvenance }))
-  app.out(t(locale, 'cli.dbFieldMacroDocuments', { value: counts.macroDocuments }))
-  app.out(t(locale, 'cli.dbFieldSuggestionEvidence', { value: counts.suggestionEvidence }))
+
+  for (const [field, key] of RETENTION_COUNT_FIELDS) {
+    app.out(t(locale, key, { value: formatCount(locale, counts[field]) }))
+  }
 }
 
 const FLOORED_WINDOWS = [
@@ -213,7 +220,9 @@ const dbStatsCommand = createCommand({
 
     app.out(style.heading(t(locale, 'cli.dbTableRowsHeading')))
     for (const table of ALL_TABLES) {
-      app.out(`  ${table.name.padEnd(TABLE_NAME_WIDTH)} ${await rowCount(storage, table.name)}`)
+      app.out(
+        `  ${table.name.padEnd(TABLE_NAME_WIDTH)} ${formatCount(locale, await rowCount(storage, table.name))}`
+      )
     }
 
     app.out('')
@@ -238,7 +247,7 @@ async function dbFileSizeLine(storage: ResolvedStorageConfig, locale: Locale): P
   try {
     const { size } = await stat(storage.path)
 
-    return formatBytes(size)
+    return formatBytes(locale, size)
   } catch {
     return hint(t(locale, 'cli.dbNa'))
   }

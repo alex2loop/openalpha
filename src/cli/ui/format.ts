@@ -3,13 +3,14 @@ import type { Locale } from '@/core/types/locale'
 import type { RunResultReason } from '@/core/types/run'
 import type { MessageKey } from '@/i18n'
 import type { SessionStatus, SessionSummary } from '@/persistence/api'
-import { formatUsd } from '@/core/utils/cost'
+import { formatSpendUsd } from '@/core/utils/cost'
 import { t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
 const BYTES_PER_UNIT = 1024
 const DECIMALS = 1
+const PERCENT = 100
 const DISPLAY_SEGMENTS = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
 const SESSION_ID_PREVIEW_LEN = 8
 const SESSION_STATUS_KEYS = Object.freeze({
@@ -30,7 +31,22 @@ const SESSION_END_KEYS = Object.freeze({
 } as const satisfies Record<RunResultReason | 'daemon_restarted', MessageKey>)
 const END_KEY_BY_REASON: ReadonlyMap<string, MessageKey> = new Map(Object.entries(SESSION_END_KEYS))
 
-export function formatBytes(bytes: number): string {
+/** Spend, and how much of the cap it is when one is set (a cap of 0 or less means none). */
+export function formatSpendOfCap(locale: Locale, spentUsd: number, capUsd: number): string {
+  const spent = formatSpendUsd(locale, spentUsd)
+
+  if (capUsd <= 0) {
+    return spent
+  }
+
+  return t(locale, 'cli.spendOfCap', {
+    spent,
+    max: formatSpendUsd(locale, capUsd),
+    pct: Math.round((spentUsd / capUsd) * PERCENT),
+  })
+}
+
+export function formatBytes(locale: Locale, bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return '0 B'
   }
@@ -44,7 +60,13 @@ export function formatBytes(bytes: number): string {
   }
 
   // Whole bytes read better without a decimal point: "512 B", not "512.0 B".
-  const shown = unit === 0 ? String(Math.round(value)) : value.toFixed(DECIMALS)
+  const shown =
+    unit === 0
+      ? String(Math.round(value))
+      : value.toLocaleString(locale, {
+          minimumFractionDigits: DECIMALS,
+          maximumFractionDigits: DECIMALS,
+        })
 
   return `${shown} ${BYTE_UNITS[unit]}`
 }
@@ -96,7 +118,7 @@ export function formatSessionRow(
     session.id.slice(0, SESSION_ID_PREVIEW_LEN),
     `[${session.agentId}]`,
     formatInstant(locale, session.lastActivityAt, timezone),
-    formatUsd(session.costUsd),
+    formatSpendUsd(locale, session.costUsd),
     formatSessionStatus(locale, session.status),
   ].join('  ')
 }

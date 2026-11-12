@@ -35,8 +35,8 @@ tự.
 | Hồ sơ | Số câu hỏi | Vòng soát | Duyệt kế hoạch |
 | --- | --- | --- | --- |
 | `quick` | 1, không có bước lập kế hoạch | 0 | không |
-| `standard` (mặc định) | tới 7 | tối đa 1 | hiện kế hoạch, không sửa được |
-| `thorough` | tới 7 | tới 2 với câu hỏi phức tạp, còn lại tối đa 1 | tương tác |
+| `standard` (mặc định) | tới 7 với câu hỏi phức tạp, còn lại tới `[loop] max_parallel_delegations` (mặc định 5) | tối đa 1 | hiện kế hoạch, không sửa được |
+| `thorough` | như `standard` | tới 2 với câu hỏi phức tạp, còn lại tối đa 1 | tương tác |
 
 Chạy `thorough` ở tầng gốc **cần** một người duyệt kế hoạch tương tác. Không có người duyệt thì nó bị
 hủy trước khi tốn đồng nào, thay vì chạy mức đắt nhất mà không ai soát.

@@ -169,11 +169,16 @@ button.research-row {
 
 .record-model {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: var(--s1);
   padding: 4px 0;
   border-top: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
+}
+
+/* The rate carries its range, so it may wrap instead of squeezing the model's name. */
+.record-model > :last-child {
+  text-align: end;
 }
 
 .opportunity-ask {

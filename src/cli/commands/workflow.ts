@@ -3,7 +3,7 @@ import { usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { flagString } from '@/cli/parsing/args'
 import { fail, hint, style, success } from '@/cli/ui/colors'
-import { formatUsd } from '@/core/utils/cost'
+import { formatSpendUsd } from '@/core/utils/cost'
 import { runWorkflow } from '@/engine/api'
 import { pluralKey, t } from '@/i18n'
 
@@ -76,7 +76,7 @@ const workflowRunCommand = createCommand({
       success(
         t(locale, pluralKey(result.steps, 'cli.workflowDoneOne', 'cli.workflowDone'), {
           steps: result.steps,
-          cost: formatUsd(result.costUsd),
+          cost: formatSpendUsd(locale, result.costUsd),
         })
       )
     )

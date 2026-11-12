@@ -2,6 +2,7 @@ import { computed, type ReadonlySignal } from '@preact/signals'
 
 import type { MarketWire } from '@/app/server/wire/market'
 import type { TradingQuoteWire } from '@/app/server/wire/trading'
+import type { PriceFormat } from '@/web/text/figures'
 import {
   isSegmentOn,
   keyOf,
@@ -20,7 +21,7 @@ export interface TapeRow {
   readonly price?: number
   readonly changePct?: number
   /** Absent for an index level, which prints bare. */
-  readonly display?: MarketWire['priceDisplay']
+  readonly display?: PriceFormat
   /** The row is its market's benchmark, not a watched name. */
   readonly isBenchmark?: true
 }

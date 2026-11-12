@@ -6,7 +6,7 @@ import type { ResearchProgress, ResearchTotalsProgress, RunResult, TodoStep } fr
 import { BRAND } from '@/core/brand'
 import { ChannelError, failureSpecOf, RUN_FAILURE_SPEC } from '@/core/errors'
 import { failureHintParams } from '@/core/limits'
-import { formatLongDuration } from '@/core/utils/duration'
+import { formatDuration, formatLongDuration } from '@/core/utils/duration'
 import { formatRunFooter } from '@/core/utils/footer'
 import { sanitizeDisplayText, toSingleLine } from '@/core/utils/text'
 import {
@@ -107,7 +107,7 @@ export function chunkText(text: string, maxLen: number): string[] {
 export function renderLiveRunHud(options: LiveRunHudRenderOptions): readonly string[] {
   const { hud, locale } = options
   const lines = [
-    `${t(locale, 'ui.hudElapsed')}: ${formatElapsed(hud.elapsedMs)}`,
+    `${t(locale, 'ui.hudElapsed')}: ${formatDuration(locale, hud.elapsedMs)}`,
     ...hud.tools.flatMap((tool) => renderToolLines(tool)),
     ...hud.milestones.flatMap((milestone) => toHudLines(milestone)),
   ]
@@ -190,12 +190,6 @@ function toHudLines(value: string): string[] {
 // Sanitize before single-lining: an ANSI run whose ESC is already a space no longer matches.
 function safeHudValue(value: string): string {
   return toSingleLine(sanitizeDisplayText(value)).trim()
-}
-
-function formatElapsed(elapsedMs: number): string {
-  const boundedMs = Number.isFinite(elapsedMs) ? Math.max(0, elapsedMs) : 0
-
-  return `${(boundedMs / 1_000).toFixed(1)}s`
 }
 
 function statusGlyph(status: LiveRunStatus): string {

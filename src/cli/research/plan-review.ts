@@ -3,7 +3,7 @@ import type { PromptFn } from '@/cli/ui/prompt'
 import type { Locale } from '@/core/types/locale'
 import type { ResearchPlan, ResearchPlanDecision, ResearchPlanReview } from '@/engine/api'
 import { currentTerminal } from '@/cli/terminal'
-import { formatUsd } from '@/core/utils/cost'
+import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDuration } from '@/core/utils/duration'
 import { RESEARCH_FRESHNESS_FIELD_KEYS } from '@/engine/api'
 import { t } from '@/i18n'
@@ -126,7 +126,7 @@ function printObjective(deps: CliPlanReviewerDeps, input: ResearchPlanReview): v
 
 function remainingCostText(locale: Locale, remainingCostUsd: number): string {
   return Number.isFinite(remainingCostUsd)
-    ? formatUsd(remainingCostUsd)
+    ? formatSpendUsd(locale, remainingCostUsd)
     : t(locale, 'cli.researchPlanUncappedCost')
 }
 

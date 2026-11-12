@@ -7,4 +7,7 @@ export interface ByModelWire {
   readonly resolvedCount: number
   readonly winCount: number
   readonly winRate?: number
+  /** `winRate` as `/reflect` prints it, with the range it likely sits in, in the daemon's language;
+   *  absent where `winRate` is. */
+  readonly rate?: string
 }

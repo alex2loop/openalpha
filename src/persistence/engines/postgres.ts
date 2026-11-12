@@ -38,6 +38,14 @@ interface PostgresConnectionOptions {
   readonly logger: Logger
 }
 
+interface CheckedOutClient {
+  readonly client: PoolClient
+  /** `discard` destroys the connection instead of pooling it: a client whose ROLLBACK failed may
+   *  still be inside its transaction, and the next borrower would inherit it. A client that emitted
+   *  an error is always discarded. Non-throwing. */
+  readonly release: (discard?: boolean) => void
+}
+
 // `pg` is imported dynamically so sqlite-only runs never load the driver.
 export async function openPostgres(options: PostgresConnectionOptions): Promise<Storage> {
   if (!options.url) {
@@ -103,11 +111,11 @@ export async function resetPostgres(options: PostgresConnectionOptions): Promise
 // `search_path` names the schema but never creates it, and Postgres silently skips a missing entry:
 // without this every unqualified migration would land in `public` instead.
 async function ensureSchema(pool: Pool, schema: string, logger: Logger): Promise<void> {
-  const client = await pool.connect()
+  const checkedOut = await checkoutClient(pool, logger)
   try {
-    await client.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schema)}`)
+    await checkedOut.client.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(schema)}`)
   } finally {
-    releaseClient(client, logger)
+    checkedOut.release()
   }
 }
 
@@ -162,22 +170,23 @@ async function runTransaction<T>(
   fn: (tx: Transaction) => Promise<T>,
   logger: Logger
 ): Promise<T> {
-  // `client` is tracked so a failed `connect()` is wrapped as a typed StorageError and release runs
-  // only once a client was actually acquired — releasing an undefined client is a no-op that would
-  // otherwise mask the real connection failure.
-  let client: PoolClient | undefined
+  // `checkedOut` is tracked so a failed `connect()` is wrapped as a typed StorageError and release
+  // runs only once a client was actually acquired — releasing an undefined client is a no-op that
+  // would otherwise mask the real connection failure.
+  let checkedOut: CheckedOutClient | undefined
   let rollbackFailed = false
 
   try {
-    client = await pool.connect()
+    checkedOut = await checkoutClient(pool, logger)
+    const { client } = checkedOut
     await client.query('BEGIN')
     const result = await fn(createTransaction(client))
     await client.query('COMMIT')
 
     return result
   } catch (err: unknown) {
-    if (client !== undefined) {
-      await client.query('ROLLBACK').catch((rollbackErr: unknown) => {
+    if (checkedOut !== undefined) {
+      await checkedOut.client.query('ROLLBACK').catch((rollbackErr: unknown) => {
         rollbackFailed = true
         logger.error('postgres.rollback_failed', { err: formatErrForLog(rollbackErr) })
       })
@@ -185,19 +194,33 @@ async function runTransaction<T>(
     // A typed StorageError from the callback passes through untouched; anything else becomes one.
     throw toStorageError(err, 'postgres transaction failed')
   } finally {
-    if (client !== undefined) {
-      releaseClient(client, logger, rollbackFailed)
-    }
+    checkedOut?.release(rollbackFailed)
   }
 }
 
-// `discard` destroys the connection instead of pooling it: a client whose ROLLBACK failed may still
-// be inside its transaction, and the next borrower would inherit it.
-function releaseClient(client: PoolClient, logger: Logger, discard = false): void {
-  try {
-    client.release(discard)
-  } catch (err: unknown) {
-    logger.error('postgres.release_failed', { err: formatErrForLog(err) })
+// pg-pool detaches its own idle 'error' listener while a client is checked out, and pg emits
+// 'error' on a client whose socket drops mid-transaction; with no listener that is an uncaught
+// exception and the daemon exits. The in-flight query rejects on its own, so this only logs.
+async function checkoutClient(pool: Pool, logger: Logger): Promise<CheckedOutClient> {
+  const client = await pool.connect()
+  let broken = false
+  const onClientError = (err: unknown): void => {
+    broken = true
+    logger.warn('postgres.client_error', { err: formatErrForLog(err) })
+  }
+  client.on('error', onClientError)
+
+  return {
+    client,
+    release(discard = false): void {
+      client.off('error', onClientError)
+
+      try {
+        client.release(discard || broken)
+      } catch (err: unknown) {
+        logger.error('postgres.release_failed', { err: formatErrForLog(err) })
+      }
+    },
   }
 }
 

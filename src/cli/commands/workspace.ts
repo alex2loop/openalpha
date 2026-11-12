@@ -196,13 +196,17 @@ function reportDryRun(plan: WorkspaceCleanupPlan, app: CliApp, locale: Locale): 
 
   for (const [agentId, agent] of plan.agents) {
     const agentBytes = agent.files.reduce((sum, file) => sum + file.bytes, 0)
-    const reclaimed = t(locale, 'cli.workspaceWouldReclaim', { size: formatBytes(agentBytes) })
+    const reclaimed = t(locale, 'cli.workspaceWouldReclaim', {
+      size: formatBytes(locale, agentBytes),
+    })
     app.out(`${success(agentId)}  ${hint(reclaimed)}`)
   }
 
   app.out('')
   app.out(
-    style.heading(t(locale, 'cli.workspaceWouldReclaimHeading', { size: formatBytes(bytes) }))
+    style.heading(
+      t(locale, 'cli.workspaceWouldReclaimHeading', { size: formatBytes(locale, bytes) })
+    )
   )
   return plan.failures === 0 ? 0 : 1
 }
@@ -226,7 +230,7 @@ async function approveCleanup(
         ),
         {
           count: plan.agents.size,
-          size: formatBytes(bytes),
+          size: formatBytes(locale, bytes),
           guard: DELETE_GUARD,
         }
       )
@@ -250,7 +254,7 @@ async function approveCleanup(
       ),
       {
         count: plan.agents.size,
-        size: formatBytes(bytes),
+        size: formatBytes(locale, bytes),
       }
     ),
     locale
@@ -265,12 +269,14 @@ function reportResult(result: WorkspaceCleanupResult, app: CliApp, locale: Local
     const agentResult: WorkspaceCleanupAgentResult = agent
     totalFreed += agentResult.removedBytes
     totalFailures += agentResult.failures
-    app.out(`${success(agentId)}  ${hint(formatBytes(agentResult.removedBytes))}`)
+    app.out(`${success(agentId)}  ${hint(formatBytes(locale, agentResult.removedBytes))}`)
   }
 
   app.out('')
   app.out(
-    style.heading(t(locale, 'cli.workspaceReclaimedHeading', { size: formatBytes(totalFreed) }))
+    style.heading(
+      t(locale, 'cli.workspaceReclaimedHeading', { size: formatBytes(locale, totalFreed) })
+    )
   )
 
   if (totalFailures > 0) {

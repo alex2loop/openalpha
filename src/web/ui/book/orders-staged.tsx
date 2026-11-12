@@ -3,7 +3,7 @@ import { useSignal } from '@preact/signals'
 import type { StagedOrderWire } from '@/app/server/wire/orders'
 import { holdingsBlock } from '@/web/state/market'
 import { discardOrder, placeOrder, placingTokens } from '@/web/state/orders'
-import { formatPrice, formatQuantity, WHOLE_DISPLAY } from '@/web/text/figures'
+import { formatAmount, formatMoney, formatQuantity } from '@/web/text/figures'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { toErrorText, tr } from '@/web/text/tr'
 import { toVenueName } from '@/web/text/venue'
@@ -89,7 +89,10 @@ function StagedFacts({
   const { market, ticker } = order.instrument
   const price = (value: number | undefined): string => formatMarketPrice(market, value)
   const currency = holdingsBlock.view.value.data?.baseCurrency
-  const notional = formatPrice(order.notionalBase, WHOLE_DISPLAY)
+  const notional =
+    currency === undefined
+      ? formatAmount(order.notionalBase)
+      : formatMoney(order.notionalBase, currency)
   const hasLevels = order.takeProfit !== undefined || order.stopLoss !== undefined
 
   return (
@@ -103,7 +106,7 @@ function StagedFacts({
             order.orderType === 'limit'
               ? tr('ui.office.orders.limitType', { price: price(order.limitPrice) })
               : tr('ui.office.orders.marketType'),
-          notional: currency === undefined ? notional : `${notional} ${currency}`,
+          notional,
         })}
       </p>
       {hasLevels && (

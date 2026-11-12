@@ -21,6 +21,17 @@ function renderBreach(locale: Locale, breach: CapBreach): string {
     })
   }
 
+  // A zero ceiling is the profile closing the bucket, so "past the 0% cap" would misstate it.
+  if (breach.capPctNav === 0 && (breach.kind === 'segment' || breach.kind === 'etf')) {
+    return t(
+      locale,
+      breach.kind === 'etf'
+        ? 'trading.render.exposure.etfClosed'
+        : 'trading.render.exposure.segmentClosed',
+      { segment: renderDeclaredValue(locale, `trading.segment.${breach.segment}`) }
+    )
+  }
+
   return t(locale, 'trading.render.exposure.breach', {
     subject: subjectOf(locale, breach),
     combined: formatWholeFraction(locale, breach.combinedPctNav),

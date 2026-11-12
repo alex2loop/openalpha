@@ -6,7 +6,7 @@ import { useBlockRead } from '@/web/state/block'
 import { findMarket } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
-import { formatPrice, formatQuantity, PERCENT, wholeUnitsDisplay } from '@/web/text/figures'
+import { formatAmount, formatMoney, formatQuantity, PERCENT } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { buildDayKey } from '@/web/text/time'
 import { shiftDay } from '@/web/text/time-units'
@@ -103,11 +103,7 @@ function toTermLines(event: MarketEventWire, market: string): readonly string[] 
 function formatPerShare(market: string, value: number): string {
   const currency = findMarket(market)?.currency
 
-  if (currency === undefined) {
-    return formatPrice(value, undefined)
-  }
-
-  return `${formatPrice(value, wholeUnitsDisplay(currency))} ${currency}`
+  return currency === undefined ? formatAmount(value) : formatMoney(value, currency)
 }
 
 function readEvents(ticker: string, market: string): (abort: AbortSignal) => Promise<EventsRead> {

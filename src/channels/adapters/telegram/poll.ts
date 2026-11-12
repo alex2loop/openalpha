@@ -1,6 +1,7 @@
 import type { AdapterHandlers, InboundInbox } from '@/channels/types'
 import type { PollOffsetStore } from '@/core/types/session'
 import { acceptInbound } from '@/channels/delivery/inbox-accept'
+import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
 
@@ -14,6 +15,8 @@ import { parseUpdate } from './protocol'
 const TELEGRAM_POLL_TIMEOUT_SEC = 10
 const POLL_BACKOFF_INITIAL_MS = 1_000
 const POLL_BACKOFF_MAX_MS = 30_000
+// A hint longer than this is a bogus one: the poll would sit silent for longer than any real flood wait.
+const POLL_RETRY_AFTER_MAX_MS = 600_000
 const AUTH_FAILURE_THRESHOLD = 3
 const CONFLICT_STATUS = 409
 const UNAUTHORIZED_STATUS = 401
@@ -173,9 +176,11 @@ async function onPollFailure(deps: PollDeps, state: PollState, err: unknown): Pr
     state.authFailures = 0
   }
 
-  markDisconnected(deps, state, err)
+  const waitMs = Math.max(state.backoffMs, retryAfterOf(err))
 
-  return await backoffAndContinue(deps, state)
+  markDisconnected(deps, state, { err, waitMs })
+
+  return await backoffAndContinue(deps, state, waitMs)
 }
 
 // Returns true when the loop should stop: a dead token retried forever just hammers the API.
@@ -195,21 +200,41 @@ function handleAuthFailure(deps: PollDeps, state: PollState, err: unknown): bool
   return true
 }
 
-function markDisconnected(deps: PollDeps, state: PollState, err: unknown): void {
+// A 429 names how long Telegram wants the poller quiet; the ladder alone would retry into it.
+function retryAfterOf(err: unknown): number {
+  if (!(err instanceof ChannelError) || err.retryAfterMs === undefined) {
+    return 0
+  }
+
+  return Math.min(err.retryAfterMs, POLL_RETRY_AFTER_MAX_MS)
+}
+
+function markDisconnected(
+  deps: PollDeps,
+  state: PollState,
+  failure: { readonly err: unknown; readonly waitMs: number }
+): void {
   deps.api.logger.warn('telegram.poll_error', {
-    err: formatErrForLog(err),
-    backoffMs: state.backoffMs,
+    err: formatErrForLog(failure.err),
+    backoffMs: failure.waitMs,
   })
 
   if (state.connected) {
     state.connected = false
-    deps.handlers.setStatus({ connected: false, lastError: formatErrForLog(err).message })
+    deps.handlers.setStatus({
+      connected: false,
+      lastError: formatErrForLog(failure.err).message,
+    })
   }
 }
 
-async function backoffAndContinue(deps: PollDeps, state: PollState): Promise<boolean> {
+async function backoffAndContinue(
+  deps: PollDeps,
+  state: PollState,
+  waitMs: number
+): Promise<boolean> {
   try {
-    await sleep(state.backoffMs, deps.signal)
+    await sleep(waitMs, deps.signal)
   } catch {
     return true // aborted while backing off
   }

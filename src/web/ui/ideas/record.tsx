@@ -4,8 +4,8 @@ import { ROUTES } from '@/web/api/routes'
 import { SHARED_FOCUS } from '@/web/state/agents'
 import { useBlock } from '@/web/state/block'
 import { AWAITING_WINDOW_CODE } from '@/web/text/caveat-text'
-import { formatFixedFraction } from '@/web/text/figures'
-import { isNoteLine } from '@/web/text/glyphs'
+import { formatCount } from '@/web/text/figures'
+import { ABSENT_CELL, isNoteLine } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { useUnstripped } from '@/web/ui/kit/cautions'
@@ -152,8 +152,8 @@ function ByModel({
         {models.map((model) => (
           <div key={model.model} class="record-model">
             <span>{model.model}</span>
-            <span>{`${model.winCount}/${model.resolvedCount}`}</span>
-            <span>{formatFixedFraction(model.winRate)}</span>
+            <span>{`${formatCount(model.winCount)}/${formatCount(model.resolvedCount)}`}</span>
+            <span>{model.rate ?? ABSENT_CELL}</span>
           </div>
         ))}
       </div>

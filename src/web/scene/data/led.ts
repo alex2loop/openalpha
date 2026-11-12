@@ -2,6 +2,7 @@ import { computed, effect, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { MarketWire } from '@/app/server/wire/market'
 import type { OverviewResponse } from '@/app/server/wire/overview'
+import type { PriceFormat } from '@/web/text/figures'
 import { homeMarket } from '@/web/scene/data/home'
 import { knownMarkets, overviewBlock } from '@/web/state/market'
 import { tapeRows } from '@/web/state/tape'
@@ -26,14 +27,14 @@ export interface LedItem {
   readonly at?: number
   readonly stale: boolean
   /** How a priced benchmark prints; absent for an index level. */
-  readonly display?: MarketWire['priceDisplay']
+  readonly display?: PriceFormat
 }
 
 /** One name on the board's ticker band: the page tape's row, with its market's phase. */
 export interface BandItem {
   readonly label: string
   readonly price?: number
-  readonly display?: MarketWire['priceDisplay']
+  readonly display?: PriceFormat
   readonly changePct?: number
   readonly state: LedState
   readonly isBenchmark?: true

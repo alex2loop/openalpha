@@ -1,7 +1,7 @@
 import type { TradingPortfolioResponse } from '@/app/server/wire/trading'
 import { readBlock } from '@/web/state/block'
 import { heldPositions, holdingsBlock } from '@/web/state/market'
-import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
+import { formatMoney } from '@/web/text/figures'
 import { segmentName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
@@ -43,11 +43,9 @@ function OverviewBody({ book }: { readonly book: TradingPortfolioResponse }) {
 
   return (
     <>
-      <p class="big-figure">
-        {formatPrice(book.navBase, WHOLE_DISPLAY)} {book.baseCurrency}
-      </p>
+      <p class="big-figure">{formatMoney(book.navBase, book.baseCurrency)}</p>
       <p class="meta">
-        {segmentName('cash')} {formatPrice(book.cashBase, WHOLE_DISPLAY)} {book.baseCurrency}
+        {segmentName('cash')} {formatMoney(book.cashBase, book.baseCurrency)}
       </p>
       <Unrealized book={book} />
       <h3 class="sub-head">{tr('ui.office.book.holding')}</h3>

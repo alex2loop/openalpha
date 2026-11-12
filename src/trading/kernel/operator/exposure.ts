@@ -61,9 +61,10 @@ interface EtfBreachInput {
 }
 
 /** The one reading of the ETF sub-cap, so a single order and a batch cannot disagree about it. A
- *  segment whose ETF share cannot be measured has no room under a declared ceiling, as in
- *  `etfCeilingPctNav`; that is its own arm rather than a cap of zero, which `isBreached` would read
- *  as no ceiling at all. */
+ *  declared ceiling of zero closes the segment to funds: any weight added crosses it, so it is
+ *  compared directly rather than through `isBreached`, which reads a zero cap as no ceiling. A
+ *  segment whose ETF share cannot be measured has no room under a positive ceiling, as in
+ *  `etfCeilingPctNav`; that is its own arm, since there is no combined weight to state. */
 export function etfBreaches(input: EtfBreachInput): readonly CapBreach[] {
   const { segment, segmentValue, ceilingPctNav } = input
 
@@ -71,13 +72,13 @@ export function etfBreaches(input: EtfBreachInput): readonly CapBreach[] {
     return []
   }
 
-  if (isEtfUnmeasured(segmentValue)) {
-    return ceilingPctNav > 0 ? [{ kind: 'etf-unmeasured', segment, capPctNav: ceilingPctNav }] : []
+  if (isEtfUnmeasured(segmentValue) && ceilingPctNav > 0) {
+    return [{ kind: 'etf-unmeasured', segment, capPctNav: ceilingPctNav }]
   }
 
   const combinedPctNav = (segmentValue?.etfPctNav ?? 0) + input.addedPctNav
 
-  return isBreached(combinedPctNav, ceilingPctNav)
+  return combinedPctNav > ceilingPctNav
     ? [{ kind: 'etf', segment, combinedPctNav, capPctNav: ceilingPctNav }]
     : []
 }

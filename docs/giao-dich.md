@@ -1752,6 +1752,8 @@ chế độ duyệt của phiên chạy là `bypass`, trừ khi đặt `[trading
   là vượt mọi trần ETF mà nhóm đó đã khai. Không kiểm tra được hạn mức thì không cho qua.
 - Lệnh mua vào một nhóm bạn đã tắt (cả hai trần của nó đều bằng 0) cũng là vượt trần: `/trade` hiện ra và
   `order_place` từ chối. Nhóm mà hồ sơ chưa ghi trần nào thì không phải là nhóm đã tắt.
+- Trần ETF bằng 0 nghĩa là nhóm đó không nhận ETF: mua một ETF vào đó cũng là vượt trần như trên, còn cổ
+  phiếu thường trong nhóm vẫn mua bình thường.
 
 Khi đã lưu hồ sơ, lệnh mua bị từ chối (`order.book_unpriced`) lúc còn khoản nắm nào chưa có giá, cả ở `/trade` lẫn `order_place`. Thiếu giá một khoản thì không có tổng, nên không đo được trần vị thế, nhóm hay ETF nào, và một lệnh bỏ qua các trần đó sẽ qua hết. `/portfolio` cho biết đó là mã nào; chạy `/refresh` cho thị trường của mã đó để lấy giá, rồi đặt lại lệnh. Lệnh bán, và lệnh mua khi chưa lưu hồ sơ, không bị giữ lại.
 

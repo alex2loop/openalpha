@@ -93,12 +93,18 @@ function etfBreach(input: OrderExposureInput, addedPctNav: number): readonly Cap
   }
 
   const { book, profile, segment } = input
+  const caps = profile.caps[segment]
+
+  // A switched-off segment already reports the buy once; its zero ETF cap would say it twice.
+  if (caps !== undefined && isSegmentDisabled(caps)) {
+    return []
+  }
 
   return etfBreaches({
     segment,
     segmentValue: book.segmentValues.find((value) => value.segment === segment),
     addedPctNav,
-    ceilingPctNav: profile.caps[segment]?.maximumEtfPctNav,
+    ceilingPctNav: caps?.maximumEtfPctNav,
   })
 }
 

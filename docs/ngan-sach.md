@@ -88,7 +88,7 @@ luôn hạn mức khi có bật. Bản theo tuần và theo khoảng tự chọn
 nhất để trả lời "đổi sang mô hình kia có đáng không?": chạy trước và sau, rồi so cả tiền lẫn độ trễ.
 
 Nó còn in một khối **Theo agent** trước các dòng theo mô hình, mỗi agent chịu chi phí một dòng kèm số đã tiêu. Với
-`--period day` mặc định, mỗi dòng còn cho thấy mức trần của agent ("$0.02 / $0.50 hôm nay"). Tuần hoặc tháng thì bỏ mức
+`--period day` mặc định, mỗi dòng còn cho thấy mức trần của agent ("0,0200 USD / 0,5000 USD hôm nay"). Tuần hoặc tháng thì bỏ mức
 trần đi, vì mức trần ngày đặt cạnh chi phí cả tuần dễ gây hiểu lầm.
 
 `status` cũng hiện chi tiêu hôm nay. Một phiên chạy bị ngân sách dừng sẽ đi theo đường `budget` thông thường. Phần chi phí

@@ -85,7 +85,7 @@ one is enabled. Week and custom ranges report the total only.
 "was switching model worth it?": run it before and after, then compare money and latency.
 
 It also prints a **By agent** block before the per-model rows, with one line for each billing agent and what it spent.
-On the default `--period day`, each line also shows the agent's cap ("openalpha: $0.02 of $0.50 today"). Week and month leave the
+On the default `--period day`, each line also shows the agent's cap ("openalpha: 0.0200 USD of 0.5000 USD today"). Week and month leave the
 cap out, because a daily cap beside a week's spend would mislead.
 
 `status` shows today's spend too. A run stopped by budget halts through the normal `budget` path. The cost already

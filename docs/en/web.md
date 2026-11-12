@@ -2,8 +2,6 @@
 
 The web version is OpenAlpha running in a tab of your browser. Open the page and use it, no account. When you want to chat with the assistant or run an analysis, add an AI key of your own. Your ledger, portfolio, keys and results stay on your device.
 
-> The web version is in testing and has no public address yet. This page describes how it works once it opens to everyone.
-
 It is an analysis tool for your own use. Each analysis sets two sides next to each other and ends with no conclusion, and no name is ranked or marked good or bad. The decision stays yours. It is also a way to see what OpenAlpha does with your own names before you install the full version; [Web against installed](#web-against-installed) says where the two differ and why. The header carries a "Get the full app" button with a download icon on every page of the web version (only the icon on a phone); it opens the install steps in the README in a new tab. "Web and installed versions" also starts with a "See how to install" button.
 
 ## Getting started

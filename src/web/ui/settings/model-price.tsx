@@ -5,7 +5,7 @@ import type { ModelEntryWire } from '@/app/server/wire/models'
 import type { LoadState } from '@/web/ui/kit/use-load'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
-import { formatPrice, formatUsd } from '@/web/text/figures'
+import { formatAmount, formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
@@ -120,15 +120,15 @@ function priceText(entry: ModelEntryWire): string {
   }
 
   return tr('ui.office.settings.modelPrice', {
-    input: formatPrice(inPerM, undefined),
-    output: formatPrice(outPerM, undefined),
+    input: formatAmount(inPerM),
+    output: formatAmount(outPerM),
   })
 }
 
 function unknownPriceText({ price }: ModelEntryWire): string {
   return tr('ui.office.settings.modelPriceUnknownCounted', {
-    input: formatPrice(price.inPerM, undefined),
-    output: formatPrice(price.outPerM, undefined),
+    input: formatAmount(price.inPerM),
+    output: formatAmount(price.outPerM),
   })
 }
 

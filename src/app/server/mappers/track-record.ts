@@ -3,6 +3,7 @@ import type { TradingTrackRecordResponse } from '@/app/server/wire/trading'
 import type { Locale } from '@/core/types/locale'
 import type { ModelRecord, TradingTrackRecordView } from '@/trading/api'
 import { toCaveatWires, toSuggestionWire } from '@/app/server/mappers/trading'
+import { renderModelRate } from '@/trading/api'
 
 type FocusWires = TradingTrackRecordResponse['summary']['focuses']
 
@@ -49,7 +50,7 @@ export function toTrackRecordWire(
         ...(bucket.winRate === undefined ? {} : { winRate: bucket.winRate }),
       })),
       focuses: toFocusWires(summary.focuses),
-      byModel: toByModelWires(view.byModel),
+      byModel: toByModelWires(view.byModel, locale),
       caveats: toCaveatWires(summary.caveats, locale),
     },
     recent: report.recent.map((suggestion) => toSuggestionWire(suggestion, locale)),
@@ -69,11 +70,16 @@ function toFocusWires(
   }))
 }
 
-function toByModelWires(records: readonly ModelRecord[]): readonly ByModelWire[] {
-  return records.map((record) => ({
-    model: record.model,
-    resolvedCount: record.resolvedCount,
-    winCount: record.winCount,
-    ...(record.winRate === undefined ? {} : { winRate: record.winRate }),
-  }))
+function toByModelWires(records: readonly ModelRecord[], locale: Locale): readonly ByModelWire[] {
+  return records.map((record) => {
+    const rate = renderModelRate(locale, record)
+
+    return {
+      model: record.model,
+      resolvedCount: record.resolvedCount,
+      winCount: record.winCount,
+      ...(record.winRate === undefined ? {} : { winRate: record.winRate }),
+      ...(rate === undefined ? {} : { rate }),
+    }
+  })
 }

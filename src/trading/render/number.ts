@@ -2,15 +2,13 @@
 // through. Split from `format.ts`, which owns the vocabulary — which unit a given value is printed
 // in — so the option table and its memo have one place to live and neither file carries the other.
 import type { Locale } from '@/core/types/locale'
-import { SPEND_DECIMALS } from '@/core/utils/cost'
+import { FRACTION_DIGITS, hasMagnitude, NUMBER_FORMATS } from '@/i18n'
 import { cachedFormatter } from '@/trading/render/datetime'
 
 /** What a cell prints where the value it would carry does not exist - a segment bounded by a floor
  *  rather than a cap, a lot acquired at no cost, a figure that was never a finite number. Absent is
  *  not zero, and an empty cell reads as a rendering fault rather than as a fact. */
 export const ABSENT_CELL = '—'
-export const CRYPTO_SUBUNIT_DIGITS = 8
-export const FRACTION_DIGITS = 2
 const PERCENT_PER_UNIT = 100
 /** The resolution `formatWholeFraction` prints a 0-1 share at: one whole percent. */
 export const WEIGHT_QUANTUM = 0.01
@@ -18,61 +16,12 @@ export const WEIGHT_QUANTUM = 0.01
 export const FRACTION_QUANTUM = 10 ** -FRACTION_DIGITS / PERCENT_PER_UNIT
 /** The resolution `formatScoreValue` prints a score and its contributions at: two decimals. */
 export const SCORE_QUANTUM = 0.01
-export const SUB_UNIT_SIGNIFICANT_DIGITS = 4
-/** Whether a rendered number carries any magnitude at all, once its own rounding has been applied. */
-const SIGNIFICANT_DIGIT_RE = /[1-9]/
 /** Reads back through `Number`, so a fixed ASCII locale rather than the operator's. */
 const MACHINE_LOCALE = 'en-US'
 
-/** One option set per unit the trading surface prints. Naming them apart is what keeps a 40% target
- *  from rendering as 0.4%, and a factor score from losing the sign that carries its direction. */
-const NUMBER_FORMATS = {
-  amount: { maximumFractionDigits: FRACTION_DIGITS },
-  /** Significant digits, not decimal places: below one currency unit every digit that carries the
-   *  value sits after the point, and a top-250 coin can trade at 0.00002. */
-  subUnit: { maximumSignificantDigits: SUB_UNIT_SIGNIFICANT_DIGITS },
-  /** Column forms of the two above: a varying digit count puts the decimal point in a different
-   *  place on every row, and a price is almost always read in a stack. */
-  amountFixed: {
-    minimumFractionDigits: FRACTION_DIGITS,
-    maximumFractionDigits: FRACTION_DIGITS,
-  },
-  subUnitFixed: {
-    minimumSignificantDigits: SUB_UNIT_SIGNIFICANT_DIGITS,
-    maximumSignificantDigits: SUB_UNIT_SIGNIFICANT_DIGITS,
-  },
-  /** Every digit the operator could have stated, which crypto quotes to eight: the default three
-   *  print 0.0001 BTC as 0, and two decimals print a 1.39973239 fill as 1.4. */
-  exact: { maximumFractionDigits: CRYPTO_SUBUNIT_DIGITS },
-  /** Money at market scale: VND turnover runs to thirteen digits, of which three carry the story.
-   *  Significant digits rather than a fixed decimal, so a leader printed in nghìn tỷ keeps the same
-   *  resolution as the rows below it in tỷ — one fractional digit rounded 1.048 tỷ to "1 nghìn tỷ"
-   *  beside a share the reader could not reconcile with it. The unit is spelled out because the
-   *  short forms are ambiguous where it matters most — vi renders 197 tỷ as "197 T", which reads
-   *  as a thousand times itself. */
-  compact: { notation: 'compact', compactDisplay: 'long', maximumSignificantDigits: 3 },
-  count: { maximumFractionDigits: 0 },
-  percent: { style: 'percent', maximumFractionDigits: FRACTION_DIGITS },
-  percentWhole: { style: 'percent', maximumFractionDigits: 0 },
-  /** Column form: a varying digit count puts the decimal point in a different place on every row. */
-  percentFixed: {
-    style: 'percent',
-    minimumFractionDigits: FRACTION_DIGITS,
-    maximumFractionDigits: FRACTION_DIGITS,
-  },
-  score: {
-    minimumFractionDigits: FRACTION_DIGITS,
-    maximumFractionDigits: FRACTION_DIGITS,
-    signDisplay: 'always',
-  },
-  ratio: { minimumFractionDigits: FRACTION_DIGITS, maximumFractionDigits: FRACTION_DIGITS },
-  /** LLM spend, quoted far below a cent, so it keeps its own precision rather than a currency's. */
-  spend: { minimumFractionDigits: SPEND_DECIMALS, maximumFractionDigits: SPEND_DECIMALS },
-} as const satisfies Record<string, Intl.NumberFormatOptions>
-
 type NumberFormatName = keyof typeof NUMBER_FORMATS
 
-// Locale is a closed two-member union and the formats above are fixed, so this map is bounded by
+// Locale is a closed two-member union and the formats are fixed, so this map is bounded by
 // construction and needs no eviction. Constructing an Intl.NumberFormat per rendered row is the one
 // hot path here.
 const formatters = new Map<string, Intl.NumberFormat>()
@@ -109,13 +58,6 @@ export function formatFixedDigits(locale: Locale, value: number, digits: number)
   const text = formatter.format(value)
 
   return hasMagnitude(text) ? text : formatter.format(0)
-}
-
-/** Whether a rendered number still carries a magnitude, or rounded away to zero at this quantity's
- *  precision. The one owner of that question: a direction read off the raw value instead asserts a
- *  move the number beside it no longer shows. */
-export function hasMagnitude(text: string): boolean {
-  return SIGNIFICANT_DIGIT_RE.test(text)
 }
 
 function numberFormatter(locale: Locale, name: NumberFormatName): Intl.NumberFormat {

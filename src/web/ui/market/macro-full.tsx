@@ -6,12 +6,11 @@ import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { toCaveatText } from '@/web/text/caveat-text'
 import {
+  formatCount,
   formatFixed,
   formatFixedFraction,
   formatPercent,
-  formatPrice,
   PERCENT,
-  WHOLE_DISPLAY,
 } from '@/web/text/figures'
 import { joinInline, joinList } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
@@ -131,9 +130,7 @@ function RatesLine({ readings }: { readonly readings: ReadyMacro['readings'] }) 
     ...(depositRate === undefined
       ? []
       : [tr('ui.office.market.depositRate', { rate: formatPercent(depositRate) })]),
-    ...(usdVnd === undefined
-      ? []
-      : [tr('ui.office.market.usdVnd', { rate: formatPrice(usdVnd, WHOLE_DISPLAY) })]),
+    ...(usdVnd === undefined ? [] : [tr('ui.office.market.usdVnd', { rate: formatCount(usdVnd) })]),
   ]
 
   return rates.length === 0 ? null : <p>{joinInline(rates)}</p>

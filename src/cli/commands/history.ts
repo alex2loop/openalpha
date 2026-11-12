@@ -17,7 +17,7 @@ import { fail, style, success } from '@/cli/ui/colors'
 import { formatSessionEnd, formatSessionRow, formatSessionStatus } from '@/cli/ui/format'
 import { confirm, declined, defaultPrompt } from '@/cli/ui/prompt'
 import { agentId, sessionId as brandSessionId, type SessionId } from '@/core/ids'
-import { formatUsd } from '@/core/utils/cost'
+import { formatSpendUsd } from '@/core/utils/cost'
 import { sanitizeDisplayText } from '@/core/utils/text'
 import { pluralKey, renderAiLabel, t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
@@ -168,7 +168,7 @@ function printMetadata(app: CliApp, session: SessionDetails): void {
 function printTotals(app: CliApp, totals: LLMUsageTotals): void {
   const locale = app.config.locale.language
   app.out(style.heading(t(locale, 'cli.historyTotalsHeading')))
-  app.out(t(locale, 'cli.historyTotalCost', { value: formatUsd(totals.costUsd) }))
+  app.out(t(locale, 'cli.historyTotalCost', { value: formatSpendUsd(locale, totals.costUsd) }))
   app.out(t(locale, 'cli.historyTotalInput', { value: totals.inputTokens }))
   app.out(t(locale, 'cli.historyTotalOutput', { value: totals.outputTokens }))
   app.out(t(locale, 'cli.historyTotalCacheRead', { value: totals.cacheReadTokens }))
@@ -234,7 +234,7 @@ function printMessageGenerationCost(app: CliApp, attempts: readonly LLMAttempt[]
   const sum = sumAttempts(attempts)
 
   app.out(
-    `${INDENT}${t(locale, 'cli.historyGeneration', { cost: formatUsd(sum.costUsd), tokens: tokenCounts(locale, sum) })}`
+    `${INDENT}${t(locale, 'cli.historyGeneration', { cost: formatSpendUsd(locale, sum.costUsd), tokens: tokenCounts(locale, sum) })}`
   )
 
   for (const attempt of attempts) {
@@ -257,7 +257,7 @@ function printAttemptDetails(app: CliApp, attempt: LLMAttempt, indent: string): 
   )
   app.out(`${indent}  ${run}${parent}`)
   app.out(
-    `${indent}  ${t(locale, 'cli.historyAttemptCost', { cost: formatUsd(attempt.costUsd), tokens: tokenCounts(locale, attempt) })}`
+    `${indent}  ${t(locale, 'cli.historyAttemptCost', { cost: formatSpendUsd(locale, attempt.costUsd), tokens: tokenCounts(locale, attempt) })}`
   )
   app.out(
     `${indent}  ${t(locale, 'cli.historyAttemptSources', { usage: attempt.usageSource, cost: attempt.costSource, latencyMs: attempt.latencyMs })}`
