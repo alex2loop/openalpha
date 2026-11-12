@@ -312,7 +312,7 @@ export function renderUnmirroredLines(
       `trading.order.unmirrored.reason.${intent.failure}`,
       intent.failure
     ),
-    // Labelled because it is the handle the operator searches the exchange with, and a bare id
+    // Labeled because it is the handle the operator searches the exchange with, and a bare id
     // beside a quantity and a price says nothing about which of them it is.
     ...(intent.orderId === undefined
       ? []

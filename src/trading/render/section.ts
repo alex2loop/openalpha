@@ -22,7 +22,7 @@ import { type RowUnit, renderValue, unitOfSection } from '@/trading/render/secti
 // the spread names itself, the price beside it is the only bare amount on the row, a signed percent
 // carries its own arrow and sign, and a driver is named by the series it points at under a section
 // header that already says these are the drivers.
-// Labelling them prints the field's own name at the reader ("change % ▲ 1,31%"), which is the
+// Labeling them prints the field's own name at the reader ("change % ▲ 1,31%"), which is the
 // mechanism, not the fact. Every other field keeps its label, because its number is ambiguous
 // without one. `valuePct` joins them because its only rows pair it with the `driver` that names it;
 // the basis, which used to share the field, now has `basisPct` and keeps its label. A board names
@@ -220,7 +220,7 @@ function renderRow(locale: Locale, row: BriefSectionRow): string {
  *  row carries one only where its neighbours are quoted in something else - so a row naming its own
  *  currency brings its own measure with it, never the section's. The row's is read back from an
  *  untyped payload, so a value that is not a currency code falls through to the section's rather
- *  than labelling the row with whatever was stored. */
+ *  than labeling the row with whatever was stored. */
 function rowUnitOf(row: BriefSectionRow, unit: RowUnit): RowUnit {
   if (typeof row.currency !== 'string' || !isCurrencyCode(row.currency)) {
     return unit

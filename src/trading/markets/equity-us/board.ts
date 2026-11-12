@@ -36,19 +36,19 @@ export interface UsBoardName {
   readonly accountsProvenance: readonly SourceProvenance[]
 }
 
-/** A fund on the fund board: it has a series and no capitalisation rank. */
+/** A fund on the fund board: it has a series and no capitalization rank. */
 interface UsFundName {
   readonly record: InstrumentRecord
   readonly bars: readonly BarRecord[]
 }
 
-/** The equities ranked by capitalisation, and the funds the fund board names. Built from the
+/** The equities ranked by capitalization, and the funds the fund board names. Built from the
  *  store alone: the refresh decides who holds a snapshot and a series. */
 export interface UsBoard {
   readonly asOf: TradingDay
   /** Every stored filed year per name, oldest first. */
   readonly accounts: ReadonlyMap<Ticker, readonly AnnualAccounts[]>
-  /** Largest capitalisation first. */
+  /** Largest capitalization first. */
   readonly names: readonly UsBoardName[]
   readonly byTicker: ReadonlyMap<Ticker, UsBoardName>
   readonly funds: readonly UsFundName[]
@@ -61,7 +61,7 @@ interface UsMember {
   readonly marketCap: number
 }
 
-/** A held or watched name off the board, with its capitalisation where a snapshot holds one. */
+/** A held or watched name off the board, with its capitalization where a snapshot holds one. */
 interface UsFollowed {
   readonly record: InstrumentRecord
   readonly marketCap?: number
@@ -141,7 +141,7 @@ async function loadUsBoard(
 }
 
 /** An equity's newest filed year by the day asked, against what the market pays for it; a fund, or
- *  a name with no capitalisation to measure against, has none. */
+ *  a name with no capitalization to measure against, has none. */
 function fundamentalsOf(
   entries: readonly UsFollowed[],
   read: {
@@ -181,7 +181,7 @@ function fundsOf(records: readonly InstrumentRecord[]): readonly InstrumentRecor
   })
 }
 
-/** The equities whose newest snapshot is still current, largest capitalisation first and cut at the
+/** The equities whose newest snapshot is still current, largest capitalization first and cut at the
  *  board's rank, and the active names the operator holds or watches off it. The refresh decides who
  *  holds a snapshot; this only reads them. */
 export async function loadUsCoverage(
@@ -229,7 +229,7 @@ function withMarketCaps(
   })
 }
 
-/** Largest capitalisation first, cut at the board's rank; a held name that slipped just past it
+/** Largest capitalization first, cut at the board's rank; a held name that slipped just past it
  *  stays while it is within the buffer, so its evidence keeps being refreshed and ranked. Ties
  *  break on ticker, so the same store always draws the same line. */
 function rankUsMembers(

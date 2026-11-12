@@ -47,7 +47,7 @@ export function selectRenderer(adapter: ChannelAdapter, useMarkup: boolean): Cha
  *
  *  A chunk dropped midway leaves the earlier ones in the chat. That is the trade: the outcome
  *  reports the failure, the caller's state machine retries the whole thing, and a duplicate a
- *  reader recognises beats a silently lost tail. */
+ *  reader recognizes beats a silently lost tail. */
 export async function sendChunked(
   deps: ChunkedSendDeps,
   options: ChunkedSendOptions

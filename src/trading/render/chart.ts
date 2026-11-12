@@ -26,7 +26,7 @@ const SPARK_MARKS = Object.freeze(['▁', '▂', '▃', '▄', '▅', '▆', '�
 export const CHART_CELLS = Object.freeze({ fact: 10, line: 20 })
 
 /** One reading between two ends. `from` is always the end that goes against the reader and `to`
- *  the one in their favour, whichever is the larger number: a rate's bearish anchor sits above its
+ *  the one in their favor, whichever is the larger number: a rate's bearish anchor sits above its
  *  bullish one. */
 interface Ladder {
   readonly from: number

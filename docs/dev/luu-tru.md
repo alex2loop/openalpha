@@ -206,7 +206,7 @@ cùng kết nối với câu xóa.
 - **Tra theo tiền tố.** `resolveIdPrefix` trả `found | not_found | ambiguous`; mã khớp đúng nguyên văn
   thắng một khớp dài hơn.
 - **Đọc.** `loadHistory(id, limit?)` trả `limit` dòng mới nhất theo thứ tự; `loadDetails` trả một
-  `SessionSnapshot` (chi tiết, tin nhắn đã lưu, các lần gọi, tổng đã gộp). `SessionStatus` là
+  `SessionSnapshot` (chi tiết, tin nhắn đã lưu, các lượt gọi, tổng đã gộp). `SessionStatus` là
   `'active' | 'done' | 'stale'`.
 
 ### Hàng đợi và rào chắn tuyến

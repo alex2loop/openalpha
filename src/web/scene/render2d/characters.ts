@@ -39,7 +39,7 @@ const MAX_SPRITES = 640
 const KEY_SEPARATOR = '|'
 const SHADOW_W = 14
 const SHADOW_H = 3
-// The status dot's radius: a fixed CSS size, kept between these world px; its colour fills this
+// The status dot's radius: a fixed CSS size, kept between these world px; its color fills this
 // share of it inside the outline, the dot this far over the head.
 const DOT_CSS_R = 5
 const DOT_MIN_R = 1.5

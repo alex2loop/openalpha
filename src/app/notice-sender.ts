@@ -197,7 +197,7 @@ function renderKeyMissing(
   })
 }
 
-// Only a reading the operator may reply to is labelled; a delivery report is not one.
+// Only a reading the operator may reply to is labeled; a delivery report is not one.
 function noticeLabelOf(notice: TradingNotice): { readonly noticeLabel?: string } {
   const { kind } = notice.payload
 

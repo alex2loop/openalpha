@@ -8,6 +8,7 @@ import type {
   PendingFactorLogEntry,
   ResolvedFactorLogEntry,
 } from '@/trading/features/suggestion/track-record/factor-log-types'
+import type { FactorComposite } from '@/trading/kernel/factor'
 import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { TapeSignal } from '@/trading/kernel/market/tape'
 import type { OperationTickOptions, Page } from '@/trading/kernel/store/page'
@@ -27,7 +28,7 @@ import {
 import { TAPE_SIGNALS } from '@/trading/kernel/market/tape'
 import { INVESTMENT_HORIZONS } from '@/trading/kernel/operator/profile'
 import { isSourceId } from '@/trading/kernel/source/source-id'
-import { toMember } from '@/trading/kernel/store/store-payload'
+import { type StoredShape, toMember } from '@/trading/kernel/store/store-payload'
 import { parseJson, toBindChunks, toPage } from '@/trading/kernel/store/store-row'
 
 const TABLE = 'factor_log'
@@ -43,11 +44,14 @@ const COLUMNS = [
 ] as const
 const ID_RE = /^[0-9a-f-]{36}$/
 
+/** What the row's columns carry beside the payload. */
+type FactorLogColumnKey = 'instrument' | 'day' | 'strategyVersion' | 'horizon' | 'close'
+
 const factorSchema = z.strictObject({
   id: z.string(),
   score: z.number().finite(),
   weight: z.number().finite().optional(),
-})
+} satisfies StoredShape<FactorLogEntry['factors'][number]>)
 
 const payloadSchema = z.strictObject({
   composite: z.strictObject({
@@ -59,7 +63,7 @@ const payloadSchema = z.strictObject({
     coverageBelowMinimum: z.boolean(),
     agreementBelowMinimum: z.boolean(),
     agreement: z.number().finite().optional(),
-  }),
+  } satisfies StoredShape<FactorComposite>),
   factors: z.array(factorSchema),
   // A signal this build no longer publishes is dropped, the way a retired caveat code and a retired
   // metric id already are. Rejecting the array instead makes every row written before the retirement
@@ -75,7 +79,7 @@ const payloadSchema = z.strictObject({
     .optional(),
   // A kind this build no longer names reads as unrecorded rather than making the row unreadable.
   instrumentKind: z.enum(INSTRUMENT_KINDS).optional().catch(undefined),
-})
+} satisfies StoredShape<Omit<FactorLogEntry, FactorLogColumnKey>>)
 
 function readableSignals(entries: readonly unknown[]): readonly TapeSignal[] {
   return entries.flatMap((entry) => {

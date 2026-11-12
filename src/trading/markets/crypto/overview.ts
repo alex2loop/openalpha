@@ -38,7 +38,7 @@ interface CryptoOverviewLoad extends MarketRequest {
   readonly manifest: MarketManifest
 }
 
-/** One ranked universe read carries the headline names, the whole market's capitalisation and its
+/** One ranked universe read carries the headline names, the whole market's capitalization and its
  *  traded value, so the levels and the roll-ups cost a single request between them. Sentiment is the
  *  second and last: it is the one reading no price series contains. */
 export async function runCryptoOverview(load: CryptoOverviewLoad): Promise<MarketDataOverview> {
@@ -199,7 +199,7 @@ function toDerivatives(snapshot: FundingSnapshot): MarketDerivatives {
 }
 
 /** The named reference assets, in the order policy lists them — not the top of the ranking, which
- *  would rotate the headline row whenever a new coin out-capitalised one of them. */
+ *  would rotate the headline row whenever a new coin out-capitalized one of them. */
 function headlineRows(
   load: CryptoOverviewLoad,
   records: readonly MarketCapRecord[],

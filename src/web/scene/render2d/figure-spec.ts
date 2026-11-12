@@ -16,7 +16,7 @@ type FixedRamp =
   | 'board'
   | 'book'
 
-/** What one sprite pixel is made of; the colouring pass turns it into a band of its ramp. */
+/** What one sprite pixel is made of; the coloring pass turns it into a band of its ramp. */
 export type Material =
   | FixedRamp
   | keyof typeof PALETTE

@@ -214,7 +214,7 @@ function toFact({ metric, label, value }: MetricReading): BoardFact {
 }
 
 /** A factor's place goes on the line of the reading named as the factor is, so one quantity reads on
- *  one line; with none it is a fact of its own, labelled as a place so it never reads as a heading. */
+ *  one line; with none it is a fact of its own, labeled as a place so it never reads as a heading. */
 function addPlace(locale: Locale, found: Map<string, BoardFact>, place: BoardFact): void {
   const named = [...found.entries()].find(([, stated]) => stated.label === place.label)
 

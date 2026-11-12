@@ -222,7 +222,7 @@ function toTerminalLines(lines: readonly NoticeLine[]): readonly string[] {
   return lines.map((line) => TONES[line.tone](line.text))
 }
 
-/** A chat never gets colour codes or the terminal's warning icon. */
+/** A chat never gets color codes or the terminal's warning icon. */
 export function toChatText(lines: readonly NoticeLine[]): string {
   return lines.map((line) => line.text).join(LINE_SEPARATOR)
 }

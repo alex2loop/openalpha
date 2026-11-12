@@ -25,7 +25,7 @@ export interface Pool {
   key: string
 }
 
-/** One instance in world px: where its centre stands, its size, its turn about y, its colour. */
+/** One instance in world px: where its centre stands, its size, its turn about y, its color. */
 interface Placement {
   readonly x: number
   readonly y: number
@@ -119,7 +119,7 @@ const DOT_RIM_TONE = [0.17, 0.14, 0.2] as const
 
 export function createShapes(): Shapes {
   const box = new BoxGeometry(1, 1, 1)
-  // White vertex colours, so the vertex-coloured room materials take the instance colour alone.
+  // White vertex colors, so the vertex-colored room materials take the instance color alone.
   const white = new Float32Array(box.getAttribute('position').count * 3).fill(1)
 
   box.setAttribute('color', new Float32BufferAttribute(white, 3))
@@ -151,7 +151,7 @@ function createGlow(): CanvasTexture {
   return new CanvasTexture(canvas)
 }
 
-// A status dot: a dark rim and a white middle that the instance's colour tints.
+// A status dot: a dark rim and a white middle that the instance's color tints.
 function createDot(): BufferGeometry {
   const rim = new CircleGeometry(1, DOT_SEGMENTS)
   const middle = new CircleGeometry(DOT_INNER, DOT_SEGMENTS)

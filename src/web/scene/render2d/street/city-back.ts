@@ -43,7 +43,7 @@ const ROWS = [
     mix: [0.2, 0.3, 0.6],
   },
 ] as const
-// Four facades: a colour, a window style and three window pitches (px) to draw from.
+// Four facades: a color, a window style and three window pitches (px) to draw from.
 const TONES: readonly [Look, ...Look[]] = [
   { colour: '#8AA3C4', facade: 'glass', pitch: [3.6, 4.6, 6] },
   { colour: '#7FA3AC', facade: 'glass', pitch: [4, 5, 6.4] },

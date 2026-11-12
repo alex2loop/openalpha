@@ -326,7 +326,7 @@ function writeQuad(out: { readonly position: number[]; readonly uv: number[] }, 
   out.uv.push(...uvs)
 }
 
-// Every cup and sheet the day left, the notes, and the dome in the alert's colour.
+// Every cup and sheet the day left, the notes, and the dome in the alert's color.
 function placeItems(items: DeskItems, view: DeskItemsView): boolean {
   if (items.placed === view.signature) {
     return false
@@ -391,7 +391,7 @@ function placeCup(pool: Pool, at: { readonly row: DeskProp; readonly slot: numbe
   })
 }
 
-// A sheet lies turned on the desk; a pinned one stands on its board, note-coloured.
+// A sheet lies turned on the desk; a pinned one stands on its board, note-colored.
 function placeSheet(pool: Pool, at: { readonly row: DeskProp; readonly slot: number }): void {
   const { row, slot } = at
 

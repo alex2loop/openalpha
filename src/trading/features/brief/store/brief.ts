@@ -17,6 +17,7 @@ import {
 import {
   caveatsSchema,
   provenanceSchema,
+  type StoredShape,
   toMember,
   toProvenance,
 } from '@/trading/kernel/store/store-payload'
@@ -24,10 +25,6 @@ import { parseJson } from '@/trading/kernel/store/store-row'
 
 const INSERT_SQL =
   'INSERT INTO brief_snapshots (id, day, authored_locale, created_at, payload) ' + 'VALUES '
-
-/** One schema entry per key the section type carries, so a key added to a section fails the
- *  typecheck here instead of making every stored snapshot unreadable. */
-type StoredShape<T> = { readonly [K in keyof Required<T>]: z.ZodType }
 
 const readySectionSchema = z.strictObject({
   kind: z.enum(BRIEF_SECTION_ORDER),

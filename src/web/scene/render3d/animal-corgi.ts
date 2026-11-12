@@ -10,7 +10,7 @@ import {
   type Vec,
 } from '@/web/scene/render3d/animal-parts'
 
-// The mockup's corgi colours.
+// The mockup's corgi colors.
 const CORGI = Object.freeze({
   fur: '#CB8841',
   fur2: '#B5743A',

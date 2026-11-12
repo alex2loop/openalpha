@@ -76,7 +76,7 @@ const BAND_MIN_RISE = 9
 const BAND_MAX_RISE = 41
 
 /** What every city painter reads: the static canvas and the layers it may keep, the minute
- *  painted, how dark it is (0 day, 1 night), the share of windows lit, the sky's horizon colour the
+ *  painted, how dark it is (0 day, 1 night), the share of windows lit, the sky's horizon color the
  *  haze leans to, and the holiday the day falls in. */
 export interface CityScene {
   readonly g: CanvasRenderingContext2D

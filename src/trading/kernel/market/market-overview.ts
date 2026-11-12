@@ -301,7 +301,7 @@ export interface MarketDataOverview {
   readonly turnoverReference?: MarketTurnoverReference
   readonly foreignNetValue?: number
   readonly proprietaryNetValue?: number
-  /** Capitalisation of the market's whole universe. */
+  /** Capitalization of the market's whole universe. */
   readonly marketCap?: number
   /** The largest constituent's share of `marketCap`, as a percentage — how concentrated the market
    *  is in one name. Bitcoin dominance, where the market is crypto. */

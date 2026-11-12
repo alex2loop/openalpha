@@ -175,9 +175,9 @@ interface MeasuredMembers {
   readonly caps: readonly number[]
 }
 
-/** The members that produced a reading, with their capitalisations beside them. A name too young
+/** The members that produced a reading, with their capitalizations beside them. A name too young
  *  for the window abstains rather than scoring a flat zero, which would keep its whole
- *  capitalisation in the weighting and drag the sector toward nothing - a fresh listing was a third
+ *  capitalization in the weighting and drag the sector toward nothing - a fresh listing was a third
  *  of retail's cap on 2026-09-22. */
 function measuredMembers(
   members: readonly SectorMember[],
@@ -198,9 +198,9 @@ function measuredMembers(
   return { values, caps }
 }
 
-/** Capitalisation-weighted, because that is the sector move every outlet publishes: equal-weighted,
+/** Capitalization-weighted, because that is the sector move every outlet publishes: equal-weighted,
  *  nine oil names outrank seventy-seven real-estate ones. Equal weight only where no member carries
- *  a capitalisation. Absent when nobody traded, never zero. */
+ *  a capitalization. Absent when nobody traded, never zero. */
 function weightedSessionReturn(
   members: readonly SectorMember[],
   session: TradingDay
@@ -212,7 +212,7 @@ function weightedSessionReturn(
   return capWeightedMean(traded.values, traded.caps)
 }
 
-/** Capitalisation-weighted, equal only where no member carries a capitalisation, and absent where
+/** Capitalization-weighted, equal only where no member carries a capitalization, and absent where
  *  no member was measured. Both excess returns read this because the benchmark they subtract is a
  *  cap-weighted index, and an equal-weighted leg against a cap-weighted one leaves a weighting
  *  artifact where the sector signal should be: equal-weighted put 92% of readings below zero and

@@ -60,7 +60,7 @@ export interface TradingQuoteWire extends QuoteDetailWire {
   readonly caveats: readonly TradingWireCaveat[]
   readonly kind: Exclude<InstrumentKind, 'fx'>
   /** The name publishes a level, not a price (an index, a futures contract): it is read, never
-   *  bought or analysed, and prints with no board scale or currency. */
+   *  bought or analyzed, and prints with no board scale or currency. */
   readonly isLevel: boolean
   readonly market: string
   readonly assetClass: AssetClass

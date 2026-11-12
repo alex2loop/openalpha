@@ -47,7 +47,7 @@ export function formatRecordedMarketPrice(market: string, value: number, currenc
     : formatPrice(value, board)
 }
 
-/** A dealer's two sides, each labelled, with the currency said once after them where the market has
+/** A dealer's two sides, each labeled, with the currency said once after them where the market has
  *  no board scale, and the gap between them where the board gives one. */
 export function formatDealerBoard(
   market: string,

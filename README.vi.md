@@ -345,7 +345,7 @@ Phần lớn câu lệnh hằng ngày chỉ tính trên dữ liệu đã có tro
 | Đồng bộ sổ với sàn (cần khóa API của sàn) | `/record sync okx` · `/reconcile` | không |
 | Xem các đề xuất cũ đúng được bao nhiêu | `/reflect` | không |
 
-Câu lệnh gọi AI tốn bao nhiêu tùy mô hình bạn chọn: mô hình rẻ hơn thì tốn ít hơn, và `[budget]` luôn chặn trần. `openalpha cost` cho biết hôm nay, tuần này hay tháng này đã tốn bao nhiêu (`--breakdown` tách theo mô hình), còn trang văn phòng ghi cạnh mỗi câu lệnh mức nó thường tốn, lấy từ vài phiên chạy gần nhất ([ngân sách](docs/ngan-sach.md#xem-đã-tốn-bao-nhiêu)).
+Mỗi lượt gọi AI tốn bao nhiêu tùy mô hình bạn chọn: mô hình rẻ hơn thì tốn ít hơn, và `[budget]` luôn chặn trần. `openalpha cost` cho biết hôm nay, tuần này hay tháng này đã tốn bao nhiêu (`--breakdown` tách theo mô hình), còn trang văn phòng ghi cạnh mỗi câu lệnh mức nó thường tốn, lấy từ vài phiên chạy gần nhất ([ngân sách](docs/ngan-sach.md#xem-đã-tốn-bao-nhiêu)).
 
 Các con số trong README chỉ minh họa cú pháp, không phải gợi ý mua bán. Đủ mọi câu lệnh: `/help` trong cuộc trò chuyện, hoặc [bản đồ lệnh](docs/cam-nang.md#4-bản-đồ-lệnh).
 

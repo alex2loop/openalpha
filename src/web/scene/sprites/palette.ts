@@ -7,12 +7,12 @@ type Ramp = readonly [lit: string, body: string, shade: string]
 /** A material's light, mid and dark tone. */
 export type Tones = readonly [string, string, string]
 
-// A stamped sheet takes the action's hue: a buy in the page's up colour, a reduce in its down
-// colour (both follow the theme and the red-up choice), a hold in ink.
+// A stamped sheet takes the action's hue: a buy in the page's up color, a reduce in its down
+// color (both follow the theme and the red-up choice), a hold in ink.
 const UP_TOKEN = '--up'
 const DOWN_TOKEN = '--down'
 
-/** The up and down hues the page's tokens set for one theme and colour pair. */
+/** The up and down hues the page's tokens set for one theme and color pair. */
 interface MoveTones {
   readonly scheme: string
   readonly pair: string
@@ -116,7 +116,7 @@ export const PHONE_FINISHES: readonly [Ramp, ...Ramp[]] = Object.freeze([
   ['#6E2638', '#8F3A4F', '#561C2B'],
 ])
 
-/** Bé Alpha's own colours: the logo blue fading to violet, the curl and the face. */
+/** Bé Alpha's own colors: the logo blue fading to violet, the curl and the face. */
 export const MASCOT_TONES = Object.freeze({
   top: [84, 130, 246],
   bottom: [154, 90, 244],
@@ -300,13 +300,13 @@ export const FOCUS_TONES = Object.freeze({
   piggy: '#ECBED8',
 } satisfies Record<DeskFocus, string>)
 
-/** A stamped sheet's hue in both renderers, read from the page's tokens once per theme and colour
+/** A stamped sheet's hue in both renderers, read from the page's tokens once per theme and color
  *  pair, never per sprite or per frame. */
 export function stampToneOf(action: NonNullable<SheetView['action']>): string {
   return action === 'hold' ? OUTLINE : moveToneOf(action === 'buy' ? 'up' : 'down')
 }
 
-/** The page's up or down colour, as its tokens set it for the theme and the red-up choice. */
+/** The page's up or down color, as its tokens set it for the theme and the red-up choice. */
 export function moveToneOf(direction: 'up' | 'down'): string {
   const scheme = colorScheme.value
   const pair = colourPair.value

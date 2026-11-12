@@ -12,6 +12,7 @@ import { MARKET_REGIMES } from '@/trading/kernel/market/market-data'
 import {
   caveatsSchema,
   provenanceSchema,
+  type StoredShape,
   toMember,
   toProvenance,
 } from '@/trading/kernel/store/store-payload'
@@ -22,6 +23,9 @@ const MACRO_COLS = ['created_at', 'regime', 'score_regime', 'payload']
 /** How far back an observation lookup scans for a day that actually carries the series. Rows are
  *  per (day, version), so this is sessions only when one version is in play. */
 
+/** What the row's columns carry beside the payload. */
+type MacroColumnKey = 'region' | 'asOf' | 'createdAt' | 'formulaVersion' | 'regime' | 'scoreRegime'
+
 // Partial by construction: a region covers a different subset of the series set, and a series with
 // no reading carries no date either. Provenance and caveats travel with the values — the derived
 // regime is only as good as the reads behind it.
@@ -30,7 +34,7 @@ const payloadSchema = z.strictObject({
   observationDates: z.partialRecord(z.enum(MACRO_SERIES_IDS), z.string()),
   provenance: z.array(provenanceSchema),
   caveats: caveatsSchema,
-})
+} satisfies StoredShape<Omit<MacroRiskSnapshot, MacroColumnKey>>)
 
 interface MacroRow {
   readonly region: string

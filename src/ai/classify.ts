@@ -4,7 +4,7 @@ const DEEP_MARKERS: readonly string[] = ['-opus', '-pro', '-reasoner', '-thinkin
 const DEEP_PREFIXES: readonly string[] = ['o1', 'o3']
 const FAST_MARKERS: readonly string[] = ['-mini', '-flash', '-haiku', '-lite']
 
-// Best-effort labelling for UI and logging — never a correctness-critical path. A model that
+// Best-effort labeling for UI and logging — never a correctness-critical path. A model that
 // classifies as `balanced` when it is really `deep` costs a wrong badge, nothing more.
 export type ModelTier = 'fast' | 'balanced' | 'deep'
 

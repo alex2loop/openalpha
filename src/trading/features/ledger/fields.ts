@@ -25,7 +25,7 @@ interface EntryFieldOptions {
   readonly book: Book
 }
 
-/** One written row as labelled fields. A confirmation is read alone, against what the operator
+/** One written row as labeled fields. A confirmation is read alone, against what the operator
  *  meant to store, so every figure is named; the history row stays a row, because a field list
  *  repeated down a page cannot be scanned. */
 export function renderEntryFields(

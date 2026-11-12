@@ -95,7 +95,7 @@ function formatTapePrice(row: TapeRow): string {
     : formatPrice(row.price, row.display)
 }
 
-// The mark a breach or a fresh call adds after the move, in the pill's own colour.
+// The mark a breach or a fresh call adds after the move, in the pill's own color.
 function noteOf(note: Note): readonly string[] {
   if (note === undefined) {
     return []

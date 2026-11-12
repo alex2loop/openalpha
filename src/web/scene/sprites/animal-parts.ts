@@ -3,7 +3,7 @@
 
 export type Vec3 = readonly [number, number, number]
 export type Turn = readonly [number, number]
-/** A painted ring round an ellipsoid: from and to along its x axis (-1 to 1), and its colour. */
+/** A painted ring round an ellipsoid: from and to along its x axis (-1 to 1), and its color. */
 export type Band = readonly [number, number, string]
 
 export interface Ellipsoid {
@@ -28,7 +28,7 @@ export const NO_TURN: Turn = [0, 0]
 export const WHITE = '#FFFFFF'
 export const INK = '#2B2433'
 
-// One ellipsoid as the mockup writes it: centre, radii, colour, then its turn and tabby rings.
+// One ellipsoid as the mockup writes it: centre, radii, color, then its turn and tabby rings.
 export function e(
   spec: readonly [Vec3, Vec3, string, (Turn | undefined)?, (readonly Band[] | undefined)?]
 ): Ellipsoid {

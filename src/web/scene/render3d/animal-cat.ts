@@ -11,7 +11,7 @@ import {
   type Vec,
 } from '@/web/scene/render3d/animal-parts'
 
-// The mockup's tabby colours.
+// The mockup's tabby colors.
 const CAT = Object.freeze({
   fur: '#E49A4F',
   fur2: '#CF7F36',

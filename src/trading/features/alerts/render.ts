@@ -108,7 +108,7 @@ function renderRow(locale: Locale, alert: Alert, options: AlertRenderOptions): s
 
 /** Leads with the action: the headline, then for an exit alert what it means and how to record the
  *  sale, then where to look again. The short id closes every notice: a crash between `accepted` and
- *  `markFired` may re-deliver, and a duplicate the reader can recognise beats a lost alert. A fired
+ *  `markFired` may re-deliver, and a duplicate the reader can recognize beats a lost alert. A fired
  *  alert is already spent, so there is no "turn off" line. A screener notice is detection, not a
  *  suggestion, so it points at an on-demand `/suggest`. */
 export function renderAlertNotice(locale: Locale, notice: AlertNotice): string {

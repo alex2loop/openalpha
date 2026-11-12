@@ -97,7 +97,7 @@ export interface AnalysisService {
    *  cancelled run throws the abort; a run a role could not finish throws `AnalysisError` and
    *  leaves nothing behind. */
   run(request: AnalysisRequest, signal: AbortSignal): Promise<AnalysisRecord>
-  /** Why the name cannot be analysed at all, read before any key is needed; absent when it can. */
+  /** Why the name cannot be analyzed at all, read before any key is needed; absent when it can. */
   refusalOf(request: AnalysisRequest, signal: AbortSignal): Promise<AnalysisFailure | undefined>
   list(options: AnalysisPageOptions): Promise<Page<AnalysisRecord, AnalysisId>>
 }

@@ -381,7 +381,7 @@ export function unitOfSection(section: {
 }
 
 /** A field's text and the unit it is denominated in, under one owner: a price formatted at one
- *  currency's precision and labelled with another is the same defect printed twice. A row that
+ *  currency's precision and labeled with another is the same defect printed twice. A row that
  *  declares no currency is publishing levels or board points, and both stay bare and unrounded —
  *  which is what keeps a board price of 22,60 from being read as đồng and rounded to a whole one. */
 export function renderValue(

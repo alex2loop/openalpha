@@ -373,7 +373,7 @@ export const WIDE_TRACKING_ERROR = 0.01
 export const DEFAULT_SCREEN_KIND: InstrumentKind = 'equity'
 /** Turnover and size answer different questions, and a name can clear the first while failing this
  *  one badly: the smallest names on the board traded several times the liquidity floor while
- *  turning over three percent of their whole capitalisation a day, which is a rotation rather than
+ *  turning over three percent of their whole capitalization a day, which is a rotation rather than
  *  a market an operator can enter and leave. Set an order of magnitude below the median listing. */
 export const MINIMUM_MARKET_CAP_VND = 1_000_000_000_000
 /** Share of outstanding stock that actually trades. MSCI's investable-universe floor; below it a

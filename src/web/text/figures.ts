@@ -286,7 +286,7 @@ function isFigure(value: number | undefined): value is number {
   return value !== undefined && Number.isFinite(value)
 }
 
-/** The arrow and the colour read off the rendered text, not the raw value: a move too small to
+/** The arrow and the color read off the rendered text, not the raw value: a move too small to
  *  survive its rounding prints as zero, and a mark beside it would claim a direction the number no
  *  longer shows. */
 function toneOf(value: number, text: string): Tone {

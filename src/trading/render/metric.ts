@@ -65,7 +65,7 @@ interface MetricFactOptions {
    *  how far the name sits off its year, and keying on the id alone let whichever factor came last
    *  silently replace the other. Ordered by id, then by window. */
   readonly canonical?: true
-  /** Each reading as `Label: value` with the label capitalised, for a surface that lists them down
+  /** Each reading as `Label: value` with the label capitalized, for a surface that lists them down
    *  the page where the others pack them across it. */
   readonly row?: true
   /** Leave out the readings that place the name among its peers: a surface that prints the place
@@ -101,7 +101,7 @@ export function metricFacts(
 }
 
 /** The readings of `metricFacts` before the label and the value are joined; a `row` label comes
- *  capitalised. */
+ *  capitalized. */
 export function metricReadings(
   locale: Locale,
   metrics: readonly FactorMetric[] | undefined,

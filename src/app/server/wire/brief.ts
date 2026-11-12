@@ -5,7 +5,7 @@ export interface BriefTextWire {
    *  older daemon. */
   readonly strip?: readonly string[]
   /** True when a section carries a call a model argued: the page opens with the AI label. A page
-   *  labels unless this is false, so a daemon that predates the field is labelled too. */
+   *  labels unless this is false, so a daemon that predates the field is labeled too. */
   readonly aiGenerated: boolean
   /** The verdict block's heading, as the CLI prints it. Absent from an older daemon. */
   readonly verdictTitle?: string

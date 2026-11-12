@@ -4,7 +4,7 @@ import { type Art, line, oval, poly } from '@/web/scene/render2d/street/critter-
 const WING_ANGLES = [0.2, 0.95, 2.35, 1.55] as const
 
 /** A bird's flight look: body length and depth, wing span and width, the wing's shoulder, head
- *  size, and its colours (`neck` and `cap` where it has them). */
+ *  size, and its colors (`neck` and `cap` where it has them). */
 export interface Flyer {
   readonly bl: number
   readonly br: number

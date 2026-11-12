@@ -39,7 +39,7 @@ const TONES = Object.freeze({
   steelInk: '#2B3440',
 })
 // The striped parasols over the pavement carts: bánh mì in red and cream, the food cart in teal
-// and cream (no brand's colours).
+// and cream (no brand's colors).
 const PARASOL = Object.freeze({
   banhMi: ['#D8514B', '#F2EFE6'],
   foodCart: ['#2F8F83', '#F2EFE6'],
@@ -240,7 +240,7 @@ function paintBoxCart(
   g.fill()
 }
 
-// A pavement cart's pole and striped parasol; the rim takes the first stripe's colour.
+// A pavement cart's pole and striped parasol; the rim takes the first stripe's color.
 function paintParasol(
   scene: CartScene,
   at: Point & { readonly stripes: readonly [string, string] }

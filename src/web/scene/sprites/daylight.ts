@@ -2,7 +2,7 @@ import type { FloorId, LightView, RoomId } from '@/web/scene/types'
 import { isMorningSun } from '@/web/scene/clock/sun'
 
 /** The office light now: the tint over the floor (none by day), how strongly lamps and pools
- *  glow, the sky's top and bottom colours, and how dark it is outside (0 day, 1 night). */
+ *  glow, the sky's top and bottom colors, and how dark it is outside (0 day, 1 night). */
 export interface LightRow {
   readonly tint?: string
   readonly glow: number
@@ -11,7 +11,7 @@ export interface LightRow {
 }
 
 /** One key of the light by the sun: the tint as red, green, blue and alpha, the glow, the sky's
- *  two colours and the darkness. */
+ *  two colors and the darkness. */
 interface LightKey {
   readonly tint: readonly [number, number, number, number]
   readonly glow: number
@@ -99,7 +99,7 @@ const DROP_FULL_PCT = 3
 const DROP_MAX_ALPHA = 0.34
 
 /** The office light under `light`'s sun and cloud: night below -6 degrees, civil twilight to the
- *  horizon, the golden hour under 10 degrees in the dawn's or the dusk's colours, then day; cloud
+ *  horizon, the golden hour under 10 degrees in the dawn's or the dusk's colors, then day; cloud
  *  greys the tint and the sky. */
 export function lightOf(light: LightView): LightRow {
   const { altitudeDeg } = light.sun

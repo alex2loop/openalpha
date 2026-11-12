@@ -1,4 +1,4 @@
-/** One ellipsoid of an animal, in the model's units: its centre, radii, colour, its turn about z
+/** One ellipsoid of an animal, in the model's units: its centre, radii, color, its turn about z
  *  then y (radians), and the darker bands round it (from and to along x as -1..1 shares). */
 export interface Ellipsoid {
   readonly c: readonly [number, number, number]

@@ -319,7 +319,7 @@ function toExitFill(exit: RestingExit, fill: OrderReceipt, sale: SaleParts): Ven
 
   return {
     // The venue's key, the one `/record sync` books the same fill under: a sync that ran first has
-    // already written this sale, and a sync that runs later recognises the row by its key.
+    // already written this sale, and a sync that runs later recognizes the row by its key.
     idempotencyKey: buildVenueFillKey(exit.venue, fill.orderId),
     draft: {
       kind: 'sell',

@@ -3804,6 +3804,7 @@
     "historyFieldEnd": "  end:      {value}",
     "historyFieldError": "  detail:   {value}",
     "historyErrorRestarted": "the daemon restarted while this session was running",
+    "historyErrorNoReason": "the run stopped without saying why",
     "historyErrorDetail": "{message} ({detail})",
     "historyFieldStarted": "  started:  {value}",
     "historyFieldActivity": "  activity: {value}",

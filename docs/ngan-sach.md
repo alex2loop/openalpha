@@ -1,6 +1,6 @@
 # Chi phí và ngân sách
 
-Mỗi lần gọi mô hình đều tốn tiền. OpenAlpha ước lượng chi phí trước khi chi, ghi lại điều đã thật sự xảy ra, và dừng
+Mỗi lượt gọi mô hình đều tốn tiền. OpenAlpha ước lượng chi phí trước khi chi, ghi lại điều đã thật sự xảy ra, và dừng
 **khi** chạm hạn mức, chứ không phải sau đó.
 
 Hạn mức là tùy chọn. Bạn không khai gì thì chi tiêu không bị chặn, chỉ được theo dõi. Bạn luôn biết được nó tốn bao
@@ -88,13 +88,13 @@ luôn hạn mức khi có bật. Bản theo tuần và theo khoảng tự chọn
 nhất để trả lời "đổi sang mô hình kia có đáng không?": chạy trước và sau, rồi so cả tiền lẫn độ trễ.
 
 Nó còn in một khối **Theo agent** trước các dòng theo mô hình, mỗi agent chịu chi phí một dòng kèm số đã tiêu. Với
-`--period day` mặc định, mỗi dòng còn cho thấy mức trần của agent ("0,0200 USD / 0,5000 USD hôm nay"). Một lần gọi có tính phí nhưng quá nhỏ cho bốn chữ số thập phân thì giữ hai chữ số có nghĩa (0,000031 USD), nên không bao giờ hiện như miễn phí. Tuần hoặc tháng thì bỏ mức
+`--period day` mặc định, mỗi dòng còn cho thấy mức trần của agent ("0,0200 USD / 0,5000 USD hôm nay"). Một lượt gọi có tính phí nhưng quá nhỏ cho bốn chữ số thập phân thì giữ hai chữ số có nghĩa (0,000031 USD), nên không bao giờ hiện như miễn phí. Tuần hoặc tháng thì bỏ mức
 trần đi, vì mức trần ngày đặt cạnh chi phí cả tuần dễ gây hiểu lầm.
 
 `status` cũng hiện chi tiêu hôm nay. Một phiên chạy bị ngân sách dừng sẽ đi theo đường `budget` thông thường. Phần chi phí
 đã phát sinh vẫn được ghi lại.
 
-Ở mọi nơi hiển thị, một phiên chạy có tốn tiền đều kết thúc bằng cùng một dòng cuối: chi phí, số token, số lần gọi mô
+Ở mọi nơi hiển thị, một phiên chạy có tốn tiền đều kết thúc bằng cùng một dòng cuối: chi phí, số token, số lượt gọi mô
 hình, thời gian trôi.
 
 - Trong một cuộc trò chuyện chưa gọi mô hình lần nào (ví dụ chỉ tra giá), dòng cuối chỉ có thời gian chạy.
@@ -124,8 +124,8 @@ Khi API bật, ứng dụng cho thấy chi phí trước khi chạy và sau khi 
 
 - **Chip.** Chip chi phí AI trên đầu trang cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày, ví dụ "0,42 / 2,00 USD". Khi chưa đặt mức trần, và trên điện thoại, chip chỉ hiện số đã tiêu; mức trần vẫn có trong cửa sổ chi tiết. Chip chuyển sang màu cảnh báo trong hai trường hợp: chi tiêu vượt tỷ lệ cảnh báo (`soft_warn_ratio`) của mức trần ngày hoặc tháng, hoặc hôm nay đã có một cảnh báo hay một lần dừng vì ngân sách.
 - **Cửa sổ chi tiết.** Bấm vào chip để xem hôm nay và cả tháng so với mức trần, cùng mục "Theo việc hôm nay": mỗi việc của hôm nay kèm số nó tốn, việc cha đã gồm phần của các agent con. Cửa sổ nhắc lại quy tắc quan trọng: chuông báo cho bạn ở tỷ lệ cảnh báo, và chạm mức trần thì các phiên chạy mới dừng lại. "Đổi ngân sách" đưa thẳng tới dòng ngân sách.
-- **Báo cáo đầy đủ.** "Xem đủ báo cáo" mở hôm nay, 7 ngày qua, 30 ngày qua hoặc tháng này, tính theo chính ngày của dịch vụ nền (daemon). Báo cáo có tổng của khoảng đã chọn, ngày cao nhất, một cột cho mỗi ngày trên thang USD kèm ngày tháng, và ba mục gập: theo việc, theo agent và theo mô hình, kèm số lần gọi và số lần gọi lỗi của từng mô hình.
-  - Một dòng phía trên các cột nêu ngày đang trỏ chuột hoặc đang focus, mặc định là ngày mới nhất. Bấm vào một cột để xem các phiên chạy của ngày đó, mỗi phiên kèm các lần gọi AI.
+- **Báo cáo đầy đủ.** "Xem đủ báo cáo" mở hôm nay, 7 ngày qua, 30 ngày qua hoặc tháng này, tính theo chính ngày của dịch vụ nền (daemon). Báo cáo có tổng của khoảng đã chọn, ngày cao nhất, một cột cho mỗi ngày trên thang USD kèm ngày tháng, và ba mục gập: theo việc, theo agent và theo mô hình, kèm số lượt gọi và số lượt gọi lỗi của từng mô hình.
+  - Một dòng phía trên các cột nêu ngày đang trỏ chuột hoặc đang focus, mặc định là ngày mới nhất. Bấm vào một cột để xem các phiên chạy của ngày đó, mỗi phiên kèm các lượt gọi AI.
   - Các việc cộng lại đúng bằng tổng. Dòng nào dưới nửa xu ghi "<0,01 USD" chứ không ghi bằng 0.
   - Phần chi không gắn với phiên chạy nào trong khoảng đó nằm ở dòng "Khác".
   - Khoảng nào chưa tốn gì thì báo cáo nói vậy.
@@ -134,11 +134,11 @@ Khi API bật, ứng dụng cho thấy chi phí trước khi chạy và sau khi 
 - **Dòng ngân sách.** Cài đặt > Agent và AI có mức trần ngày và tháng tính bằng USD (`0` nghĩa là không giới hạn). Nó ghi `[budget]` trong `config.toml` và, như chính tệp, có hiệu lực sau khi khởi động lại. Trang đề nghị khởi động lại giúp bạn.
 - **Trước khi chạy.** Ô câu lệnh hiện cạnh mỗi câu lệnh mức nó thường tốn, và phần còn lại của mức trần hôm nay. Xem [Câu lệnh](lenh.md#ô-câu-lệnh-trên-trang-văn-phòng). Nút trên trang gửi lệnh ngay và không ghi ước tính; muốn xem chi phí trước thì gõ câu lệnh vào ô.
 - **Theo từng agent.** Ở tầng đội riêng, thẻ của agent cho thấy hôm nay nó đã tiêu bao nhiêu so với ngân sách ngày riêng của nó. Đó là mức bạn đặt trong biểu mẫu agent (hoặc `max_daily_usd` trong tệp).
-- **Theo từng phiên chạy.** Mỗi phiên chạy trên trang có một khối "Lệnh gọi AI" đang đóng: trong thẻ *Kết quả* của agent, trên dòng của một việc và dưới câu trả lời đã xong trong cuộc trò chuyện. Mở ra, bạn thấy dòng đầu (bao nhiêu lệnh gọi, tốn bao nhiêu, lệnh gọi lâu nhất). Bên dưới là từng lệnh gọi một: mô hình, số token, chi phí, mất bao lâu và kết thúc ra sao, kèm lý do dễ hiểu khi một lượt gọi lỗi.
-  - Phiên chạy chia việc cho agent con thì lệnh gọi của chúng cũng nằm trong đó.
+- **Theo từng phiên chạy.** Mỗi phiên chạy trên trang có một khối "Lượt gọi AI" đang đóng: trong thẻ *Kết quả* của agent, trên dòng của một việc và dưới câu trả lời đã xong trong cuộc trò chuyện. Mở ra, bạn thấy dòng đầu (bao nhiêu lượt gọi, tốn bao nhiêu, lượt gọi lâu nhất). Bên dưới là từng lượt gọi một: mô hình, số token, chi phí, mất bao lâu và kết thúc ra sao, kèm lý do dễ hiểu khi một lượt gọi lỗi.
+  - Phiên chạy chia việc cho agent con thì lượt gọi của chúng cũng nằm trong đó.
   - Mỗi lượt thử lại đều được tính, vì lượt nào cũng bị tính phí.
   - Tổng ở dòng đầu chính là chi phí danh sách hoạt động ghi cho phiên chạy đó.
-  - Danh sách chỉ hiện 200 lệnh gọi gần nhất. Dòng đầu vẫn đếm đủ.
+  - Danh sách chỉ hiện 200 lượt gọi gần nhất. Dòng đầu vẫn đếm đủ.
   - Câu lệnh nào tốn hơn mức dự kiến thường lệ sẽ nói rõ.
   - Khối này đọc số liệu đã lưu nên không tốn gì, và không số nào được đưa cho mô hình.
 - **Theo từng người.** Phiên chạy chia việc cho nhiều người còn có khối "Diễn biến" đang đóng. Dòng của mỗi người cho biết họ bận bao lâu và tốn bao nhiêu, thêm một dòng cho phần còn lại của phiên chạy, như việc đọc tin, để các phần cộng lại đúng bằng tổng của phiên chạy. Khối này đọc cùng số liệu đã lưu với danh sách hoạt động nên không tốn gì. Các số này chỉ dành cho bạn: không bao giờ đưa cho mô hình hay ghi vào cuộc trò chuyện, và bản web chỉ hiện thời gian, không hiện chi phí.

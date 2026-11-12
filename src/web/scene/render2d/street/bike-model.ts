@@ -44,7 +44,7 @@ export type BikeBuild = 'scooter' | 'underbone' | 'sport'
 /** A helmet: an open half shell, one with a clear visor, or a full face. */
 export type HelmetStyle = 'half' | 'visor' | 'full'
 
-/** Whoever rides behind: their colours, and whether they sit side-saddle or are a pupil. */
+/** Whoever rides behind: their colors, and whether they sit side-saddle or are a pupil. */
 export interface Pillion {
   readonly jacket: string
   readonly pants: string

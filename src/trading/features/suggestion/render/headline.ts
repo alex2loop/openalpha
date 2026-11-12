@@ -112,7 +112,7 @@ function renderActionable(view: RenderView, suggestion: ActionableStoredSuggesti
       })
 }
 
-/** Labelled with its currency, never board-scaled: two scales in one sentence read as one. Money,
+/** Labeled with its currency, never board-scaled: two scales in one sentence read as one. Money,
  *  not a bare magnitude — `formatMoney` prints the currency's own minor units, so a đồng total never
  *  claims two decimals it has no denomination for. */
 function orderValue(locale: Locale, suggestion: ActionableStoredSuggestion, units: number): string {
@@ -124,7 +124,7 @@ function orderValue(locale: Locale, suggestion: ActionableStoredSuggestion, unit
 
 /** The convention a level prints in: the currency the suggestion was quoted in, under the market's
  *  own unit and board scale. Absent when neither is known, and the level then prints bare rather
- *  than labelled with a currency nobody quoted. */
+ *  than labeled with a currency nobody quoted. */
 export function levelQuote(view: RenderView, suggestion: StoredSuggestion): QuotedIn | undefined {
   const currency = suggestion.quote?.currency ?? view.quote?.currency
 

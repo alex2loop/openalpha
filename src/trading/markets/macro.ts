@@ -59,7 +59,7 @@ interface MacroRiskOptions {
   readonly previousScoreRegime?: MarketRegime
 }
 
-/** The composite every market reads that has no macro formula of its own. The view is labelled with
+/** The composite every market reads that has no macro formula of its own. The view is labeled with
  *  the region asked about; the series behind it are US ones whatever market reads them. */
 export async function resolveMacroRisk(
   deps: MarketDeps,

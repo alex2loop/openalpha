@@ -21,7 +21,7 @@ const GAP_DIGITS = 2
 
 /** Each segment's share of the book against the level the user set: the bar is the share in the
  *  segment's hue, the tick their level, the distance from it beside the name in words, largest
- *  first, in one neutral colour. The daemon rounds the shares together, so the digits are the
+ *  first, in one neutral color. The daemon rounds the shares together, so the digits are the
  *  chat's. */
 export function SegmentBars({ shares }: { readonly shares: PortfolioSharesWire }) {
   const byGap = [...shares.segments].sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap))

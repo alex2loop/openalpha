@@ -72,7 +72,7 @@ function leaf(g: CanvasRenderingContext2D, at: HangAt): void {
   g.fill()
 }
 
-// The palette's colour for the ornament at `at`, taking `night` of the darkness.
+// The palette's color for the ornament at `at`, taking `night` of the darkness.
 function tintOf(palette: readonly [string, ...string[]], at: HangAt, night: number): string {
   return mixTone(palette[at.index % palette.length] ?? palette[0], NIGHT_TONE, at.dark * night)
 }

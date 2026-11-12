@@ -7,7 +7,7 @@ import type { SessionStatus, SessionSummary } from '@/persistence/api'
 import { BRAND } from '@/core/brand'
 import { HALT_SPEC } from '@/core/errors'
 import { formatSpendUsd } from '@/core/utils/cost'
-import { HALT_CODE_SEPARATOR } from '@/engine/api'
+import { HALT_CODE_SEPARATOR, NO_REASON_MESSAGE } from '@/engine/api'
 import { t } from '@/i18n'
 import { STALE_SESSION_MESSAGE } from '@/persistence/api'
 import { formatInstant } from '@/trading/api'
@@ -115,11 +115,15 @@ export function formatSessionEnd(locale: Locale, reason: string): string {
   return key === undefined ? reason : t(locale, key)
 }
 
-/** A stored run error in the reader's language: a halt code's own wording, or the restart note. Any
- *  other message prints as stored. */
+/** A stored run error in the reader's language: a halt code's own wording, the restart note or the
+ *  no-reason note. Any other message prints as stored. */
 export function formatSessionError(locale: Locale, message: string): string {
   if (message === STALE_SESSION_MESSAGE) {
     return t(locale, 'cli.historyErrorRestarted')
+  }
+
+  if (message === NO_REASON_MESSAGE) {
+    return t(locale, 'cli.historyErrorNoReason')
   }
 
   const split = message.indexOf(HALT_CODE_SEPARATOR)

@@ -59,7 +59,7 @@ function hasMinimumTurnover(input: UsScreenInput): boolean {
   return traded === undefined || traded >= US_MINIMUM_TRADED_VALUE_USD
 }
 
-/** A fund has no capitalisation to rank; an equity is on the board because its capitalisation
+/** A fund has no capitalization to rank; an equity is on the board because its capitalization
  *  ranked, so being off it is being small. */
 function isBoardMember(input: UsScreenInput): boolean {
   return input.record.kind !== 'equity' || input.onBoard

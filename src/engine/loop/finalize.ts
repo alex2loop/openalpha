@@ -19,6 +19,9 @@ import { isCriticalHook } from '@/engine/types/run'
 // A halt stores its error as `<halt code>` + this + the scrubbed detail; history reads it back.
 export const HALT_CODE_SEPARATOR = ': '
 
+// Stored when a run ends without any verdict being set; history maps it to a localized line.
+export const NO_REASON_MESSAGE = 'runOnce did not set a reason'
+
 // The stable caller-facing reason derived from a halt code. The halt code itself is preserved on
 // RunResult.haltCode for typed display; errorMessage carries scrubbed diagnostic detail only.
 export const HALT_CODE_TO_REASON: Readonly<Record<HaltCode, RunResultReason>> = {

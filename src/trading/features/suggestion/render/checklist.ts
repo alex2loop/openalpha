@@ -194,7 +194,7 @@ function stackedLines(cells: readonly PlacedCell[], context: RenderContext): rea
 
 /** Where every factor the name was scored on has a row, so no factor that moved the composite can
  *  drop out of sight; `undefined` for a market scoring other factors, which keeps the factor table.
- *  Rows group by side - in favour, against, then context - so the evidence reads apart from the
+ *  Rows group by side - in favor, against, then context - so the evidence reads apart from the
  *  numbers that only frame it. */
 export function renderChecklist(input: ChecklistInput): Checklist | undefined {
   const { factors, locale, context } = input

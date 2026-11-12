@@ -51,7 +51,7 @@ const DOOR_PX = 30
 const LOW_BAND_PX = 11
 const SKIRT_PX = 2
 const CAP_PX = 3
-// Two faces of two colours never share a plane: a wall body stops this far under its cap, a
+// Two faces of two colors never share a plane: a wall body stops this far under its cap, a
 // band and a skirt stand proud of the face, glass ends inside its posts.
 const UNDER_CAP_PX = 1.5
 const PROUD_PX = 0.6

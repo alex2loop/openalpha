@@ -373,7 +373,7 @@ function mintCode(): string {
   return out
 }
 
-// Rejection sampling: a plain modulo would favour the low indexes of an alphabet that does not divide 2^32.
+// Rejection sampling: a plain modulo would favor the low indexes of an alphabet that does not divide 2^32.
 function randomIndex(size: number): number {
   const limit = UINT32_RANGE - (UINT32_RANGE % size)
   const draw = new Uint32Array(1)

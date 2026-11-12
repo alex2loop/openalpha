@@ -103,7 +103,7 @@ export interface AnalysisRecord {
 }
 
 export type AnalysisFailure =
-  /** The name could not be analysed, for the reason `/suggest` would give. */
+  /** The name could not be analyzed, for the reason `/suggest` would give. */
   | {
       readonly kind: 'refused'
       readonly refusal: Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>

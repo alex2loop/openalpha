@@ -75,7 +75,7 @@ const ENTITY_STOP_WORDS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * The named entities a question is about, recognised by shape alone: quoted phrases, acronyms and
+ * The named entities a question is about, recognized by shape alone: quoted phrases, acronyms and
  * tickers, CamelCase names, and separator or digit-suffixed compounds. Nothing outside the text is
  * consulted, so a term is an entity because the operator wrote it, not because a registry lists it.
  */

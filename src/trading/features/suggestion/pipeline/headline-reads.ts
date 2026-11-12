@@ -25,7 +25,7 @@ import { MINIMUM_RISK_EVENT_STORIES, riskEventCaveats } from '@/trading/markets/
 const RELEVANCE_MINIMUM_CONFIDENCE = 0.6
 /** Names the read's attempts in the ledger beside the debate roles'. */
 const HEADLINE_READER_AGENT = 'headline-reader'
-/** A caveat that colours a whole debate needs a firmer read than a headline placement does. */
+/** A caveat that colors a whole debate needs a firmer read than a headline placement does. */
 const RISK_MINIMUM_CONFIDENCE = 0.8
 const MAXIMUM_TITLE_CHARS = 200
 const ANSWER = z.discriminatedUnion('type', [

@@ -283,6 +283,11 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
   },
   {
     key: EVERY_KEY,
+    forbidden: [/(?:lệnh|lần) gọi (?:AI|mô hình|LLM)/i],
+    why: 'one model call is "lượt gọi"; "lệnh gọi" stays for a tool or API call',
+  },
+  {
+    key: EVERY_KEY,
     forbidden: [/(?<!\p{L})tôi(?!\p{L})/iu],
     why: 'the assistant calls itself "mình" in Vietnamese; "tôi" reads stiff beside it',
   },

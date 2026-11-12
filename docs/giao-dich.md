@@ -1590,7 +1590,7 @@ Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm 
   Nếu chỉ riêng các lệnh đó đã đưa ngành về trong dải, các mã khác giữ nguyên tỷ trọng, đúng như phiên
   chạy sau cũng sẽ để yên. Quỹ không bị tính vào đó, các mã thuộc nhóm có mục tiêu 0% cũng vậy, vì
   chúng đằng nào cũng được giảm bớt hết.
-- **Giảm bao nhiêu.** Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước. Số lượng đã về tài
+- **Giảm bao nhiêu.** Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước. Khối lượng đã về tài
   khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày. Một mã không có giao dịch nào
   trong cửa sổ đó có thanh khoản bằng 0: nó được tính cỡ về không, còn kế hoạch cho mọi mã khác vẫn chạy tiếp.
 - **Lô lẻ.** Mọi lệnh bán đều theo lô chẵn. Một mã yếu được bán hết vẫn có thể còn lại phần lẻ dưới một

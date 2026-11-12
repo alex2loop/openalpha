@@ -48,7 +48,7 @@ export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse })
   )
 }
 
-/** `tone` colours the figure by its direction; absent, it is a plain amount. */
+/** `tone` colors the figure by its direction; absent, it is a plain amount. */
 function FigureRow({
   label,
   tone,

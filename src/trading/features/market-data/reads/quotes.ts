@@ -135,7 +135,7 @@ async function runInstrumentSector(
   return resolved.kind === 'resolved' ? resolved.sector : undefined
 }
 
-/** Absent for a level: labelling it in đồng and dividing it by the board scale is exactly the
+/** Absent for a level: labeling it in đồng and dividing it by the board scale is exactly the
  *  misreading the convention exists to prevent. */
 function quotedFieldsOf(
   manifest: MarketManifest,

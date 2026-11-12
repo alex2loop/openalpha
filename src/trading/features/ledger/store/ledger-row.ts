@@ -8,6 +8,7 @@ import type {
 } from '@/trading/features/ledger/types'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FxConversion } from '@/trading/kernel/market/market-capability'
+import type { StoredShape } from '@/trading/kernel/store/store-payload'
 import { StorageError } from '@/core/errors'
 import { CLOSE_REASONS, LEDGER_TXN_KINDS } from '@/trading/features/ledger/types'
 import {
@@ -61,7 +62,7 @@ const conversionSchema = z.strictObject({
   sourceId: z.string().optional(),
   asOf: z.string(),
   fetchedAt: z.number().finite().optional(),
-})
+} satisfies StoredShape<Omit<FxConversion, 'rate'>>)
 
 export interface LedgerRow {
   readonly id: string

@@ -25,7 +25,7 @@ interface Filing {
 }
 
 /** Writes the bell: every non-`quiet` wire event, in every process that boots the app, whether or not
- *  the api runs, built by the same normalisers the sockets are sent. Writes run one after another and
+ *  the api runs, built by the same normalizers the sockets are sent. Writes run one after another and
  *  each is followed by `notices_changed`, so the count it carries is the one after its own write.
  *  The caller awaits `stop` before closing storage. */
 export function startNoticeLog(app: App): NoticeLog {

@@ -4,7 +4,7 @@ import { apiBasePath } from '@/social/pin/api-base'
 const PARAM_SEGMENT_RE = /^\{[a-z0-9_]+\}$/
 const PARAM_VALUE_RE = /^[A-Za-z0-9_-]+$/
 /** Encoded dots and slashes, a backslash, a query or a fragment: none belongs in a path the model
- *  writes, and each is a way to make the normalised URL differ from the template it matched. */
+ *  writes, and each is a way to make the normalized URL differ from the template it matched. */
 const FORBIDDEN_PATH_RE = /(%2e|%2f|%5c|\\|\?|#)/i
 const DOT_SEGMENTS: ReadonlySet<string> = new Set(['.', '..'])
 

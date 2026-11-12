@@ -1,9 +1,17 @@
 import { z } from 'zod'
 
 import type { Logger } from '@/core/logging/logger'
-import type { AnalysisId, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
+import type {
+  AnalysisId,
+  AnalysisRecord,
+  AnalysisResult,
+} from '@/trading/features/suggestion/analysis/types'
 import type { SuggestionCitation } from '@/trading/features/suggestion/citation'
-import type { AnalysisCase, ClaimVerification } from '@/trading/features/suggestion/debate/types'
+import type {
+  AnalysisCase,
+  ClaimVerification,
+  StoredClaim,
+} from '@/trading/features/suggestion/debate/types'
 import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { Page, PageOptions } from '@/trading/kernel/store/page'
@@ -28,10 +36,13 @@ import {
 } from '@/trading/kernel/instrument'
 import { MACRO_SERIES_IDS } from '@/trading/kernel/market/macro-series'
 import { MARKET_EVENT_KINDS } from '@/trading/kernel/market/market-event'
-import { caveatsSchema } from '@/trading/kernel/store/store-payload'
+import { caveatsSchema, type StoredShape } from '@/trading/kernel/store/store-payload'
 import { parseJson, toPage } from '@/trading/kernel/store/store-row'
 
 const COLUMNS = 'id, market, ticker, at, evidence_through, payload, created_at'
+
+/** What the columns carry beside the payload. */
+type AnalysisColumnKey = 'id' | 'instrument' | 'at' | 'evidenceThrough' | 'createdAt'
 
 const caseSchema = z.strictObject({
   stance: z.enum(RESEARCH_STANCES),
@@ -39,7 +50,7 @@ const caseSchema = z.strictObject({
   claims: z.array(z.string()),
   citations: z.array(citationSchema),
   invalidators: z.array(z.string()),
-})
+} satisfies StoredShape<AnalysisCase>)
 
 const payloadSchema = z.strictObject({
   authoredLocale: z.enum(LOCALES),
@@ -52,13 +63,15 @@ const payloadSchema = z.strictObject({
           id: z.string(),
           verdict: z.enum(CLAIM_VERDICTS),
           citation: citationSchema.optional(),
-        })
+        } satisfies StoredShape<ClaimVerification['verified'][number]>)
       ),
-    }),
-    claims: z.array(z.strictObject({ id: z.string(), text: z.string() })),
+    } satisfies StoredShape<ClaimVerification>),
+    claims: z.array(
+      z.strictObject({ id: z.string(), text: z.string() } satisfies StoredShape<StoredClaim>)
+    ),
     playbook: z.array(z.string()),
     models: z.array(z.string()),
-  }),
+  } satisfies StoredShape<AnalysisResult>),
   citations: z.array(citationSchema),
   // Absent on a row stored before the analysis kept the close it stood on.
   evidenceClose: z.number().optional(),
@@ -69,14 +82,17 @@ const payloadSchema = z.strictObject({
     .strictObject({
       currency: z.string(),
       display: z.strictObject({ divisor: z.number(), decimals: z.number() }),
-    })
+    } satisfies StoredShape<NonNullable<AnalysisRecord['boardScale']>>)
     .optional(),
   currency: z.string().optional(),
   quoteUnit: z.string().optional(),
   // A block a later build cannot read costs that block, never the analysis around it: a renamed
   // event kind, metric id or series id would otherwise leave the whole row off the page.
   sector: z
-    .strictObject({ code: z.string(), medians: factorMetricsSchema })
+    .strictObject({
+      code: z.string(),
+      medians: factorMetricsSchema,
+    } satisfies StoredShape<NonNullable<AnalysisRecord['sector']>>)
     .optional()
     .catch(undefined),
   upcoming: z
@@ -88,7 +104,7 @@ const payloadSchema = z.strictObject({
         detail: z.string().optional(),
         composedText: z.literal(true).optional(),
         writtenIn: z.enum(LOCALES).optional(),
-      })
+      } satisfies StoredShape<NonNullable<AnalysisRecord['upcoming']>[number]>)
     )
     .optional()
     .catch(undefined),
@@ -99,14 +115,19 @@ const payloadSchema = z.strictObject({
           id: z.enum(MACRO_SERIES_IDS),
           unit: z.enum(['percent', 'level']),
           value: z.number(),
-        })
+        } satisfies StoredShape<NonNullable<AnalysisRecord['backdrop']>['macro'][number]>)
       ),
-      breadth: z.strictObject({ advancers: z.number(), decliners: z.number() }).optional(),
-    })
+      breadth: z
+        .strictObject({
+          advancers: z.number(),
+          decliners: z.number(),
+        } satisfies StoredShape<NonNullable<NonNullable<AnalysisRecord['backdrop']>['breadth']>>)
+        .optional(),
+    } satisfies StoredShape<NonNullable<AnalysisRecord['backdrop']>>)
     .optional()
     .catch(undefined),
   caveats: caveatsSchema,
-})
+} satisfies StoredShape<Omit<AnalysisRecord, AnalysisColumnKey>>)
 
 type AnalysisPayload = z.infer<typeof payloadSchema>
 

@@ -596,7 +596,7 @@ openalpha start --background         # bật dịch vụ nền để bản tin v
 
 | Thứ tự | Lệnh | Bạn đang tìm gì |
 |---|---|---|
-| 1 | `/brief` | Bản tin sáng, từ "việc của tôi" tới "việc của thị trường". Xem [6.5](#65-brief---bản-tin-sáng) |
+| 1 | `/brief` | Bản tin sáng, từ "việc của mình" tới "việc của thị trường". Xem [6.5](#65-brief---bản-tin-sáng) |
 | 2 | `/overview` | Phông rủi ro: `risk-on` thì mạnh tay hơn, `risk-off` thì co lại |
 | 3 | `/screen` | Top 10 mã theo mô hình yếu tố VN |
 | 4 | `/market` | Giá mã bạn đang nắm và đang theo dõi |
@@ -797,7 +797,7 @@ là "giữ nguyên", kèm mã lý do. Mức tin cậy chỉ hạ, không bao gi�
 1. **Phần cứng (công thức tính)**: điểm yếu tố, mức vào, cắt lỗ, chốt lời. Các vai LLM tranh luận
    *quanh* những con số này, nhưng không sửa được chúng.
 2. **Cổng chặn chạy trước tranh luận.** Đây là cổng tiết kiệm chi phí: ứng viên đằng nào cũng hỏng
-   thì dừng luôn, không tốn lệnh gọi LLM nào.
+   thì dừng luôn, không tốn lượt gọi LLM nào.
 3. **Tranh luận** (chế độ `full`):
    - Phe bò và phe gấu chạy song song, gom bằng chứng ngược chiều nhau (mỗi dẫn chứng kèm nguồn).
    - Vai quản lý danh mục chọn luận điểm từ cả hai phía.
@@ -850,17 +850,17 @@ Một ngày một bản cho mỗi ngôn ngữ. Gõ `/brief` lần hai trong ngà
 
 #### Bản tin gồm những gì
 
-Các mục luôn theo thứ tự này: từ "việc của tôi" ra "việc của thị trường" rồi quay lại "hôm nay nên
+Các mục luôn theo thứ tự này: từ "việc của mình" ra "việc của thị trường" rồi quay lại "hôm nay nên
 làm gì".
 
 | Nhóm | Các mục | Trả lời câu hỏi |
 |---|---|---|
-| **Việc của bạn** | đã đổi so với phiên trước, **tổng quan danh mục**, đề xuất đã có kết quả, cảnh báo đã kích hoạt, vị thế chạm mức thoát, vị thế chưa có kế hoạch thoát, vị thế quá hạn mà giá chưa đi đâu, vị thế đang lỗ, nhịp liên thị trường, ai đang chủ động giao dịch, độ lệch danh mục, **bảng điểm tháng** | Từ lần xem trước tới giờ, có gì liên quan trực tiếp tới tiền của tôi? |
+| **Việc của bạn** | đã đổi so với phiên trước, **tổng quan danh mục**, đề xuất đã có kết quả, cảnh báo đã kích hoạt, vị thế chạm mức thoát, vị thế chưa có kế hoạch thoát, vị thế quá hạn mà giá chưa đi đâu, vị thế đang lỗ, nhịp liên thị trường, ai đang chủ động giao dịch, độ lệch danh mục, **bảng điểm tháng** | Từ lần xem trước tới giờ, có gì liên quan trực tiếp tới tiền của mình? |
 | **Bối cảnh vĩ mô** | chuyển trạng thái thị trường, trạng thái vĩ mô, dự phòng tiền mặt (lãi suất tiền gửi), tin vĩ mô, kinh tế thế giới | Nền chung đang thuận hay nghịch? |
 | **Từng thị trường** | đọc nhanh, giá, bảng giá, thanh khoản, độ rộng, vùng giá, quy mô thị trường, luân chuyển ngành, dòng tiền khối ngoại, dòng tiền tự doanh, phái sinh, bên mua chủ động, dòng vốn ETF, vị thế đầu cơ (COT), chênh lệch với thế giới, thanh khoản dẫn đầu, biến động mạnh nhất, tâm lý, chênh lệch phái sinh VN30, tỷ giá | Sàn hôm qua ra sao? Vàng và crypto đang ra sao? |
-| **Quanh danh sách theo dõi** | mã dẫn đầu danh sách theo dõi, mã bị loại khỏi danh sách theo dõi, thay đổi trên Màn lọc | Các mã tôi đang nhắm thì sao? |
+| **Quanh danh sách theo dõi** | mã dẫn đầu danh sách theo dõi, mã bị loại khỏi danh sách theo dõi, thay đổi trên Màn lọc | Các mã mình đang nhắm thì sao? |
 | **Sự kiện và tin** | lịch công bố báo cáo, kỳ cơ cấu chỉ số sắp tới, sự kiện doanh nghiệp, tin nổi bật | Có gì sắp hoặc vừa xảy ra? |
-| **Chi phí và việc cần làm** | chi phí nghiên cứu, đề xuất cho mã đang giữ và theo dõi, đề xuất liên thị trường, **việc tiếp theo**, kỷ luật đang áp dụng | Bản tin này tốn bao nhiêu, và giờ tôi nên bấm gì? |
+| **Chi phí và việc cần làm** | chi phí nghiên cứu, đề xuất cho mã đang giữ và theo dõi, đề xuất liên thị trường, **việc tiếp theo**, kỷ luật đang áp dụng | Bản tin này tốn bao nhiêu, và giờ mình nên bấm gì? |
 
 Nhóm **từng thị trường** dùng chung một khuôn, và mỗi thị trường chỉ đăng mục nó có dữ liệu. Nhờ vậy
 một con số không bị báo hai lần dưới hai tiêu đề. Ví dụ: mức chênh vàng trong nước thuộc khối
@@ -1064,7 +1064,7 @@ Chỉ áp dụng cho cổ phiếu VN.
 | Dữ liệu VN có vẻ cũ | `/refresh equity-vn`, hoặc `/refresh equity-vn force` để nạp lại toàn bộ |
 | Không rõ đang tốn bao nhiêu | `/cost` trong chat, hoặc `openalpha cost` |
 | Đĩa đầy | Dừng dịch vụ nền rồi `openalpha db cleanup --older-than 90d` (thêm `--dry-run` để xem trước); xem thêm `openalpha db --help` |
-| Quên lệnh | `/help` hoặc `/help <tên>` trong chat, `openalpha help` hoặc `openalpha help <lệnh>` ở terminal |
+| Quên lệnh | `/help` hoặc `/help <tên>` trong chat, `openalpha help` hoặc `openalpha help <câu lệnh>` ở terminal |
 
 Muốn đọc sâu hơn về dữ liệu, nguồn và luồng xử lý: [Giao dịch](giao-dich.md),
 [Nguồn dữ liệu](nguon-du-lieu.md).

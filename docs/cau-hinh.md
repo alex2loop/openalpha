@@ -200,7 +200,7 @@ Mọi mô hình phải gọi được công cụ và trả JSON đúng schema. M
 
 #### Chọn mô hình cho các nhóm nghiên cứu
 
-Chọn theo tải công việc, không theo số lượng agent:
+Chọn theo tải công việc, không theo số agent:
 
 - **`research-heavy` (chỉ crawler).** Mỗi câu hỏi nghiên cứu một lời gọi, mang tối đa 8 nguồn đã truy
   hồi, mỗi nguồn cắt ở 4000 ký tự - khoảng 8-10k token đầu vào. Khâu truy hồi lưu tối đa 64 KiB văn bản

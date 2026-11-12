@@ -55,7 +55,7 @@ type SlashKey = `slash.${string}`
 /** What one parsed `/suggest <name>` does and says. */
 type SuggestRunner = (request: SuggestionRequest, ctx: SlashContext) => Promise<SlashResult>
 
-/** An edition that may only analyse binds this: the line is parsed the same way either side of it,
+/** An edition that may only analyze binds this: the line is parsed the same way either side of it,
  *  `run` answers the parsed name, and `/suggest stops` - which would run the full pipeline over the
  *  whole book - answers `stopsRefusal`. The words are its own too, since the pipeline's describe a
  *  verdict and levels the edition never produces. */

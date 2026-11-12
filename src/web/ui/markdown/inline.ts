@@ -12,7 +12,7 @@ export type Inline =
   | { readonly kind: 'note'; readonly n: number }
   /** A figure's move, arrow and number as one unit that never wraps and carries its direction. */
   | { readonly kind: 'move'; readonly tone: 'up' | 'down'; readonly text: string }
-  /** `host` is where a labelled link really goes; absent for an address that is its own label. */
+  /** `host` is where a labeled link really goes; absent for an address that is its own label. */
   | { readonly kind: 'link'; readonly href: string; readonly text: string; readonly host?: string }
 
 /** The inline marks of one run of text. */

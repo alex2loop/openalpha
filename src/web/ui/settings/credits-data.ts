@@ -1,4 +1,4 @@
-/** What the office's art is drawn from or reads, each with its licence and a link. */
+/** What the office's art is drawn from or reads, each with its license and a link. */
 export interface SourceCredit {
   readonly name: string
   readonly licence: string

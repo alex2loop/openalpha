@@ -14,7 +14,7 @@ const SIGNIFICANT_DIGIT_RE = /[1-9]/
  *  naming it states the mechanism rather than the fact. Anything else is a measure the ticker does
  *  not carry — the same gold reading is one number per lượng and another per ounce — and is spelled
  *  out beside the price. Listing what is implied rather than what is spelled means a market
- *  quoting a new measure is labelled without an edit here. */
+ *  quoting a new measure is labeled without an edit here. */
 const IMPLIED_QUOTE_UNITS: ReadonlySet<string> = new Set([
   'currency-per-share',
   'currency-per-coin',

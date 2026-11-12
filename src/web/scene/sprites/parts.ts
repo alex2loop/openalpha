@@ -47,7 +47,7 @@ export interface Look {
   readonly isMascot: boolean
 }
 
-/** Trousers go with the shirt, so no figure wears one colour head to foot. */
+/** Trousers go with the shirt, so no figure wears one color head to foot. */
 export const PANTS_OF: Readonly<Record<Shirt, PantsTone>> = Object.freeze({
   teal: 'khaki',
   blue: 'khaki',

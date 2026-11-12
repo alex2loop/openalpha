@@ -243,7 +243,7 @@ async function releaseRemaining(
 }
 
 /** The notice carries the alert itself, including its stable id: a crash between `accepted` and
- *  `markFired` may duplicate, and a duplicate the user can recognise beats a lost alert. */
+ *  `markFired` may duplicate, and a duplicate the user can recognize beats a lost alert. */
 async function noticeFor(
   deps: AlertDeliveryDeps,
   alert: DeliveringAlert,

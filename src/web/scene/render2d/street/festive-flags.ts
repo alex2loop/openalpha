@@ -12,7 +12,7 @@ const FLAG_CLEAR = Object.freeze({ shelter: 20, crossing: 14, row: 8 })
 const ROW_FLAG_Y = NORTH.farTop - 0.2
 // A big flag stands on each side of the frontage's top.
 const FRONTAGE_FLAG = Object.freeze({ drop: 24, inset: 5, w: 11, h: 7 })
-// A flag's pole: its colour, half its width (the cloth starts at its right edge), its height in
+// A flag's pole: its color, half its width (the cloth starts at its right edge), its height in
 // flag heights and the night's share it takes; and the night's share the cloth takes.
 const POLE = Object.freeze({ tone: '#8A6B3E', halfW: 0.18, rise: 2.2, night: 0.5 })
 const CLOTH_NIGHT = 0.4

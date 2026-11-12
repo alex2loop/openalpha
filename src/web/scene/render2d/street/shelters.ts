@@ -32,7 +32,7 @@ const TONES = Object.freeze({
   signBlue: '#2A62B0',
   signWhite: '#F4F1E8',
 })
-// Plain ad panels, one pair of colours per shelter: the band and the ground.
+// Plain ad panels, one pair of colors per shelter: the band and the ground.
 const AD_TONES = [
   ['#E4572E', '#FFE9DE'],
   ['#2E86AB', '#E6F4FA'],

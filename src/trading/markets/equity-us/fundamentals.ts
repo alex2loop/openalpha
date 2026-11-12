@@ -8,9 +8,9 @@ const MINIMUM_SECTOR_PEERS = 5
 
 /** What a name's newest filed year says against what the market pays for it. */
 export interface UsFundamentals {
-  /** Net income over capitalisation: what a dollar of the company yields. */
+  /** Net income over capitalization: what a dollar of the company yields. */
   readonly earningsYield?: number
-  /** Shareholders' equity over capitalisation. */
+  /** Shareholders' equity over capitalization. */
   readonly bookToMarket?: number
   /** Gross profit over total assets: how much the assets earn before overheads. */
   readonly grossProfitability?: number

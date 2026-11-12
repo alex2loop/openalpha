@@ -33,7 +33,7 @@ export const ROTATION_STEP_FRACTION = 1 / 3
 /** Below this, dividing by volatility explodes the weight of a name that simply has not moved. */
 export const MINIMUM_SIZING_VOLATILITY_DAILY = 0.005
 /** What a name with no measured volatility is treated as: the rough middle of the VN band, so an
- *  unmeasured name is neither favoured nor punished against measured peers. */
+ *  unmeasured name is neither favored nor punished against measured peers. */
 export const DEFAULT_SIZING_VOLATILITY_DAILY = 0.025
 
 /** What a name's turnover absorbs inside the liquidation window, as a fraction of NAV — the one

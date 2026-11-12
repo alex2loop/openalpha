@@ -47,7 +47,7 @@ const LINEAR = (bearishAt: number, bullishAt: number): FactorNormalization =>
  *
  *  `liquidity` went because it was scored for tradeability, which the turnover gate and the sizing
  *  ceiling already enforce, while it paid for that twice over as a return factor: on the screened
- *  board it read 0,72 correlated with log capitalisation, and the same published model finds a
+ *  board it read 0,72 correlated with log capitalization, and the same published model finds a
  *  turnover leg subsumes a separate liquidity one entirely. The VN evidence on the sign is split —
  *  several local studies find liquid names earning more — so this is the better-identified reading
  *  taken over the older one, not a settled fact.

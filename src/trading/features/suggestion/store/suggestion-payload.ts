@@ -1,5 +1,23 @@
 import { z } from 'zod'
 
+import type { HeadlinesRead, SuggestionCitation } from '@/trading/features/suggestion/citation'
+import type { ThesisBreak } from '@/trading/features/suggestion/debate/types'
+import type { HeldPosition } from '@/trading/features/suggestion/exposure'
+import type {
+  ActionableSuggestion,
+  CalculationVersion,
+  ConcentrationNote,
+  HoldSuggestion,
+  PriceBandNote,
+  PullbackStat,
+  RestingEntry,
+  SettlementNote,
+  SuggestionQuote,
+} from '@/trading/features/suggestion/types'
+import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
+import type { FactorMetric } from '@/trading/kernel/factor-metric'
+import type { DealerBoard } from '@/trading/kernel/market/market-data'
+import type { ProfileStamp } from '@/trading/kernel/operator/profile'
 import {
   MANAGER_VERDICTS,
   RESEARCH_STANCES,
@@ -19,31 +37,55 @@ import {
   INVESTMENT_HORIZONS,
   RISK_LEVELS,
 } from '@/trading/kernel/operator/profile'
-import { caveatsSchema, provenanceSchema } from '@/trading/kernel/store/store-payload'
+import {
+  caveatsSchema,
+  provenanceSchema,
+  type StoredShape,
+} from '@/trading/kernel/store/store-payload'
 import { parseJson } from '@/trading/kernel/store/store-row'
 
 // The stored shape of a suggestion's aggregate, apart from the row mapper that reads and writes it:
 // the schema is what a stored row is validated against, the mapping is what the domain does with it.
 
+/** What the row's columns carry (identity, action, conviction, outcome) or a later step derives, so
+ *  the payload holds the rest of either arm, plus the two figures read off the outcome. */
+type SuggestionColumnKey =
+  | 'instrument'
+  | 'at'
+  | 'authoredLocale'
+  | 'strategyId'
+  | 'strategyVersion'
+  | 'focusKey'
+  | 'conviction'
+  | 'action'
+
+type SuggestionPayloadKey =
+  | Exclude<keyof ActionableSuggestion | keyof HoldSuggestion, SuggestionColumnKey>
+  | 'benchmarkReturnPct'
+  | 'outcomeFormulaVersion'
+
 export const citationSchema = z.strictObject({
   url: z.string(),
   title: z.string().optional(),
   publishedAt: z.number().finite().optional(),
-})
+} satisfies StoredShape<SuggestionCitation>)
 
 const headlinesReadSchema = z.strictObject({
   own: z.number().int().nonnegative(),
   market: z.number().int().nonnegative(),
   costUsd: z.number().nonnegative().optional(),
-})
+} satisfies StoredShape<HeadlinesRead>)
 
-export const calculationVersionSchema = z.strictObject({ name: z.string(), version: z.string() })
+export const calculationVersionSchema = z.strictObject({
+  name: z.string(),
+  version: z.string(),
+} satisfies StoredShape<CalculationVersion>)
 
 const factorMetricSchema = z.strictObject({
   id: z.enum(FACTOR_METRIC_IDS),
   value: z.number().finite(),
   sessions: z.number().int().positive().optional(),
-})
+} satisfies StoredShape<FactorMetric>)
 
 // A reading whose id this build no longer knows has no unit to print with, so it costs the line it
 // printed and nothing more: the factor's score, weight and provenance are still what was stored.
@@ -94,7 +136,7 @@ const factorResultSchema = z.strictObject({
   metrics: factorMetricsSchema.optional(),
   provenance: z.array(provenanceSchema),
   caveats: caveatsSchema,
-})
+} satisfies StoredShape<Omit<FactorResult, 'opposesReading'>>)
 
 // A factor this build retired has no label to print under and no weight left in the policy, so it
 // costs its row; a malformed one still fails the suggestion.
@@ -162,16 +204,16 @@ const quoteSchema = z.strictObject({
       buyPrice: z.number().finite(),
       sellPrice: z.number().finite(),
       spreadPct: z.number().finite().optional(),
-    })
+    } satisfies StoredShape<DealerBoard>)
     .optional(),
-})
+} satisfies StoredShape<SuggestionQuote>)
 
 const pullbackSchema = z.strictObject({
   waitSessions: z.number().int().positive(),
   holdSessions: z.number().int().positive(),
   medianBestPct: z.number().finite(),
   waitEdgePct: z.number().finite(),
-})
+} satisfies StoredShape<PullbackStat>)
 
 // Dropped whole when it does not parse, the way a debate block is: the readings share one limit, so
 // half of them is a statistic measured against a price this build cannot reconstruct. It costs the
@@ -202,7 +244,7 @@ const payloadSchema = z.strictObject({
     coverageBelowMinimum: z.boolean(),
     agreementBelowMinimum: z.boolean(),
     agreement: z.number().finite().optional(),
-  }),
+  } satisfies StoredShape<FactorComposite>),
   indexTier: z.string().optional(),
   instrumentKind: readableInstrumentKindSchema,
   reviewOnly: z.literal(true).optional(),
@@ -211,7 +253,7 @@ const payloadSchema = z.strictObject({
     riskLevel: readableRiskLevelSchema,
     goal: readableGoalSchema,
     saved: z.boolean(),
-  }),
+  } satisfies StoredShape<ProfileStamp>),
   held: z
     .strictObject({
       units: z.number().finite(),
@@ -224,21 +266,28 @@ const payloadSchema = z.strictObject({
       settlesOn: z.string().optional(),
       soldUnits: z.number().finite().positive().optional(),
       openedOn: z.string().optional(),
-    })
+    } satisfies StoredShape<HeldPosition>)
     .optional(),
   concentration: z
     .strictObject({
       sector: z.string(),
       afterPctNav: z.number().finite(),
       capPctNav: z.number().finite(),
-    })
+    } satisfies StoredShape<ConcentrationNote>)
     .optional(),
   orderSession: z.string().optional(),
   restingEntry: z
-    .strictObject({ run: z.number().finite(), runSessions: z.int().positive(), until: z.string() })
+    .strictObject({
+      run: z.number().finite(),
+      runSessions: z.int().positive(),
+      until: z.string(),
+    } satisfies StoredShape<RestingEntry>)
     .optional(),
   settlement: z
-    .strictObject({ sellableFrom: z.string(), worstCaseDrawdownPct: z.number().finite() })
+    .strictObject({
+      sellableFrom: z.string(),
+      worstCaseDrawdownPct: z.number().finite(),
+    } satisfies StoredShape<SettlementNote>)
     .optional(),
   priceBand: z
     .strictObject({
@@ -246,13 +295,18 @@ const payloadSchema = z.strictObject({
       ceiling: z.number().finite(),
       maximumUpPct: z.number().finite(),
       maximumDownPct: z.number().finite(),
-    })
+    } satisfies StoredShape<PriceBandNote>)
     .optional(),
   direction: readableDirectionSchema,
   holdReasonCodes: holdReasonCodesSchema.optional(),
   unsupportedClaims: z.array(z.string()).optional(),
   invalidators: z.array(z.string()).optional(),
-  invalidatedPrior: z.strictObject({ at: z.string(), fired: z.array(z.string()) }).optional(),
+  invalidatedPrior: z
+    .strictObject({
+      at: z.string(),
+      fired: z.array(z.string()),
+    } satisfies StoredShape<ThesisBreak>)
+    .optional(),
   benchmarkReturnPct: z.number().finite().optional(),
   outcomeFormulaVersion: z.string().optional(),
   calculationVersions: z.array(calculationVersionSchema),
@@ -268,7 +322,7 @@ const payloadSchema = z.strictObject({
   standingExit: z.object({ stop: z.number().finite(), takeProfit: z.number().finite() }).optional(),
   standingTakeProfit: z.number().finite().optional(),
   evidenceThrough: z.string().optional(),
-})
+} satisfies StoredShape<Record<SuggestionPayloadKey, unknown>>)
 
 export type SuggestionPayload = z.infer<typeof payloadSchema>
 export type CitationPayload = z.infer<typeof citationSchema>

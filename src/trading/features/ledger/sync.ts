@@ -55,13 +55,13 @@ export interface SyncedFill {
   readonly symbol: string
 }
 
-/** What booking a fill and recognising one already booked both read. */
+/** What booking a fill and recognizing one already booked both read. */
 export type VenueFill = Pick<SyncedFill, 'draft' | 'idempotencyKey'>
 
 export interface VenueSyncResult {
   readonly venue: VenueRef
   readonly fills: readonly SyncedFill[]
-  /** Fills the book already holds. Counted rather than listed, and reported: a run that recognised
+  /** Fills the book already holds. Counted rather than listed, and reported: a run that recognized
    *  twelve of them must not read like a venue that reported nothing. */
   readonly alreadyBooked: number
   /** Fills the venue reported that no row could be built from, each with what stopped it, so the
@@ -165,7 +165,7 @@ function bookSymbolsAt(input: VenueSyncInput): readonly string[] {
 }
 
 /** The key a venue fill is booked under, whichever writer books it: this sync, the order mirror or
- *  the exit tick. One fill has one identity, so the writer that comes second is recognised inside
+ *  the exit tick. One fill has one identity, so the writer that comes second is recognized inside
  *  the ledger's write lock and books nothing. Exported so every writer, and the order path asking
  *  whether a fill it lost has since been recovered, spell the key the same way. */
 export function buildVenueFillKey(venue: VenueRef, orderId: string): string {

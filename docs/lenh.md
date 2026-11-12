@@ -2,13 +2,13 @@
 
 Có hai cách gõ câu lệnh, và cả hai dùng chung một danh sách câu lệnh:
 
-- `openalpha <lệnh>` là CLI, gõ trong terminal.
-- `/lệnh` chạy trong chat ở terminal và trong mọi kênh bạn đã cấu hình.
+- `openalpha <câu lệnh>` là CLI, gõ trong terminal.
+- `/<câu lệnh>` chạy trong chat ở terminal và trong mọi kênh bạn đã cấu hình.
 
 Phần giao dịch chỉ có câu lệnh gạch chéo. Nó không có câu lệnh CLI riêng.
 
 Hãy xem trang này như một tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha help`,
-`openalpha help <lệnh>` hoặc `openalpha <lệnh> --help`. Câu lệnh có câu lệnh con, như `logs`, `key`, `autostart` và `db migrate`, ghi "(mặc định)" cạnh câu lệnh con mặc định trong phần trợ giúp và hiện luôn các cờ của câu lệnh con đó, nên `openalpha logs --help` cũng liệt kê `--lines` và `--follow`.
+`openalpha help <câu lệnh>` hoặc `openalpha <câu lệnh> --help`. Câu lệnh có câu lệnh con, như `logs`, `key`, `autostart` và `db migrate`, ghi "(mặc định)" cạnh câu lệnh con mặc định trong phần trợ giúp và hiện luôn các cờ của câu lệnh con đó, nên `openalpha logs --help` cũng liệt kê `--lines` và `--follow`.
 
 **Mục lục**
 
@@ -96,7 +96,7 @@ vì một lượt hỏng không phải một cuộc trò chuyện hỏng.
 | `restart` | Khởi động lại dịch vụ nền | không có; `--now` không chờ việc đang chạy, `--background`/`-b` để dừng rồi chạy lại ở nền |
 | `status` | Tổng quan dịch vụ nền, kênh và chi tiêu | không có |
 | `version` | In phiên bản và báo nếu đã có bản mới; `--version` và `-v` cũng được | không có |
-| `help` | In trợ giúp: `help` cho danh sách, `help <lệnh> [lệnh con]` cho một câu lệnh | không có; tên câu lệnh |
+| `help` | In trợ giúp: `help` cho danh sách, `help <câu lệnh> [câu lệnh con]` cho một câu lệnh | không có; tên câu lệnh |
 | `upgrade` | Cài bản phát hành mới nhất | không có; `--check` chỉ báo, `--rollback` quay về bản cài trước |
 | `doctor` | Kiểm cấu hình, thông tin đăng nhập, lưu trữ | không có; kèm tên phép kiểm (`config`, `models`, `data-dir`, `logging`, `database`, `daemon`, `channels`, `delivery`, `sources`, `trading`, `safety`, `venues`, `web-search`, `providers`, `telegram`, `zalo`, `version`) và `--online` |
 | `onboard` | Thiết lập lần đầu, hoặc đổi mô hình, bot Telegram, mức chi hay ngôn ngữ | không có |
@@ -697,7 +697,7 @@ một agent, và mốc bắt đầu (mốc ISO hoặc khoảng thời gian). Đ�
 
 - `--agent` giới hạn vào một agent.
 - `--older-than` chặn theo tuổi (bỏ trống để xóa bất kể tuổi; tối thiểu `1d` khi khai).
-- `--dry-run` xem trước số lượng và dung lượng mà không xóa.
+- `--dry-run` xem trước số tệp và dung lượng mà không xóa.
 - `--daemon` chuyển đích sang log chung của dịch vụ nền cùng các tệp đã xoay vòng, chặn theo tuổi của tệp mới
   nhất. Không dùng chung được với `--agent`.
 
@@ -815,7 +815,7 @@ hỏi về chúng được. Câu trả lời của `/portfolio`, `/rebalance`, `
 
 Câu lệnh gạch chéo lấy đích gửi từ chính chat terminal hay kênh mà nó chạy. Một lần ghi hồ sơ không kèm số
 phiên bản. Nếu hai chat sửa cùng lúc thì lần sửa sau thắng, không bên nào bị từ chối; với một operator
-duy nhất, "áp dụng đúng sửa đổi của tôi" là câu trả lời hợp lý.
+duy nhất, "áp dụng đúng sửa đổi của mình" là câu trả lời hợp lý.
 
 ### Sổ lệnh
 

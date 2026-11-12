@@ -47,7 +47,7 @@ function boardPrice(locale: Locale, value: number, display: PriceDisplay): strin
  *  Significant digits take over below one unit only for a token with no minor units of its own,
  *  where a balance of 0.00002 is a real holding. A currency that declares its own precision is the
  *  authority on what it can express, and an amount under that is zero rather than a figure needing
- *  more digits: a realised P/L of 1,455e-11 printed fourteen decimals and an up arrow in a USD
+ *  more digits: a realized P/L of 1,455e-11 printed fourteen decimals and an up arrow in a USD
  *  book, and rounded away unseen in a đồng one. A price is the other question and keeps every
  *  digit either way — see `formatFixedPrice`. */
 export function formatMoney(locale: Locale, value: number, currency: CurrencyCode): string {
@@ -146,7 +146,7 @@ export function formatRecordedMoney(locale: Locale, value: number, currency: Cur
   return `${formatExactAmount(locale, value)} ${currency}`
 }
 
-/** A board-scaled price carries no currency code: labelling board points as đồng is exactly the
+/** A board-scaled price carries no currency code: labeling board points as đồng is exactly the
  *  misreading the convention prevents, and `isBoardScaled` is where that rule already lives. */
 function labelled(locale: Locale, price: string, quote: QuotedIn): string {
   if (isBoardScaled(quote.display)) {

@@ -56,8 +56,8 @@ const WAVE = Object.freeze({
 } as const)
 const HEADBAND = Object.freeze({ tone: '#D84A4A', rect: [-0.9, -4.7, 1.8, 0.35] as const })
 
-/** A conical hat (its rim from the middle detail) or a cap in a colour of its own, its brim
- *  ahead side on and over the brow face on; a jogger's headband. `tone` darkens a colour for the
+/** A conical hat (its rim from the middle detail) or a cap in a color of its own, its brim
+ *  ahead side on and over the brow face on; a jogger's headband. `tone` darkens a color for the
  *  night as the rest of the figure is. */
 export function paintHat(
   g: CanvasRenderingContext2D,

@@ -12,7 +12,7 @@ const ADMISSION_STAGE_ORDER = 1
 
 /** The screen's admission rules applied to a directly named ticker. Discovery runs every candidate
  *  through its market's gates, but `/suggest VNM` reaches the pipeline without them, so a halted or
- *  barely-traded name would be analysed and sized on evidence the market refuses to rank. The gates
+ *  barely-traded name would be analyzed and sized on evidence the market refuses to rank. The gates
  *  themselves are the market's; this owns only what a failed one costs. */
 export function createAdmissionStage(): Stage {
   return {

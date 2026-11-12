@@ -19,7 +19,7 @@ const MAP: SourceUse = { credit: OPENSTREETMAP_CREDIT, use: 'ui.office.credits.o
 const WEATHER: SourceUse = { credit: OPEN_METEO_CREDIT, use: 'ui.office.weather.attribution' }
 const ICONS: SourceUse = { credit: LUCIDE_CREDIT, use: 'ui.office.credits.iconsUse' }
 
-/** Ghi công: every source the office page draws from or reads, with its licence and a link. The web
+/** Ghi công: every source the office page draws from or reads, with its license and a link. The web
  *  edition has no weather feed, so it reads and credits nothing of Open-Meteo. */
 export function Credits() {
   const sources = isAnalysisOnly.value ? [MAP, ICONS] : [MAP, WEATHER, ICONS]

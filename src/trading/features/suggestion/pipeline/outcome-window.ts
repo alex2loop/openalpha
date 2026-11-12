@@ -30,7 +30,7 @@ export const MAXIMUM_OUTCOME_LOOKBACK_DAYS = 365
 
 const DAYS_PER_WEEK = 7
 
-/** The window in one market's own sessions. Holidays are deliberately not modelled: a holiday
+/** The window in one market's own sessions. Holidays are deliberately not modeled: a holiday
  *  shortens the bar count without shortening the wait, and this barrier measures the wait. */
 export function outcomeWindowSessions(
   calendar: CalendarPolicy,

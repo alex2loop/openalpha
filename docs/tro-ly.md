@@ -65,7 +65,7 @@ Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạ
   nền (mức chặt hơn giữa trần thời gian của phiên chạy và của `spawn` trong `[loop]`), đọc từ dịch vụ
   nền, nên luôn là con số thật. Chi phí của chúng tính vào phiên chạy của agent cha, và một nút dừng cả
   phiên chạy, gồm cả các agent con.
-- Dưới câu trả lời của một phiên chạy đã xong, thẻ *Kết quả* có một khối "Lệnh gọi AI" đang đóng, giống khối trên dòng của một việc và dưới câu trả lời chat đã xong: các lệnh gọi mô hình của phiên chạy đó và agent con của nó, kèm chi phí từng lệnh gọi và kết thúc ra sao (xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng)).
+- Dưới câu trả lời của một phiên chạy đã xong, thẻ *Kết quả* có một khối "Lượt gọi AI" đang đóng, giống khối trên dòng của một việc và dưới câu trả lời chat đã xong: các lượt gọi mô hình của phiên chạy đó và agent con của nó, kèm chi phí từng lượt gọi và kết thúc ra sao (xem [Ngân sách](ngan-sach.md#trên-trang-văn-phòng)).
 - Agent mới hay vừa sửa được kiểm tra như dịch vụ nền kiểm tra một tệp lúc khởi động: dạng tệp, mã, phạm vi, mức trần
   ngân sách, bước quét prompt và bậc mô hình. Bị từ chối thì lý do hiện bằng lời thường và không có gì được ghi.
 - Trang tạo tối đa 50 agent của riêng bạn, tính cả tệp nạp lỗi; quá mức đó nó yêu cầu bạn xóa bớt một agent trước.

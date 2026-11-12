@@ -31,7 +31,7 @@ const STOP_LOSS_LABEL = 'sl'
 const CANCEL_ARGUMENTS = 1
 const CONFIRM_ARGUMENTS_WITH_TOKEN = 1
 const RECONCILE_ARGUMENTS_WITH_TOKEN = 1
-/** `<[venue:]ticker> <buy|sell> <quantity>`, before any labelled pair. */
+/** `<[venue:]ticker> <buy|sell> <quantity>`, before any labeled pair. */
 const STAGE_ARGUMENTS = 3
 /** `<[venue:]ticker> <label> <price>`: the shortest line that names an instrument and one level. */
 const EXIT_ARGUMENTS = 3
@@ -67,7 +67,7 @@ interface Tail {
   readonly stopLoss?: number
 }
 
-/** Positional up to the quantity, then labelled pairs: a fourth and fifth bare number in a row is a
+/** Positional up to the quantity, then labeled pairs: a fourth and fifth bare number in a row is a
  *  line no operator can read back to themselves. The instrument is one token, `[venue:]ticker`, so
  *  nothing here is read off the argument count. The ticker is the base asset alone — a `Ticker`
  *  admits no slash, and the pair symbol belongs to the adapter. */
@@ -138,7 +138,7 @@ function parseCancel(rest: readonly string[]): TradeCommand | null {
   return request === null ? null : { kind: 'cancel', ...request }
 }
 
-/** `[venue:]ticker` then labelled pairs. `limit` is not one of the labels a resting exit accepts —
+/** `[venue:]ticker` then labeled pairs. `limit` is not one of the labels a resting exit accepts —
  *  an exit is a trigger, not a price to rest at. */
 function parseExit(rest: readonly string[]): TradeCommand | null {
   if (rest.length < EXIT_ARGUMENTS) {

@@ -391,7 +391,7 @@ export type BriefSectionResult =
       readonly rows: readonly BriefSectionRow[]
       /** What this section's money is denominated in: its aggregate amounts, or, for a price block,
        *  what its prices are quoted in. Absent where it carries neither, which is what keeps an
-       *  index level from being labelled as currency. */
+       *  index level from being labeled as currency. */
       readonly currency?: CurrencyCode
       /** The measure a price block's prices are per, where the ticker does not imply it (a gold
        *  price is per lượng or per ounce, a share price is per share). Stated with `currency`,

@@ -124,7 +124,7 @@ function coverageLine(locale: Locale, result: VenueSyncResult, venue: string): r
   return [`${INDENT[1]}${t(locale, 'trading.render.ledger.syncCoverageBySymbol', { venue })}`]
 }
 
-/** Fills the book already held. Nothing was written, but a run that recognised twelve of them must
+/** Fills the book already held. Nothing was written, but a run that recognized twelve of them must
  *  not read like a venue that reported nothing. */
 function alreadyBookedLine(locale: Locale, alreadyBooked: number): readonly string[] {
   if (alreadyBooked === 0) {

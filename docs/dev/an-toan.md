@@ -100,7 +100,7 @@ nó ngay cả khi không có `--verbose`, vì thông báo đó mang số phiên 
 Lỗi thiết lập mà operator sửa được thì ném `OperatorConfigError` với thông báo `errors.*` có khóa.
 
 - `toInvalidConfigError(err, schema, section?)` diễn đạt một lỗi schema với mọi vấn đề trong một tham
-  số danh sách (giới hạn số lượng, phần dư báo "và còn K chỗ nữa").
+  số danh sách (giới hạn số mục, phần dư báo "và còn K chỗ nữa").
 - Khóa lạ là một mục riêng cho từng khóa, kèm tên gần nhất mà `schema` nhận ở chỗ đó (`closestName`,
   `core/utils/text`). Nó cho phép số lần sửa bằng một phần ba độ dài từ, nên từ ngắn không được gợi ý
   gì. Một mục cấp cao nhất không ai nhận được gợi ý mục gần nhất theo cách tương tự.

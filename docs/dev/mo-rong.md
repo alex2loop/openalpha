@@ -83,7 +83,7 @@ export const helloCommand = createCommand({
 | `scrubCredentials` | gốc | Xóa bí mật khỏi văn bản trước khi hiển thị |
 | `boot`, `passThroughBootGate` | `/app` | Khởi động container. Trả về `{ app, delivery, dispose }` |
 | `main` | `/app` | Entry đầy đủ: khởi động, rồi chạy CLI với provider, lệnh và cổng khởi động thêm |
-| `createCommand`, `createGroup`, `createRoot` | `/cli` | Khai báo lệnh terminal, gom các lệnh con, dựng cây gốc chạy được (cây gốc tự thêm `help` và bí danh `--version`) |
+| `createCommand`, `createGroup`, `createRoot` | `/cli` | Khai báo câu lệnh terminal, gom các câu lệnh con, dựng cây gốc chạy được (cây gốc tự thêm `help` và bí danh `--version`) |
 | `lazyCommand` | `/cli` | Chỉ nạp module của lệnh khi nó chạy |
 | `admitCommand`, `preflightCommand` | `/cli` | Cổng cho phép và cổng kiểm tra trước, bao quanh bước điều phối lệnh |
 | `preBootApp`, `runCli` | `/cli` | Ứng dụng chỉ có cấu hình cho các lệnh không cần khởi động; chạy cây lệnh với argv |
