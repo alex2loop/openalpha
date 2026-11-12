@@ -258,7 +258,7 @@ export function nearestEvents(
   events: readonly MarketEvent[],
   asOf: TradingDay,
   limit: number
-): readonly Pick<MarketEvent, 'at' | 'kind' | 'title' | 'detail' | 'composedText'>[] {
+): readonly Pick<MarketEvent, 'at' | 'kind' | 'title' | 'detail' | 'composedText' | 'writtenIn'>[] {
   const last = shiftCalendarDay(asOf, EVENTS_AHEAD_DAYS)
 
   return events
@@ -268,6 +268,10 @@ export function nearestEvents(
       at: event.at,
       kind: event.kind,
       title: event.title,
-      ...definedOnly({ detail: event.detail, composedText: event.composedText }),
+      ...definedOnly({
+        detail: event.detail,
+        composedText: event.composedText,
+        writtenIn: event.writtenIn,
+      }),
     }))
 }

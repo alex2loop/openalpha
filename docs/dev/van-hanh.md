@@ -32,23 +32,33 @@ tiên vẫn có nơi gửi tới.
 - `tapeFinalAt` của từng thị trường: giờ đóng phiên cộng độ trễ khớp lệnh định kỳ. Đây chính là mốc
   quyết định một phiên có được tính là đã chốt hay không, nên một lượt làm mới không neo vào bảng giá mà
   sau đó chính nó từ chối lưu;
-- 90 phút trước giờ mở của từng thị trường, để bản tin và bảng lọc đọc dữ liệu đã làm ấm;
+- 90 phút trước giờ mở của từng thị trường, để bản tin và Màn lọc đọc dữ liệu đã làm ấm;
 - `interval_ms` đã cấu hình, là cái trần và là phương án dự phòng khi sổ đăng ký rỗng.
 
 Thị trường chạy liên tục không có giờ mở, nên chỉ neo vào lúc sang ngày UTC. Hai neo cách nhau dưới 60
 giây thì gộp thành một lượt.
 
-Khi khởi động, lần làm mới đầu chạy như một tác vụ dịch vụ nền được theo dõi, song song với các hệ con
-khác. Các vòng đọc dữ liệu thị trường chờ nó trước nhịp đầu, tối đa 60 giây (`daemon.boot_refresh_timeout`),
-rồi lượt quét hoàn tất ở chế độ nền. Lỗi ranh giới (`isBoundaryFailure`) từ nó chỉ cảnh báo
-`daemon.boot_refresh_failed` dù ở trong hay sau 60 giây và dịch vụ nền vẫn chạy; lỗi khác là chí mạng,
-qua bộ theo dõi tác vụ dịch vụ nền. Nhịp đầu tiên của chính vòng lặp chạy ngay sau đó: nếu lượt quét khởi động vẫn đang
-chạy thì nó nhập vào đó, và nếu máy khởi động không có mạng, chính nhịp này là lượt chờ có mạng rồi đi
-vào chuỗi thử lại.
+Lượt đầu của vòng là lượt quét khởi động: nó chạy ngay khi khởi động, song song với các hệ con khác,
+và nếu máy khởi động không có mạng, chính nó là lượt chờ có mạng rồi đi vào chuỗi thử lại. `FirstSweep`
+(`wiring/first-sweep.ts`) sở hữu việc "lượt quét đầu đã xong": promise `settled` của nó thả các vòng đọc
+dữ liệu thị trường khi lượt đầu kết thúc, dù kết thúc thế nào (xong, lỗi, bị dừng từ danh sách phiên
+chạy), khi hết ngân sách 60 giây (`trading.boot_refresh_timeout`; lượt đó không bị hủy và hoàn tất ở chế
+độ nền), hoặc khi vòng kết thúc. Việc thả là idempotent và bộ hẹn giờ ngân sách được xóa theo, nên lượt
+về muộn hay lần thả thứ hai không làm gì. Lỗi ranh giới (`isBoundaryFailure`) ở lượt đầu là
+`trading.tick_failed` như mọi lượt khác; lỗi nào khác cách ly riêng vòng làm mới
+(`trading.loop_quarantined`) chứ không dừng dịch vụ nền.
 
 Lượt để bất kỳ loại dữ liệu nào ở `unavailable` (không lấy được gì) thử lại sau 2, 4, 8 và 16 phút,
 không bao giờ quá neo kế tiếp; lần hỏng thứ năm trả việc về cho neo và chuỗi bắt đầu lại. Lượt `partial`
 thì chờ neo kế tiếp.
+
+Lượt refresh theo lịch bị operator dừng từ danh sách phiên chạy được tính là lượt hỏng và đi theo cùng
+chuỗi thử lại: lần thử lại đầu chạy sau 2 phút, không chờ đến neo kế tiếp. Lượt này mang theo khâu chụp
+bảng yếu tố của ngày (`createFactorLogTick`, sau khi làm mới và ghi dòng NAV), mà khâu chụp chỉ hỏi phiên
+đã chốt gần nhất, nên một lượt mất vì bị dừng sẽ làm mất bảng của ngày đó vĩnh viễn. Tắt dịch vụ nền vẫn
+dừng vòng lặp. Khâu chụp ghi `trading.factor_log_captured` khi có dòng được ghi, và ở mức debug
+`trading.factor_log_no_screen` cùng `trading.factor_log_already_captured`, mỗi dòng kèm thị trường và ngày
+phiên, để lần theo một ngày bị thiếu; bảng chậm hoặc rỗng thì cảnh báo `trading.factor_log_capture_deferred`.
 
 ### Phân loại lỗi của một lượt
 
@@ -59,7 +69,7 @@ thì chờ neo kế tiếp.
 | `StorageError`, `ChannelError`, `LLMError`, hoặc `RunHalted` với mã `budget` hay `rate` | Lỗi biên: `trading.tick_failed` ở mức warn, thử lại ở chu kỳ sau. |
 | `MissingEnvError` | Lỗi biên: `trading.tick_key_missing` ở mức warn, một lần mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở chu kỳ sau. |
 | Mọi lỗi khác | Thoát lên lớp cách ly bọc quanh vòng lặp. Thử lại mãi chỉ che giấu việc mã đang sai. |
-| Hủy | Là lúc tắt máy khi chính tín hiệu của vòng lặp bị hủy; vòng lặp thoát bình thường. Lệnh hủy khác (bạn dừng phiên chạy của lượt đó trên trang) ghi `trading.tick_stopped` ở mức info và chờ chu kỳ sau. |
+| Hủy | Là lúc tắt máy khi chính tín hiệu của vòng lặp bị hủy; vòng lặp thoát bình thường. Lệnh hủy khác (bạn dừng phiên chạy của lượt đó trên trang) ghi `trading.tick_stopped` ở mức info và chờ theo độ trễ kế tiếp của tác vụ: chu kỳ thường, hoặc với `trading.refresh` là chuỗi thử lại bên dưới. |
 
 Lớp cách ly (`withQuarantine`) ghi `trading.loop_quarantined` ở mức error và gửi operator một thông báo
 gọi tên vòng đó. Nó chạy lại vòng sau một giờ, tối đa ba lần. Vòng nào chạy trọn một ngày rồi mới lỗi

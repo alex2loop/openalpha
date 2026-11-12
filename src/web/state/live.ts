@@ -1,7 +1,12 @@
 import { computed, type ReadonlySignal, signal } from '@preact/signals'
 
 import type { WireEvent } from '@/app/server/wire/events'
-import type { PendingWire, ProgressWire, QuestionPendingWire } from '@/app/server/wire/live'
+import type {
+  PendingWire,
+  ProgressWire,
+  QuestionPendingWire,
+  RunStartWire,
+} from '@/app/server/wire/live'
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import { setCapped } from '@/web/state/capped-map'
 
@@ -25,6 +30,7 @@ export interface Run {
   readonly agentId?: string
   readonly sessionId: string
   readonly parentRunId?: string
+  readonly subject?: RunStartWire['subject']
   readonly hidden?: true
   readonly startedAt: number
   readonly seenAt: number
@@ -40,6 +46,7 @@ const runList = signal<readonly Run[]>([])
 const pendingList = signal<readonly PendingWire[]>([])
 const checkedAt = signal<number | undefined>(undefined)
 const taskList = signal<readonly TaskStatusWire[] | undefined>(undefined)
+const staleAt = signal<number | undefined>(undefined)
 // The tickers each run the page watched end reported, oldest first, by `runId`.
 const finishedTickers = new Map<string, readonly string[]>()
 // The runs the page saw start a child run, which stays known after the child ends.
@@ -54,8 +61,39 @@ export const pending: ReadonlySignal<readonly PendingWire[]> = pendingList
 export const alertsCheckedAt: ReadonlySignal<number | undefined> = checkedAt
 /** The daemon's background tasks as it last said; absent until the first snapshot. */
 export const backgroundTasks: ReadonlySignal<readonly TaskStatusWire[] | undefined> = taskList
-/** Background tasks in a pass right now. */
-export const workingTasks = computed(() => taskList.value?.filter((task) => task.working) ?? [])
+/** Epoch ms (page clock) as of which the page's picture is known: set once the socket gives a
+ *  verdict (`offline` or `full`) after a live drop, to the instant it left `live`; moved forward by a
+ *  snapshot applied while not live; cleared by a snapshot applied on a live socket. */
+export const staleSince: ReadonlySignal<number | undefined> = staleAt
+/** Background tasks in a pass right now, but for one whose run the Running list is showing. */
+export const workingTasks = computed(() => {
+  const shown = runList.value.filter((run) => !run.hidden)
+
+  return taskList.value?.filter((task) => task.working && !isShownAsRun(task, shown)) ?? []
+})
+
+/** The socket gave its verdict after a live drop; a drop already known keeps its earlier instant. */
+export function noteFeedDropped(leftLiveAt: number): void {
+  staleAt.value ??= leftLiveAt
+}
+
+/** A snapshot applied while the socket is not live: the picture is known as of `at`, never earlier. */
+export function noteFeedRead(at: number): void {
+  if (staleAt.value !== undefined && at > staleAt.value) {
+    staleAt.value = at
+  }
+}
+
+/** A snapshot applied on a live socket, or a feed that is over: nothing is stale. */
+export function noteFeedCurrent(): void {
+  staleAt.value = undefined
+}
+
+function isShownAsRun(task: TaskStatusWire, shown: readonly Run[]): boolean {
+  const { shownAsRun } = task
+
+  return shownAsRun !== undefined && shown.some((run) => isCommandRun(run, shownAsRun))
+}
 
 /** A run of the slash command `name`, which its run carries without the slash. */
 export function isCommandRun(

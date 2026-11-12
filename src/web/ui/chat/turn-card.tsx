@@ -18,10 +18,12 @@ import {
 } from '@/web/state/command'
 import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
-import { findRun, hasChildren, type Run, runs } from '@/web/state/live'
+import { findRun, hasChildren, hasStartedChild, type Run, runs } from '@/web/state/live'
 import { isLevelInstrument } from '@/web/state/market'
 import { canRemember, toAttributeName } from '@/web/state/memory'
+import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
+import { formatClock } from '@/web/text/time'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { commandWordOf, commandWordsOf, resolveCommandLink } from '@/web/ui/chat/command-link'
@@ -32,7 +34,9 @@ import { RunButton } from '@/web/ui/command/run-button'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { askConfirm } from '@/web/ui/kit/confirm'
+import { StopButton } from '@/web/ui/kit/stop-button'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
+import { RunTimeline, RunTimelineFold } from '@/web/ui/run/timeline/run-timeline'
 import { openSettings } from '@/web/ui/settings/settings'
 import { SuggestChip } from '@/web/ui/ticker/suggest-chip'
 
@@ -83,12 +87,15 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
       <PreferenceLines preferences={turn.preferences} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
       {isFinished(turn) && turn.runId !== undefined && (
-        <RunCalls
-          key={turn.runId}
-          runId={turn.runId}
-          isRunning={false}
-          command={turn.kind === 'slash' ? commandWordOf(turn.text) : undefined}
-        />
+        <>
+          {hasStartedChild(turn.runId) && <RunTimelineFold key={turn.runId} runId={turn.runId} />}
+          <RunCalls
+            key={turn.runId}
+            runId={turn.runId}
+            isRunning={false}
+            command={turn.kind === 'slash' ? commandWordOf(turn.text) : undefined}
+          />
+        </>
       )}
     </div>
   )
@@ -103,6 +110,7 @@ function RunningStep({ turn }: { readonly turn: Turn }) {
 
   const fallback = turn.kind === 'slash' ? 'ui.office.chat.working' : 'ui.office.chat.answering'
   const alongside = resolveAlongside(turn)
+  const run = findTurnRun(turn)
 
   return (
     <>
@@ -112,6 +120,9 @@ function RunningStep({ turn }: { readonly turn: Turn }) {
       </p>
       {alongside !== undefined && (
         <p class="meta">{tr('ui.office.chat.parallel', { what: alongside })}</p>
+      )}
+      {run !== undefined && hasStartedChild(run.runId) && (
+        <RunTimeline key={run.runId} runId={run.runId} root={run} />
       )}
     </>
   )
@@ -212,11 +223,7 @@ function RunningActions({ turn }: { readonly turn: Turn }) {
           {tr('ui.office.chat.addNote')}
         </Button>
       )}
-      {canStop(turn) && (
-        <Button kind="destructive" size="small" onClick={() => askStopTurn(turn)}>
-          {tr('ui.office.common.stop')}
-        </Button>
-      )}
+      {canStop(turn) && <StopButton onClick={() => askStopTurn(turn)} />}
     </div>
   )
 }
@@ -255,6 +262,10 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
     return <p class="meta">{tr(`ui.office.chat.${turn.status}`)}</p>
   }
 
+  if (turn.status === 'cut') {
+    return <CutFoot cutAt={turn.cutAt} />
+  }
+
   const link = resolveCommandLink(turn.text, turn.runId)
 
   return (
@@ -278,6 +289,19 @@ function FinishedFoot({ turn }: { readonly turn: Turn }) {
         <NextSteps turn={turn} />
       </div>
     </>
+  )
+}
+
+// The time needs the session's zone, which any page that sent a turn has.
+function CutFoot({ cutAt }: { readonly cutAt: number | undefined }) {
+  const timeZone = state.value?.timeZone
+
+  if (cutAt === undefined || timeZone === undefined) {
+    return null
+  }
+
+  return (
+    <p class="chat-caution">{tr('ui.office.chat.cut', { time: formatClock(cutAt, timeZone) })}</p>
   )
 }
 

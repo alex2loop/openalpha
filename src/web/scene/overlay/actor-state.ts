@@ -12,7 +12,7 @@ import { ASSISTANT, isCrewId, ownActorIdOf, ownAgentIdOf } from '@/web/scene/sim
 import { goalsFor, holderOf } from '@/web/scene/sim/vocabulary'
 import { agents, selectedAgentId } from '@/web/state/agents'
 import { thread } from '@/web/state/chat'
-import { APPROVAL_KIND, findRun, pending, runs } from '@/web/state/live'
+import { APPROVAL_KIND, findRun, pending, runs, staleSince } from '@/web/state/live'
 import { joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 import { tr } from '@/web/text/tr'
@@ -51,6 +51,8 @@ export type ActorNow =
   | { readonly kind: 'dot'; readonly status: ActorStatus }
   /** One of the building crew: their role says it all. */
   | { readonly kind: 'crew' }
+  /** The page's picture went stale at `since`: what they do now is not known. */
+  | { readonly kind: 'unknown'; readonly since: number }
 
 /** What the live store calls for, as the director reads it: who works on which run, who waits. */
 export const wantedGoals = computed(() => goalsFor(runs.value, pending.value))
@@ -59,10 +61,16 @@ export const sceneGoals = computed(() => new Map([...wantedGoals.value, ...teamG
 
 /** Most pressing first: paused, waiting on the operator, running, waiting for its turn, an errand,
  *  an office life moment, else what its dot says (free when it shows none). The building crew have
- *  none of these. */
+ *  none of these, and while the picture is stale nobody's work is known. */
 export function actorNowOf(sim: SimView, actor: ActorId): ActorNow {
   if (isCrewId(actor)) {
     return { kind: 'crew' }
+  }
+
+  const since = staleSince.value
+
+  if (since !== undefined) {
+    return { kind: 'unknown', since }
   }
 
   const goals = sceneGoals.value

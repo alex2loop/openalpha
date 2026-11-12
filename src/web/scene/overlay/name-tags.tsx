@@ -2,8 +2,8 @@ import type { MessageKey } from '@/i18n'
 import type { ActorId, Rect, RoleId } from '@/web/scene/types'
 import { isCrewId, ownAgentIdOf, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { agents } from '@/web/state/agents'
-import { locale } from '@/web/state/session'
 import { TRUNCATION_MARK } from '@/web/text/glyphs'
+import { toSentenceStart } from '@/web/text/sentence'
 import { tr } from '@/web/text/tr'
 
 /** Each role's name: debate roles by the daemon's own names, the rest by the office's. */
@@ -43,9 +43,7 @@ export function roleNameOf(role: RoleId): string {
 
 /** The role's name as a title: the daemon writes debate roles in lower case, for use mid-line. */
 export function roleTitleOf(role: RoleId): string {
-  const name = roleNameOf(role)
-
-  return `${name.charAt(0).toLocaleUpperCase(locale.value)}${name.slice(1)}`
+  return toSentenceStart(roleNameOf(role))
 }
 
 /** A person's tag text: the role's name, an own agent's name, or "temp - role" for a child given

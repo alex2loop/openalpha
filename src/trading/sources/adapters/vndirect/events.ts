@@ -121,6 +121,7 @@ function toMarketEvent(raw: unknown): ParsedSource<MarketEvent> {
       kind,
       providerEventId: String(row.id),
       title: title.value,
+      writtenIn: 'vi',
       ...(detail === undefined ? {} : { detail: toVietnameseFigures(detail.value) }),
       ...termsOf(kind, row),
     },

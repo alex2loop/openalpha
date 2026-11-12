@@ -249,6 +249,14 @@ takes out one waiting command.
 - A malformed id is `invalid_body`; an unknown or unbilled run is an empty list.
 - The page's `RunCalls` fold ([web/ui/run/calls/](../../../src/web/ui/run/calls/)) reads it when opened, keeps the runs that had ended in a capped cache (`RUN_CALLS_CACHE_MAX`), and reads a running run again on its `run_finished`, never on a timer.
 
+`GET /v1/runs/:runId/timeline` ([routes/runs.ts](../../../src/app/server/routes/runs.ts)) answers who worked on a run and when: the run's own row once it has ended (`RunLogStore.findRun`), its direct children that have ended, oldest first, and the run's total, all priced as `/v1/activity` prices them.
+
+- It lists at most `RUN_TIMELINE_CHILDREN_MAX` children (`truncated` beyond), reading one row past the cap to tell a full page from a cut one.
+- `run` is absent while the run runs, for a run never written and for an unknown id: the run log's writes are fire-and-forget, so a client reads that as not yet written and never keeps the answer as final. `totalUsd` is set while the run runs.
+- A malformed id is `invalid_body`; an unknown id is the empty shape.
+- A person's cost is the sum of that person's child rows, each priced over the run tree ([persistence/stores/run-tree-sql.ts](../../../src/persistence/stores/run-tree-sql.ts), which also counts calls billed under a throwaway run id through `llm_attempts.parent_run_id`); the page prints the rest of the run as `totalUsd` less the listed children.
+- It is operator only. Cost per person is read from this route alone: no `WireEvent` carries it (the declared `usage` kind is never sent), no prompt or tool result is built from the run log's costs, and the route is withheld on the web edition, whose strip runs from the worker's live events and shows times only.
+
 One `/suggest` runs per identity and depth: a second finds the run in the suggestion service's
 flight map and waits on it, and the starter alone is billed.
 
@@ -431,11 +439,10 @@ registered as its subsystem starts, so a later one that throws cannot lose an ea
 
 **Start order.** Migrations and the container come first. The API binds next, before any subsystem
 (`startDaemonApi`), so a page can connect while the daemon is still coming up and a busy port is the
-first thing reported. Then workspace retention, then `startDaemonSubsystems` (the boot refresh as a
-tracked daemon task, channels, scheduled workflows, delivery, channel watch, scheduler, trading loops,
-maintenance, plugin tasks), then `markReady`. The API's admission closer and stop are registered for
-teardown the moment it binds, so a start that fails later still closes it, and its admission still
-closes first on the way down.
+first thing reported. Then workspace retention, then `startDaemonSubsystems` (channels, scheduled
+workflows, delivery, channel watch, scheduler, trading loops, maintenance, plugin tasks), then
+`markReady`. The API's admission closer and stop are registered for teardown the moment it binds, so
+a start that fails later still closes it, and its admission still closes first on the way down.
 
 Until `markReady` the API is starting: `GET /v1/health` answers `ok: false, status: 'starting'`, and a
 route answers only if it is a `GET` or declares `whileStarting` (the sign-in exchange, sign-out and
@@ -446,14 +453,24 @@ upgrade, so a route added without thinking of it fails closed. The page reads `s
 `/v1/health`, shows the `ui.office.starting` line and signs in only once it reads `ready`, so a sign-in
 code is never spent on a daemon that cannot finish the exchange.
 
-The boot sweep no longer blocks the start. It runs as a tracked task: a failure that is not a boundary
-failure ends the daemon through the same task tracker as every other loop. The trading loops that read
-market data (alerts, the operation loops and the intraday loop) wait on the `firstSweep`
-promise before their first tick, aborting with the daemon; the exit and intent loops read only the venue
-and the stored plans, so they start at once; `runBootRefresh` settles it through
-`TradingServices.releaseFirstSweep` when the sweep ends, when its 60 s budget runs out and in `finally`,
-so a stuck provider never holds them. The refresh loop joins the sweep through the coordinator's
-in-flight map; chat, the scheduler, the channels and maintenance never wait for it.
+The boot sweep does not block the start: it is the first pass of the `trading.refresh` loop, which ticks
+at start like every trading loop. The trading loops that read market data (alerts, the operation loops
+and the intraday loop) wait on the `FirstSweep` promise (`trading/wiring/first-sweep.ts`, created by
+`createTradingDaemonTasks`) before their first tick, aborting with the daemon; the exit and intent loops
+read only the venue and the stored plans, so they start at once. The refresh loop releases it when its
+first pass settles, when its 60 s budget runs out (`trading.boot_refresh_timeout`) and when the loop
+ends, so a stuck provider or an offline start never holds the others past the budget. A failure of that
+first pass is handled as any later one: a boundary failure is `trading.tick_failed`, anything else
+quarantines the loop (`withQuarantine`) and never ends the daemon. Chat, the scheduler, the channels and
+maintenance never wait for it.
+
+That pass runs through `runScheduled`, so it shows on the page as one `refresh` run. The task board
+(`taskStatus`) reports the loop under `trading.refresh` as working for the same pass; its row would say
+the same work twice in the Running list and the header chip, so `TaskStatusWire.shownAsRun` names the
+run that shows the task's fetch, and `workingTasks` leaves the task out only while a run of that name
+is listed. The snapshots the pass takes after the fetch have no run, so the task counts then, and the
+chip and the Running list agree throughout (both read `workingTasks`). The upkeep list still shows the
+loop as running.
 
 The daemon task
 hands both lists to its `onReady` handler (`DaemonStartOptions.onReady`); the foreground `start` prints them on
@@ -881,6 +898,15 @@ The `web` module is the office page: a Preact interface with signals for state a
 
 **The store and the event hub.** [state/feed.ts](../../../src/web/state/feed.ts) owns the one socket. On every connect it takes a snapshot (`GET /v1/live`), holds the events that arrive meanwhile in a bounded buffer and replays them in order, merges runs by `runId`, and keeps a short list of finished runs so a late event never revives one. It also resyncs on a timer (`LIVE_RESYNC_MS`). A failed snapshot is retried on the backoff and never closes the socket, since closing it would stop the chat turns and commands it carries. After applying an event to the store it publishes it once on the hub in [state/events.ts](../../../src/web/state/events.ts): `onWireEvent(kind | 'any', handler)`, with one handler's fault never stopping another. The scene, the notices and the office life subscribe there and nowhere else.
 
+**A stale picture.** `staleSince` ([state/live.ts](../../../src/web/state/live.ts)) is the one owner of "the page cannot vouch for what it shows", and only [state/feed.ts](../../../src/web/state/feed.ts) writes it. It is set to the instant the socket left `live` once the socket gives a verdict (`offline` or `full`) after a snapshot was applied on a live socket, so a blip under a second, and a page that opened `full`, never set it; a second verdict keeps the earlier instant. A snapshot applied while the socket is not live (the poll that runs during `full`) moves it forward to that read. A snapshot applied on a live socket clears it, as do a refusal, the end of the feed and a sign-out. Everything else reads it and keeps no copy of it:
+
+- the scene loop's hold (`watchStale`, `SimLoop.hold`): no step, no timer, one draw per wake, and on release the hidden-pane resume re-derives everyone from the fresh store; `StaleVeil` is the note, and `actorNowOf` returns `unknown` for the hover label and the screen-reader twin;
+- the agent head and its step line, the jobs popover (one `StaleLine` under Running) and its rows, the header chip, and the strip's bars, which also re-read once the picture is current again;
+- the chat panel's `StaleLine`, and `cutUnfinished`, which ends every unfinished turn as `cut` with the page clock's instant;
+- `useLiveNow`, which freezes the page clock at it, and `.app.is-offline`, which greys the panes and stops the spin icons of running rows and steps.
+
+A strip that mounts while stale and has nothing heard says it cannot know until the daemon is back (not a load failure), and re-reads once the picture is current. `StopButton` ([ui/kit/stop-button.tsx](../../../src/web/ui/kit/stop-button.tsx)) is the one stop button: off while stale, and the radial menu leaves "stop" out. `SceneNotes` is the one top-centre stack of the scene (`StaleVeil` above `ViewNote`). `BottomStack` measures the foot it takes into `--stackReserve`, which `.popover` subtracts from its height. Each surface says it once: a running strip adds no line of its own beneath a head, a popover or a chat panel that already does. The web edition's worker socket is in the page and always `live`, so none of this fires there.
+
 **Scene layers and their gate.** Under `scene/` the folders are ranked: `world` (floors, rooms, props, seats, doors, nav grid, the seeded generator), `clock`, `data` (the `/v1` signals the scene reads), `sim`, then `render2d`, `render3d` and `sprites` (one rank, so neither renderer reaches the other, except that `render3d` reuses the street drawing in `render2d/street/`; both read the shared palettes, light rows and screen faces in `sprites/`), then `overlay` (every DOM piece over the canvas). A file imports its own layer, a lower one and the root files (`types`, `street-types`, `sky-types`, `overlay-types`, `renderer`, `budgets`, `view`), never a higher one.
 
 - [scripts/check-scene-layers.ts](../../../scripts/check-scene-layers.ts), part of `bun run lint:arch`, enforces it. So the sim cannot reach a renderer, nothing reaches the 3D renderer except the composer's lazy `import()`, and `three` is imported only under `render3d/`.
@@ -978,7 +1004,7 @@ The sources a page can read are a measured subset. `BROWSER_REACHABLE_SOURCES`, 
 
 ### Edition capabilities
 
-`Capabilities` says what an edition *offers*, fixed per edition, not live state (that stays in `/v1/state` and the route gates). The daemon offers everything and is not analysis-only; the web has `analysisOnly: true` and `venues`, `channels`, `schedules`, `agents` and `chatgpt` false ([host.ts](../../../src/app/browser/host.ts)). The routes agree: [routes.ts](../../../src/app/browser/routes.ts) serves a subset of the route groups and withholds, as `not_found`, the daemon's routes (alerts, themes, the venue sync, reconcile, `PATCH /v1/brief`, a run's per-call cost) and the ones that name a verdict, a stop or a plan (suggestions, stops, the track record), so a capability derived from the route table reads false too. `/v1/analyses` is the web's own, and `POST /v1/runs/:id/stop` is served so the page's Stop and the jobs list work, and so are the stored-chat routes (recent, sessions, history and a session's delete) so a reload shows the chat again; `POST /v1/respond` stays withheld, since no tool the web's chat may call asks for an approval. `/v1/rebalance` on the web carries gaps only: no side and no quantity in the wire, not just in the text.
+`Capabilities` says what an edition *offers*, fixed per edition, not live state (that stays in `/v1/state` and the route gates). The daemon offers everything and is not analysis-only; the web has `analysisOnly: true` and `venues`, `channels`, `schedules`, `agents` and `chatgpt` false ([host.ts](../../../src/app/browser/host.ts)). The routes agree: [routes.ts](../../../src/app/browser/routes.ts) serves a subset of the route groups and withholds, as `not_found`, the daemon's routes (alerts, themes, the venue sync, reconcile, `PATCH /v1/brief`, a run's per-call cost and its timeline) and the ones that name a verdict, a stop or a plan (suggestions, stops, the track record), so a capability derived from the route table reads false too. `/v1/analyses` is the web's own, and `POST /v1/runs/:id/stop` is served so the page's Stop and the jobs list work, and so are the stored-chat routes (recent, sessions, history and a session's delete) so a reload shows the chat again; `POST /v1/respond` stays withheld, since no tool the web's chat may call asks for an approval. `/v1/rebalance` on the web carries gaps only: no side and no quantity in the wire, not just in the text.
 
 The page reads this through `isAnalysisOnly` and `offers(feature)` in `state/edition.ts` and hides what the edition lacks; a route marked `daemonOnly` in the page's route table is never called on the web. The page and the worker meet at two seams: `setApiTransport` (a `fetch` replacement, here `postMessage` `http` calls) and `setFeedSocketFactory` (the socket, here `frame` calls), both in [src/web/edition/](../../../src/web/edition/). The office's own `api/` and `state/` code runs unchanged over them.
 
@@ -993,7 +1019,7 @@ One value, [TradingEdition](../../../src/trading/wiring/composition/edition.ts),
 | `suggest` | the full pipeline | an analysis: a bull and a bear case on evidence built without a drafted decision and without the analysts' ratings and target price (`withoutAnalystCoverage`), then a claim check; stored apart in `suggestion_analyses` with an `aiGenerated` marker the mapper derives; `/suggest stops`, `lean`, `full` and `force` are refused; with no key it answers the line naming the key and sends nothing |
 | `rebalance` | `'orders'` | `'gaps'`: the gap to the visitor's own segment targets in weight and value, per segment and per held name (the names of a segment outside its band scaled together to its target, an excluded name kept), no side, quantity, reason, size, cash split or after-plan column; no score, regime, watchlist name or weak-first sector cut is read (the plan is built from held names only); a caveat that names an action, a size, a candidate or a score is dropped (`keptCaveats`, one keep or drop entry per portfolio caveat code, so a new code cannot ship undecided); the plan states no `deploymentScale`, so the macro read keeps its regime and drivers and states no share of a buy to put to work (`/overview`, the brief's macro row and verdict line, the wire) |
 | `readingsOnly` | the overview and brief state the macro regime, score and deploy line, with the caveats' full wording | `true` on the web, which makes no call: the overview, the brief and the `market_overview` tool give the macro as its drivers' readings, with no regime, score or deploy line; the brief's caveats read in their plain form; the market layer builds no index support and resistance range, and VN gold's premium carries no rank against its own history; the `rebalance` row says what the rest reads |
-| `screen` | `'ranked'` | `'board'`: every priced name in ticker order with what each factor read and its percentile, no rating, composite, rank or "top"; the reader sorts, and a name with no price is left out and counted |
+| `screen` | `'ranked'` | `'board'`: every priced name in ticker order with what each factor read and the percentile of that reading (a factor whose higher score is a lower reading, such as funding, volatility and value, takes the complement of its score's place, so the percentile always follows the figure it sits beside), no rating, composite, rank or "top"; the reader sorts, and a name with no price is left out and counted |
 | `briefOmits` | nothing | `watchlist-leading` and `screen-delta` (they rank names), `discipline` (standing rules for stops, entries and tranches) and `deposit-rate` (the cash posture a plan would leave) |
 | `briefActionOmits` | nothing | `avoid-chasing`, the one next action that tells the reader when to buy |
 | `profile` | every setting, under the installed usage text | the settings a web feature reads: `risk-level`, `goal`, `horizon`, `reserve-pct-nav` (the gaps plan keeps the `reserve-below-target` finding, and a cash target below the reserve is refused), `maximum-sector-pct-nav` (`/portfolio` lists each sector against it and the plan keeps the `sector-cap-breach` finding), `segment-target`, `segment-cap` and `position-cap`, with `enable`, `disable` and `reset`. `/profile`, its completion and its refusal text print and accept only those, the usage is its own key with no order, stop or tranche wording, and a setting the web does not read is refused with `errors.profileInstalledOnly`, by the one check (`assertOffered`) the text command and `POST /v1/profile` both pass. The profile wire (`profileFields` on the aggregate) leaves the other fields absent, so a client shows them as missing, never as 0. The daemon's `/profile` is unchanged |

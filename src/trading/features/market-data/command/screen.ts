@@ -15,6 +15,7 @@ import {
   screenableKindsText,
 } from '@/trading/kernel/instrument'
 import {
+  parseFiniteNumber,
   parseMember,
   parsePositiveInteger,
   parseRegisteredMarket,
@@ -110,6 +111,8 @@ function buildUsageValues(deps: ScreenCommandDeps): CommandMessageValues {
   return {
     markets: deps.marketData.markets().join(', '),
     kinds: screenableKindsText(deps.marketData.screenableKinds()),
+    maximum: SURFACE_LIMITS.maximumScreenCandidates,
+    default: SURFACE_LIMITS.defaultScreenCandidates,
   }
 }
 
@@ -177,7 +180,8 @@ function fillSlot(slots: ScreenSlots, raw: string, context: ScreenArgsContext): 
     return slots.limit === undefined ? { ...slots, limit } : null
   }
 
-  return fillTicker(slots, raw, context)
+  // A number outside the limits is a mistyped limit: no listed name is only digits.
+  return parseFiniteNumber(raw) === null ? fillTicker(slots, raw, context) : null
 }
 
 /** Anything else is a name, `market:ticker` when it says where it lists; a second name, or a market

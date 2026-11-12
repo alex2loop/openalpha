@@ -15,7 +15,7 @@ import type { DebateInput, SuggestionSink } from '@/trading/features/suggestion/
 import type { SuggestionRequest } from '@/trading/features/suggestion/types'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { DebateRole, DebateWavePlan } from '@/trading/kernel/config'
-import type { InstrumentKind } from '@/trading/kernel/instrument'
+import type { InstrumentKind, InstrumentRef } from '@/trading/kernel/instrument'
 import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { casePrompt } from '@/trading/features/suggestion/debate/debate-prompts'
 import { renderPlaybook, rolePlaybook } from '@/trading/features/suggestion/debate/playbook'
@@ -51,6 +51,9 @@ export interface RoleCallContext {
   readonly request: SuggestionRequest
   /** Resolved once, because every role's playbook and the stored record both read its manifest. */
   readonly market: Market
+  /** The resolved instrument every role argues: `request.ticker` is what the caller typed, while the
+   *  feed and `role_output` name the resolved one. */
+  readonly instrument: InstrumentRef
   readonly instrumentKind: InstrumentKind | undefined
   /** The waves this run executes: the order its budget slices were cut in and the progress it shows. */
   readonly waves: readonly DebateWavePlan[]
@@ -104,6 +107,7 @@ export function call<T>(context: RoleCallContext, spec: RoleCall<T>): Promise<Ro
     },
     routingKey: `${role}:${context.market.manifest.id}`,
     request: context.request,
+    instrument: context.instrument,
     signal: context.signal,
   }).then((result) => recordModel(context, result))
 }

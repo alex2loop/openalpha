@@ -51,7 +51,6 @@ const KLINES = z.array(
  *  the quote was taken. */
 const TICKER_24H = z.object({
   lastPrice: z.string().min(1),
-  priceChangePercent: z.string().min(1),
   closeTime: z.number(),
 })
 
@@ -117,7 +116,6 @@ function toQuote(raw: unknown, context: SourceContext): Quote {
   return {
     instrument: context.instrument,
     price: positive(Number(row.lastPrice), 'lastPrice'),
-    changePct: finite(Number(row.priceChangePercent), 'priceChangePercent'),
     observedAt: finite(row.closeTime, 'closeTime'),
   }
 }

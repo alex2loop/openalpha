@@ -284,6 +284,8 @@ export interface RunLogStore {
     runIds: readonly RunId[],
     perRun: number
   ): Promise<ReadonlyMap<RunId, readonly RunLogRow[]>>
+  /** The run's row once it has ended; undefined while it runs or for a run never written. */
+  findRun(runId: RunId): Promise<RunLogRow | undefined>
   /** Top-level runs of one agent that ended before `beforeMs`, newest first. */
   listResearch(agent: string, beforeMs: number, limit: number): Promise<readonly RunLogRow[]>
   /** How many top-level runs of one agent ended in `[fromMs, toMs)`. */

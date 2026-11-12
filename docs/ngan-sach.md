@@ -141,6 +141,7 @@ Khi API bật, ứng dụng cho thấy chi phí trước khi chạy và sau khi 
   - Danh sách chỉ hiện 200 lệnh gọi gần nhất. Dòng đầu vẫn đếm đủ.
   - Câu lệnh nào tốn hơn mức dự kiến thường lệ sẽ nói rõ.
   - Khối này đọc số liệu đã lưu nên không tốn gì, và không số nào được đưa cho mô hình.
+- **Theo từng người.** Phiên chạy chia việc cho nhiều người còn có khối "Diễn biến" đang đóng. Dòng của mỗi người cho biết họ bận bao lâu và tốn bao nhiêu, thêm một dòng cho phần còn lại của phiên chạy, như việc đọc tin, để các phần cộng lại đúng bằng tổng của phiên chạy. Khối này đọc cùng số liệu đã lưu với danh sách hoạt động nên không tốn gì. Các số này chỉ dành cho bạn: không bao giờ đưa cho mô hình hay ghi vào cuộc trò chuyện, và bản web chỉ hiện thời gian, không hiện chi phí.
 
 ## Một lời gọi được chấp nhận như thế nào
 

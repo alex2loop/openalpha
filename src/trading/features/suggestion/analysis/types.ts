@@ -83,7 +83,7 @@ export interface AnalysisRecord {
   /** The name's dated events in the days ahead, soonest first and as the provider worded them. */
   readonly upcoming?: readonly Pick<
     MarketEvent,
-    'at' | 'kind' | 'title' | 'detail' | 'composedText'
+    'at' | 'kind' | 'title' | 'detail' | 'composedText' | 'writtenIn'
   >[]
   /** Where the market stands, as plain numbers: its heaviest macro series and the session's
    *  breadth. No regime and no composite, which would be a verdict. */

@@ -140,6 +140,7 @@ async function runAnalysis(
     deps: { ...deps.debate, statesRefusals: true },
     request,
     market,
+    instrument: subject.instrument,
     instrumentKind: subject.instrumentKind,
     waves: ANALYSIS_WAVES,
     budgets,

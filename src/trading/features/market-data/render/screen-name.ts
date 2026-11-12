@@ -40,12 +40,17 @@ export function renderScreenNameText(
   }
 
   if (candidate === undefined) {
+    const caveats = caveatsAbout(result, request.ticker)
+    const lines = renderCaveatLines(locale, caveats, { plain: true })
+
+    // A kind the market cannot screen is the whole answer; the name's absence adds nothing to it.
+    if (caveats.some(({ code }) => code === 'market-data.kind-unsupported')) {
+      return joinSections([lines])
+    }
+
     const title = t(locale, 'trading.render.screen.nameMissing', values)
 
-    return joinSections([
-      [renderSectionTitle(SECTION_ICONS.screen, title)],
-      renderCaveatLines(locale, result.caveats, { plain: true }),
-    ])
+    return joinSections([[renderSectionTitle(SECTION_ICONS.screen, title)], lines])
   }
 
   const title = t(locale, 'trading.render.screen.nameTitle', {
@@ -63,6 +68,12 @@ export function renderScreenNameText(
       ...renderBoardFactLines(locale, facts, { ...board.context, width: LIST_WIDTH }),
       ...renderProvenanceLine(locale, result.provenance, request.context.timezone),
     ],
-    renderCaveatLines(locale, result.caveats, { plain: true }),
+    renderCaveatLines(locale, caveatsAbout(result, request.ticker), { plain: true }),
   ])
+}
+
+/** Only what is about this name or the board as a whole: a source's miss on another name is not
+ *  this answer's to print. */
+function caveatsAbout(result: ScreenView, ticker: Ticker): ScreenView['caveats'] {
+  return result.caveats.filter(({ detail }) => (detail?.ticker ?? ticker) === ticker)
 }

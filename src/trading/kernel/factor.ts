@@ -94,6 +94,10 @@ const KNOWN_FACTOR_IDS: ReadonlySet<string> = new Set(FACTOR_IDS)
  *  what the market pays for the business, and a name turning expensive has not weakened. */
 export const BUSINESS_FACTOR_IDS: ReadonlySet<FactorId> = new Set<FactorId>(['quality'])
 
+/** The factors that rank yields while a board shows the multiples they come from: a higher score is
+ *  a lower reading, whatever direction the policy ranks in. */
+export const YIELD_RANKED_FACTOR_IDS: ReadonlySet<FactorId> = new Set<FactorId>(['value'])
+
 export type FactorNormalization =
   | {
       readonly kind: 'linear'
@@ -129,6 +133,9 @@ export interface FactorResult<K extends FactorId = FactorId> {
   readonly weight?: number
   /** Absent where the factor is normalized from a quantity with no operator-facing unit. */
   readonly metrics?: readonly FactorMetric[]
+  /** Set where a higher score is a lower reading, so a board that places a name by its reading
+   *  takes the complement of the score's place. */
+  readonly opposesReading?: true
   readonly provenance: readonly SourceProvenance[]
   readonly caveats: readonly Caveat[]
 }

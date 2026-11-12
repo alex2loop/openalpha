@@ -1,11 +1,9 @@
 import type { ProgressWire } from '@/app/server/wire/live'
-import type { Run } from '@/web/state/live'
-import { useNow } from '@/web/state/clock'
+import { ELAPSED_TICK_MS, useLiveNow } from '@/web/state/clock'
+import { type Run, staleSince } from '@/web/state/live'
 import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { CheckIcon } from '@/web/ui/kit/icons'
-
-const ELAPSED_TICK_MS = 1_000
 
 /** The steps a run reported: each persistent one done, the latest line running with how long it has
  *  run. Only what the daemon said, as it said it; nothing ahead of it. */
@@ -26,19 +24,25 @@ export function StepList({ run }: { readonly run: Pick<Run, 'persistent' | 'prog
 }
 
 function RunningStep({ step }: { readonly step: ProgressWire }) {
-  const now = useNow(ELAPSED_TICK_MS).value
+  const now = useLiveNow(ELAPSED_TICK_MS).value
 
   return (
     <li class="run-step is-running">
       <span class="spin" aria-hidden="true" />
       <span>
         {step.text}
-        <span class="meta run-step-time">
-          {tr('ui.office.agent.stepRunning', { elapsed: formatElapsed(now - step.at) })}
-        </span>
+        <span class="meta run-step-time">{describeStepTime(formatElapsed(now - step.at))}</span>
       </span>
     </li>
   )
+}
+
+// While the picture is stale the clock is frozen at the last instant it was known, and says so.
+function describeStepTime(elapsed: string): string {
+  const key =
+    staleSince.value === undefined ? 'ui.office.agent.stepRunning' : 'ui.office.stale.step'
+
+  return tr(key, { elapsed })
 }
 
 // The latest line, unless it is the persistent step already listed as done.

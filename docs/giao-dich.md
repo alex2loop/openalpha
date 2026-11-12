@@ -169,7 +169,7 @@ Một số nguồn có công bố dữ liệu trong phiên. Giá lấy từ nh�
 
 Số đọc đã chốt không có biên độ, nguồn không có dữ liệu trong phiên cũng vậy. Không chỗ nào tự đoán biên độ từ một giá đóng duy nhất.
 
-Các dòng tiêu đề crypto được so với giá đóng đã chốt trong chuỗi ngày của chính chúng. Giá đóng đó in ngay bên cạnh dòng. Chúng không được so với một cửa sổ 24 giờ trôi mà bạn không thấy ở đâu trên màn hình.
+Các dòng tiêu đề crypto được so với giá đóng đã chốt trong chuỗi ngày của chính chúng, đúng giá đóng mà `/price` in ra. Một dòng tiêu đề chỉ hiện giá hiện tại, mức biến động đó và giờ của lần đọc, chứ không in giá đóng. Chúng không được so với một cửa sổ 24 giờ trôi mà bạn không thấy ở đâu trên màn hình, và dòng nào không đọc được giá đóng thì không hiện biến động.
 
 Các bảng tổng hợp cạnh những dòng đó lấy từ bảng vốn hóa thị trường, và mọi nguồn đều công bố bảng này theo cửa sổ 24 giờ trôi. Nên danh sách mã biến động mạnh và bảng xếp hạng giá trị giao dịch đặt tiêu đề theo cửa sổ đó chứ không theo phiên. Tỷ phần taker mua là ngoại lệ: nó thuộc về một phiên đã chốt, và nêu tên phiên đó. Danh sách mã biến động mạnh bỏ các coin có vốn hóa dưới 250 triệu USD, vì một coin nhỏ có thể đứng đầu danh sách trong một ngày giao dịch mỏng mà không nói lên điều gì về thị trường; số mã tăng và giảm bên dưới vẫn tính mọi mã thanh khoản.
 

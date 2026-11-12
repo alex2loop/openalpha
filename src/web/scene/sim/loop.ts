@@ -28,7 +28,10 @@ interface SimLoop {
   wake(): void
   /** The stage left the page (a hidden pane) or came back; while it is away nothing runs. */
   show(isShown: boolean): void
-  /** Started, on a visible tab and with the stage shown. */
+  /** The live picture went stale or came back: while held nothing steps; on release the sim is
+   *  re-derived from the live store, as after a hidden spell. */
+  hold(isHeld: boolean): void
+  /** Started, on a visible tab, with the stage shown and not held. */
   isRunning(): boolean
 }
 
@@ -46,6 +49,7 @@ interface LoopState {
   isDirty: boolean
   isAnimating: boolean
   isShown: boolean
+  isHeld: boolean
 }
 
 /** Fixed steps under an accumulator, frames only while something moves, small motion at a capped
@@ -65,6 +69,7 @@ export function createSimLoop(deps: SimLoopDeps): SimLoop {
     isDirty: false,
     isAnimating: false,
     isShown: true,
+    isHeld: false,
   }
 
   return {
@@ -72,6 +77,7 @@ export function createSimLoop(deps: SimLoopDeps): SimLoop {
     stop: () => stop(loop),
     wake: () => wake(loop),
     show: (isShown) => show(loop, isShown),
+    hold: (isHeld) => hold(loop, isHeld),
     isRunning: () => isRunning(loop),
   }
 }
@@ -106,18 +112,50 @@ function show(loop: LoopState, isShown: boolean): void {
     return
   }
 
-  if (loop.listeners !== undefined && !document.hidden) {
-    loop.deps.resume()
-    wake(loop)
-  }
+  comeBack(loop)
 }
 
-function isRunning(loop: LoopState): boolean {
+function hold(loop: LoopState, isHeld: boolean): void {
+  if (isHeld === loop.isHeld) {
+    return
+  }
+
+  loop.isHeld = isHeld
+
+  if (isHeld) {
+    // One last frame, so what the overlay says about people reads the stale picture.
+    halt(loop)
+    wake(loop)
+    return
+  }
+
+  comeBack(loop)
+}
+
+// The stage is on a visible tab again, or its hold ended: a held one only draws, a free one is
+// re-derived first.
+function comeBack(loop: LoopState): void {
+  if (!isDrawable(loop)) {
+    return
+  }
+
+  if (!loop.isHeld) {
+    loop.deps.resume()
+  }
+
+  wake(loop)
+}
+
+function isDrawable(loop: LoopState): boolean {
   return loop.listeners !== undefined && !document.hidden && loop.isShown
 }
 
+function isRunning(loop: LoopState): boolean {
+  return isDrawable(loop) && !loop.isHeld
+}
+
 function wake(loop: LoopState): void {
-  if (!isRunning(loop)) {
+  if (!isDrawable(loop)) {
     return
   }
 
@@ -127,8 +165,8 @@ function wake(loop: LoopState): void {
     return
   }
 
-  // Back from rest the first frame steps at once, from a fresh frame time.
-  if (loop.isIdle) {
+  // Back from rest the first frame steps at once, from a fresh frame time; a held one never steps.
+  if (loop.isIdle && !loop.isHeld) {
     loop.isIdle = false
     loop.lastFrameAt = undefined
     loop.accMs = SIM_STEP_MS
@@ -139,6 +177,11 @@ function wake(loop: LoopState): void {
 
 function frame(loop: LoopState, now: number): void {
   loop.frameId = undefined
+
+  if (loop.isHeld) {
+    drawHeld(loop, now)
+    return
+  }
 
   const motion = advance(loop, now)
   const isMoving = motion === 'seen'
@@ -161,6 +204,17 @@ function frame(loop: LoopState, now: number): void {
   } else {
     rest(loop)
   }
+}
+
+// A held loop draws the last snapshot once when asked, never steps and arms no timer.
+function drawHeld(loop: LoopState, now: number): void {
+  if (loop.isDirty) {
+    loop.deps.draw(loop.accMs / SIM_STEP_MS, now)
+    loop.lastDrawAt = now
+    loop.isDirty = false
+  }
+
+  loop.isAnimating = false
 }
 
 function advance(loop: LoopState, now: number): StepMotion {
@@ -205,10 +259,7 @@ function onVisibility(loop: LoopState): void {
   }
 
   // A stage hidden by its pane resumes when it is shown again.
-  if (loop.isShown) {
-    loop.deps.resume()
-    wake(loop)
-  }
+  comeBack(loop)
 }
 
 function halt(loop: LoopState): void {

@@ -6,14 +6,13 @@ import { actorNowOf } from '@/web/scene/overlay/actor-state'
 import { tagTextOf } from '@/web/scene/overlay/name-tags'
 import { sizeTag } from '@/web/scene/overlay/placement'
 import { childRoleIn } from '@/web/scene/overlay/team-pass'
-import { useNow } from '@/web/state/clock'
+import { ELAPSED_TICK_MS, useNow } from '@/web/state/clock'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
+import { formatStaleLine } from '@/web/text/stale'
 import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
-
-const ELAPSED_TICK_MS = 1_000
 
 /** What the dot over a head means, in words, so its colour is never the only cue. */
 const STATUS_KEYS: Readonly<Record<ActorStatus, MessageKey>> = Object.freeze({
@@ -96,6 +95,8 @@ export function replyTextOf(now: ActorNow, canTakeWork: boolean): string {
       return tr('ui.office.ix.busy', { what: formatRunName(now.run) })
     case 'errand':
       return now.line
+    case 'unknown':
+      return formatStaleLine(now.since, 'ui.office.stale.person')
     default:
       return tr(canTakeWork ? 'ui.office.ix.free' : 'ui.office.ix.freeStaff')
   }
@@ -121,6 +122,8 @@ function lineOf(now: ActorNow, epochMs: number): string {
       return now.line
     case 'dot':
       return statusTextOf(now.status)
+    case 'unknown':
+      return formatStaleLine(now.since, 'ui.office.stale.person')
   }
 }
 

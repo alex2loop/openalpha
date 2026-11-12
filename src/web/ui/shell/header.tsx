@@ -10,7 +10,7 @@ import { breakpoint } from '@/web/state/breakpoints'
 import { cost, isCostCaution } from '@/web/state/cost'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { isFirstRunOver } from '@/web/state/first-run'
-import { runningCount, workingTasks } from '@/web/state/live'
+import { runningCount, staleSince, workingTasks } from '@/web/state/live'
 import { isInfoOnly } from '@/web/state/pane'
 import { setOfficeLayout } from '@/web/state/prefs'
 import { brand } from '@/web/state/session'
@@ -72,6 +72,7 @@ interface AnchorProps {
 // Runs and the daemon's own background passes alike: whatever is working now.
 function RunningChip({ anchor }: AnchorProps) {
   const count = runningCount.value + workingTasks.value.length
+  const isStale = staleSince.value !== undefined
 
   return (
     <Chip
@@ -80,16 +81,22 @@ function RunningChip({ anchor }: AnchorProps) {
       isExpanded={openPopoverId.value === JOBS_POPOVER_ID}
       onClick={() => togglePopover(JOBS_POPOVER_ID)}
     >
-      {count > 0 && <span class="spin" aria-hidden="true" />}
-      {breakpoint.value === 'phone' ? (
-        <>
-          <span aria-hidden="true">{count}</span>
-          <span class="sr">{runningTextOf(count)}</span>
-        </>
-      ) : (
-        runningTextOf(count)
-      )}
+      {count > 0 && !isStale && <span class="spin" aria-hidden="true" />}
+      {isStale ? tr('ui.office.stale.unknown') : <RunningText count={count} />}
     </Chip>
+  )
+}
+
+function RunningText({ count }: { readonly count: number }) {
+  if (breakpoint.value !== 'phone') {
+    return runningTextOf(count)
+  }
+
+  return (
+    <>
+      <span aria-hidden="true">{count}</span>
+      <span class="sr">{runningTextOf(count)}</span>
+    </>
   )
 }
 

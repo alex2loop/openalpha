@@ -140,8 +140,8 @@ async function loadQuote(
 
 function toQuote(row: z.infer<typeof TICKER>, instrument: InstrumentRef): Quote {
   const price = positive(Number(row.last), 'last')
-  const previousClose = Number(row.sodUtc0)
-  const changePct = dayChangePct(price, previousClose > 0 ? previousClose : undefined)
+  const sessionStart = Number(row.sodUtc0)
+  const changePct = dayChangePct(price, sessionStart > 0 ? sessionStart : undefined)
 
   return {
     instrument,

@@ -177,7 +177,7 @@ function noteResult(
       runId: e.runId,
       name: run.name,
       channel: e.channel,
-      finishedAt: Date.now(),
+      finishedAt: e.endedAt,
       title: describeCommand(run.name) ?? run.name,
       text,
       tickers: run.tickers ?? [],

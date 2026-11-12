@@ -1,7 +1,7 @@
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
-import type { Run } from '@/web/state/live'
-import { useNow } from '@/web/state/clock'
+import { ELAPSED_TICK_MS, useLiveNow } from '@/web/state/clock'
 import { focusRun } from '@/web/state/focus'
+import { hasStartedChild, type Run } from '@/web/state/live'
 import { joinInline } from '@/web/text/glyphs'
 import { commandOf, formatRunName } from '@/web/text/run-name'
 import { sourceLabel } from '@/web/text/source'
@@ -9,9 +9,9 @@ import { formatElapsed } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
+import { StopButton } from '@/web/ui/kit/stop-button'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
-
-const ELAPSED_TICK_MS = 1_000
+import { RunTimeline } from '@/web/ui/run/timeline/run-timeline'
 
 interface JobRowProps {
   readonly run: Run
@@ -21,7 +21,7 @@ interface JobRowProps {
 /** A running run: what, who, its step, how long, where from, and "Dừng", which asks first. A
  *  parent lists its children under it. */
 export function JobRow({ run, childRuns }: JobRowProps) {
-  const now = useNow(ELAPSED_TICK_MS).value
+  const now = useLiveNow(ELAPSED_TICK_MS).value
 
   return (
     <div class="job-row">
@@ -37,22 +37,13 @@ export function JobRow({ run, childRuns }: JobRowProps) {
             sourceLabel(run.channelId),
           ])}
         </p>
-        {childRuns.map((child) => (
-          <p key={child.runId} class="meta job-child">
-            {joinInline([
-              formatRunName(child),
-              ...(child.progress === undefined ? [] : [child.progress.text]),
-            ])}
-          </p>
-        ))}
+        {hasStartedChild(run.runId) && <RunTimeline key={run.runId} runId={run.runId} root={run} />}
         <RunCalls key={run.runId} runId={run.runId} isRunning command={commandOf(run)} />
       </div>
       <Button kind="tertiary" size="small" onClick={() => focusRun(run.runId)}>
         {tr('ui.office.common.view')}
       </Button>
-      <Button kind="destructive" size="small" onClick={() => askStop(run, childRuns.length > 0)}>
-        {tr('ui.office.common.stop')}
-      </Button>
+      <StopButton onClick={() => askStop(run, childRuns.length > 0)} />
     </div>
   )
 }

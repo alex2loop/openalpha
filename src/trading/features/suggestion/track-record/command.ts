@@ -13,6 +13,7 @@ import {
   type ReflectSections,
   renderReflectText,
 } from '@/trading/features/suggestion/track-record/render'
+import { usage } from '@/trading/kernel/surface/surface'
 import { formatCount, SECTION_ICONS } from '@/trading/render/format'
 import { renderEmptyLine } from '@/trading/render/layout'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -21,6 +22,7 @@ import { SURFACE_LIMITS } from '@/trading/surface-limits'
  *  and `/watchlist` already render theirs. The key stays in `messageKeys` so registration keeps
  *  requiring both translations. */
 const EMPTY_KEY = 'slash.tradingReflectEmpty'
+const USAGE: 'slash.tradingReflectUsage' = 'slash.tradingReflectUsage'
 
 /** `role: 'operator'`: a track record grades the operator's own suggestions. Reading stored outcomes
  *  spends no LLM budget, so this is a `read` like `/portfolio`, not the `costly` of `/suggest`. */
@@ -33,13 +35,14 @@ export function createReflectCommand(deps: ReflectCommandDeps): SlashCommand {
   return {
     name: 'reflect',
     description: { kind: 'localized', key: 'slash.tradingReflectHelp' },
-    messageKeys: [EMPTY_KEY],
+    messageKeys: [EMPTY_KEY, USAGE],
     policy: {
       surfaces: ['channel', 'repl'],
       role: 'operator',
       action: 'read',
     },
-    run: async (ctx): Promise<SlashResult> => run(deps, ctx),
+    usage: () => ({ key: USAGE }),
+    run: async (ctx): Promise<SlashResult> => (ctx.args.length > 0 ? usage(USAGE) : run(deps, ctx)),
   }
 }
 

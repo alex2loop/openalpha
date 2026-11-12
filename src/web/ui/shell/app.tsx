@@ -14,10 +14,9 @@ import { SkipLink } from '@/web/ui/a11y/skip-link'
 import { ChatPanel } from '@/web/ui/chat/chat-panel'
 import { CommandBar } from '@/web/ui/command/command-bar'
 import { ModalHost } from '@/web/ui/kit/modal'
-import { UndoBar } from '@/web/ui/kit/undo-bar'
 import { ReaderHost } from '@/web/ui/reader/reader'
+import { BottomStack } from '@/web/ui/shell/bottom-stack'
 import { Header } from '@/web/ui/shell/header'
-import { OfflineBar } from '@/web/ui/shell/offline-bar'
 import { PaneBar } from '@/web/ui/shell/pane-bar'
 import { isCommandBarFloating, Panes } from '@/web/ui/shell/panes'
 import { SignIn } from '@/web/ui/shell/sign-in'
@@ -76,15 +75,18 @@ export function App() {
 }
 
 // What every page keeps: the hosts that float over the panes, and the box to type in while it does
-// not float over them.
+// not float over them; then the stack sits just above that box, in flow.
 function PageBottom({ hasCommandBar }: { readonly hasCommandBar: boolean }) {
   return (
     <>
-      <div class="bottom-stack">
-        <OfflineBar />
-        <UndoBar />
-      </div>
-      {hasCommandBar && <CommandBar />}
+      {hasCommandBar ? (
+        <div class="page-foot">
+          <BottomStack isDocked />
+          <CommandBar />
+        </div>
+      ) : (
+        <BottomStack />
+      )}
       <ModalHost />
       <ReaderHost />
       <Announcer />

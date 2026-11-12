@@ -69,6 +69,9 @@ export interface WireEvent {
   readonly progress?: ProgressWire
   /** 'run_finished': a run result reason, or `completed | aborted | error` for a command. */
   readonly outcome?: string
+  /** 'run_finished': epoch ms the daemon saw the run end, the instant `/v1/activity` stores as
+   *  `endedAt`. Absent from an older daemon. */
+  readonly endedAt?: number
   /** 'run_finished': the tickers the run reported on, in the order first seen; at most 20. Absent
    *  when it named none. */
   readonly tickers?: readonly string[]

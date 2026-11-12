@@ -8,7 +8,6 @@ import type {
   TaskPassListener,
 } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import { runBootRefresh } from '@/app/boot-refresh'
 import { resolveChannelDeps } from '@/app/channel-deps'
 import { startChannelWatch } from '@/app/channel-watch'
 import { startRetention } from '@/app/retention'
@@ -59,20 +58,10 @@ interface StartDaemonSubsystemsOptions {
 export async function startDaemonSubsystems(
   options: StartDaemonSubsystemsOptions
 ): Promise<readonly DegradedItem[]> {
-  const { app, delivery, startupSignal, startup, logger, tasks, state, teardown } = options
+  const { app, delivery, startupSignal, logger, teardown } = options
   const { disposers } = teardown
   const onHealth = options.reporting?.onHealth
   const onTaskPass = app.resolve('taskStatus').listener
-
-  // First, so the sweep runs beside every start below; the trading loops that read market data
-  // wait for it, and nothing else does.
-  trackDaemonTask({
-    tasks,
-    state,
-    startup,
-    name: 'trading.boot-refresh',
-    task: runBootRefresh({ app, logger, signal: startupSignal, onTaskPass }),
-  })
 
   const channels = await startOwnedChannels(app, startupSignal, disposers)
   disposers.push(

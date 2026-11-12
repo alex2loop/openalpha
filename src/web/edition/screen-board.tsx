@@ -23,6 +23,7 @@ import {
   resolveView,
   sortOrdersOf,
   viewOf,
+  withTickerMatchFirst,
 } from '@/web/edition/screen-view'
 import { useBlockRead } from '@/web/state/block'
 import { openTicker } from '@/web/state/known-tickers'
@@ -77,7 +78,7 @@ function KindBoard({ market, kind }: { readonly market: string; readonly kind: s
 
   return (
     <BlockFrame
-      title={tr('ui.office.edition.screen.title')}
+      title={tr('ui.office.ideas.screen')}
       colour="teal"
       icon={<TrendIcon />}
       reading={reading}
@@ -238,9 +239,12 @@ function arrange(board: ScreenResponse, market: string) {
     bounds: boardBounds(baseKeys, metrics),
   }
   const view = resolveView(viewOf(market).value, choices)
-  const shown = sortCandidates(
-    filterCandidates(board.candidates, view, { own: ownNames(), bounds: choices.bounds }),
-    sortOrdersOf(view)
+  const shown = withTickerMatchFirst(
+    sortCandidates(
+      filterCandidates(board.candidates, view, { own: ownNames(), bounds: choices.bounds }),
+      sortOrdersOf(view)
+    ),
+    view.query
   )
 
   return { choices, view, shown }

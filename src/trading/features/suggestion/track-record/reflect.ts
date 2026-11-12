@@ -8,7 +8,7 @@ import type {
 } from '@/trading/features/suggestion/track-record/types'
 import type { ResolvedActionableSuggestion } from '@/trading/features/suggestion/types'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketCosts } from '@/trading/markets/cost'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { suggestionScoredRow } from '@/trading/features/suggestion/pipeline/attribution'
@@ -80,17 +80,30 @@ export async function summarize(
     now: Date.now(),
     signal: options.signal,
     ...version,
+    ...instrumentScope(options.instrument),
   })
   const summary = withAwaiting(
     summarizeTrackRecord(population, MINIMUM_TRACK_RECORD_SAMPLE),
     population.earlyCount
   )
   const coverage = coverageOf(
-    await deps.store.coverage({ focusKeys, signal: options.signal, ...version }),
+    await deps.store.coverage({
+      focusKeys,
+      signal: options.signal,
+      ...version,
+      ...(options.instrument === undefined ? {} : { instrument: options.instrument }),
+    }),
     deps.markets
   )
 
   return { summary: { ...summary, coverage }, recent: population.calls }
+}
+
+function instrumentScope(instrument: InstrumentRef | undefined): {
+  readonly market?: MarketRef
+  readonly ticker?: Ticker
+} {
+  return instrument === undefined ? {} : { market: instrument.market, ticker: instrument.ticker }
 }
 
 /** Said once the rates are drawn, so a record of matured calls never reads as the whole book. */

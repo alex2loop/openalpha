@@ -9,10 +9,10 @@ interface MarketSweep {
   readonly signal: AbortSignal
 }
 
-/** One scheduled refresh of the markets in use, for the daemon's boot and the browser's upkeep. A
- *  degraded result is logged; an abort ends it quietly; a failure of the outside world (a provider,
- *  the storage) goes to `onBoundaryFailure`, which logs it under its caller's own key or rethrows;
- *  anything else is this code being wrong and rejects. */
+/** One scheduled refresh of the markets in use, for the browser's upkeep. A degraded result is
+ *  logged; an abort ends it quietly; a failure of the outside world (a provider, the storage) goes
+ *  to `onBoundaryFailure`, which logs it under its caller's own key or rethrows; anything else is
+ *  this code being wrong and rejects. */
 export async function refreshMarketsInUse(
   sweep: MarketSweep,
   onBoundaryFailure: (err: unknown) => void

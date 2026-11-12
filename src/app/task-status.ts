@@ -35,13 +35,18 @@ const LABEL_KEYS: ReadonlyMap<string, MessageKey> = new Map([
   ['workflows', 'ui.task.workflows'],
 ])
 
+// Tasks whose pass the Running list shows as a command run while it fetches, by the run's name, so
+// a task row would say it twice then: `trading.refresh` goes through `runScheduled` as `refresh`.
+// The briefs and the intraday report open no run (a brief's debate roles run hidden), so they stay
+// task rows.
+const SHOWN_AS_RUN: ReadonlyMap<string, string> = new Map([['trading.refresh', 'refresh']])
+
 interface TaskEntry {
   readonly everyMs?: number
   readonly lastRunAt?: number
   readonly lastError?: string
   readonly nextRunAt?: number
-  /** Passes in flight: the start's market data sweep reports under the refresh loop it joins. */
-  readonly passes: number
+  readonly working: boolean
 }
 
 interface TaskStatusBoard {
@@ -71,7 +76,7 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
     track: (names) => {
       for (const name of names) {
         if (!entries.has(name)) {
-          entries.set(name, { passes: 0 })
+          entries.set(name, { working: false })
         }
       }
     },
@@ -103,10 +108,9 @@ export function createTaskStatusBoard(locale: Locale): TaskStatusBoard {
 
 function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPass): TaskEntry {
   const everyMs = pass.everyMs ?? current?.everyMs
-  const passes = current?.passes ?? 0
 
   if (pass.phase === 'start') {
-    return { ...current, ...(everyMs === undefined ? {} : { everyMs }), passes: passes + 1 }
+    return { ...current, ...(everyMs === undefined ? {} : { everyMs }), working: true }
   }
 
   const nextRunAt = pass.nextAt ?? current?.nextRunAt
@@ -116,15 +120,20 @@ function applyPass(locale: Locale, current: TaskEntry | undefined, pass: TaskPas
     lastRunAt: pass.at,
     ...(pass.error === undefined ? {} : { lastError: translateDisplayText(locale, pass.error) }),
     ...(nextRunAt === undefined ? {} : { nextRunAt }),
-    passes: Math.max(0, passes - 1),
+    working: false,
   }
 }
 
 function toStatusWire(locale: Locale, name: string, entry: TaskEntry): TaskStatusWire {
   const key = LABEL_KEYS.get(name)
-  const { passes, ...shown } = entry
+  const shownAsRun = SHOWN_AS_RUN.get(name)
 
-  return { name, label: key === undefined ? name : t(locale, key), ...shown, working: passes > 0 }
+  return {
+    name,
+    label: key === undefined ? name : t(locale, key),
+    ...entry,
+    ...(shownAsRun === undefined ? {} : { shownAsRun }),
+  }
 }
 
 /** Hands `onTasks` the board now, then again whenever which tasks work, or failed, changes. */

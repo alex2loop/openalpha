@@ -22,6 +22,11 @@ export interface AgentView {
   readonly rows: readonly ActivityRowWire[]
 }
 
+/** The id the daemon knows an agent by: the assistant is its default agent. */
+export function toDaemonId(agentId: string): string {
+  return agentId === ASSISTANT ? DAEMON_ASSISTANT_ID : agentId
+}
+
 /** The agent as the roster, the live feed and today's runs know it. */
 export function buildAgentView(
   agentId: string,
@@ -29,7 +34,7 @@ export function buildAgentView(
   rows: readonly ActivityRowWire[]
 ): AgentView {
   const agent = agents.value.find((held) => held.id === agentId)
-  const daemonId = agentId === ASSISTANT ? DAEMON_ASSISTANT_ID : agentId
+  const daemonId = toDaemonId(agentId)
 
   return {
     agentId,

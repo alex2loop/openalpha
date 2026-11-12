@@ -13,7 +13,7 @@ export type IdeasTab = 'open' | 'screen' | 'record' | 'analyses'
 
 /** The Đề xuất sub-tab; it outlives the panel's remounts, so the way back restores it. */
 export const ideasTab = signal<IdeasTab>('open')
-/** The market the Cơ hội board reads; absent until the operator or a command picks one. */
+/** The market the Màn lọc board reads; absent until the operator or a command picks one. */
 export const screenMarket = signal<string | undefined>(undefined)
 
 const seen = signal<readonly string[]>(readSeen())
@@ -23,7 +23,7 @@ export const unseenCalls: ReadonlySignal<readonly SuggestionWire[]> = computed((
   freshCalls.value.filter((call) => !seen.value.includes(call.id))
 )
 
-/** Opens Đề xuất on `tab`; `market` picks the board for Cơ hội. */
+/** Opens Đề xuất on `tab`; `market` picks the board for Màn lọc. */
 export function openIdeas(tab: IdeasTab, market?: string): void {
   ideasTab.value = tab
 

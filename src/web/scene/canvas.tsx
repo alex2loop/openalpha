@@ -28,6 +28,7 @@ import { watchPane } from '@/web/scene/overlay/pane-watch'
 import { PerfReadout } from '@/web/scene/overlay/perf-readout'
 import { RadialMenu } from '@/web/scene/overlay/radial-menu'
 import { RoomTags } from '@/web/scene/overlay/room-tags'
+import { SceneNotes } from '@/web/scene/overlay/scene-notes'
 import {
   type InputSlot,
   type Renderers,
@@ -35,10 +36,10 @@ import {
   SCENE_LABEL_ID,
   startViews,
 } from '@/web/scene/overlay/scene-views'
+import { watchStale } from '@/web/scene/overlay/stale-watch'
 import { keepStill } from '@/web/scene/overlay/still'
 import { Toolbar } from '@/web/scene/overlay/toolbar'
 import { syncTwin } from '@/web/scene/overlay/twin'
-import { ViewNote } from '@/web/scene/overlay/view-note'
 import { nextAmbientFxAt } from '@/web/scene/render2d/ambient-fx'
 import { createRenderer2d } from '@/web/scene/render2d/renderer-2d'
 import { createRendererHost, type SceneRenderer } from '@/web/scene/renderer'
@@ -116,7 +117,7 @@ export function SceneCanvas() {
       <RadialMenu />
       <Toolbar />
       <PerfReadout renderer={renderer} />
-      <ViewNote />
+      <SceneNotes />
     </div>
   )
 }
@@ -149,6 +150,7 @@ function mountScene(element: HTMLElement, renderers: Renderers): () => void {
       load3d: loadRenderer3d,
     }),
     watchPane(element, loop),
+    watchStale(loop),
     effect(() => {
       readSceneInputs()
       untracked(loop.wake)

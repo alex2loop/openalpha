@@ -1,0 +1,10 @@
+.stale-veil {
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: var(--caution);
+  font-size: 12px;
+  text-align: center;
+}

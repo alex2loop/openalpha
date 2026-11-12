@@ -18,12 +18,13 @@ interface EventText {
   readonly detail?: string
 }
 
-/** What a person reads for an event. A provider's own words pass through as it wrote them; an event
- *  whose text an adapter composed in English is worded from its kind and facts instead, so a reader
- *  of either locale sees their own language. A dividend's terms ride the event's own fields. */
+/** What a person reads for an event. A provider's own words pass through as it wrote them, with
+ *  the language they are written in noted where it is not the reader's; an event whose text an
+ *  adapter composed in English is worded from its kind and facts instead, so a reader of either
+ *  locale sees their own language. A dividend's terms ride the event's own fields. */
 export function describeEvent(locale: Locale, event: MarketEvent): EventText {
   if (event.composedText !== true) {
-    return { title: event.title, ...(event.detail === undefined ? {} : { detail: event.detail }) }
+    return noteLanguage(locale, event)
   }
 
   const title = renderDeclaredValue(locale, `trading.event.${event.kind}`)
@@ -31,6 +32,17 @@ export function describeEvent(locale: Locale, event: MarketEvent): EventText {
   return event.insider === undefined
     ? { title }
     : { title, detail: describeInsiderPurchase(locale, event.insider) }
+}
+
+/** The note closes the last line the event prints, so one note covers the title and the detail. */
+function noteLanguage(locale: Locale, event: MarketEvent): EventText {
+  const { title, detail, writtenIn } = event
+  const note =
+    writtenIn === undefined || writtenIn === locale
+      ? ''
+      : ` (${t(locale, `trading.render.language.${writtenIn}`)})`
+
+  return detail === undefined ? { title: `${title}${note}` } : { title, detail: `${detail}${note}` }
 }
 
 function describeInsiderPurchase(locale: Locale, purchase: InsiderPurchase): string {

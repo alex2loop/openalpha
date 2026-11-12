@@ -14,6 +14,9 @@ import {
   LIVE_RESYNC_MS,
   nextArrivalSeq,
   noteAlertsChecked,
+  noteFeedCurrent,
+  noteFeedDropped,
+  noteFeedRead,
   noteFinishedTickers,
   noteTasks,
   type Run,
@@ -48,6 +51,10 @@ interface FeedState {
   // A failed snapshot retries on the backoff; the socket stays, as closing it aborts its runs.
   syncRetryTimer: ReturnType<typeof setTimeout> | undefined
   syncAttempt: number
+  // A snapshot has been applied on a live socket, so a later drop leaves a picture that ages.
+  hasBeenLive: boolean
+  // The instant the socket last left `live`.
+  leftLiveAt: number | undefined
 }
 
 /** A run event, once its `runId` is known to be there. */
@@ -74,13 +81,15 @@ export function startFeed(): () => void {
     tombstones: new Set(),
     syncRetryTimer: undefined,
     syncAttempt: 0,
+    hasBeenLive: false,
+    leftLiveAt: undefined,
   }
   const { signal } = feed.lifetime
 
   feed.socket = openFeedSocket({
     url: buildFeedUrl,
     onFrame: (frame) => routeFrame(feed, frame),
-    onStatus: setConnection,
+    onStatus: (status, retryAt) => setConnection(feed, status, retryAt),
     // `resync` turns a failed snapshot into `false` and `loadSession` keeps a failed load in
     // `sessionFailure`, so neither rejects.
     onOpen: () => {
@@ -98,6 +107,7 @@ export function startFeed(): () => void {
     clearTimeout(feed.syncRetryTimer)
     stopPoll()
     feed.socket?.close()
+    noteFeedCurrent()
 
     if (activeFeed === feed) {
       activeFeed = undefined
@@ -129,8 +139,27 @@ function buildFeedUrl(): string {
   return `${scheme}//${location.host}${ROUTES.feed.path}`
 }
 
-function setConnection(status: ConnectionStatus, retryAt?: number): void {
+function setConnection(feed: FeedState, status: ConnectionStatus, retryAt?: number): void {
+  const wasLive = connection.value.status === 'live'
+
   connection.value = retryAt === undefined ? { status } : { status, retryAt }
+
+  if (wasLive && status !== 'live') {
+    feed.leftLiveAt = Date.now()
+  }
+
+  if (status === 'refused') {
+    noteFeedCurrent()
+  }
+
+  // The verdict is re-emitted on every retry; the first one after a live drop starts the clock.
+  if (
+    (status === 'offline' || status === 'full') &&
+    feed.hasBeenLive &&
+    feed.leftLiveAt !== undefined
+  ) {
+    noteFeedDropped(feed.leftLiveAt)
+  }
 }
 
 function routeFrame(feed: FeedState, frame: ServerFrame): void {
@@ -206,9 +235,22 @@ async function syncOnce(feed: FeedState, signal: AbortSignal): Promise<boolean> 
   feed.syncRetryTimer = undefined
   feed.syncAttempt = 0
   applySnapshot(feed, snapshot, mark)
+  noteSnapshotRead(feed)
   replayBuffered(feed, true)
 
   return true
+}
+
+// A snapshot taken on a live socket makes the picture current; one taken while the socket is down
+// (the poll during `full`) only moves forward the time it is known as of.
+function noteSnapshotRead(feed: FeedState): void {
+  if (connection.value.status === 'live') {
+    feed.hasBeenLive = true
+    noteFeedCurrent()
+    return
+  }
+
+  noteFeedRead(Date.now())
 }
 
 function armSyncRetry(feed: FeedState): void {

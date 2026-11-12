@@ -166,7 +166,9 @@ interface CommandInputProps {
 
 function CommandInput({ inputRef, list, options }: CommandInputProps) {
   const placeholder = tr(
-    editionKey('ui.office.command.placeholder', 'ui.office.command.placeholderWeb')
+    breakpoint.value === 'phone'
+      ? 'ui.office.command.placeholderPhone'
+      : editionKey('ui.office.command.placeholder', 'ui.office.command.placeholderWeb')
   )
 
   return (

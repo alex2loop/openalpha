@@ -45,6 +45,7 @@ import { createFactorLogTick } from '@/trading/features/suggestion/track-record/
 import { createOutcomeTick } from '@/trading/features/suggestion/track-record/tick'
 import { createThemeOutcomeTick } from '@/trading/features/themes/outcomes/tick'
 import { nextAttemptAt } from '@/trading/kernel/operator/delivery-retry'
+import { createFirstSweep, type FirstSweep } from '@/trading/wiring/first-sweep'
 import {
   createDelayedLoopTask,
   createLoopTask,
@@ -84,10 +85,10 @@ interface TradingDaemonDeps {
   refreshMarketData(
     options: RefreshAllMarketDataOptions
   ): Promise<readonly RefreshMarketDataResult[]>
-  /** Settles once the boot sweep has landed, failed or used up its budget. The loops that read
-   *  market data wait for it before their first tick; the refresh loop joins the sweep itself, and
-   *  the exit and intent loops read the venue and the stored plans, so none of the three waits. */
-  readonly firstSweep: Promise<void>
+  /** The loops that read market data wait for it before their first tick; the refresh loop is the
+   *  sweep itself, and the exit and intent loops read the venue and the stored plans, so none of
+   *  the three waits. */
+  readonly firstSweep: FirstSweep
   readonly logger: Logger
   /** Asked before each tick: an offline stretch is waited out, not run into. */
   readonly reachability: ReachabilityProbe
@@ -96,12 +97,15 @@ interface TradingDaemonDeps {
 /** The bounded loops behind one factory, plus the exit reconciler when some venue accepts orders
  *  and the intent sweep when an order service exists. Each starts with the daemon; the underlying
  *  service returns immediately when there is no eligible work. */
-export function createTradingDaemonTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
-  const { logger } = deps
+export function createTradingDaemonTasks(
+  options: Omit<TradingDaemonDeps, 'firstSweep'>
+): readonly DaemonTask[] {
+  const { logger } = options
+  const deps = { ...options, firstSweep: createFirstSweep(logger) }
   const tasks = [
     alertTask(deps),
     ...operationTasks(deps),
-    refreshTask(deps),
+    deps.firstSweep.withBudget(refreshTask(deps)),
     intradayTask(deps),
     ...exitTasks(deps),
     ...intentTasks(deps),
@@ -253,7 +257,7 @@ function alertTask(deps: TradingDaemonDeps): DaemonTask {
     everyMs: policy.intervalMs,
     nextDelayMs: () => policy.intervalMs,
     logger,
-    after: deps.firstSweep,
+    after: deps.firstSweep.settled,
     reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: async (signal, notes) => {
@@ -305,7 +309,7 @@ function operationTask(deps: TradingDaemonDeps, spec: OperationTaskSpec): Daemon
     everyMs: spec.policy.intervalMs,
     nextDelayMs: () => spec.policy.intervalMs,
     logger: deps.logger,
-    ...(spec.waitsForSweep === false ? {} : { after: deps.firstSweep }),
+    ...(spec.waitsForSweep === false ? {} : { after: deps.firstSweep.settled }),
     reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: spec.tickFor(spec.policy),
@@ -320,9 +324,13 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
     logger: deps.logger,
   })
   let failedPasses = 0
+  const settlePass = (failed: boolean): void => {
+    failedPasses = failed ? (failedPasses % refreshRetry.maximumAttempts) + 1 : 0
+  }
 
-  // Ticks at start rather than waiting for an anchor: it joins a boot sweep still in flight, and
-  // after an offline boot it is the pass that waits for the network and enters the retry ladder.
+  // Ticks at start rather than waiting for an anchor: its first pass is the boot sweep, which
+  // releases the loops that read market data, and after an offline boot it is the pass that waits
+  // for the network and enters the retry ladder.
   return createLoopTask({
     name: 'trading.refresh',
     nextDelayMs: (now) => {
@@ -337,26 +345,47 @@ function refreshTask(deps: TradingDaemonDeps): DaemonTask {
     logger: deps.logger,
     reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
-    tick: async (signal) => {
-      const results = await deps.refreshMarketData({ signal, scheduled: true })
-      const degradations = refreshDegradations(results)
-      const emptied = results.some((result) =>
-        result.results.some((kind) => kind.status === 'unavailable')
-      )
+    tick: deps.firstSweep.releaseAfterPass(async (signal) => {
+      const results = await sweepScheduled(deps, signal, () => settlePass(true))
 
-      if (degradations.length > 0) {
-        logRefreshDegradations({ logger: deps.logger, forced: false, degradations })
-      }
-
-      failedPasses = emptied ? (failedPasses % refreshRetry.maximumAttempts) + 1 : 0
-
+      settlePass(logDegradedPass(deps.logger, results))
       await deps.navSnapshot(signal)
       await factorLogTick(
         results.map((result) => result.market),
         signal
       )
-    },
+    }),
   })
+}
+
+/** The pass the daemon schedules. An operator stopping it from the runs list ends it without the
+ *  daemon shutting down, and the day's capture rides this pass: `onStopped` puts it on the retry
+ *  ladder, so the pass runs again soon instead of at the next anchor. */
+async function sweepScheduled(
+  deps: TradingDaemonDeps,
+  signal: AbortSignal,
+  onStopped: () => void
+): Promise<readonly RefreshMarketDataResult[]> {
+  try {
+    return await deps.refreshMarketData({ signal, scheduled: true })
+  } catch (err: unknown) {
+    if (isAbortError(err) && !signal.aborted) {
+      onStopped()
+    }
+
+    throw err
+  }
+}
+
+/** Logs what the pass left degraded; true when a kind came back empty, which is a failed pass. */
+function logDegradedPass(logger: Logger, results: readonly RefreshMarketDataResult[]): boolean {
+  const degradations = refreshDegradations(results)
+
+  if (degradations.length > 0) {
+    logRefreshDegradations({ logger, forced: false, degradations })
+  }
+
+  return results.some((result) => result.results.some((kind) => kind.status === 'unavailable'))
 }
 
 function intradayTask(deps: TradingDaemonDeps): DaemonTask {
@@ -371,7 +400,7 @@ function intradayTask(deps: TradingDaemonDeps): DaemonTask {
     name: 'trading.intraday',
     nextDelayMs: timing.nextDelayMs,
     logger: deps.logger,
-    after: deps.firstSweep,
+    after: deps.firstSweep.settled,
     reachability: reachabilityOf(deps),
     onTaskPass: deps.onTaskPass,
     tick: createIntradayTick({

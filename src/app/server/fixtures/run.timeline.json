@@ -1,0 +1,109 @@
+{
+  "runId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+  "run": {
+    "runId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+    "kind": "command",
+    "name": "suggest",
+    "channelId": "api",
+    "startedAt": 1792910000000,
+    "endedAt": 1792910084000,
+    "outcome": "completed",
+    "costUsd": 0.2524,
+    "tickers": ["FPT"]
+  },
+  "children": [
+    {
+      "runId": "11111111-aaaa-4aaa-8aaa-000000000001",
+      "kind": "agent",
+      "name": "bull-researcher",
+      "channelId": "api",
+      "agentId": "bull-researcher",
+      "parentRunId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+      "startedAt": 1792910009000,
+      "endedAt": 1792910031000,
+      "outcome": "completed",
+      "costUsd": 0.0412,
+      "tickers": ["FPT"]
+    },
+    {
+      "runId": "11111111-aaaa-4aaa-8aaa-000000000002",
+      "kind": "agent",
+      "name": "bear-researcher",
+      "channelId": "api",
+      "agentId": "bear-researcher",
+      "parentRunId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+      "startedAt": 1792910009100,
+      "endedAt": 1792910036000,
+      "outcome": "completed",
+      "costUsd": 0.0455,
+      "tickers": ["FPT"]
+    },
+    {
+      "runId": "11111111-aaaa-4aaa-8aaa-000000000003",
+      "kind": "agent",
+      "name": "portfolio-manager",
+      "channelId": "api",
+      "agentId": "portfolio-manager",
+      "parentRunId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+      "startedAt": 1792910037000,
+      "endedAt": 1792910052000,
+      "outcome": "completed",
+      "costUsd": 0.0521,
+      "tickers": ["FPT"]
+    },
+    {
+      "runId": "11111111-aaaa-4aaa-8aaa-000000000004",
+      "kind": "agent",
+      "name": "trader",
+      "channelId": "api",
+      "agentId": "trader",
+      "parentRunId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+      "startedAt": 1792910053000,
+      "endedAt": 1792910060000,
+      "outcome": "error",
+      "costUsd": 0.0188,
+      "tickers": ["FPT"]
+    },
+    {
+      "runId": "11111111-aaaa-4aaa-8aaa-000000000005",
+      "kind": "agent",
+      "name": "trader",
+      "channelId": "api",
+      "agentId": "trader",
+      "parentRunId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+      "startedAt": 1792910060500,
+      "endedAt": 1792910068000,
+      "outcome": "completed",
+      "costUsd": 0.0201,
+      "tickers": ["FPT"]
+    },
+    {
+      "runId": "11111111-aaaa-4aaa-8aaa-000000000006",
+      "kind": "agent",
+      "name": "risk-analyst",
+      "channelId": "api",
+      "agentId": "risk-analyst",
+      "parentRunId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+      "startedAt": 1792910068500,
+      "endedAt": 1792910079000,
+      "outcome": "completed",
+      "costUsd": 0.0236,
+      "tickers": ["FPT"]
+    },
+    {
+      "runId": "11111111-aaaa-4aaa-8aaa-000000000007",
+      "kind": "agent",
+      "name": "claim-verifier",
+      "channelId": "api",
+      "agentId": "claim-verifier",
+      "parentRunId": "0b7c1e55-3a9d-4f62-8e10-6d2a4c9b7f01",
+      "startedAt": 1792910053000,
+      "endedAt": 1792910080000,
+      "outcome": "completed",
+      "costUsd": 0.0307,
+      "tickers": ["FPT"]
+    }
+  ],
+  "truncated": false,
+  "totalUsd": 0.2524
+}

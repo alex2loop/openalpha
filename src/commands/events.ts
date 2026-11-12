@@ -22,6 +22,8 @@ declare module '@/core/events' {
       readonly runId: RunId
       readonly channel: ChannelId
       readonly outcome: 'completed' | 'aborted' | 'error'
+      // Epoch ms the command ended.
+      readonly endedAt: number
       // Present on `completed`; read in-process only and never put on the wire.
       readonly result?: SlashResult
       /** The work found nothing to do, so no activity row keeps the run. */

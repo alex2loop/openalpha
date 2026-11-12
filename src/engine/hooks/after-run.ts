@@ -16,6 +16,7 @@ export function createRunFinishedEmit(bus: EventBus): AfterRunHook {
       channel: run.identity.channel,
       ...(run.identity.chatId === undefined ? {} : { chatId: run.identity.chatId }),
       reason: result.reason,
+      endedAt: Date.now(),
       ...(summary === undefined ? {} : { summary }),
       totals: result.totals,
     })

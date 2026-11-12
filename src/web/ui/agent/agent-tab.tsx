@@ -11,7 +11,7 @@ import { useBlockRead } from '@/web/state/block'
 import { onWireEvent } from '@/web/state/events'
 import { toFailureText, tr } from '@/web/text/tr'
 import { AgentHead } from '@/web/ui/agent/agent-head'
-import { type AgentView, buildAgentView } from '@/web/ui/agent/agent-view'
+import { type AgentView, buildAgentView, toDaemonId } from '@/web/ui/agent/agent-view'
 import { Profile } from '@/web/ui/agent/profile'
 import { Progress } from '@/web/ui/agent/progress'
 import { AgentResult } from '@/web/ui/agent/result'
@@ -58,7 +58,7 @@ export function AgentTab({ agentId, section }: AgentTabProps) {
 
 function PersonTab({ agentId, section: opening }: Required<AgentTabProps>) {
   const section = useSignal<AgentSection>(opening)
-  const detail = useBlockRead((abort) => loadDetail(agentId, abort))
+  const detail = useBlockRead((abort) => loadDetail(toDaemonId(agentId), abort))
   const day = useBlockRead(loadTodayActivity, { everyMs: AGENT_DAY_POLL_MS })
   const view = buildAgentView(agentId, detail.data, day.data?.rows ?? [])
 

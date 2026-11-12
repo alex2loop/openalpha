@@ -5,17 +5,19 @@ import type { AgentView } from '@/web/ui/agent/agent-view'
 import { ASSISTANT, rosterDefOf } from '@/web/scene/sim/actors/roster'
 import { lookOf } from '@/web/scene/sprites/parts'
 import { reputationLine, setPaused } from '@/web/state/agents'
-import { hasChildren } from '@/web/state/live'
+import { hasChildren, staleSince } from '@/web/state/live'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatRunName } from '@/web/text/run-name'
 import { describeEvent } from '@/web/text/schedule-event'
+import { formatStaleLine } from '@/web/text/stale'
 import { formatClock } from '@/web/text/time'
 import { toErrorText, tr } from '@/web/text/tr'
 import { clearSavedNote, savedNote } from '@/web/ui/agent/form/agent-form'
 import { askStop } from '@/web/ui/kit/ask-stop'
 import { Button } from '@/web/ui/kit/button'
 import { Portrait } from '@/web/ui/kit/portrait'
+import { StopButton } from '@/web/ui/kit/stop-button'
 
 // The assistant's own desk: it wears the mascot, and says so.
 const HEAD_PORTRAIT_PX = 40
@@ -46,15 +48,7 @@ export function AgentHead({ view }: { readonly view: AgentView }) {
       {agent?.paused === true && <p class="agent-note">{tr('ui.office.agent.pausedNote')}</p>}
       <SavedNote agentId={view.agentId} />
       <div class="agent-actions">
-        {run !== undefined && (
-          <Button
-            kind="destructive"
-            size="small"
-            onClick={() => askStop(run, hasChildren(run.runId))}
-          >
-            {tr('ui.office.common.stop')}
-          </Button>
-        )}
+        {run !== undefined && <StopButton onClick={() => askStop(run, hasChildren(run.runId))} />}
         {agent !== undefined && (
           <Button size="small" onClick={() => togglePause(agent.id, !agent.paused, failure)}>
             {tr(agent.paused ? 'ui.office.agent.resume' : 'ui.office.agent.pause')}
@@ -76,13 +70,22 @@ function SavedNote({ agentId }: { readonly agentId: string }) {
   return <p class="agent-note is-saved">{tr('ui.office.form.saved', { name: saved.name })}</p>
 }
 
-// The run under way, else what it waits for, else its last run today, else free.
+// While the picture is stale only that; else the run under way, else what it waits for, else its
+// last run today, else free.
 function describeNow(view: AgentView): string {
   const { run, rows, agent } = view
   const timeZone = state.value?.timeZone
   const schedules = (state.value?.schedules ?? []).filter((row) => row.agentId === view.daemonId)
   const waiting = schedules.find((row) => row.event !== undefined && row.enabled !== false)?.event
   const last = rows[0]
+  const since = staleSince.value
+
+  if (since !== undefined) {
+    return joinInline([
+      ...(run === undefined ? [] : [formatRunName(run)]),
+      formatStaleLine(since, 'ui.office.stale.unknown'),
+    ])
+  }
 
   if (run !== undefined) {
     return joinInline([

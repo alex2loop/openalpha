@@ -87,15 +87,14 @@ async function captureMarket(
 ): Promise<Captured | Skip> {
   const id = market.manifest.id
   const screen = market.capabilities.screen
-
-  if (screen === undefined || !canResolveOutcomes(market)) {
-    return { market: id, reason: 'no-screen' }
-  }
-
   const day = resolveSettledDay(market.manifest.calendar, options.now)
 
+  if (screen === undefined || !canResolveOutcomes(market)) {
+    return { market: id, reason: 'no-screen', day }
+  }
+
   if (await deps.store.hasDay(id, day, options.signal)) {
-    return { market: id, reason: 'already-captured' }
+    return { market: id, reason: 'already-captured', day }
   }
 
   const boards = await Promise.all(

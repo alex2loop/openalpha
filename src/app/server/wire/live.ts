@@ -1,6 +1,7 @@
 // The live run feed: what the daemon is running right now, for a client that opens late. The same
 // shapes ride GET /v1/live and the run_* wire events, so a client folds both into one view.
 
+import type { ActivityRowWire } from '@/app/server/wire/activity'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { TaskStatusWire } from '@/app/server/wire/tasks'
 import type { LLMAttemptKind, RunAttempt } from '@/core/types/usage'
@@ -26,6 +27,9 @@ export interface RunStartWire {
   readonly channelId: string
   readonly sessionId: string
   readonly parentRunId?: string
+  /** What a child works on (a debate role's instrument), so a client groups a parent's children by
+   *  it. Absent on most runs. */
+  readonly subject?: { readonly ticker: string; readonly market?: string }
   readonly hidden?: true
   readonly startedAt: number
 }
@@ -64,6 +68,18 @@ export interface RunCallsWire {
   readonly calls: readonly RunCallWire[]
   readonly truncated: boolean
   readonly totalCalls: number
+  readonly totalUsd: number
+}
+
+/** GET /v1/runs/:runId/timeline: who worked on a run and when, read after each part ends. */
+export interface RunTimelineWire {
+  readonly runId: string
+  /** The run itself once it has ended and its row is written. */
+  readonly run?: ActivityRowWire
+  /** Its direct children that have ended, oldest first, each priced with everything beneath it. */
+  readonly children: readonly ActivityRowWire[]
+  readonly truncated: boolean
+  /** The run and everything beneath it, as `/v1/activity` prices it; 0 when nothing was billed. */
   readonly totalUsd: number
 }
 

@@ -219,6 +219,8 @@ interface TradingSuggestionRequest extends TradingSignalRequest {
 
 interface TradingTrackRecordRequest extends TradingSignalRequest {
   readonly limit: number
+  /** Only this name's record, read the way the whole book's is. */
+  readonly instrument?: InstrumentRef
 }
 
 interface TradingRebalanceRequest extends TradingSignalRequest {

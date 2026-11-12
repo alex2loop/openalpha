@@ -1,5 +1,8 @@
 import { isAnalysisOnly } from '@/web/state/edition'
 
+/** The caveat a record carries while calls it holds are still inside their outcome window. */
+export const AWAITING_WINDOW_CODE = 'reporting.awaiting-window'
+
 interface CaveatLike {
   readonly text: string
   readonly plain?: string | undefined

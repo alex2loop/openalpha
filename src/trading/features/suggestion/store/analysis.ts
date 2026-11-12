@@ -85,6 +85,7 @@ const payloadSchema = z.strictObject({
         title: z.string(),
         detail: z.string().optional(),
         composedText: z.literal(true).optional(),
+        writtenIn: z.enum(LOCALES).optional(),
       })
     )
     .optional()
@@ -274,12 +275,14 @@ function contextOf(
     ...(payload.upcoming === undefined
       ? {}
       : {
-          upcoming: payload.upcoming.map(({ at, kind, title, detail, composedText }) => ({
-            at: tradingDay(at),
-            kind,
-            title,
-            ...definedOnly({ detail, composedText }),
-          })),
+          upcoming: payload.upcoming.map(
+            ({ at, kind, title, detail, composedText, writtenIn }) => ({
+              at: tradingDay(at),
+              kind,
+              title,
+              ...definedOnly({ detail, composedText, writtenIn }),
+            })
+          ),
         }),
     ...(backdrop === undefined
       ? {}

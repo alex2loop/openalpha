@@ -76,6 +76,13 @@ export interface ResolvedRunLimits {
   readonly sessionMessageCap: number
 }
 
+/** What a child run works on, named on the feed so a feed groups a parent's children by it. */
+export interface RunSubject {
+  readonly name: string
+  /** Where `name` lives, when it needs saying (a market for a ticker). */
+  readonly scope?: string
+}
+
 export interface RunEnv {
   readonly config: ResolvedConfig
   readonly agent: AgentProfile
@@ -100,6 +107,8 @@ export interface RunEnv {
   readonly routingKey?: string
   /** Names a child run on the feed; its finish then carries an excerpt of its answer. */
   readonly title?: string
+  /** Names what a child run works on. Names no answer and adds nothing to the finish, unlike `title`. */
+  readonly subject?: RunSubject
   /** Foreground research seam for this run only; delegated children never inherit it. */
   readonly researchInteraction?: ForegroundResearchInteraction
 }
@@ -205,6 +214,8 @@ export interface RunOptions {
   readonly parentRunId?: RunId
   /** Names a child run on the feed; a top-level run is named by its prompt. */
   readonly title?: string
+  /** Names what a child run works on. Names no answer and adds nothing to the finish, unlike `title`. */
+  readonly subject?: RunSubject
   /** The profile this run uses in place of its agent's: same id, tools only the agent already has. */
   readonly profile?: AgentProfile
   /** Runs once after engine admission and before any metered work starts. */

@@ -68,6 +68,7 @@ export function renderCandidateBlock(
       1
     ),
     ...renderCautionLine(locale, candidate),
+    ...renderMissingLine(locale, candidate),
   ]
 }
 
@@ -81,30 +82,26 @@ export function renderBoardRow(
 ): readonly string[] {
   return [
     ...toRowLines(
-      [renderNameHead(locale, candidate), ...renderPriceSegments(locale, candidate, board)],
+      [renderNameHead(locale, candidate), ...renderPriceFacts(locale, candidate, board)],
       board.context,
       1
     ),
+    ...renderMissingLine(locale, candidate),
     ...renderBoardFactLines(locale, boardFacts(locale, candidate, board), board.context),
   ]
 }
 
-/** The price, its move and how fresh it is, then what the name lacks, on lines that never split a
- *  fact: a board row's head without the name, for a view the name already heads. */
+/** The price, its move and how fresh it is, then what the name lacks on a line of its own: a board
+ *  row's head without the name, for a view the name already heads. */
 export function renderPriceLine(
   locale: Locale,
   candidate: ScreenedCandidate,
   board: ScreenBoard
 ): readonly string[] {
-  return toRowLines(renderPriceSegments(locale, candidate, board), board.context, 1)
-}
-
-function renderPriceSegments(
-  locale: Locale,
-  candidate: ScreenedCandidate,
-  board: ScreenBoard
-): readonly string[] {
-  return [...renderPriceFacts(locale, candidate, board), ...missingSegment(locale, candidate)]
+  return [
+    ...toRowLines(renderPriceFacts(locale, candidate, board), board.context, 1),
+    ...renderMissingLine(locale, candidate),
+  ]
 }
 
 /** How a board writes a factor's quantities: short labels, each reading once, joined by commas. A
@@ -135,7 +132,6 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
     t(locale, 'trading.render.screen.score', {
       score: formatScoreValue(locale, candidate.composite.score),
     }),
-    ...missingSegment(locale, candidate),
     ...(candidate.excluded === true ? [t(locale, 'trading.render.screen.excluded')] : []),
     ...(candidate.marginIneligible === true
       ? [t(locale, 'trading.render.screen.margin-ineligible')]
@@ -145,7 +141,6 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
 
 /** The ticker, then the sector the market files it under where it files one: a ticker alone does
  *  not say what the company does. Names itself, so it takes no label. */
-/** The ticker and the sector its market files it under, where it files one. */
 export function renderNameHead(locale: Locale, candidate: ScreenCandidate): string {
   const { sector } = candidate
 
@@ -157,12 +152,16 @@ export function renderNameHead(locale: Locale, candidate: ScreenCandidate): stri
       ].join(INLINE_SEPARATOR)
 }
 
-function missingSegment(locale: Locale, candidate: ScreenCandidate): readonly string[] {
+/** Under the row, never among its facts: the factors it lacks are a list inside one note, and a
+ *  row's ` · ` must separate facts only. */
+function renderMissingLine(locale: Locale, candidate: ScreenCandidate): readonly string[] {
   const missing = missingFactorLabels(locale, candidate)
 
   return missing.length === 0
     ? []
-    : [t(locale, 'trading.render.screen.missing', { factors: missing.join(LIST_SEPARATOR) })]
+    : [
+        `${INDENT[2]}${t(locale, 'trading.render.screen.missing', { factors: missing.join(LIST_SEPARATOR) })}`,
+      ]
 }
 
 /** One block for the whole table rather than three lines under every name: the readings are what a

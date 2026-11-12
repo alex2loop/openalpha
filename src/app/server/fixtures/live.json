@@ -31,6 +31,19 @@
       "startedAt": 1792480010000,
       "persistent": [],
       "tickers": ["FPT", "HPG"]
+    },
+    {
+      "runId": "run_bull",
+      "kind": "agent",
+      "name": "suggest-bull",
+      "channelId": "api",
+      "sessionId": "sess_91d",
+      "agentId": "suggest-bull",
+      "parentRunId": "run_abc",
+      "subject": { "ticker": "HPG", "market": "equity-vn" },
+      "hidden": true,
+      "startedAt": 1792480012000,
+      "persistent": []
     }
   ],
   "pending": [
@@ -86,7 +99,8 @@
       "lastRunAt": 1792479000000,
       "lastError": "No connection to query1.finance.yahoo.com right now, so I am waiting and checking again.",
       "nextRunAt": 1792480800000,
-      "working": true
+      "working": true,
+      "shownAsRun": "refresh"
     },
     {
       "name": "trading.intraday",

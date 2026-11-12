@@ -8,6 +8,7 @@ import { Button } from '@/web/ui/kit/button'
 import { DepthLines, toDepthLine } from '@/web/ui/markdown/depth-lines'
 import { Markdown } from '@/web/ui/markdown/markdown'
 import { RunCalls } from '@/web/ui/run/calls/run-calls'
+import { RunTimelineFold } from '@/web/ui/run/timeline/run-timeline'
 
 const PARAGRAPH_BREAK = /\n{2,}/
 // A channel that folds detail away quotes each of its lines; here they read as indented rows.
@@ -136,7 +137,12 @@ function HistoryMessage({ entry }: { readonly entry: HistoryEntry }) {
     <div class="chat-card">
       <ReplyText text={message.content} isProse={message.byAgent === true} />
       {entry.isRunEnd && message.runId !== undefined && (
-        <RunCalls key={message.runId} runId={message.runId} isRunning={false} command={command} />
+        <>
+          {message.hasChildren === true && (
+            <RunTimelineFold key={message.runId} runId={message.runId} />
+          )}
+          <RunCalls key={message.runId} runId={message.runId} isRunning={false} command={command} />
+        </>
       )}
     </div>
   )

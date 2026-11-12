@@ -34,6 +34,7 @@ import {
   SKILL_VIEW_RUN_BUDGET_BYTES,
   TOOL_RESULT_MAX_BYTES,
 } from '@/engine/constants'
+import { optionalEnvFields } from '@/engine/loop/run-env'
 import { createTodoSlot } from '@/engine/loop/todo'
 import { createToolExposure } from '@/engine/loop/tools/exposure'
 import { NO_DEADLINE } from '@/engine/run-registry'
@@ -313,35 +314,6 @@ function buildRunState(input: RunStateInput): RunState {
     abort: new AbortController(),
     deadline: NO_DEADLINE,
     ...(options.toolResultCache === undefined ? {} : { toolResultCache: options.toolResultCache }),
-  }
-}
-
-function optionalEnvFields(
-  options: RunOptions
-): Pick<
-  RunEnv,
-  | 'outputContract'
-  | 'answerVisibility'
-  | 'reasoningVisibility'
-  | 'researchInteraction'
-  | 'instructions'
-  | 'routingKey'
-  | 'title'
-> {
-  return {
-    ...(options.outputContract === undefined ? {} : { outputContract: options.outputContract }),
-    ...(options.answerVisibility === undefined
-      ? {}
-      : { answerVisibility: options.answerVisibility }),
-    ...(options.reasoningVisibility === undefined
-      ? {}
-      : { reasoningVisibility: options.reasoningVisibility }),
-    ...(options.researchInteraction === undefined
-      ? {}
-      : { researchInteraction: options.researchInteraction }),
-    ...(options.instructions === undefined ? {} : { instructions: options.instructions }),
-    ...(options.routingKey === undefined ? {} : { routingKey: options.routingKey }),
-    ...(options.title === undefined ? {} : { title: options.title }),
   }
 }
 

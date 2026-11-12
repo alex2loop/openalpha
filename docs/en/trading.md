@@ -169,7 +169,7 @@ Some sources publish an intraday series. A quote from one of them brings the ses
 
 A settled read has no range, and neither does a source without an intraday series. Nothing guesses a range from one close.
 
-Crypto headline rows are measured against the settled close from their own daily series. That close is printed beside the row. They are not measured against a rolling 24-hour window you never see on screen.
+Crypto headline rows are measured against the settled close from their own daily series, the close `/price` prints. A headline row shows the live price, that move and the time of the reading, not the close itself. They are not measured against a rolling 24-hour window you never see on screen, and a row whose close could not be read shows no move at all.
 
 The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session. The mover list leaves out coins under a market-cap floor of 250 million USD, because a small coin can top a thin day's list without saying anything about the market; the count of names that rose and fell below keeps every liquid name.
 
@@ -1229,7 +1229,7 @@ sell of 600 ACB exceeds 0 settled on 2026-06-15
 
 A row dated after today, on the home region's calendar, is refused too. A trade that has not happened yet is a typo, and the book would otherwise hold it out of sight until the day came.
 
-A price is always the full figure, such as `58400`, never the board figure (`58,40`, meaning x1,000 VND). If you type a Vietnamese share price below 1,000 VND while the name trades above that, it is refused and you are shown the full price to send instead. An `/alert` threshold is checked the same way.
+A price is always the full figure, such as `58400`, never the board figure (`58,40`, meaning ×1,000 VND). If you type a Vietnamese share price below 1,000 VND while the name trades above that, it is refused and you are shown the full price to send instead. An `/alert` threshold is checked the same way.
 
 A price you type that sits ten times or more above or below the name's latest stored close on or
 before its day (for VN gold, or a name with no stored close, the price it trades at now) is not saved

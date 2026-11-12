@@ -7,6 +7,31 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.6.0] - 2026-11-12
+
+The office page now shows who worked on each run, for how long and at what cost, and says plainly when it has lost touch with OpenAlpha. Crypto moves, the Screen board and a name's past calls read the same everywhere.
+> Trang văn phòng giờ cho thấy ai làm gì trong mỗi lượt chạy, mất bao lâu và tốn bao nhiêu, và nói rõ khi mất liên lạc với OpenAlpha. Biến động giá crypto, Màn lọc và các đề xuất cũ của một mã giờ đọc giống nhau ở mọi nơi.
+
+### Added
+
+- "Who did what": a timeline of each run on the office page, one lane per person with how long they were busy and, on the installed app, what they cost.
+- When the page loses OpenAlpha it says since when, freezes the office and greys out Stop.
+- `GET /v1/runs/:runId/timeline` for apps.
+
+### Changed
+
+- A crypto move is always measured against the last settled close, never a rolling 24-hour figure; with no close it shows no move.
+- A name's card counts its past calls as `/reflect` does: repeats once, only calls whose window has passed.
+- On the Screen board search, the name whose ticker you typed comes first.
+- Answers name markets in full ("Crypto market"), and `/screen` with a wrong number says it takes 1 to 50.
+
+### Fixed
+
+- At start the office shows one data refresh, not three.
+- A data refresh stopped halfway is tried again within minutes.
+- `/screen equity-vn:FPT crypto` answers with the kind problem alone.
+- The "reasoning not supported" warning is logged once per provider, model and setting, not on every request.
+
 ## [1.5.1] - 2026-11-11
 
 You can now find a name on the Screen board by ticker or company name, and read its key figures (P/E, profitability, growth, debt, liquidity, money flow) on its card or with `/screen FPT`. The figures read more plainly everywhere, grouped by what they tell you.

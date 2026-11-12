@@ -1,0 +1,165 @@
+.run-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  container-type: inline-size;
+}
+
+.timeline-title {
+  color: var(--ink2);
+  font: var(--typeHeading);
+}
+
+.timeline-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The person on the left, their bars on the shared time axis on the right. */
+.timeline-lane {
+  display: grid;
+  grid-template-columns: 40% minmax(0, 1fr);
+  align-items: center;
+  gap: 4px var(--s1);
+  font-size: var(--sizeBody);
+}
+
+.timeline-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.timeline-text b {
+  font-weight: var(--weightMedium);
+}
+
+.timeline-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.timeline-toggle b::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border: solid currentColor;
+  border-width: 0 1.5px 1.5px 0;
+  vertical-align: 2px;
+  transform: rotate(-45deg);
+}
+
+.timeline-toggle[aria-expanded="true"] b::before {
+  vertical-align: 3px;
+  transform: rotate(45deg);
+}
+
+.timeline-track {
+  position: relative;
+  height: 12px;
+  overflow: hidden;
+  border-radius: var(--controlSmRadius);
+  background: var(--sunken);
+}
+
+.timeline-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  border-radius: var(--controlSmRadius);
+  background: var(--ai);
+}
+
+.timeline-bar.is-stretch {
+  background: var(--ink3);
+  opacity: 0.55;
+}
+
+.timeline-bar.is-unfinished {
+  background: var(--caution);
+}
+
+/* A running end has no edge yet: it fades out. */
+.timeline-bar.is-running {
+  mask-image: linear-gradient(to right, #000 70%, transparent);
+}
+
+/* An end that is not known is hatched, never drawn as work done. */
+.timeline-bar.is-unknown {
+  background: repeating-linear-gradient(135deg, var(--ink3) 0 2px, transparent 2px 6px);
+}
+
+/* Still running when the page last heard: the end cap is hatched, as what follows is not known. */
+.timeline-bar.is-stale {
+  background:
+    repeating-linear-gradient(135deg, var(--ink3) 0 2px, var(--sunken) 2px 6px) right / 12px 100%
+    no-repeat,
+    var(--ai);
+  mask-image: none;
+}
+
+.timeline-bar.is-stretch.is-stale {
+  background:
+    repeating-linear-gradient(135deg, var(--ink3) 0 2px, var(--sunken) 2px 6px) right / 12px 100%
+    no-repeat,
+    var(--ink3);
+}
+
+.timeline-detail {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-spans {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-said {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.timeline-case {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--s1);
+}
+
+.timeline-case .ticker-link {
+  color: var(--ink);
+  font-weight: var(--weightMedium);
+}
+
+/* On a narrow column the person sits above their track. */
+@container (width < 480px) {
+  .timeline-lane {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

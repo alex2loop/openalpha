@@ -7,6 +7,7 @@ import type { RunResultReason } from '@/core/types/run'
 import type { LLMUsageTotals } from '@/core/types/usage'
 import type { ResearchProgress } from '@/engine/research/events'
 import type { ApprovalDecision, ApprovalScope } from '@/engine/types/approval'
+import type { RunSubject } from '@/engine/types/run'
 
 /** What a run's tools report while they work. Research params carry arrays and flags that the
  *  channel-facing ProgressMessage forbids, so the bus carries the union and the core type stays
@@ -78,6 +79,7 @@ declare module '@/core/events' {
       // Scrubbed and capped at RUN_TITLE_MAX_CHARS; set for a top-level run and for a child that
       // names itself.
       readonly title?: string
+      readonly subject?: RunSubject
       // The run's answer never reaches a surface, so a feed shows that it ran and nothing more.
       readonly hidden?: true
       readonly startedAt: number
@@ -115,6 +117,8 @@ declare module '@/core/events' {
       readonly channel: ChannelId
       readonly chatId?: string
       readonly reason: RunResultReason
+      // Epoch ms the run ended, read once where the finish is emitted.
+      readonly endedAt: number
       // A named child's answer, scrubbed and cut at CHILD_SUMMARY_MAX_CHARS.
       readonly summary?: string
       readonly totals: LLMUsageTotals
