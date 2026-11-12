@@ -4,7 +4,7 @@ import type { InstrumentKind } from '@/trading/kernel/instrument'
 import type { RiskCapSet, UserProfile } from '@/trading/kernel/operator/profile'
 import { buildInstrumentKey, ETF_KIND } from '@/trading/kernel/instrument'
 import { isEtfUnmeasured } from '@/trading/kernel/operator/exposure'
-import { isCappedAsFund, positionCapOf } from '@/trading/kernel/operator/profile'
+import { isCappedAsFund, isSegmentDisabled, positionCapOf } from '@/trading/kernel/operator/profile'
 
 // Named `_FRACTION`, not `_PCT`: applied directly as a multiplier (0.2 means 20%), never scaled
 // by 100 first.
@@ -194,7 +194,9 @@ export function coreOf(
 }
 
 /** Back to the cap, not to a target: under proportional costs the no-trade region ends at the cap.
- *  A cap of zero trims nothing: the segment has no caps record, or is off and exits whole. */
+ *  A cap of zero trims nothing where the segment has no caps record or is off, and exits whole through
+ *  its target. A fund ceiling the operator declared as zero is a cap like any other: the segment's
+ *  held funds are sold back to nothing, whatever their score. */
 export function capTrims(request: CapTrimRequest): ReadonlyMap<string, CapTrim> {
   const positions = positionTrims(request)
 
@@ -210,7 +212,11 @@ function positionTrims(request: CapTrimRequest): ReadonlyMap<string, CapTrim> {
     const caps = request.profile.caps[candidate.segment]
     const cap = positionCapOf(caps, candidate.instrumentKind)
 
-    if (weight > 0 && cap > 0 && weight >= cap + driftBand(cap, request.rebalancePolicy)) {
+    if (
+      weight > 0 &&
+      isCapEnforced(caps, candidate.instrumentKind, cap) &&
+      weight >= cap + driftBand(cap, request.rebalancePolicy)
+    ) {
       const limit = isCappedAsFund(caps, candidate.instrumentKind) ? 'etf' : 'position'
 
       trims.set(key, { limit, capPctNav: cap, toPctNav: cap })
@@ -218,6 +224,17 @@ function positionTrims(request: CapTrimRequest): ReadonlyMap<string, CapTrim> {
   }
 
   return trims
+}
+
+function isCapEnforced(
+  caps: RiskCapSet | undefined,
+  instrumentKind: InstrumentKind | undefined,
+  cap: number
+): boolean {
+  return (
+    cap > 0 ||
+    (caps !== undefined && isCappedAsFund(caps, instrumentKind) && !isSegmentDisabled(caps))
+  )
 }
 
 /** A sector past its cap gives the excess back from its weakest names first. A fund carries no

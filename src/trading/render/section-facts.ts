@@ -3,7 +3,7 @@ import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/opera
 import type { RenderContext } from '@/trading/render/format'
 import { type MessageKey, t } from '@/i18n'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
-import { type RowUnit, renderValue } from '@/trading/render/section-values'
+import { type RowUnit, renderValue, unitOfSection } from '@/trading/render/section-values'
 import { toTable } from '@/trading/render/table'
 
 /** The sections every surface states as labelled facts rather than as text rows. */
@@ -51,7 +51,7 @@ export function toSectionFacts(
     return undefined
   }
 
-  const unit: RowUnit = section.currency === undefined ? {} : { currency: section.currency }
+  const unit = unitOfSection(section)
 
   return section.rows.flatMap((row) => factsOf(locale, row, unit))
 }

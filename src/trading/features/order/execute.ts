@@ -2,7 +2,6 @@ import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { FilledOrder } from '@/trading/features/order/mirror'
 import type { SubmitInput } from '@/trading/features/order/poll'
 import type {
-  CapRejection,
   ExecutedOrder,
   ExecuteInput,
   ExitLevels,
@@ -17,7 +16,7 @@ import {
   placeExit,
   setRestingExit,
 } from '@/trading/features/order/exit'
-import { assertBookPriced } from '@/trading/features/order/exposure'
+import { assertBookPriced, breachedCaps } from '@/trading/features/order/exposure'
 import { assertBuyingAllowed, setHalted } from '@/trading/features/order/halt'
 import { createOrderIntents } from '@/trading/features/order/intents'
 import { mirrorFilledOrder, settleSignal } from '@/trading/features/order/mirror'
@@ -43,7 +42,7 @@ import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 /** What a row says when the order left this process and its fate is unknown. Not an `OrderError`
  *  code: those name why one call failed, and this names a row a human still has to close. */
 const UNRECONCILED_FAILURE = 'unreconciled'
-const REJECTION_SEPARATOR = ', '
+const REFUSAL_SEPARATOR = ', '
 
 export function createOrderService(deps: OrderServiceDeps): OrderService {
   // One write to an exchange at a time. Both races this closes are the same shape — read the state,
@@ -124,13 +123,10 @@ async function execute(deps: OrderServiceDeps, input: ExecuteInput): Promise<Exe
  *  instead. */
 async function assertBookStillAllows(deps: OrderServiceDeps, input: ExecuteInput): Promise<void> {
   const { staged } = input
-  const rejections = await bookCapRejections(deps, input)
+  const refusals = await bookCapRefusals(deps, input)
 
-  if (rejections.length > 0) {
-    throw new OrderError(
-      'order.book_moved',
-      rejections.map((rejection) => rejection.code).join(REJECTION_SEPARATOR)
-    )
+  if (refusals.length > 0) {
+    throw new OrderError('order.book_moved', refusals.join(REFUSAL_SEPARATOR))
   }
 
   if (staged.side === 'sell') {
@@ -144,15 +140,16 @@ async function assertBookStillAllows(deps: OrderServiceDeps, input: ExecuteInput
   }
 }
 
-/** The caps as they stand now. `prepare` measured them against a book an order still going out
- *  has not written to yet, so the verdict is taken again where nothing else can be placed in
- *  between; otherwise two confirms read one book and both clear a ceiling only one may. A holding
- *  that lost its price since then refuses the buy here too. Every other term is this order's
- *  own. */
-async function bookCapRejections(
+/** The caps as they stand now, as the codes that refuse the order. `prepare` measured them against a
+ *  book an order still going out has not written to yet, so the verdict is taken again where
+ *  nothing else can be placed in between; otherwise two confirms read one book and both clear a
+ *  ceiling only one may. A profile ceiling counts only where it crosses one this order's own
+ *  prepare did not measure: the re-check refuses only a ceiling the book crossed since. A holding
+ *  that lost its price since then refuses the buy here too. Every other term is this order's own. */
+async function bookCapRefusals(
   deps: OrderServiceDeps,
   input: ExecuteInput
-): Promise<readonly CapRejection[]> {
+): Promise<readonly string[]> {
   const { prepared, staged } = input
   const [book, unmirrored, profile] = await Promise.all([
     deps.portfolio
@@ -164,7 +161,7 @@ async function bookCapRejections(
 
   assertBookPriced(book, profile)
 
-  return rejectionsFor(deps, {
+  const rejections = rejectionsFor(deps, {
     instrument: staged.instrument,
     side: staged.side,
     orderType: staged.orderType,
@@ -175,6 +172,25 @@ async function bookCapRejections(
     book,
     unmirrored,
   })
+  const breaches =
+    profile === null
+      ? []
+      : breachedCaps({
+          profile,
+          book,
+          instrument: staged.instrument,
+          segment: prepared.segment,
+          notionalBase: prepared.notionalBase,
+          accepted: prepared.breaches,
+          ...(prepared.instrumentKind === undefined
+            ? {}
+            : { instrumentKind: prepared.instrumentKind }),
+        })
+
+  return [
+    ...rejections.map((rejection) => rejection.code),
+    ...breaches.map((breach) => breach.kind),
+  ]
 }
 
 /** Written before the order leaves, so a process that dies while the exchange holds it leaves a

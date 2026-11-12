@@ -4,7 +4,9 @@ import type { RunResultReason } from '@/core/types/run'
 import type { MessageKey } from '@/i18n'
 import type { SessionStatus, SessionSummary } from '@/persistence/api'
 import { formatSpendUsd } from '@/core/utils/cost'
+import { ABORTED_BEFORE_START_MESSAGE, AGENT_CAP_MESSAGE, PAUSED_MESSAGE } from '@/engine/api'
 import { t } from '@/i18n'
+import { STALE_SESSION_MESSAGE } from '@/persistence/api'
 import { formatInstant } from '@/trading/api'
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
@@ -30,6 +32,14 @@ const SESSION_END_KEYS = Object.freeze({
   daemon_restarted: 'cli.sessionEndRestarted',
 } as const satisfies Record<RunResultReason | 'daemon_restarted', MessageKey>)
 const END_KEY_BY_REASON: ReadonlyMap<string, MessageKey> = new Map(Object.entries(SESSION_END_KEYS))
+// The stored messages of runs refused before they started (the scheduler compares them by string),
+// and of a session a restart left active.
+const ERROR_KEY_BY_MESSAGE: ReadonlyMap<string, MessageKey> = new Map<string, MessageKey>([
+  [AGENT_CAP_MESSAGE, 'trading.analysis.cap-spent'],
+  [PAUSED_MESSAGE, 'cli.historyErrorPaused'],
+  [ABORTED_BEFORE_START_MESSAGE, 'cli.historyErrorAborted'],
+  [STALE_SESSION_MESSAGE, 'cli.historyErrorRestarted'],
+])
 
 /** Spend, and how much of the cap it is when one is set (a cap of 0 or less means none). */
 export function formatSpendOfCap(locale: Locale, spentUsd: number, capUsd: number): string {
@@ -106,6 +116,13 @@ export function formatSessionEnd(locale: Locale, reason: string): string {
   const key = END_KEY_BY_REASON.get(reason)
 
   return key === undefined ? reason : t(locale, key)
+}
+
+/** A stored run error in the reader's language; any other message prints as stored. */
+export function formatSessionError(locale: Locale, message: string): string {
+  const key = ERROR_KEY_BY_MESSAGE.get(message)
+
+  return key === undefined ? message : t(locale, key)
 }
 
 /** One row per session, on the operator's own clock, for every command that lists them. */

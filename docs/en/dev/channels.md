@@ -350,7 +350,7 @@ nothing waits on it.
 The notifier retries a failed send up to `notifyMaxAttempts`, except a `PermanentChannelError`: a refusal the
 platform repeats on every attempt (a Telegram client error other than 408 and 429, a text over the platform
 limit, a Zalo 401). That one is dropped on the first failure. A 429 is a plain `ChannelError` and keeps
-honouring its retry-after. The inbox applies the same rule through `isPermanentChannelError`, which also looks
+honoring its retry-after. The inbox applies the same rule through `isPermanentChannelError`, which also looks
 through a wrapper such as `AnswerUndelivered`: an entry whose reply the platform refuses for good is
 dead-lettered at once instead of being retried up to `inboxMaxAttempts`.
 

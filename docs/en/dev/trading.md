@@ -119,7 +119,7 @@ A venue that accepts no orders has no adapter (`manifest.acceptsOrders` is false
 ## Orders
 
 - The durable halt lives in the `order_settings` table, checked for buys only.
-- Confirm, exit and cancel are serialised, and the whole-book caps are re-read inside that window.
+- Confirm, exit and cancel are serialized, and the whole-book caps are re-read inside that window.
 - Order code: [`features/order/`](../../../src/trading/features/order/). Routing is `routing.ts` only; the in-flight marker, mirror and orphan-exit checks are `intents.ts`, `mirror.ts` and `orphan-exits.ts`.
 
 ## HTTP routes

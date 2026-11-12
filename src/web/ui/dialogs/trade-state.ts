@@ -8,8 +8,7 @@ import { formatDay } from '@/i18n'
 import {
   heldPositions,
   holdingsBlock,
-  homeRegion,
-  knownMarkets,
+  homeMarket,
   printDisplayOf,
   quotesBlock,
   watchedNames,
@@ -35,8 +34,8 @@ import {
 
 /** The kind a fresh form opens on. */
 const DEFAULT_KIND: LedgerKind = 'buy'
-// The daemon's zone is always known once the page is up; this only types the lookup.
-const FALLBACK_ZONE = 'UTC'
+// A market with no session never closes and the server dates it by the UTC day.
+const UTC_ZONE = 'UTC'
 const KEY_BYTES = 16
 const MARKET_SEPARATOR = ':'
 
@@ -201,8 +200,7 @@ export function offerVenues(form: TradeForm): readonly VenueChoice[] {
 
 // Those holding the home region's market lead, so a form with no name yet opens at the venue there.
 function homeVenuesFirst(venues: readonly VenueChoice[]): readonly VenueChoice[] {
-  const region = homeRegion()
-  const home = knownMarkets.value.find((market) => market.region === region && market.ownsRegion)
+  const home = homeMarket()
   const holdsHome = (choice: VenueChoice): boolean =>
     home !== undefined && choice.markets.includes(home.market)
 
@@ -415,8 +413,13 @@ function groupedTexts(form: TradeForm): readonly (readonly [string, string])[] {
   }
 }
 
+// The day the ledger books on: the home region's market dates it, so the form never opens on a day
+// the ledger would refuse or on yesterday. The daemon's zone stands in only while markets load.
 function today(): string {
-  return buildDayKey(Date.now(), state.value?.timeZone ?? FALLBACK_ZONE)
+  const market = homeMarket()
+  const zone = (market === undefined ? state.value?.timeZone : market.session?.timeZone) ?? UTC_ZONE
+
+  return buildDayKey(Date.now(), zone)
 }
 
 // "market:ticker" names the market; a bare ticker is as typed.

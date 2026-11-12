@@ -71,6 +71,7 @@ export { bindChunkSize } from '@/persistence/sql/syntax'
 export { createChannelInbox } from '@/persistence/stores/channel/inbox'
 export { createConfigOverrideStore } from '@/persistence/stores/config-override'
 export { stampLastMessages } from '@/persistence/stores/session/shown-rows'
+export { STALE_SESSION_MESSAGE } from '@/persistence/stores/session/sql'
 export {
   ALL_TABLE_NAMES,
   ALL_TABLES,

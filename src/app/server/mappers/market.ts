@@ -47,6 +47,7 @@ import {
   MACRO_SCORE_RANGE,
   parseExitLevel,
   renderOverviewForSurface,
+  roundedDrivers,
 } from '@/trading/api'
 
 type OutcomeVerdict = ReturnType<typeof outcomeVerdictOf>
@@ -304,7 +305,7 @@ export function toMacroWire(view: TradingMacroView, locale: Locale): MacroRespon
     scoreRange: { ...MACRO_SCORE_RANGE },
     coverage: macro.coverage,
     readings: macro.readings,
-    drivers: macro.drivers.map((driver) => toMacroDriverWire(driver, view.labels)),
+    drivers: roundedDrivers(macro.drivers).map((driver) => toMacroDriverWire(driver, view.labels)),
     missing: macro.missing.map((driver) => ({
       id: driver.id,
       label: view.labels[driver.id] ?? driver.id,

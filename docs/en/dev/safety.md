@@ -16,7 +16,7 @@ blocked call never reaches the executor.
 - **Danger.** A call is dangerous when the tool's `capability` is `write` or `shell`, when
   `isExternal` is set (MCP server, untrusted plugin), or when `requiresApproval(input, context)` says
   so.
-  - `requiresApproval` receives normalised, schema-valid input, so a read-capable tool like
+  - `requiresApproval` receives normalized, schema-valid input, so a read-capable tool like
     `schedule` or `memory_store` can gate only its mutations.
   - Its `CallApprovalContext`
     (`engine/hooks/approval-context.ts`) counts this tool's calls in the run and answers `hasSeen`
@@ -47,7 +47,7 @@ blocked call never reaches the executor.
 ## Errors
 
 Source of truth: [`src/core/errors.ts`](../../../src/core/errors.ts). Errors crossing runtime
-boundaries are typed `Error` subclasses with stable codes. Surfaces localise and render them; domain
+boundaries are typed `Error` subclasses with stable codes. Surfaces localize and render them; domain
 modules never print errors.
 
 ### Hierarchy
@@ -71,7 +71,7 @@ ToolError
 `-- SearchProviderError     (adds costUsd, retryAfterMs, failureCode)
 
 ConfigError
-`-- OperatorConfigError     (adds a keyed, localised OperatorMessage)
+`-- OperatorConfigError     (adds a keyed, localized OperatorMessage)
 ```
 
 `AppError` stores an optional `cause`, sets `name` to the concrete class and requires a `code`.
@@ -82,7 +82,7 @@ to decide a retry: an HTTP status, a backoff, what the provider charged for the 
 |---|---|---|
 | `RunHalted` | `HaltCode` | Expected terminal run state; optional `detail` |
 | `LLMError` | `LLMErrorCode` | Provider/model attempt failure with usage and fallback metadata |
-| `ToolError` | `ToolErrorCode` | Tool lookup, authorisation, validation, execution or safety failure |
+| `ToolError` | `ToolErrorCode` | Tool lookup, authorization, validation, execution or safety failure |
 | `ConfigError` | `'config'` | Parse, validation or resolution failure; carries a structured `path` |
 | `StorageError` | `'storage'` | Persistence boundary failure |
 | `ChannelError` | `ChannelErrorCode` | Channel init, polling, send or edit failure |
@@ -102,7 +102,7 @@ A setup failure the operator can fix throws `OperatorConfigError` with a keyed `
   (`closestName`, `core/utils/text`). It allows a third of the word's length in edits, so a short
   word suggests nothing. An unclaimed top-level section is offered the nearest known section the
   same way.
-- A bare `ConfigError` is internal: surfaces print a generic localised line and keep its English for
+- A bare `ConfigError` is internal: surfaces print a generic localized line and keep its English for
   `--verbose`. `ConfigError` has one code on purpose; read `path` to name the rejected field.
 - `StorageError` also has one code and keeps the underlying cause.
 
@@ -177,7 +177,7 @@ Notes:
 | `no_agents` | 10 | No eligible agent profile |
 | `hook_failed` | 11 | A required hook failed |
 | `session_busy` | 12 | The session already has a run in progress |
-| `loop` | 15 | Repeating tool or assistant behaviour detected |
+| `loop` | 15 | Repeating tool or assistant behavior detected |
 | `agent_paused` | 16 | The owning agent is paused |
 | `shutdown` | 0 | Runtime stopped normally |
 
@@ -224,7 +224,7 @@ boundary failure the engine must classify.
 
 | Code | Meaning |
 |---|---|
-| `not_initialized` | Adapter used before successful initialisation |
+| `not_initialized` | Adapter used before successful initialization |
 | `get_updates_failed` | Polling or inbound retrieval failed |
 | `send_failed` | Outbound send failed |
 | `edit_failed` | Editing an existing outbound message failed |

@@ -386,7 +386,7 @@ Evidence and price can end on different sessions. So every stored row carries an
 
 In that case the run holds with `history-not-adjusted` instead of pricing levels on bad history. This check runs before the band-edge block, which would otherwise read the drop as a stock stuck at its floor. The next refresh that sees the corrected close rebuilds the name.
 
-**A VN stock's factors print as an "at a glance" checklist**, grouped by side: in its favour, against it, then context. Within each group the strongest reading comes first. Each row shows its factor's own score gauge and headline readings, never a fixed pass/fail threshold. The foreign-flow row prints the foreign desk's net over the same sessions its score was measured on.
+**A VN stock's factors print as an "at a glance" checklist**, grouped by side: in its favor, against it, then context. Within each group the strongest reading comes first. Each row shows its factor's own score gauge and headline readings, never a fixed pass/fail threshold. The foreign-flow row prints the foreign desk's net over the same sessions its score was measured on.
 
 - Growth has no factor of its own, so it prints numbers only, under context. A factor reading near zero sits there too.
 - Profitability and financial health share the quality score, so the second row leaves its gauge blank rather than counting it twice.
@@ -753,7 +753,7 @@ Each market publishes only the per-market sections it has data for, so adding a 
 **Ladders** show where a reading sits between two ends. The left end is always the one against the reader, and `●` is the reading itself. A reading past either end sits outside the bracket.
 
 - `/overview` draws the composite on a `-1`..`+1` gauge with `┼` at the market-state thresholds, and each driver between its bearish and bullish anchors. For a rate the bearish anchor is the larger number, so the ladder does the flip for you.
-- Each `/portfolio` row with a plan draws its live price between the stop and the take-profit, on its own line and labelled with both prices.
+- Each `/portfolio` row with a plan draws its live price between the stop and the take-profit, on its own line and labeled with both prices.
 - A suggestion draws none. A fresh plan's first take-profit sits one risk unit above entry, so the dot would always sit in the middle and say nothing.
 - Tool results relayed by the model print plain wording, with no glyphs to copy.
 
@@ -1227,7 +1227,7 @@ buy on 2026-06-11 needs 13152000 available cash, book has 0
 sell of 600 ACB exceeds 0 settled on 2026-06-15
 ```
 
-A row dated after today, on the home region's calendar, is refused too. A trade that has not happened yet is a typo, and the book would otherwise hold it out of sight until the day came.
+A row dated after today, on the home region's calendar, is refused too. A trade that has not happened yet is a typo, and the book would otherwise hold it out of sight until the day came. So is a row with a figure above 1e15 (amount, price, quantity, fee or rate): no real one is that large, so it is read as a stray digit.
 
 A price is always the full figure, such as `58400`, never the board figure (`58,40`, meaning ×1,000 VND). If you type a Vietnamese share price below 1,000 VND while the name trades above that, it is refused and you are shown the full price to send instead. An `/alert` threshold is checked the same way.
 
@@ -1270,7 +1270,7 @@ The average cost includes the entry fee, so it matches the figure your broker's 
 - A stated fee that sits far from the configured rate replaces the rate line with how far off it is, rather than being silently accepted.
 - A market with no configured rate prints neither line: there is nothing to measure against, and a zero would read as agreement.
 
-Every field is labelled here and nowhere else. A confirmation is read alone, against what you meant to store. `/transactions` keeps the unlabelled one-line row, since a field list repeated down a page cannot be scanned. Every row names its venue, cash rows included, so a deposit says where the money went.
+Every field is labeled here and nowhere else. A confirmation is read alone, against what you meant to store. `/transactions` keeps the unlabeled one-line row, since a field list repeated down a page cannot be scanned. Every row names its venue, cash rows included, so a deposit says where the money went.
 
 ### Two views, enforced by type
 
@@ -1400,7 +1400,7 @@ you sold.
   book for two sessions.
 - **Book the loss as `loss`**, not `withdrawal` or `fee`. A withdrawal reads as money you took home and
   flatters your return; a fee reads as brokerage. `loss` takes the cash out but leaves what you deposited
-  alone, so `/portfolio` shows it as "Realised P/L on closed trades: ▼ -15,000,000 VND".
+  alone, so `/portfolio` shows it as "Realized P/L on closed trades: ▼ -15,000,000 VND".
 - **The deposit has to come first.** Every write checks the whole book, and a buy or loss with no cash
   behind it is refused.
 - **Each name gets an exit plan straight away**, measured from the cost you typed. A name trading well
@@ -1563,7 +1563,7 @@ Advice is either **ready** (segment allocation, per-position rebalance, a cash s
 
 An unavailable answer still carries the findings, because "you are over your sector cap" stays true when one holding is unpriced.
 
-A segment the plan could not fund to target raises one caveat naming that segment. Each segment gets its own slice of the deployable pool, so a plan-wide shortfall would otherwise blame a neighbour's exhausted budget on whichever name sat below target.
+A segment the plan could not fund to target raises one caveat naming that segment. Each segment gets its own slice of the deployable pool, so a plan-wide shortfall would otherwise blame a neighbor's exhausted budget on whichever name sat below target.
 
 When the cap that stopped it is shared (the segment's ETF cap or a sector cap), the caveat names that
 cap and says that only names outside it fill the segment. The plan offers names from the screen that
@@ -1616,7 +1616,7 @@ and sits under what to do first. It never closes the name to `/rebalance`.
 A name on your exclusion list is sold back too: the list stops new buys, while the cap limits risk. To
 keep a concentrated name on purpose, raise the cap with `/profile`.
 
-A fund is never sold for a weak score. A bearish read on an index is a view on the whole market, and the segment's weight and market state already handle that. So a held ETF scoring under the hold line keeps its weight. The drift rule can still trim it, and a cap can still sell it back.
+A fund is never sold for a weak score. A bearish read on an index is a view on the whole market, and the segment's weight and market state already handle that. So a held ETF scoring under the hold line keeps its weight. The drift rule can still trim it, and a cap can still sell it back. The one exception is a fund held in a segment whose ETF cap is 0: `/rebalance` sells it back out whatever its score, because the segment takes no ETFs.
 
 The segment's ETF core stays with the fund you already hold until another one outscores it by 0.15. Funds on overlapping indices move almost together, so a small lead is not worth paying fees and tax on a round trip.
 
@@ -1660,8 +1660,8 @@ Allocation has no surface of its own: `portfolio_rebalance` and `/rebalance` rep
 
 The Portfolio tab of the [office page](operations.md#the-office-page) writes the same rows as `/record`, `/update` and `/delete`, through the same checks, and never sends an order.
 
-- **Every kind of row.** The record form has three buttons, Buy, Sell and Other, and opens on Buy or Sell; "Other" opens a menu of dividend (the amount received, in the market's currency), distribution (the shares received), split (shares added, negative for a reverse split), rights (with the purchase price; an empty fee is recorded as 0), transfer (between two of your venues; the same venue on both sides is refused before anything is sent), deposit, withdrawal, fee and loss (money lost before you kept the ledger). A share change shows what the holding will be once recorded. History lists every kind, with a filter, and every row can be edited or deleted, with undo.
-- **What the book has made.** Portfolio > Performance lists, in the book's currency, what you put in net of withdrawals, the realised profit or loss, the dividends inside it, the trading fees still in what you hold, and the total against what you put in, with its percent. The figures are the ones `/portfolio` prints; it does not print the dividends as a line of their own. Realised profit or loss shows even while a holding has no price, and the fees and the total wait for the total assets.
+- **Every kind of row.** The record form has three buttons, Buy, Sell and Other, and opens on Buy or Sell; "Other" opens a menu of dividend (the amount received, in the market's currency), distribution (the shares received), split (shares added, negative for a reverse split), rights (with the purchase price; an empty fee is recorded as 0), transfer (between two of your venues; the same venue on both sides is refused before anything is sent), deposit, withdrawal, fee and loss (money lost before you kept the ledger). A share change shows what the holding will be once recorded. History lists every kind, with a filter, and every row can be edited or deleted, with undo. The date opens on your home market's trading day, the same day the CLI and chat propose (the UTC day when the home market trades around the clock).
+- **What the book has made.** Portfolio > Performance lists, in the book's currency, what you put in net of withdrawals, the realized profit or loss, the dividends inside it, the trading fees still in what you hold, and the total against what you put in, with its percent. The figures are the ones `/portfolio` prints; it does not print the dividends as a line of their own. Realized profit or loss shows even while a holding has no price, and the fees and the total wait for the total assets.
 - **The rate you paid.** When a row is in a currency other than the book's and a rate applies, such as a USDT deposit on a VND book or a buy at a venue holding no USDT, a Rate field appears, filled with that day's market rate; change it to the rate you actually paid. It cannot be left empty, so the page never saves such a row at a rate you did not see. A row paid from USDT the venue already holds (a buy, a transfer, a fee) shows no rate field. If the day's rate cannot be read, the form says so, offers Retry and does not save yet. Editing a row keeps its booked rate.
 - **Check against venues.** History > Check against venues reads each venue that has a key, as `/reconcile` does: a match, or how much more or less the venue holds than the ledger, with a button that opens the record form filled with the difference (the price is left for you). A venue with no key names its variables and links to Settings > Exchanges; one that cannot read balances, or does not answer, says so. "Sync fills from <venue>" does what `/record sync` does: it reads the filled orders and books the ones the ledger lacks, and places no order. If the answer is slow, the page reads the ledger again rather than sending the sync twice.
 - **Orders.** Where a venue can place orders and `[api] orders` is on, Portfolio has an *Orders* tab.
@@ -1766,7 +1766,7 @@ outright when the run's approval mode is `bypass`, unless `[trading.orders] allo
   is not waved through.
 - A buy into a segment you have switched off (both its caps are 0) is a breach too: `/trade` shows it and
   `order_place` refuses it. A segment with no caps recorded at all is not switched off.
-- An ETF cap of 0 keeps ETFs out of that segment: buying one there is a breach the same way, while
+- An ETF cap of 0 keeps ETFs out of that segment: buying one there is a breach the same way, and a fund you already hold there is sold back out by `/rebalance`, while
   ordinary shares in the segment are unaffected.
 
 With a saved profile, a buy is refused while any holding in the book has no price (`order.book_unpriced`), on `/trade` and `order_place` alike. Without a price for every holding there is no total, so no position, segment or ETF cap can be measured, and an order that skipped them would clear them all. `/portfolio` names the holding; `/refresh` its market to load a price, then place the order again. A sell, and a buy with no saved profile, are not held back.
@@ -1934,7 +1934,7 @@ Every write to an exchange (a confirm, an exit, a cancel) runs one at a time. Th
 - The caps are whole-book: spendable cash and the open-trade count. Two confirms running together would each measure a book the other has not written to, and both clear a ceiling only one may.
 - Two `/trade exit` calls running together would each read *nothing resting* and place, leaving the second exit the conflict guard exists to prevent.
 
-The caps are read **again** inside that window. An order the book no longer allows is refused with `order.book_moved` rather than trimmed, because the size and the levels are what you said yes to. A holding that lost its price in the meantime refuses the buy with `order.book_unpriced`.
+The caps are read **again** inside that window, and so are the saved profile's position, segment and ETF ceilings. Only a ceiling the book has crossed since the order was prepared refuses it; one the prompt already showed you stands. An order the book no longer allows is refused with `order.book_moved` rather than trimmed, because the size and the levels are what you said yes to. A holding that lost its price in the meantime refuses the buy with `order.book_unpriced`.
 
 ### 9. Verify, in this order
 

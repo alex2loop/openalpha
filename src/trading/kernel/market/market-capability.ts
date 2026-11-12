@@ -341,6 +341,9 @@ export interface QuoteBoardItem {
   readonly ticker: Ticker
   readonly region: Region
   readonly currency: CurrencyCode
+  /** The measure `last` is per, so a row of one market beside another's does not read as comparable
+   *  numbers. */
+  readonly unit: QuoteUnit
   readonly kind: Exclude<InstrumentKind, 'fx'>
   readonly market: MarketRef
   readonly assetClass: AssetClass

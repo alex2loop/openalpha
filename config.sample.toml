@@ -357,7 +357,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # fees = { buy = 0.0015, sell = 0.0015, sell_tax = 0.001 }
 # Keeping vps as the default too? Replace default_for with markets = ["equity-vn"]:
 # the broker holds that market without becoming its default. A built-in venue
-# (vps, binance, okx, gold-shop) cannot set markets.
+# (vps, binance, okx, gold-shop, us-broker) cannot set markets.
 
 # Only markets you still use refresh: a segment on in /profile, or one where you
 # hold, watch or wait on a scored call. `/refresh <market>` loads any of them.

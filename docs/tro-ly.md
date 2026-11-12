@@ -27,7 +27,7 @@ Chưa có thư mục `agents/` là chuyện bình thường, không phải lỗi
 
 `openalpha agent list` và `show <id>` để xem; `show` còn in công cụ, danh sách ủy quyền, trần số lượt và số agent con
 mà agent được phép gọi. `remove <id>` xóa một agent của bạn, tạm dừng các lịch chạy đang bật của nó và không chạm được vào agent có
-sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Lệnh](lenh.md).
+sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào một agent - xem [Câu lệnh](lenh.md).
 
 ### Từ trang văn phòng
 
@@ -214,7 +214,7 @@ chọn trên cùng mã, cùng ngày. Quy tắc, cùng cỡ mẫu tối thiểu �
 **`max_daily_usd` - phần của hôm nay.** Dưới `[budget] max_daily_usd`, mỗi agent có thể có mức trần riêng. Xem
 [mức trần theo agent](ngan-sach.md#mức-trần-theo-agent).
 
-**Tạm dừng.** `openalpha agent pause <id>` tắt một agent của bạn và `agent resume` bật lại ([Lệnh](lenh.md)). Persona
+**Tạm dừng.** `openalpha agent pause <id>` tắt một agent của bạn và `agent resume` bật lại ([Câu lệnh](lenh.md)). Persona
 tranh luận không tạm dừng được: làm vậy sẽ hỏng mọi đề xuất.
 
 - Việc tạm dừng được đọc ở mỗi phiên chạy, nên nó tới một dịch vụ nền đang chạy ngay lập tức, không cần khởi động lại.
@@ -400,7 +400,7 @@ công cụ của agent đó quyết định.
 openalpha chat --agent deep-researcher
 ```
 
-`/research` không đụng tới ràng buộc `/agent` của bạn ([Lệnh](lenh.md)). `openalpha chat --agent deep-researcher` là cửa
+`/research` không đụng tới ràng buộc `/agent` của bạn ([Câu lệnh](lenh.md)). `openalpha chat --agent deep-researcher` là cửa
 vào tiền cảnh rõ ràng.
 
 Gọi `research` trực tiếp bất cứ khi nào các khẳng định thời sự hoặc từ bên ngoài cần bằng chứng nhiều nguồn. Một con

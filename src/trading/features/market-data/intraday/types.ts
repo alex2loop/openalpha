@@ -3,6 +3,7 @@ import type {
   CurrencyCode,
   MarketRef,
   PriceDisplay,
+  QuoteUnit,
   SessionPhase,
   Ticker,
   TradingDay,
@@ -64,6 +65,8 @@ export interface IntradayRow {
   /** How this row's own market quotes a price. Stamped at build time because the report is also
    *  delivered unattended, where the renderer has no registry to ask. */
   readonly display?: PriceDisplay
+  /** The measure the price is per, stamped with `display`: a gold row says which weight it is. */
+  readonly unit?: QuoteUnit
 }
 
 /** One settled field and the rows it prints, first row on the label line. A field the market did not

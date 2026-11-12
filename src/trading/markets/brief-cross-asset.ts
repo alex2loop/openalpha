@@ -24,7 +24,7 @@ export async function buildCrossAssetPulse(context: BriefContext): Promise<Brief
     : ready(
         'cross-asset-pulse',
         // The one section whose rows can come from different markets, so each carries the currency
-        // its price is in, and the market it belongs to wherever the list spans more than one -
+        // and measure its price is in, and the market it belongs to wherever the list spans more than one -
         // USD/oz, VND/lượng and USD/coin otherwise read as one column of comparable numbers.
         quoteBoard.items.map((item) => {
           const changePct = quoteBoardMoveOf(item)
@@ -34,6 +34,7 @@ export async function buildCrossAssetPulse(context: BriefContext): Promise<Brief
             ...(spansMarkets(quoteBoard.items) ? { market: item.market } : {}),
             last: item.last,
             currency: item.currency,
+            quoteUnit: item.unit,
             ...(changePct === undefined ? {} : { changePct }),
           }
         }),

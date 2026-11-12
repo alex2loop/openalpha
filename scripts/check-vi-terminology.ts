@@ -152,16 +152,43 @@ const ORDER_SCOPES: readonly TermScope[] = Object.freeze([
   { key: 'channel.' },
   { key: 'pairing.' },
   { key: 'slash.', except: SLASH_TRADING },
+  { key: 'cli.', except: ['cli.doctorSafetyUnattended', 'cli.doctorVenueTradingOff'] },
+  {
+    key: 'errors.',
+    except: [
+      'errors.apiOrdersOff',
+      'errors.jobCommandUnattended',
+      'errors.ledgerTransferSameVenue',
+      'errors.orderNoExchangeAccount',
+    ],
+  },
+  { key: 'ui.replHelp' },
+  { key: 'ui.office.command.', except: ['ui.office.command.placeholderPhone'] },
+  { key: 'ui.office.keys.' },
+  { key: 'ui.office.signIn.' },
+  { key: 'ui.office.stale.' },
+  { key: 'ui.office.update.' },
+])
+
+/** Keys that grade or size a suggestion, which is "đề xuất" whether or not the page also talks about
+ *  the orders it leads to. The reduce, cap and crowding keys beside them mean a real trade and stay out. */
+const SUGGESTION_KEYS = Object.freeze([
+  'trading.caveat.suggestion.size-realized-scale',
+  'trading.render.suggestion.planReview',
+  'trading.render.suggestion.planReviewFund',
+  'trading.render.suggestion.planTakeProfitFund',
+  'trading.render.suggestion.planTimeStop',
+  'trading.scored.',
 ])
 
 const TERM_RULES: readonly TermRule[] = Object.freeze([
   ...SESSION_SCOPES.map((scope) => ({ ...scope, forbidden: [BARE_SESSION_RE], why: BARE_SESSION_WHY })),
   ...ORDER_SCOPES.map((scope) => ({ ...scope, forbidden: [BARE_ORDER_RE], why: BARE_ORDER_WHY })),
-  {
-    key: 'trading.focus.',
+  ...['trading.focus.', ...SUGGESTION_KEYS].map((key) => ({
+    key,
     forbidden: [BARE_ORDER_RE],
-    why: 'a resolved suggestion is "đề xuất"; a bare "lệnh" is an exchange order',
-  },
+    why: 'a suggestion is "đề xuất"; a bare "lệnh" is an exchange order',
+  })),
   ...REDUCE_KEYS.map((key) => ({ key, forbidden: REDUCE_BUY_TERMS, why: REDUCE_LEVELS_WHY })),
   {
     key: 'trading.action.reduce',

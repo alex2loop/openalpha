@@ -1,4 +1,4 @@
-# Lệnh
+# Câu lệnh
 
 Có hai cách gõ lệnh, và cả hai dùng chung một danh sách lệnh:
 
@@ -8,7 +8,7 @@ Có hai cách gõ lệnh, và cả hai dùng chung một danh sách lệnh:
 Phần giao dịch chỉ có lệnh gạch chéo. Nó không có lệnh CLI riêng.
 
 Hãy xem trang này như một tấm bản đồ. Muốn biết chính xác cú pháp của bản bạn đang cài, chạy `openalpha help`,
-`openalpha help <lệnh>` hoặc `openalpha <lệnh> --help`.
+`openalpha help <lệnh>` hoặc `openalpha <lệnh> --help`. Lệnh có lệnh con, như `logs`, `key`, `autostart` và `db migrate`, ghi "(mặc định)" cạnh lệnh con mặc định trong phần trợ giúp và hiện luôn các cờ của lệnh con đó, nên `openalpha logs --help` cũng liệt kê `--lines` và `--follow`.
 
 **Mục lục**
 
@@ -226,7 +226,7 @@ Một chip bên trái cho biết ai nhận câu bạn gõ: trợ lý, hay một 
 - **Hàng chờ.** Các câu lệnh tự chạy được thì không đứng đợi nhau, trong giới hạn nêu ở trên. Trong khung chat, câu lệnh phải chờ sẽ nói nó đứng thứ mấy trong hàng và đang có mấy câu lệnh chạy cùng lúc, và bỏ khỏi hàng được. Câu lệnh chạy song song với câu lệnh khác thì nói nó chạy cùng câu lệnh nào.
 - **Dừng và bổ sung.** Câu trả lời hay câu lệnh đang chạy hiện "Xem trong văn phòng" và nút Dừng; nút Dừng hỏi xác nhận và giữ phần đã làm trong nhật ký. Khi một câu trả lời (không phải câu lệnh) đang chạy, bạn gõ thêm một ý rồi bấm "Bổ sung": câu trả lời đọc ý đó ở bước tiếp theo. Dòng bắt đầu bằng `/` là câu lệnh, không bao giờ là phần bổ sung.
 
-Nút nào ghi rõ một câu lệnh đầy đủ thì gửi luôn câu lệnh đó khi bạn bấm: "/suggest VPB", "Phân tích mã này" trên thẻ mã và ở mỗi dòng Màn lọc (khi `/suggest` sẽ trả lại đề xuất đã lưu, tức mã còn đề xuất đang mở trên thẻ mã, hoặc ở Màn lọc là mã đã được phân tích trong ngày hay còn lệnh mua đang mở, chính nút đó đổi thành "Phân tích lại từ đầu" và gửi `/suggest <mã> force`; một lần chạy bị lỗi hay kế hoạch tự ghi cho mã đang giữ lúc bạn mua không phải là đề xuất, nên khi đó nút vẫn là "Phân tích mã này"; "Phân tích lại từ đầu" cũng nằm dưới mọi câu trả lời `/suggest <mã>` chưa kèm `force` và chạy lại đúng câu lệnh đó với `force`), bản tin ở thẻ bắt đầu, "Chạy lại" của một việc đã lên lịch, "Hỏi sâu hơn". Khi lượt chạy do một nút gửi đi chưa xong, nút đó quay vòng và tạm khóa, nên bấm thêm lần nữa cũng không tốn thêm lượt nào. Thẻ của một chỉ số hay hợp đồng tương lai không có nút "Phân tích mã này" lẫn "Ghi giao dịch", vì không ai mua bán trực tiếp được chúng; nút Theo dõi và cảnh báo giá vẫn còn. Trang chỉ ẩn hai nút đó khi báo giá của mã đã cho biết nó là chỉ số, nên mã chưa có báo giá vẫn hiện đủ nút. Thẻ đó cũng ẩn các khối kế hoạch, vị thế đang giữ và lệnh gợi ý cũ cùng ghi chú thang giá bảng điện, và không câu trả lời hay báo cáo nào mời bấm "/suggest" cho một mã như vậy. Câu trả lời `/suggest` chỉ dẫn tới phòng họp khi các vai đã tranh luận; câu bị từ chối, hay dừng trước khi có vai nào bắt đầu, không có cuộc họp nào để xem.
+Nút nào ghi rõ một câu lệnh đầy đủ thì gửi luôn câu lệnh đó khi bạn bấm: "/suggest VPB", "Phân tích mã này" trên thẻ mã và ở mỗi dòng Màn lọc (khi `/suggest` sẽ trả lại đề xuất đã lưu, tức mã còn đề xuất đang mở trên thẻ mã, hoặc ở Màn lọc là mã đã được phân tích trong ngày hay còn lệnh mua đang mở, chính nút đó đổi thành "Phân tích lại từ đầu" và gửi `/suggest <mã> force`; một lần chạy bị lỗi hay kế hoạch tự ghi cho mã đang giữ lúc bạn mua không phải là đề xuất, nên khi đó nút vẫn là "Phân tích mã này"; "Phân tích lại từ đầu" cũng nằm dưới mọi câu trả lời `/suggest <mã>` chưa kèm `force` và chạy lại đúng câu lệnh đó với `force`), bản tin ở thẻ bắt đầu, "Chạy lại" của một việc đã lên lịch, "Hỏi sâu hơn". Khi phiên chạy do một nút gửi đi chưa xong, nút đó quay vòng và tạm khóa, nên bấm thêm lần nữa cũng không tốn thêm lượt nào. Thẻ của một chỉ số hay hợp đồng tương lai không có nút "Phân tích mã này" lẫn "Ghi giao dịch", vì không ai mua bán trực tiếp được chúng; nút Theo dõi và cảnh báo giá vẫn còn. Trang chỉ ẩn hai nút đó khi báo giá của mã đã cho biết nó là chỉ số, nên mã chưa có báo giá vẫn hiện đủ nút. Thẻ đó cũng ẩn các khối kế hoạch, vị thế đang giữ và lệnh gợi ý cũ cùng ghi chú thang giá bảng điện, và không câu trả lời hay báo cáo nào mời bấm "/suggest" cho một mã như vậy. Câu trả lời `/suggest` chỉ dẫn tới phòng họp khi các vai đã tranh luận; câu bị từ chối, hay dừng trước khi có vai nào bắt đầu, không có cuộc họp nào để xem.
 
 Nút nào cho thấy kết quả ngay tại chỗ thì chạy câu lệnh mà không ghi gì vào khung chat hay lịch sử cuộc trò chuyện: "Cập nhật dữ liệu" (`/refresh`, không bao giờ kèm `force`) ở thẻ Thị trường cho các thị trường của vùng đang xem, và ở thẻ mã chưa có giá cho riêng thị trường của mã đó (thị trường bạn đã tắt, và vàng thế giới, thì không có nút này); "Viết lại bản tin hôm nay" ở cuối bản tin sáng (`/brief force`), trang đọc vẫn mở và tự nạp bản tin mới khi viết xong; "Chạy lại" ở Chủ đề (`/themes`, hoặc `/themes run <id>` cho một chủ đề), cần một mô hình AI và khóa lại khi chưa có; "Lọc lại" ở Màn lọc xếp hạng lại bảng. Muốn xem tiến trình hay dừng thì mở "Việc đang chạy" ở đầu trang; câu lệnh bị từ chối trước khi chạy (ví dụ vượt hạn mức chi phí) thì lý do hiện ngay dưới nút, và "Chạy lại" ở Chủ đề cũng khóa khi một lượt chủ đề gửi từ kênh khác đang chạy. Nút nào còn cần bạn nhập thêm, như Đặt cảnh báo hay trích một bản báo cáo, thì chỉ điền vào ô (hoặc chọn người nhận) và để phần còn lại cho bạn.
 
@@ -313,7 +313,7 @@ Dữ liệu thị trường vẫn tiếp tục nạp ở nền sau đó.
 `[api]`, và tệp nhật ký. Nhật ký ghi lại lúc các kênh mở.
 
 Sau đó nó cho biết việc tự chạy nào đang làm lúc ấy, ví dụ việc nạp dữ liệu thị trường mà lần khởi động
-nào cũng làm, và vì sao lần chạy gần nhất của một việc bị lỗi nếu có. Ở tiền cảnh, mỗi việc đó in thêm
+nào cũng làm, và vì sao phiên chạy gần nhất của một việc bị lỗi nếu có. Ở tiền cảnh, mỗi việc đó in thêm
 một dòng "Xong" khi làm xong; sau đó terminal im lặng.
 
 **Khởi động lại.** Khi đã có dịch vụ nền chạy và `[api]` đang bật, `restart` nhờ chính dịch vụ nền đó
@@ -347,7 +347,7 @@ và lỗi lưu trữ. Cổng API đã bị dùng thì không: API không mở, `
 dịch vụ nền vẫn chạy.
 
 **Trạng thái.** `status` cho biết dịch vụ nền đang chạy bản nào, và việc tự chạy nào đang làm lúc này
-(chậm nhất vài giây), kèm lý do nếu lần chạy gần nhất của một việc bị lỗi.
+(chậm nhất vài giây), kèm lý do nếu phiên chạy gần nhất của một việc bị lỗi.
 
 - Chạy lại script cài đặt thì dịch vụ nền chạy ở chế độ nền được bật lại trên bản mới.
 - Cài bản chọn sẵn bằng `OPENALPHA_VERSION` thì dịch vụ nền vẫn chạy bản cũ tới khi bạn tự khởi động
@@ -831,11 +831,11 @@ nên `/record` và `/update` từ chối dòng nêu tên chúng, khi danh sách 
 
 ```text
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>
-/record buy|sell [sàn] <mã> <số lượng|all> <đơn giá> [tiền tệ] [phí] [ngày]
-/record rights [sàn] <mã> <số lượng> <đơn giá> [tiền tệ] <phí> [ngày]
+/record buy|sell [sàn] <mã> <khối lượng|all> <giá> [tiền tệ] [phí] [ngày]
+/record rights [sàn] <mã> <khối lượng> <giá> [tiền tệ] <phí> [ngày]
 /record dividend <sàn> <mã> <số tiền> <tiền tệ> <ngày>
-/record split|distribution <sàn> <mã> <thay-đổi-số-lượng> <ngày>
-/record transfer <từ-sàn> <đến-sàn> <số tiền> <tiền tệ> <phí> <ngày>
+/record split|distribution <sàn> <mã> <thay đổi khối lượng> <ngày>
+/record transfer <sàn nguồn> <sàn đích> <số tiền> <tiền tệ> <phí> <ngày>
 /record sync <sàn>
 /record confirm
 ```
@@ -970,8 +970,8 @@ vị thế đã qua cửa sổ đo kết cục mà không nhúc nhích. Nó mặ
 
 ```text
 /trade
-/trade spot <[sàn:]mã> buy|sell <số lượng> [limit <giá>] [tp <giá>] [sl <giá>]
-/trade exit <[sàn:]mã> [qty <số lượng>] [tp <giá>] [sl <giá>]
+/trade spot <[sàn:]mã> buy|sell <khối lượng> [limit <giá>] [tp <giá>] [sl <giá>]
+/trade exit <[sàn:]mã> [qty <khối lượng>] [tp <giá>] [sl <giá>]
 /trade halt|resume
 /trade confirm [token]
 /trade cancel <[sàn:]mã>

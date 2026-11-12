@@ -1,5 +1,7 @@
 import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
+import { renderQuoteUnit } from '@/i18n'
 import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
+import { locale } from '@/web/state/session'
 import {
   formatCount,
   formatExactAmount,
@@ -38,7 +40,9 @@ export function formatMarketPrice(
 export function formatRecordedMarketPrice(market: string, value: number, currency: string): string {
   const board = priceDisplayOf(market)
 
-  return board === undefined ? `${formatExactAmount(value)} ${currency}` : formatPrice(value, board)
+  return board === undefined
+    ? `${formatExactAmount(value)} ${quoteUnitOf(market, currency)}`
+    : formatPrice(value, board)
 }
 
 /** A dealer's two sides, each labelled, with the currency said once after them where the market has
@@ -65,8 +69,13 @@ function withCurrency(market: string, price: string, reading?: LevelReading): st
   const currency = findMarket(market)?.currency
 
   return reading?.isLevel !== true && priceDisplayOf(market) === undefined && currency !== undefined
-    ? `${price} ${currency}`
+    ? `${price} ${quoteUnitOf(market, currency)}`
     : price
+}
+
+// The currency, then the measure the market's price is per where its instrument does not imply it.
+function quoteUnitOf(market: string, currency: string): string {
+  return renderQuoteUnit(locale.value, currency, findMarket(market)?.quoteUnit)
 }
 
 /** Prints a chart tick: the board's figure at only the decimals its spacing needs, so a whole step

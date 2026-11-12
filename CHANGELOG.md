@@ -7,6 +7,35 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [Unreleased]
+
+Vietnamese now calls a suggestion an "đề xuất" and a typed command a "câu lệnh" everywhere, the web reads figures, gold prices and the trade form's day the way the terminal and chat do, and a round of rare failures around caps, orders and settings is fixed.
+> Tiếng Việt giờ gọi một gợi ý là "đề xuất" và một lệnh gõ vào là "câu lệnh" ở mọi nơi, web đọc số liệu, giá vàng và ngày ở biểu mẫu giao dịch giống terminal và chat, và một loạt lỗi hiếm quanh các mức trần, lệnh đặt và cài đặt đã được sửa.
+
+### Changed
+
+- In Vietnamese, a suggestion is "đề xuất" and something you type is a "câu lệnh", in the terminal, in chat and on the office page; "lệnh" is kept for an order at an exchange.
+- Web gold prices show their unit, per tael or per ounce, as chat does.
+- The web trade form opens on your home market's trading day, the same day the terminal and chat propose (the UTC day for a market that trades around the clock).
+- Web figures read like the rest: no "-0,00", macro and benchmark moves in whole percents, a portfolio's return in the same form as `/portfolio`, and token counts grouped.
+- In the terminal, a billed call too small for four decimals keeps two significant digits, so AI spend never reads "0,0000 USD" for a call that cost something.
+- Win rates and hit rates, in chat as well, are a whole percent everywhere.
+- `/cost` shows the dates of the range it covers, and token counts in the millions read as "1,2M".
+- A history error is written in your language.
+- `openalpha logs --help`, `key --help`, `autostart --help` and `db migrate --help` mark the default subcommand and show its flags.
+- 1.6.1's "AI spend reads the same everywhere" applies to the terminal and chat. The web keeps cents in its header chip, as the budgets guide describes.
+- Documentation: Vietnamese and English pages use the same terms and spelling as the app, and the commands guide lists the real argument names.
+
+### Fixed
+
+- `/rebalance` now sells a fund you hold in a segment whose ETF cap is 0, whatever its score.
+- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included; only a ceiling the book crossed since the order was prepared refuses it.
+- A ledger figure above 1e15 (amount, price, quantity, fee or rate) is refused as implausible instead of being saved.
+- Editing and deleting an agent at the same moment no longer race, so an edit cannot bring back a deleted agent.
+- Saving settings on the web is all or nothing: a failed save leaves your settings as they were.
+- The macro documents kept for the extractor are described as at least 775 days (about 25 months), which is what OpenAlpha keeps.
+- `config.sample.toml` lists every built-in venue that cannot set markets.
+
 ## [1.6.1] - 2026-11-12
 
 Money, prices and your ledger now read the same on the web, in the terminal and in chat, with cents in a dollar book and every digit you recorded. An ETF cap of 0 now really keeps funds out, and a few rare failures that could lose a settings change or stop OpenAlpha are fixed.

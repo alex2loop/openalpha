@@ -51,7 +51,7 @@ correctness one. `maximumOpenRiskPctNav` and the segment caps are load-bearing.
 
 **The model never sees your book in money.** Positions, cash, NAV and cost basis are
 projected before anything reaches a persona or a tool. What a model can see is the *shape*
-of a holding - weight as a fraction of NAV, unrealised return as a percentage, share of
+of a holding - weight as a fraction of NAV, unrealized return as a percentage, share of
 quantity settled, lot count, first acquisition day - never a quantity, a price paid, a cash
 balance or an amount. Two mechanisms enforce it:
 
@@ -86,7 +86,7 @@ that token, is in scope.
 either is in scope.
 
 **Path handling is safe.** The agent writes into private directories with symlink-race
-defence. Traversal or a race that escapes them is in scope.
+defense. Traversal or a race that escapes them is in scope.
 
 ## What is not in scope
 
@@ -113,7 +113,7 @@ For context when you assess a finding — these are enforced, not aspirational:
 | Untrusted text | prompt-injection scanning before it can steer a run or reach memory |
 | Logs and errors | scrubbed at the boundary |
 | Network | pinned fetch over an IPv4/IPv6/DNS network policy |
-| Filesystem | canonicalisation with symlink-race defence on private files |
+| Filesystem | canonicalization with symlink-race defense on private files |
 | Plugins | no code without `plugins.allow_code`; tools and hooks structurally forbidden |
 | The book | a model sees weights and percentages, never money, quantities or cost basis - omitted at the type level |
 | Execution | one order path, human approval, session-scoped and never remembered |

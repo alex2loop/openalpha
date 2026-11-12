@@ -7,7 +7,7 @@ import { isAnalysisOnly } from '@/web/state/edition'
 import { estimateOf, isNoAi } from '@/web/state/estimates'
 import { onWireEvent } from '@/web/state/events'
 import { state } from '@/web/state/session'
-import { formatUsd } from '@/web/text/figures'
+import { formatCount, formatUsd } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { formatAgentName } from '@/web/text/run-name'
 import { formatClock, formatDuration } from '@/web/text/time'
@@ -151,11 +151,14 @@ function CallRow({
 }
 
 function describeUsage(call: RunCallWire): string[] {
+  const cache = call.cacheReadTokens + call.cacheWriteTokens
+
   return [
-    tr('ui.office.calls.tokens', { input: call.inputTokens, output: call.outputTokens }),
-    ...(call.cacheReadTokens + call.cacheWriteTokens === 0
-      ? []
-      : [tr('ui.office.calls.cache', { cache: call.cacheReadTokens + call.cacheWriteTokens })]),
+    tr('ui.office.calls.tokens', {
+      input: formatCount(call.inputTokens),
+      output: formatCount(call.outputTokens),
+    }),
+    ...(cache === 0 ? [] : [tr('ui.office.calls.cache', { cache: formatCount(cache) })]),
   ]
 }
 

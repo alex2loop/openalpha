@@ -195,7 +195,7 @@ no snapshot on either path, and `db migrate down` says so before it asks.
 The windows are set by [`[retention]`](configuration.md#retention): `days` is the general window,
 `history_days` the track record's and `inbox_days` the inbox's own. An inbox entry may be claimed 3 times before it is dead-lettered.
 
-| Data | Retention behaviour |
+| Data | Retention behavior |
 | --- | --- |
 | Non-active sessions and their messages | Removed after `days`, from end or last-activity time. |
 | Session routes | Follow the session's general window. |
@@ -324,7 +324,7 @@ not block the restore: it is moved into `backups/` the same way.
 data directory. Migration state travels inside the file, so the new host reports its migrations as
 already applied.
 
-- The target must run code that recognises those migrations. If not, `db migrate --status` reports an
+- The target must run code that recognizes those migrations. If not, `db migrate --status` reports an
   orphan.
 - Both hosts must use SQLite: a SQLite backup cannot be loaded into PostgreSQL. To move between
   engines, use `db export` and `db import`.
@@ -344,7 +344,7 @@ Every registered migration then applies. To keep
 your data, run `db export` first and `db import` afterwards (see
 [Export and import](#export-and-import)).
 
-### Failure behaviour
+### Failure behavior
 
 | Condition | Result |
 | --- | --- |
@@ -452,9 +452,9 @@ Compaction starts when the history approaches the model's context window or exce
 cap. The threshold, the message cap and the maximum number of passes are under
 [`[loop]`](configuration.md#loop).
 
-It keeps the system head, summarises the older middle, and keeps the ten most recent message groups (a
+It keeps the system head, summarizes the older middle, and keeps the ten most recent message groups (a
 user message, or an assistant message with its tool results). So a run driven by one long request
-still has older content to shrink. A configured fast model is preferred for summarising; otherwise the
+still has older content to shrink. A configured fast model is preferred for summarizing; otherwise the
 primary model is used. Summary calls are budgeted, priced and saved as `compaction` attempts.
 
 - Each tool call stays together with its result. Orphaned calls and results are dropped, repeated
@@ -464,7 +464,7 @@ primary model is used. Summary calls are budgeted, priced and saved as `compacti
 - The summary keeps: the active todo list and unfinished steps, decisions and their reasons,
   constraints still in force, unresolved errors, and facts established by tool calls. It drops
   exploratory back-and-forth, redundant tool output and superseded content.
-- If summarising hits a provider error, a truncation marker is inserted and a repaired recent
+- If summarizing hits a provider error, a truncation marker is inserted and a repaired recent
   history is kept. Budget, timeout, abort and other run halts still stop the run as usual.
 - A run compacts at most 3 times. A pass that leaves the transcript no smaller halts the run with
   `length_limit` instead of resending the same overflow.
@@ -500,7 +500,7 @@ its budget tree, but never load or append to the parent's transcript. Their mode
 child and parent run ids and bill to the top-level session, so spend stays auditable without mixing
 scratch conversation into your history.
 
-### Retention and failure behaviour
+### Retention and failure behavior
 
 | Condition | Result |
 | --- | --- |

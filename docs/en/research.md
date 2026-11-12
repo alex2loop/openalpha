@@ -99,7 +99,7 @@ Each claim is one of three kinds:
 
 - `factual` and `numeric` claims are sourced and must cite excerpts. A `numeric` claim also carries
   its value, unit and date exactly as written in the quote.
-- `inference` claims are the model's own reasoning, labelled as such so you can tell them from sourced
+- `inference` claims are the model's own reasoning, labeled as such so you can tell them from sourced
   statements.
 
 A sourced claim marked `forecast: true` states an expectation, estimate, price target or company
@@ -251,7 +251,7 @@ Fetching is guarded:
   when a redirect crosses hosts;
 - non-text responses are rejected, and outbound requests are scanned for credential-shaped values.
 
-**OpenAlpha does not read or honour `robots.txt`.** Exclude sites you would rather not fetch by other
+**OpenAlpha does not read or honor `robots.txt`.** Exclude sites you would rather not fetch by other
 means.
 
 Hard ceilings apply to any single run whatever the configuration: 8 sources gathered per question, 8

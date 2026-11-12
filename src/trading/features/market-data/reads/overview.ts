@@ -91,6 +91,7 @@ async function runOverview(
 
   return {
     ...overview,
+    quoteUnit: market.manifest.quoteUnit,
     ...(macro?.kind === 'available' ? { macro: macro.value } : {}),
     sessionState: calendar.sessionState(options.now),
     sessionPhase: sessionPhase(calendar, options.now),

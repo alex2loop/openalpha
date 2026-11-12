@@ -71,7 +71,20 @@ export function formatFixed(value: number | undefined, digits: number): string {
     return ABSENT_CELL
   }
 
-  return formatterFor(digits).format(value)
+  return printed(formatterFor(digits), value)
+}
+
+/** `formatFixed` led by a `+` when it reads above zero, judged off the rendered text: a figure that
+ *  rounds to zero carries no sign. */
+export function formatSignedFixed(value: number | undefined, digits: number): string {
+  const text = formatFixed(value, digits)
+
+  return value !== undefined && toneOf(value, text) === 'up' ? `+${text}` : text
+}
+
+/** The direction a `formatFixed` figure reads in, judged off its rendered text. */
+export function toneOfFixed(value: number | undefined, digits: number): Tone {
+  return isFigure(value) ? toneOf(value, formatFixed(value, digits)) : 'flat'
 }
 
 /** A share of the whole, given as a fraction (`0.1425`), at fixed decimals so a column lines up:
@@ -81,7 +94,29 @@ export function formatFixedFraction(fraction: number | undefined): string {
     return ABSENT_CELL
   }
 
-  return sharedFormatter('percentFixed').format(fraction)
+  return printed(sharedFormatter('percentFixed'), fraction)
+}
+
+/** A share given as a fraction at whole percent, for a fold over weights that never had a second
+ *  decimal: `14%`. */
+export function formatWholeFraction(fraction: number | undefined): string {
+  if (fraction === undefined || !Number.isFinite(fraction)) {
+    return ABSENT_CELL
+  }
+
+  return printed(sharedFormatter('percentWhole'), fraction)
+}
+
+/** A score or a contribution to one at two decimals with its sign always shown (`+0,43`, `-0,12`);
+ *  one that rounds to zero carries none. */
+export function formatScoreValue(score: number | undefined): string {
+  if (score === undefined || !Number.isFinite(score)) {
+    return ABSENT_CELL
+  }
+
+  const text = sharedFormatter('score').format(score)
+
+  return hasMagnitude(text) ? text : formatterFor(FRACTION_DIGITS).format(0)
 }
 
 /** A held or traded quantity: whole shares stay whole, a coin keeps its decimals. */
@@ -219,6 +254,12 @@ export function formatSignedPercent(value: number | undefined): string {
 /** As `formatSignedPercent`, for a field given as a fraction (`returnPct`, `0.05` is 5%). */
 export function formatSignedFraction(fraction: number | undefined): string {
   return formatSignedPercent(fraction === undefined ? undefined : fraction * PERCENT)
+}
+
+/** As `formatSignedFraction` without trailing zeros (`▲ 12,5%`), for a figure a sentence carries
+ *  rather than a row in a stack. */
+export function formatTrimmedSignedFraction(fraction: number | undefined): string {
+  return withArrow(fraction, (shown) => printed(sharedFormatter('percent'), shown))
 }
 
 /** As `toneOfPercent`, for a field given as a fraction. */

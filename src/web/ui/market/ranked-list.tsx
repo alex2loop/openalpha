@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact'
 
-import { formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { formatSignedPercent, type Tone, toneOfPercent } from '@/web/text/figures'
 import { INLINE_SEPARATOR } from '@/web/text/glyphs'
 
 import './ranked-list.css'
@@ -13,7 +13,7 @@ export interface RankedRow {
   /** The row's own move, as a percent; a row with none leaves its place empty. */
   readonly changePct?: number | undefined
   /** A signed figure of another unit (index points) in the move's place, toned by its sign. */
-  readonly pill?: { readonly text: string; readonly tone: 'up' | 'down' } | undefined
+  readonly pill?: { readonly text: string; readonly tone: Tone } | undefined
 }
 
 interface RankedListProps {

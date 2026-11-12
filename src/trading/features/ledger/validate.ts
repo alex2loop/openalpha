@@ -28,6 +28,11 @@ import { moneyParam } from '@/trading/render/money'
 // to a quantity.
 const COMPARISON_EPSILON = 1e-9
 
+// Far above any real amount, price, quantity or rate, and low enough that a product of any four
+// stays finite: one mistyped exponent would otherwise overflow to Infinity and turn the whole
+// book's cash into NaN.
+const MAXIMUM_LEDGER_FIGURE = 1e15
+
 // The kinds whose correctness rests on settling the day they are recorded: the cash kinds and a
 // dividend clear on the same pass through the pending path, and a transfer moves both legs at once
 // without one. A lagged settlement day would mis-time either.
@@ -75,6 +80,7 @@ export function assertLedgerValid(
   const ordered = orderLedger(pending)
 
   for (const entry of ordered) {
+    assertFiguresPlausible(entry.transaction)
     assertVenueHoldsMarket(entry.transaction, options)
     assertVenueRegistered(entry.transaction, options)
     assertTransferCrossesVenues(entry.transaction)
@@ -250,6 +256,35 @@ function assertNotAhead(txn: LedgerTxn, today: TradingDay): void {
     key: 'errors.ledgerFutureDay',
     params: { day: { day: txn.at } },
   })
+}
+
+function assertFiguresPlausible(txn: LedgerTxn): void {
+  // Written as the passing case so a NaN or an Infinity fails it too.
+  if (figuresOf(txn).every((figure) => Math.abs(figure) <= MAXIMUM_LEDGER_FIGURE)) {
+    return
+  }
+
+  throw new ValidationError(`${txn.kind} on ${txn.at} carries a figure beyond any plausible size`, {
+    key: 'errors.ledgerFigureImplausible',
+    params: { day: { day: txn.at } },
+  })
+}
+
+/** Every number a row states or converts by: what the fold multiplies together. */
+function figuresOf(txn: LedgerTxn): readonly number[] {
+  switch (txn.kind) {
+    case 'split':
+    case 'distribution':
+      return [txn.quantityDelta]
+    case 'transfer':
+      return [txn.amount, txn.fee, txn.conversion.rate]
+    case 'buy':
+    case 'sell':
+    case 'rights':
+      return [txn.quantity, txn.unitPrice, txn.fee, txn.conversion.rate]
+    default:
+      return [txn.amount, txn.conversion.rate]
+  }
 }
 
 /** Currency is structural: the market declares it in its manifest, so "VN equities record in VND"

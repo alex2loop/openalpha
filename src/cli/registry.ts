@@ -81,7 +81,7 @@ export const BUILT_IN_COMMANDS: readonly (Command | Group)[] = [
   }),
   lazyCommand({
     ...CLI_COMMAND_METADATA.history,
-    load: async () => (await import('@/cli/commands/history')).historyCommand,
+    load: async () => (await import('@/cli/commands/history/history')).historyCommand,
   }),
   lazyCommand({
     ...CLI_COMMAND_METADATA.cost,

@@ -177,9 +177,12 @@ export type MacroResponse =
         readonly unit: 'percent' | 'level'
         readonly value: number
         readonly asOf: string
+        /** A share of 0 to 1, rounded across the drivers to whole percents that still sum as the
+         *  chat prints them. */
         readonly weight: number
         readonly bearishAt: number
         readonly bullishAt: number
+        /** Rounded across the drivers to two decimals that still sum as the chat prints them. */
         readonly contribution: number
       }[]
       /** The drivers with no reading, left out of the score; `label` in the operator's language. */

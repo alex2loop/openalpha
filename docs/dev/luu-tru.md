@@ -247,4 +247,4 @@ nhắn nhận cho cuộc trò chuyện cũ không chạy nhầm dưới tuyến 
 - Hàng đợi cuộc trò chuyện và rào chắn tuyến: [`core/session-queue.ts`](../../src/core/session-queue.ts)
 - Nén ngữ cảnh: [`engine/compact/compactor.ts`](../../src/engine/compact/compactor.ts) - [`message-repair.ts`](../../src/engine/compact/message-repair.ts)
 - Khôi phục danh sách việc: [`engine/loop/todo.ts`](../../src/engine/loop/todo.ts)
-- CLI lịch sử: [`cli/commands/history.ts`](../../src/cli/commands/history.ts)
+- CLI lịch sử: [`cli/commands/history/history.ts`](../../src/cli/commands/history/history.ts)

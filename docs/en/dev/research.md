@@ -96,7 +96,7 @@ Each question yields one evidence branch. Branches fold into one result:
 A source is a page, an excerpt a verbatim quote, a claim a statement citing one or more excerpts. A
 claim is `factual`, `numeric` or `inference`. `factual` and `numeric` are extractive and must cite
 excerpts; `numeric` also carries literal value, unit and date spans that must appear verbatim in the
-cited excerpt. `inference` is the model's own reasoning and is labelled as such. `forecast: true`
+cited excerpt. `inference` is the model's own reasoning and is labeled as such. `forecast: true`
 marks a claim whose source states an expectation, projection, price target, estimate or guidance; a
 forecast never merges with the outcome it anticipates, and two disagreeing forecasts never raise a
 `factual_contradiction`.

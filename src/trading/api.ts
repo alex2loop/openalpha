@@ -25,6 +25,7 @@ export type {
   TradingTrackRecordView,
 } from '@/trading/wiring/host/view-types'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
+export { apportionedBenchmarkLegs } from '@/trading/features/portfolio/render/nav'
 export { keptCaveats } from '@/trading/features/portfolio/render/rebalance-gaps'
 export { DEBATE_MODEL_TIER } from '@/trading/kernel/config'
 export { isIndexCode } from '@/trading/kernel/market/index-reading'
@@ -76,16 +77,15 @@ export type { BriefDelivery, BriefService, BriefSnapshot } from '@/trading/featu
 export type { LedgerEntry, LedgerWriteResult } from '@/trading/features/ledger/types'
 export type { ScreenCard, ScreenCardRow } from '@/trading/features/market-data/render/screen'
 export type { MarketDataService, ScreenView } from '@/trading/features/market-data/types'
+export type { OrphanExit, UnguardedPosition } from '@/trading/features/order/exit-coverage'
 export type {
   CapRejection,
   ConfirmOutcome,
   ExitOutcome,
-  OrphanExit,
   ReconcileReview,
   RestingExitRow,
   StagedOrder,
   TradeStatus,
-  UnguardedPosition,
   UnmirroredIntent,
 } from '@/trading/features/order/types'
 export type { VenueReconciliation } from '@/trading/features/portfolio/folds/reconcile'
@@ -217,6 +217,7 @@ export {
   renderIndexDropNotice,
 } from '@/trading/features/market-data/ops/held-watch-notice'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
+export { roundedDrivers } from '@/trading/features/market-data/render/macro'
 export { renderOverviewForSurface } from '@/trading/features/market-data/render/overview'
 export { renderEntryFillNotice, renderExitFillNotice } from '@/trading/features/order/fill-notice'
 export { ORDER_TOOL_NAME, TRADE_COMMAND_NAME } from '@/trading/features/order/types'

@@ -221,8 +221,8 @@ Một mục inbox được nhận việc tối đa 3 lần trước khi bị đ�
 | Việc lập lịch | Việc chạy một lần đã chạy xong và đã tắt bị xóa sau `days` tính từ giờ chạy, cùng lịch sử chạy của nó. Việc chạy một lần bị tạm dừng khi chưa chạy, và mọi việc lặp lại hay theo sự kiện, được giữ. |
 | Lệnh thoát đang chờ | Dòng đã khớp hoặc đã đóng bị xóa sau `days` tính từ lúc đặt. Dòng còn sống không bao giờ bị cắt. |
 | Phiên chạy chủ đề và các nhận định | Bị xóa sau `days`, trừ lượt mà một kết quả còn dẫn tới, hai lượt mới nhất của mỗi chủ đề, lượt mới nhất và lượt đầy đủ mới nhất. |
-| Gợi ý | Gợi ý đã chấm bị xóa sau `history_days` tính từ lúc chốt, lệnh giữ sau `history_days` tính từ lúc tạo. Gợi ý chưa chấm không bao giờ bị xóa, và mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động và trọng tâm, nên kế hoạch đang đứng và kế hoạch thoát luôn còn. Gợi ý, `factor_log` và `theme_outcomes` được giữ ít nhất một năm dù `history_days` ngắn hơn, vì kết quả theo dõi nhìn lại xa như vậy. |
-| Nguồn yếu tố của gợi ý đã chấm | Khi gợi ý đã chấm chốt quá `days` và không nằm trong mười dòng mới nhất của mã đó, các dấu nguồn dưới từng yếu tố được làm rỗng. Điểm, trọng số, kết quả, luận điểm, tranh luận và các mức giá vẫn giữ, và gợi ý vẫn ghi nguồn một lần. |
+| Đề xuất | Đề xuất đã chấm bị xóa sau `history_days` tính từ lúc chốt, đề xuất giữ sau `history_days` tính từ lúc tạo. Đề xuất chưa chấm không bao giờ bị xóa, và mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động và trọng tâm, nên kế hoạch đang đứng và kế hoạch thoát luôn còn. Đề xuất, `factor_log` và `theme_outcomes` được giữ ít nhất một năm dù `history_days` ngắn hơn, vì kết quả theo dõi nhìn lại xa như vậy. |
+| Nguồn yếu tố của đề xuất đã chấm | Khi đề xuất đã chấm chốt quá `days` và không nằm trong mười dòng mới nhất của mã đó, các dấu nguồn dưới từng yếu tố được làm rỗng. Điểm, trọng số, kết quả, luận điểm, tranh luận và các mức giá vẫn giữ, và đề xuất vẫn ghi nguồn một lần. |
 | `factor_log`, `theme_outcomes` | Dòng đã chốt bị xóa sau `history_days` tính từ lúc chốt. Dòng đang chờ không bao giờ bị cắt. |
 | `nav_snapshots` | Bị xóa sau `history_days`, tính từ lúc ghi. |
 | `series_points`, `series_provenance` | Bị xóa sau `history_days`, tính từ lúc tải hoặc trích xuất, nhưng được giữ ít nhất bằng khoảng nhìn lại của phép so sánh vĩ mô cùng kỳ (khoảng 500 ngày). |
@@ -241,7 +241,7 @@ Dịch vụ nền tự dọn một lần lúc khởi động, rồi dọn theo c
 - Các mục inbox vẫn dùng `inbox_days`. Kết quả theo dõi dùng `history_days` (không bao giờ dưới
   `--older-than`). `llm_attempts` giữ cửa sổ 400 ngày riêng.
 - Bảng nào được giữ lâu hơn `history_days` vì nơi đọc nó cần, lệnh in cửa sổ của bảng đó ngay dưới cửa sổ
-  lịch sử. Lệnh cũng đếm số gợi ý đã chấm được làm rỗng nguồn yếu tố.
+  lịch sử. Câu lệnh cũng đếm số đề xuất đã chấm được làm rỗng nguồn yếu tố.
 
 Các dòng được xóa theo trang 5.000 dòng, mỗi trang một giao dịch, nên tồn đọng lớn không giữ khóa ghi lâu.
 Mỗi lượt dọn tối đa 20 trang cho mỗi loại, và để phần còn lại cho lượt sau. SQLite dùng lại các trang đã

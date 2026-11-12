@@ -25,6 +25,7 @@ import { INTRADAY_CONTEXT_KINDS } from '@/trading/features/market-data/intraday/
 import { buildInstrumentKey, dedupeInstruments, isLevelKind } from '@/trading/kernel/instrument'
 import { sessionPhase } from '@/trading/markets/calendar'
 import { overviewSections } from '@/trading/markets/overview-sections'
+import { quotedInOf } from '@/trading/render/money'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** Each list is capped separately so one long book cannot crowd the other out of the message. */
@@ -273,14 +274,12 @@ function isFailedGap(item: QuoteBoardItem): boolean {
 function quotedFieldsOf(
   deps: IntradayReportDeps,
   item: QuoteBoardItem
-): Pick<IntradayRow, 'currency' | 'display'> {
+): Pick<IntradayRow, 'currency' | 'display' | 'unit'> {
   if (isLevelKind(item.kind)) {
     return {}
   }
 
-  const display = deps.marketData.quoteConvention(item.market)?.display
-
-  return { currency: item.currency, ...(display === undefined ? {} : { display }) }
+  return { currency: item.currency, ...quotedInOf(deps.marketData.quoteConvention(item.market)) }
 }
 
 /** The markets this book touches beyond the one the report covers. Their overviews were already

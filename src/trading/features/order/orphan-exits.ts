@@ -1,5 +1,6 @@
 import type { OrderServiceDeps } from '@/trading/features/order/deps'
-import type { OrphanExit, ReconcileReview } from '@/trading/features/order/types'
+import type { OrphanExit } from '@/trading/features/order/exit-coverage'
+import type { ReconcileReview } from '@/trading/features/order/types'
 import type { VenueRef } from '@/trading/kernel/instrument'
 import type { OpenExit } from '@/trading/kernel/venue/spot-adapter'
 import { isAbortError } from '@/core/errors'

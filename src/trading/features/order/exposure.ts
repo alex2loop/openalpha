@@ -17,6 +17,9 @@ interface OrderExposureInput {
   readonly instrumentKind?: InstrumentKind
   /** The order's value in the book's own currency, as the caps beside it are measured. */
   readonly notionalBase: number
+  /** The breaches this order's own prepare measured; the re-check refuses only a ceiling the book
+   *  crossed since. */
+  readonly accepted?: readonly CapBreach[]
 }
 
 /** A buy against a saved profile is judged by weights of NAV, and a book with an unpriced holding
@@ -46,12 +49,25 @@ export function breachedCaps(input: OrderExposureInput): readonly CapBreach[] {
   }
 
   const addedPctNav = input.notionalBase / navBase
+  const accepted = new Set((input.accepted ?? []).map(breachSubject))
 
   return [
     ...positionBreach(input, addedPctNav),
     ...segmentBreach(input, addedPctNav),
     ...etfBreach(input, addedPctNav),
-  ]
+  ].filter((breach) => !accepted.has(breachSubject(breach)))
+}
+
+/** What a breach is of, not by how far: one the prompt carried only grows as the book fills. */
+function breachSubject(breach: CapBreach): string {
+  switch (breach.kind) {
+    case 'position':
+      return `${breach.kind}:${breach.ticker}`
+    case 'sector':
+      return `${breach.kind}:${breach.sector}`
+    default:
+      return `${breach.kind}:${breach.segment}`
+  }
 }
 
 function positionBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {

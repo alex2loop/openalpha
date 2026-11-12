@@ -1,5 +1,5 @@
 import type { Locale } from '@/core/types/locale'
-import type { NavHistory } from '@/trading/features/portfolio/nav/types'
+import type { NavBenchmark, NavHistory } from '@/trading/features/portfolio/nav/types'
 import type { RenderContext } from '@/trading/render/format'
 import { BRAND } from '@/core/brand'
 import { formatDay, t } from '@/i18n'
@@ -24,14 +24,10 @@ function renderBenchmarkLine(locale: Locale, history: NavHistory): readonly stri
       : [`${INDENT[1]}${t(locale, `trading.render.nav.benchmarkGap.${history.benchmarkGap}`)}`]
   }
 
-  const weights = apportion(
-    benchmark.legs.map((leg) => leg.weight),
-    WEIGHT_QUANTUM
-  )
-  const legs = benchmark.legs
+  const legs = apportionedBenchmarkLegs(benchmark)
     .map(
-      (leg, index) =>
-        `${leg.instrument?.ticker ?? t(locale, 'trading.render.nav.cashLeg')} ${formatWholeFraction(locale, weights[index] ?? leg.weight)}`
+      (leg) =>
+        `${leg.instrument?.ticker ?? t(locale, 'trading.render.nav.cashLeg')} ${formatWholeFraction(locale, leg.weight)}`
     )
     .join(INLINE_SEPARATOR)
 
@@ -41,6 +37,16 @@ function renderBenchmarkLine(locale: Locale, history: NavHistory): readonly stri
       change: formatSignedFraction(locale, benchmark.periodReturn),
     })}`,
   ]
+}
+
+/** The benchmark's legs carrying the weights every surface prints, which sum to one. */
+export function apportionedBenchmarkLegs(benchmark: NavBenchmark): NavBenchmark['legs'] {
+  const weights = apportion(
+    benchmark.legs.map((leg) => leg.weight),
+    WEIGHT_QUANTUM
+  )
+
+  return benchmark.legs.map((leg, index) => ({ ...leg, weight: weights[index] ?? leg.weight }))
 }
 
 function renderThin(locale: Locale, history: NavHistory): string {

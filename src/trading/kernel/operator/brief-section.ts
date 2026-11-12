@@ -1,5 +1,5 @@
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { CurrencyCode, MarketRef, TradingDay } from '@/trading/kernel/instrument'
+import type { CurrencyCode, MarketRef, QuoteUnit, TradingDay } from '@/trading/kernel/instrument'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 
 export const BRIEF_SECTION_ORDER = Object.freeze([
@@ -306,12 +306,14 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
 ] as const)
 
 /** Fields a row carries for another field's sake, never as a datum of their own: `currency` is the
- *  unit appended to the values it denominates, `observedAt` is the instant a price block reads its
+ *  unit appended to the values it denominates, `quoteUnit` the measure its prices are per where the
+ *  ticker does not imply it, `observedAt` is the instant a price block reads its
  *  clock from, `sessions` is the window the row's own labels name, and `status` is the plain result
  *  an older client still reads beside `verdict`. Printed as fields they would state a unit twice, an
  *  epoch once, a window nothing measured, and a result twice. */
 export const BRIEF_STRUCTURAL_FIELDS = Object.freeze([
   'currency',
+  'quoteUnit',
   'observedAt',
   'sessions',
   'status',
@@ -391,6 +393,9 @@ export type BriefSectionResult =
        *  what its prices are quoted in. Absent where it carries neither, which is what keeps an
        *  index level from being labelled as currency. */
       readonly currency?: CurrencyCode
+      /** The measure a price block's prices are per, where the ticker does not imply it (a gold price
+       *  is per lượng or per ounce, a share price is per share). Stated with `currency`, never alone. */
+      readonly quoteUnit?: QuoteUnit
       /** Fills the section title's placeholders. A section whose rows sum a window has to name it,
        *  or the same label reports a different number on every surface that measures differently. */
       readonly titleParams?: Readonly<Record<string, string | number>>

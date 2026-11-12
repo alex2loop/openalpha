@@ -2,8 +2,15 @@ import type { ApprovalMode } from '@/core/tool'
 import type { Locale } from '@/core/types/locale'
 import type { LedgerWriteResult } from '@/trading/features/ledger/types'
 import type {
+  ExitCoverage,
+  OrphanExit,
+  UnguardedPosition,
+} from '@/trading/features/order/exit-coverage'
+import type {
   CurrencyCode,
+  InstrumentKind,
   InstrumentRef,
+  PortfolioSegment,
   Ticker,
   TradingDay,
   VenueRef,
@@ -273,6 +280,11 @@ export interface ExitOutcome {
  *  read rather than fetching a second quote of its own. */
 export interface PreparedOrder {
   readonly instrument: InstrumentRef
+  /** The segment the market files the instrument under, and its kind where the market publishes one:
+   *  what the profile's ceilings are read against, kept here so the write window judges the same
+   *  terms the prompt did. */
+  readonly segment: PortfolioSegment
+  readonly instrumentKind?: InstrumentKind
   /** Where this order was routed. The prompt, the fee rate and the mirrored row all read it here
    *  rather than re-deriving it, so the confirm cannot land on a different exchange. */
   readonly venue: VenueRef
@@ -289,9 +301,8 @@ export interface PreparedOrder {
    *  settlement asset. */
   readonly currency: CurrencyCode
   readonly rejections: readonly CapRejection[]
-  /** Ceilings this buy would cross, stated on the prompt and never enforced: the operator overriding
-   *  their own cap is what approving an order means. Always empty on a sell, which takes exposure
-   *  off. */
+  /** The breaches this order's own prepare measured; the re-check refuses only a ceiling the book
+   *  crossed since. */
   readonly breaches: readonly CapBreach[]
 }
 
@@ -309,28 +320,6 @@ export interface CapRejection {
  *  the market, which prints the levels bare rather than dropping a live exit from the list. */
 export interface RestingExitRow extends RestingExit {
   readonly currency?: CurrencyCode
-}
-
-/** How much of one position has an exit standing at it. A fraction of the position and never a
- *  quantity, because a unit count is book size an agent may not see — the same reason the portfolio
- *  has a relative view at all. */
-export interface ExitCoverage {
-  readonly instrument: InstrumentRef
-  readonly venue: VenueRef
-  /** 1 where the whole position is covered, 0 where nothing stands under it. */
-  readonly guardedShare: number
-  readonly takeProfit?: number
-  readonly stopLoss?: number
-}
-
-/** A position at a venue with less exit standing at it than the book says is held. Both figures,
- *  because partly guarded and not guarded at all are different situations and the remedy names a
- *  size. Only ever a venue this tree can place at — nothing can rest at a hand-held custodian. */
-export interface UnguardedPosition {
-  readonly instrument: InstrumentRef
-  readonly venue: VenueRef
-  readonly quantity: number
-  readonly guarded: number
 }
 
 export interface HaltInput {
@@ -353,17 +342,6 @@ export interface TradeStatus {
   readonly unmirrored: readonly UnmirroredIntent[]
   /** When the operator switched buying off. Absent while buying is on. */
   readonly haltedAt?: number
-}
-
-/** An exit resting at a venue under this tree's client id shape that no live row names, so the exit
- *  tick cannot see it. */
-export interface OrphanExit {
-  readonly venue: VenueRef
-  readonly symbol: string
-  readonly exitId: string
-  readonly quantity: number
-  readonly takeProfit?: number
-  readonly stopLoss?: number
 }
 
 /** What a reconcile pass found. `settled` counts rows cleared without asking, because the book was

@@ -8,7 +8,6 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import { type MessageKey, t } from '@/i18n'
 import {
   formatCount,
-  formatFraction,
   formatSignedFraction,
   formatWholeFraction,
   renderDeclaredValue,
@@ -188,7 +187,7 @@ function renderBucketLine(
       reading: t(locale, READING_KEYS[bucket.reading]),
       hits: formatCount(locale, bucket.hitCount),
       n: formatCount(locale, bucket.resolvedCount),
-      rate: formatFraction(locale, hitRate),
+      rate: formatWholeFraction(locale, hitRate),
       avg: formatSignedFraction(locale, meanReturnPct),
     })}`,
   ]

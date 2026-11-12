@@ -220,19 +220,23 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
 
   const store = ctx.app.resolve('configOverrides')
   const { models, model_tiers: tiers, custom_venues: venues } = parsed.data
-  const now = Date.now()
 
   if (venues !== undefined) {
     await assertVenueChange(ctx, venues, req.signal)
-    await store.write(VENUES_SECTION, JSON.stringify(venues), now)
   }
 
-  if (models !== undefined) {
-    await store.write(MODELS_SECTION, JSON.stringify(models), now)
-  }
+  const sections: readonly (readonly [string, unknown])[] = [
+    [VENUES_SECTION, venues],
+    [MODELS_SECTION, models],
+    [TIERS_SECTION, tiers],
+  ]
+  const writes = sections.flatMap(([section, value]) =>
+    value === undefined ? [] : [{ section, payload: JSON.stringify(value) }]
+  )
 
-  if (tiers !== undefined) {
-    await store.write(TIERS_SECTION, JSON.stringify(tiers), now)
+  // One transaction: a failure partway must not leave some sections saved while the page shows an error.
+  if (writes.length > 0) {
+    await store.writeAll(writes, Date.now())
   }
 
   const saved = await readBrowserOverrides(store, ctx.app.resolve('logger'), req.signal)

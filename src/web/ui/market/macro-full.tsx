@@ -7,9 +7,9 @@ import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { toCaveatText } from '@/web/text/caveat-text'
 import {
   formatCount,
-  formatFixed,
-  formatFixedFraction,
   formatPercent,
+  formatScoreValue,
+  formatWholeFraction,
   PERCENT,
 } from '@/web/text/figures'
 import { joinInline, joinList } from '@/web/text/glyphs'
@@ -25,11 +25,11 @@ import {
   type ReadyMacro,
 } from '@/web/ui/today/blocks/macro'
 
-const SCORE_DIGITS = 2
 const INFO_SEVERITY = 'info'
 const DEPOSIT_RATE_SERIES = 'deposit-rate-12m'
 const USD_VND_SERIES = 'usd-vnd'
 const UNSERVED_REASON = 'unserved'
+const FULL_COVERAGE = 1
 // Where a driver with no band between its two ends sits.
 const MIDDLE_POSITION = 0.5
 
@@ -73,11 +73,11 @@ function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
       {isAdvanced.value && !isAnalysisOnly.value && (
         <p>
           {tr('ui.office.market.scale', {
-            score: formatFixed(macro.score, SCORE_DIGITS),
-            min: formatFixed(range.min, SCORE_DIGITS),
-            max: formatFixed(range.max, SCORE_DIGITS),
-            on: formatFixed(range.riskOnAt, SCORE_DIGITS),
-            off: formatFixed(range.riskOffAt, SCORE_DIGITS),
+            score: formatScoreValue(macro.score),
+            min: formatScoreValue(range.min),
+            max: formatScoreValue(range.max),
+            on: formatScoreValue(range.riskOnAt),
+            off: formatScoreValue(range.riskOffAt),
           })}
         </p>
       )}
@@ -105,21 +105,29 @@ function readingLines(macro: ReadyMacro): string[] {
             names: joinList(unserved.map((driver) => driver.label)),
           }),
         ]),
-    ...(macro.coverage < 1 ? [coverageLine(macro)] : []),
+    ...coverageLines(macro),
   ]
 }
 
-// The daemon states the share of the model that read in; the web edition, which has no model to
-// cover, states how many of the series did.
-function coverageLine(macro: ReadyMacro): string {
-  if (!isAnalysisOnly.value) {
-    return tr('ui.office.market.coverage', { share: formatFixedFraction(macro.coverage) })
+// The daemon states the share of the model that read in, and none for a read that prints as whole;
+// the web edition, which has no model to cover, states how many of the series did.
+function coverageLines(macro: ReadyMacro): string[] {
+  if (isAnalysisOnly.value) {
+    return macro.coverage < FULL_COVERAGE
+      ? [
+          tr('ui.office.market.coverageWeb', {
+            read: macro.drivers.length,
+            total: macro.drivers.length + macro.missing.length,
+          }),
+        ]
+      : []
   }
 
-  return tr('ui.office.market.coverageWeb', {
-    read: macro.drivers.length,
-    total: macro.drivers.length + macro.missing.length,
-  })
+  const share = formatWholeFraction(macro.coverage)
+
+  return share === formatWholeFraction(FULL_COVERAGE)
+    ? []
+    : [tr('ui.office.market.coverage', { share })]
 }
 
 // The deposit rate and the exchange rate the region's read carried, each left out when it has none.
@@ -150,8 +158,8 @@ function DriverDetail(driver: MacroDriver) {
       </span>
       <span>
         {joinInline([
-          `${tr('ui.office.market.col.weight')} ${formatFixedFraction(driver.weight)}`,
-          `${tr('ui.office.market.col.contribution')} ${formatFixed(driver.contribution, SCORE_DIGITS)}`,
+          `${tr('ui.office.market.col.weight')} ${formatWholeFraction(driver.weight)}`,
+          `${tr('ui.office.market.col.contribution')} ${formatScoreValue(driver.contribution)}`,
         ])}
       </span>
     </div>

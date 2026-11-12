@@ -1,13 +1,7 @@
 import type { MarketSessionWire, MarketWire } from '@/app/server/wire/market'
 import { DATE_ORDER_LOCALES, formatDay } from '@/i18n'
 import { readBlock } from '@/web/state/block'
-import {
-  homeRegion,
-  isTradingPhase,
-  knownMarkets,
-  overviewBlock,
-  selectOverview,
-} from '@/web/state/market'
+import { homeMarket, isTradingPhase, overviewBlock, selectOverview } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { formatClock, zoneParts } from '@/web/text/time'
@@ -28,9 +22,7 @@ interface SessionStatus {
 /** The home market's day at a glance: the date, whether it trades now and until when, and when the
  *  prices below were read. Absent until the markets are read, or for a home that never closes. */
 export function SessionLine() {
-  const market = knownMarkets.value.find(
-    (held) => held.region === homeRegion() && held.ownsRegion && held.session !== undefined
-  )
+  const market = homeMarket()
   const session = market?.session
 
   if (market === undefined || session === undefined) {

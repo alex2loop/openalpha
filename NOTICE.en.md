@@ -10,7 +10,7 @@ identity, and stores the result in your own database. This repository redistribu
 bars, no fundamentals, no news and no vendor gold board.
 
 That matters because the data belongs to the people who publish it, and their terms are between
-**you** and **them**. A permissive licence on an HTTP client grants you nothing about the service
+**you** and **them**. A permissive license on an HTTP client grants you nothing about the service
 it calls.
 
 ## What you are agreeing to when you run it
@@ -30,7 +30,7 @@ Before you point OpenAlpha at a provider, especially in anything beyond personal
 
 Outbound requests carry a common browser user-agent by default (`BROWSER_HEADERS`) so that a
 provider's bot management does not fingerprint a client that declares nothing. That is a
-compatibility default, not a claim of authorisation, and it does not change whose terms apply.
+compatibility default, not a claim of authorization, and it does not change whose terms apply.
 
 ## Providers this project can read
 
@@ -69,7 +69,7 @@ See [docs/en/data-sources.md](docs/en/data-sources.md) for the routing and failo
 OpenAlpha calls whichever model provider you configure, with your key, under their terms. Nothing
 is sent to any model provider by default, and no install calls one until you configure it. What
 reaches a model is bounded on purpose: the prompts never carry your amounts, costs, quantities,
-realised returns or fill prices. See [docs/en/budgets.md](docs/en/budgets.md).
+realized returns or fill prices. See [docs/en/budgets.md](docs/en/budgets.md).
 
 ## Credit the providers ask for
 
@@ -96,7 +96,7 @@ provider's terms ask for a line of credit, this is that line:
 
 ## Name and logo are not licensed
 
-The MIT licence covers the code, not the brand. The name "OpenAlpha", the α logo on its gradient
+The MIT license covers the code, not the brand. The name "OpenAlpha", the α logo on its gradient
 tile and the Bé Alpha character belong to the project, and [LICENSE](LICENSE) grants no right to
 use them.
 
@@ -109,14 +109,14 @@ use them.
 
 Runtime dependencies, all permissive: `@modelcontextprotocol/sdk`, `pg`, `pino`, `turndown`,
 `zca-js` and `zod` under MIT, `smol-toml` under BSD-3-Clause. Their own notices travel with them in
-`node_modules`. `scripts/check-dep-licenses.ts` fails the build if a copyleft licence enters the
+`node_modules`. `scripts/check-dep-licenses.ts` fails the build if a copyleft license enters the
 tree, so the MIT the README promises stays true for anyone who embeds this runtime.
 
 `zca-js` is an unofficial Zalo client. The Zalo Personal channel is opt-in, is not an official
 integration, and using it is between you and Zalo.
 
 A few line icons on the office page are hand-copied from [Lucide](https://lucide.dev), under the
-ISC licence:
+ISC license:
 
 > ISC License. Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of
 > Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
@@ -136,12 +136,12 @@ ISC licence:
 
 - **Street facts** - the street names and layout of the Vietnam city pack come from
   © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), under the Open
-  Database Licence (ODbL).
+  Database License (ODbL).
 - **Reference photos** - the office's streets were drawn by eye from photos on Wikimedia Commons,
   among them photos of the Bitexco Financial Tower. No photo ships with OpenAlpha; this is the credit
   for the people who took them, with each photo's Commons page:
 
-| Photographer | Licence | Photos |
+| Photographer | License | Photos |
 |---|---|---|
 | Adam Jones | CC BY 2.0 | [1](https://commons.wikimedia.org/?curid=134067021) |
 | Andy C | CC BY-SA 3.0 | [1](https://commons.wikimedia.org/?curid=8658063) |

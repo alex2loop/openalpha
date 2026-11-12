@@ -36,7 +36,7 @@ suggests: the one surface that places an order asks you every single time.
 | **Allow once** | Runs this exact call, once. |
 | **Remember** | Allows it for the chat session or MCP connection. Not offered for a tool that declines it, or for a call whose arguments were too long to show whole. |
 
-Anything unrecognised, malformed, expired or undeliverable blocks the call. Cancelling ends the wait
+Anything unrecognized, malformed, expired or undeliverable blocks the call. Cancelling ends the wait
 and the run.
 
 Remember is never offered to scheduled jobs or delegated children. It is also never offered for
@@ -67,7 +67,7 @@ pass input checks, before you are asked anything.
 
 ### Modes
 
-| Mode | Behaviour |
+| Mode | Behavior |
 | --- | --- |
 | `manual` | Ask a human. The normal interactive mode. |
 | `bypass` | Allow without asking. Must be chosen explicitly. |
@@ -108,7 +108,7 @@ for one-time approval through that route; without one, its dangerous calls are b
 ```mermaid
 flowchart LR
   A[Agent proposes a tool call] --> B[Admission gates]
-  B --> C[Normalise and validate input]
+  B --> C[Normalize and validate input]
   C --> D{Dangerous?}
   D -- no --> I[Run]
   D -- yes --> E{Mode and scope}
@@ -136,7 +136,7 @@ and offers no remember.
 
 **Channels.** An inline-button prompt goes only to the channel that owns the run. A tap counts only
 when all of these are true: the request is still pending, the tap came from the chat that was asked,
-that decision was actually offered, *and* the person tapping is an authorised operator.
+that decision was actually offered, *and* the person tapping is an authorized operator.
 
 A channel without inline buttons (Zalo) asks with short codes such as `/4821` for you to type back.
 Each code works only in that chat and only while the prompt is open. Only when no code can be drawn
@@ -222,7 +222,7 @@ Details of the scrub:
   chunks is still caught. The stream holds back an unfinished word, header line or private-key block
   until it can judge it; past 512 characters it releases what it has.
 
-Scrubbing is the last line of defence, not permission to put credentials where a model can see them.
+Scrubbing is the last line of defense, not permission to put credentials where a model can see them.
 
 ### Files and shell
 
@@ -278,13 +278,13 @@ the list is skipped like any other failed read, and the run carries on.
 
 ### Tool and skill content
 
-Tool output is normalised before it re-enters the model's context:
+Tool output is normalized before it re-enters the model's context:
 
 1. ANSI sequences removed, credentials scrubbed. The whole result is scrubbed before any cut, so a
    key block cannot be split and left half exposed. A result over 4 MiB (only a remote MCP server can
    send one) is dropped unread and replaced with a one-line note.
 2. Prompt-injection patterns detected **before** arrays are compacted or the size cap applies.
-3. Arrays normalised and output capped - 32 KB in a chat run, 64 KB for a served MCP call whose
+3. Arrays normalized and output capped - 32 KB in a chat run, 64 KB for a served MCP call whose
    client budgets its own context - keeping the head and tail of anything longer. The cap counts the
    text as the model receives it, escaped and inside its wrapper, not the raw text.
 4. Suspicious content gets an in-band security notice.
@@ -353,7 +353,7 @@ asked in that terminal, the page cannot answer them, and two terminals never see
 that take a secret (`key set`, `onboard`, `auth login`) stay local. The daemon logs each command's name,
 exit code and duration, never its arguments, your answers, edited text or output.
 
-## Failure behaviour
+## Failure behavior
 
 | Condition | Result |
 | --- | --- |

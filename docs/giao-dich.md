@@ -71,11 +71,11 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `mexc` | nến và giá crypto cho các mã mà cả `binance` lẫn `bybit` đều không niêm yết | không |
 | `coingecko` | nguồn dự phòng cuối cho bảng crypto; nguồn duy nhất tra một ký hiệu nằm ngoài mọi bảng; tỷ giá mà một coin thanh toán giao dịch so với một tiền pháp định; lịch sử tỷ giá đồng bằng giá USDT tính theo đồng, đứng sau `yahoo` | `COINGECKO_API_KEY` (tùy chọn) |
 | `vndirect` | công cụ VN, nến, dữ liệu cơ bản, sự kiện, dòng tiền, room ngoại, khuyến nghị của giới môi giới, vĩ mô VN, giá hàng hóa hằng ngày, tin tức VN | không |
-| `vndirect-index` | chỉ số mà daemon đọc: lịch sử ngày, đứng trước `entrade` và `vietcap-chart`; tách riêng khỏi `vndirect` để một lần hỏng của chỉ số không làm tạm dừng nến cổ phiếu | không |
+| `vndirect-index` | chỉ số mà dịch vụ nền đọc: lịch sử ngày, đứng trước `entrade` và `vietcap-chart`; tách riêng khỏi `vndirect` để một lần hỏng của chỉ số không làm tạm dừng nến cổ phiếu | không |
 | `entrade` | giá và nến VN; đứng sau `vietcap-chart` cho giá của một chỉ số, đứng sau `vndirect-index` ở nến chỉ số (nó chỉ vẽ bốn chỉ số tiêu đề) | không |
-| `vietcap` | thành phần rổ chỉ số VN (`vn30`, `vn100`) và trade sides theo từng mã | không |
+| `vietcap` | thành phần rổ chỉ số VN (`vn30`, `vn100`) và dữ liệu mua bán chủ động theo từng mã | không |
 | `vps-board` | thành phần rổ chỉ số VN, đứng sau `vietcap`; chỉ trả lời khi mọi mã VN30 của nó đều nằm trong danh sách VN100 | không |
-| `kbsec` | trade sides VN theo từng mã, trước `vietcap` | không |
+| `kbsec` | dữ liệu mua bán chủ động VN theo từng mã, trước `vietcap` | không |
 | `hsx` `ssi` | các mã đang bị giám sát, trộn giữa dịch vụ niêm yết HOSE và một bảng công ty chứng khoán cũng mang HNX | không |
 | `vietcap-board` | bảng giá VN trực tiếp trong một lần đọc: giá phiên và room ngoại, đứng sau `vndirect` cho cả hai | không |
 | `vietcap-chart` | chỉ số cho mọi index HOSE: chuỗi ngày mà các chuẩn ETF được chấm điểm trên đó, và chuỗi trong phiên đứng sau giá index trực tiếp | không |
@@ -1092,7 +1092,7 @@ Toàn bộ tập:
 
 `market_price` `market_bars` `market_overview` `market_events` `market_accounts` `market_news` `market_screen` `market_sector_strength` `market_sentiment` `market_funding` `macro_risk` `vn_foreign_flow` `vn_futures_basis` `portfolio_view` `portfolio_history` `portfolio_review` `portfolio_rebalance` `portfolio_record` `portfolio_update` `portfolio_remove` `watchlist_update` `profile_view` `profile_update` `profile_segment` `suggestion_run` `suggestion_batch` `suggestion_track_record` `alert_manage` `brief_build` `brief_manage` `themes_view`
 
-**Lệnh gạch chéo** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/glossary` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, cộng `/trade`. `/trade` đặt lệnh khi một sàn có khóa giao dịch, nếu không thì nêu tên các khóa nó cần. Cú pháp đầy đủ: [Lệnh](lenh.md).
+**Lệnh gạch chéo** (chat, REPL): `/setup` `/record` `/update` `/delete` `/transactions` `/portfolio` `/profile` `/watchlist` `/price` `/market` `/overview` `/screen` `/sources` `/glossary` `/suggest` `/themes` `/rebalance` `/reconcile` `/reflect` `/alert` `/brief` `/refresh`, cộng `/trade`. `/trade` đặt lệnh khi một sàn có khóa giao dịch, nếu không thì nêu tên các khóa nó cần. Cú pháp đầy đủ: [Câu lệnh](lenh.md).
 
 **Chat trong terminal** dùng cùng các lệnh gạch chéo như mọi kênh:
 
@@ -1235,7 +1235,7 @@ buy on 2026-06-11 needs 13152000 available cash, book has 0
 sell of 600 ACB exceeds 0 settled on 2026-06-15
 ```
 
-Một dòng ghi ngày sau hôm nay (theo lịch của khu vực chính) cũng bị từ chối. Giao dịch chưa xảy ra là gõ nhầm, và nếu nhận thì sổ sẽ giấu nó đi cho tới đúng ngày đó.
+Một dòng ghi ngày sau hôm nay (theo lịch của khu vực chính) cũng bị từ chối. Giao dịch chưa xảy ra là gõ nhầm, và nếu nhận thì sổ sẽ giấu nó đi cho tới đúng ngày đó. Dòng có con số vượt 1e15 (số tiền, giá, khối lượng, phí hoặc tỷ giá) cũng bị từ chối: không khoản thật nào lớn đến vậy, nên mình coi đó là gõ thừa một chữ số.
 
 Giá luôn ghi đầy đủ, như `58400`, không phải con số trên bảng điện (`58,40`, tức ×1.000 VND). Một giá cổ phiếu Việt Nam thấp hơn 1.000 đồng trong khi mã đang giao dịch trên mức đó bị từ chối, kèm giá đầy đủ để ghi lại. Ngưỡng của `/alert` cũng vậy.
 
@@ -1603,7 +1603,7 @@ nằm dưới mục làm trước. Nó không bao giờ đóng mã khỏi `/reba
 Mã nằm trong danh sách loại trừ mà bạn vẫn đang nắm cũng được giảm về trần: danh sách đó chặn lệnh mua
 mới, còn trần là để giới hạn rủi ro. Muốn giữ một mã tập trung có chủ ý thì nâng trần bằng `/profile`.
 
-Một quỹ ETF không bao giờ bị bán vì điểm yếu. Điểm xấu của một chỉ số là nhận định về cả thị trường, và tỷ trọng của nhóm cùng trạng thái thị trường đã lo phần đó. Nên một ETF đang nắm có điểm dưới ngưỡng giữ vẫn giữ tỷ trọng. Luật lệch tỷ trọng vẫn có thể cắt bớt nó, và trần vẫn có thể giảm bớt nó.
+Một quỹ ETF không bao giờ bị bán vì điểm yếu. Điểm xấu của một chỉ số là nhận định về cả thị trường, và tỷ trọng của nhóm cùng trạng thái thị trường đã lo phần đó. Nên một ETF đang nắm có điểm dưới ngưỡng giữ vẫn giữ tỷ trọng. Luật lệch tỷ trọng vẫn có thể cắt bớt nó, và trần vẫn có thể giảm bớt nó. Ngoại lệ duy nhất là quỹ nằm trong nhóm có trần ETF bằng 0: `/rebalance` bán nó ra bất kể điểm, vì nhóm đó không nhận ETF.
 
 Lõi ETF của nhóm ở lại với quỹ bạn đang nắm cho tới khi một quỹ khác cao điểm hơn 0,15. Các quỹ theo những chỉ số trùng nhau đi gần như cùng nhau, nên chênh lệch nhỏ không đáng trả phí và thuế cho một vòng mua bán.
 
@@ -1647,7 +1647,7 @@ Phân bổ không có bề mặt riêng: `portfolio_rebalance` và `/rebalance` 
 
 Thẻ Danh mục của [trang văn phòng](van-hanh.md#trang-văn-phòng) ghi đúng những dòng mà `/record`, `/update` và `/delete` ghi, qua cùng các bước kiểm tra, và không bao giờ gửi lệnh.
 
-- **Mọi loại dòng.** Biểu mẫu ghi có ba nút Mua, Bán và Khác, mở sẵn Mua hoặc Bán; nút "Khác" mở danh sách gồm cổ tức tiền mặt (số tiền thực nhận, theo tiền tệ của thị trường), cổ tức bằng cổ phiếu hay cổ phiếu thưởng (số cổ phiếu nhận thêm), chia tách (số cổ phiếu thêm vào, số âm khi gộp cổ phiếu), mua cổ phiếu quyền (kèm giá mua; để trống phí thì ghi là 0), chuyển tiền (giữa hai sàn của bạn; chọn cùng một sàn ở hai đầu thì bị từ chối trước khi gửi), nạp tiền, rút tiền, phí và lỗ đã thực hiện (khoản lỗ từ trước khi bạn ghi sổ). Một thay đổi số cổ phiếu cho thấy sau khi ghi bạn sẽ nắm bao nhiêu. Lịch sử liệt kê mọi loại, có bộ lọc, và dòng nào cũng sửa hoặc xóa được, có hoàn tác.
+- **Mọi loại dòng.** Biểu mẫu ghi có ba nút Mua, Bán và Khác, mở sẵn Mua hoặc Bán; nút "Khác" mở danh sách gồm cổ tức tiền mặt (số tiền thực nhận, theo tiền tệ của thị trường), cổ tức bằng cổ phiếu hay cổ phiếu thưởng (số cổ phiếu nhận thêm), chia tách (số cổ phiếu thêm vào, số âm khi gộp cổ phiếu), mua cổ phiếu quyền (kèm giá mua; để trống phí thì ghi là 0), chuyển tiền (giữa hai sàn của bạn; chọn cùng một sàn ở hai đầu thì bị từ chối trước khi gửi), nạp tiền, rút tiền, phí và lỗ đã thực hiện (khoản lỗ từ trước khi bạn ghi sổ). Một thay đổi số cổ phiếu cho thấy sau khi ghi bạn sẽ nắm bao nhiêu. Lịch sử liệt kê mọi loại, có bộ lọc, và dòng nào cũng sửa hoặc xóa được, có hoàn tác. Ngày mở sẵn là ngày giao dịch của thị trường nhà, cùng ngày mà CLI và chat đề xuất (ngày UTC khi thị trường nhà giao dịch suốt ngày đêm).
 - **Danh mục đã làm ra bao nhiêu.** Danh mục > Hiệu quả liệt kê, theo tiền tệ của sổ, số tiền bạn đã nạp ròng sau khi trừ tiền rút, lãi hoặc lỗ đã chốt, phần cổ tức nằm trong đó, phí giao dịch còn trong phần bạn đang giữ, và tổng lãi lỗ so với số đã nạp kèm tỷ lệ phần trăm. Các số này là những số `/portfolio` in; riêng cổ tức thì `/portfolio` không in thành một dòng riêng. Lãi hoặc lỗ đã chốt vẫn hiện khi có một mã chưa có giá; phí và tổng thì phải chờ có tổng tài sản.
 - **Tỷ giá bạn đã trả.** Khi một dòng dùng tiền tệ khác với tiền của sổ và cần tỷ giá, như nạp USDT vào một sổ tính bằng VND hay mua ở một sàn không giữ USDT, ô Tỷ giá hiện ra, điền sẵn giá thị trường ngày đó; hãy sửa thành tỷ giá bạn thực trả. Ô này không được để trống, nên trang không bao giờ lưu một dòng như vậy ở mức giá bạn chưa thấy. Dòng trả bằng USDT mà sàn đã giữ (mua, chuyển tiền, phí) không có ô tỷ giá. Nếu không đọc được giá trong ngày, biểu mẫu nói rõ, cho nút Thử lại và chưa cho lưu. Sửa một dòng thì giữ tỷ giá đã ghi của nó.
 - **Đối chiếu với sàn.** Lịch sử > Đối chiếu với sàn đọc từng sàn đã có khóa, như `/reconcile`: khớp, hoặc sàn đang giữ nhiều hơn hay ít hơn sổ bao nhiêu, kèm một nút mở biểu mẫu ghi điền sẵn phần chênh (giá để bạn tự điền). Sàn chưa có khóa thì nêu tên biến của nó và dẫn tới Cài đặt > Sàn giao dịch; sàn không đọc được số dư, hoặc không trả lời, thì nói vậy. "Đồng bộ lệnh khớp từ <sàn>" làm đúng việc của `/record sync`: đọc các lệnh đã khớp, ghi những lệnh sổ còn thiếu, và không đặt lệnh nào. Nếu trả lời chậm, trang đọc lại sổ chứ không gửi đồng bộ lần hai.
@@ -1752,7 +1752,7 @@ chế độ duyệt của phiên chạy là `bypass`, trừ khi đặt `[trading
   là vượt mọi trần ETF mà nhóm đó đã khai. Không kiểm tra được hạn mức thì không cho qua.
 - Lệnh mua vào một nhóm bạn đã tắt (cả hai trần của nó đều bằng 0) cũng là vượt trần: `/trade` hiện ra và
   `order_place` từ chối. Nhóm mà hồ sơ chưa ghi trần nào thì không phải là nhóm đã tắt.
-- Trần ETF bằng 0 nghĩa là nhóm đó không nhận ETF: mua một ETF vào đó cũng là vượt trần như trên, còn cổ
+- Trần ETF bằng 0 nghĩa là nhóm đó không nhận ETF: mua một ETF vào đó cũng là vượt trần như trên, quỹ đang nắm ở đó thì `/rebalance` bán ra, còn cổ
   phiếu thường trong nhóm vẫn mua bình thường.
 
 Khi đã lưu hồ sơ, lệnh mua bị từ chối (`order.book_unpriced`) lúc còn khoản nắm nào chưa có giá, cả ở `/trade` lẫn `order_place`. Thiếu giá một khoản thì không có tổng, nên không đo được trần vị thế, nhóm hay ETF nào, và một lệnh bỏ qua các trần đó sẽ qua hết. `/portfolio` cho biết đó là mã nào; chạy `/refresh` cho thị trường của mã đó để lấy giá, rồi đặt lại lệnh. Lệnh bán, và lệnh mua khi chưa lưu hồ sơ, không bị giữ lại.
@@ -1921,7 +1921,7 @@ Mọi lần ghi lên một sàn (xác nhận, lối thoát, hủy) chạy từng
 - Các trần tính trên cả cuốn sổ: tiền mặt chi được và số lệnh đang mở. Hai lần xác nhận chạy cùng lúc sẽ mỗi cái đo một cuốn sổ mà cái kia chưa ghi vào, và cả hai cùng vượt qua một trần mà chỉ một cái được phép.
 - Hai lời gọi `/trade exit` chạy cùng lúc sẽ mỗi cái đọc *không có gì đang treo* và đặt, để lại lối thoát thứ hai mà chốt chặn xung đột sinh ra để ngăn.
 
-Các trần được đọc **lại** bên trong cửa sổ đó. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved` thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`.
+Các trần được đọc **lại** bên trong cửa sổ đó, kể cả trần vị thế, trần nhóm và trần ETF của hồ sơ đã lưu. Chỉ trần mà cuốn sổ đã vượt kể từ lúc lệnh được soạn mới khiến lệnh bị từ chối; trần mà lời nhắc đã cho bạn thấy thì vẫn giữ nguyên. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved` thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`.
 
 ### 9. Kiểm chứng, theo đúng thứ tự này
 

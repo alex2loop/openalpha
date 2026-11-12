@@ -5,7 +5,7 @@ import type {
   QuoteBoardItem,
   QuoteBoardRequest,
 } from '@/trading/kernel/market/market-capability'
-import type { MarketRegistry } from '@/trading/markets/types'
+import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { definedOnly } from '@/core/utils/collections'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { freshnessOf } from '@/trading/features/market-data/reads/freshness'
@@ -106,18 +106,15 @@ async function quoteBoardItemFor(
     ownKindOf(deps.markets, instrument, clock.signal),
   ])
 
-  const settled =
-    observed.kind === 'close' &&
-    observed.day <= resolveSettledDay(market.manifest.calendar, clock.now)
-
   return {
     observed,
-    ...(settled ? { closedOn: observed.day } : {}),
+    ...closedOnOf(market, observed, clock.now),
     ...(previousClose === undefined ? {} : { previousClose }),
     kind: ownKind ?? market.manifest.assetClass,
     ticker: instrument.ticker,
     region: market.manifest.region,
     currency: market.manifest.currency,
+    unit: market.manifest.quoteUnit,
     market: market.manifest.id,
     assetClass: market.manifest.assetClass,
     ...definedOnly({ session, board }),
@@ -127,6 +124,18 @@ async function quoteBoardItemFor(
     provenance: result.provenance,
     caveats: result.caveats,
   }
+}
+
+/** The session a reading closed in, once that session has settled; nothing for a live reading. */
+function closedOnOf(
+  market: Market,
+  observed: QuoteBoardItem['observed'],
+  now: number
+): Pick<QuoteBoardItem, 'closedOn'> {
+  const settled =
+    observed.kind === 'close' && observed.day <= resolveSettledDay(market.manifest.calendar, now)
+
+  return settled ? { closedOn: observed.day } : {}
 }
 
 /** What the name is, not what its market is: the asset class files an index under equities, and a

@@ -36,7 +36,7 @@ trên trang văn phòng hoặc bằng `openalpha pair approve <mã>`.
 
 ```bash
 > /rebalance             # nên mua thêm, bán bớt hay giữ nguyên - miễn phí
-> /reflect               # các gợi ý cũ đúng được bao nhiêu - miễn phí
+> /reflect               # các đề xuất cũ đúng được bao nhiêu - miễn phí
 openalpha cost           # đã tốn bao nhiêu tiền LLM
 openalpha db backup      # sao lưu sổ
 ```
@@ -56,14 +56,14 @@ openalpha db backup      # sao lưu sổ
    soi sâu bằng `/suggest` cho mã thật sự đáng chú ý.
 2. Lệnh nào khớp thật ngoài sàn cũng phải `/record` lại - trợ lý chỉ tư vấn đúng khi biết bạn đang
    nắm gì.
-3. Trợ lý **chỉ đặt lệnh khi bạn gõ `/trade` và xác nhận**. Mọi thứ khác chỉ là gợi ý.
+3. Trợ lý **chỉ đặt lệnh khi bạn gõ `/trade` và xác nhận**. Mọi thứ khác chỉ là đề xuất.
 
 ---
 
 ## 1. OpenAlpha là gì
 
 OpenAlpha là trợ lý phân tích giao dịch chạy ngay trên máy bạn. Nó đọc dữ liệu thị trường, tính
-toán, cho hai phe thuận và nghịch tranh luận, rồi **gợi ý kèm lý do**. Còn bấm nút mua bán thì luôn
+toán, cho hai phe thuận và nghịch tranh luận, rồi **đưa ra đề xuất kèm lý do**. Còn bấm nút mua bán thì luôn
 là việc của bạn.
 
 Ba nguyên tắc:
@@ -130,7 +130,7 @@ Dùng trên trình duyệt thay cho terminal: `openalpha start --background` r�
 
 ### 2.2 Khai hồ sơ đầu tư
 
-Hồ sơ cho trợ lý biết khẩu vị của bạn để cân tiền và lọc gợi ý. Khai một lần là xong.
+Hồ sơ cho trợ lý biết khẩu vị của bạn để cân tiền và lọc đề xuất. Khai một lần là xong.
 
 ```bash
 openalpha chat
@@ -181,7 +181,7 @@ trừ thì chỉ nói bằng lời** - cứ nói chuyện bình thường trong 
 
 ```text
 "đặt mục tiêu: cổ phiếu VN 50%, crypto 20%, vàng 10%, tiền mặt 20%"
-"loại ROS khỏi mọi gợi ý"
+"loại ROS khỏi mọi đề xuất"
 ```
 
 ### 2.4 Ghi sổ danh mục
@@ -220,7 +220,7 @@ giá vốn khác nhau.
 > /record buy vps equity-vn:FPT 100 62000 VND 2026-08-14          # bỏ trống phí - sổ tính theo biểu phí
 > /record buy okx crypto:BTC 0.05 63000 USDT 2026-08-10           # sổ hỏi OKX xem lệnh khớp thế nào
 > /record sell vps equity-vn:FPT 50 98000 VND 9800 2026-08-16
-> /record sell okx crypto:BNB all 779.9 USDT 2026-09-06           # bán hết - sổ tự lấy số lượng còn lại
+> /record sell okx crypto:BNB all 779.9 USDT 2026-09-06           # bán hết - sổ tự lấy khối lượng còn lại
 > /record dividend vps equity-vn:FPT 500000 VND 2026-08-12
 ```
 
@@ -411,12 +411,12 @@ ngày như `30d` hay `2026-09-01..2026-09-25`, hoặc mã bút toán để xem t
 | `/portfolio nav [1m\|3m\|6m\|1y\|all]` | Danh mục đã đi thế nào: lợi nhuận đã loại tiền nạp và rút, mức sụt sâu nhất từ đỉnh, thước đo từ tỷ trọng mục tiêu |
 | `/transactions` | Bút toán gần nhất |
 | `/rebalance` | Nên mua thêm, bán bớt hay giữ nguyên ngay bây giờ |
-| `/reflect` | Các gợi ý cũ đúng được bao nhiêu |
+| `/reflect` | Các đề xuất cũ đúng được bao nhiêu |
 | `/alert list` | Cảnh báo giá đang bật |
 | `/watchlist` | Danh sách theo dõi |
 
 Ba lệnh tốn tiền LLM đáng kể: **`/suggest`**, **`/research`**, **`/themes`** (riêng `/themes show`
-miễn phí). `/setup` chỉ chạy một lượt chào ngắn; `/brief` tốn một phần nhỏ cho mục gợi ý cuối bản
+miễn phí). `/setup` chỉ chạy một lượt chào ngắn; `/brief` tốn một phần nhỏ cho mục đề xuất cuối bản
 tin.
 
 ---
@@ -466,7 +466,7 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/rebalance` | `/rebalance` \| `/rebalance <mã>...` | không |
 | `/reflect` | `/reflect` | không |
 | `/alert` | `/alert [list [số dòng]]` \| `create <mã> above\|below <ngưỡng>` \| `disable <id>` | không |
-| `/brief` | `/brief` \| `force` \| `enable [HH:mm]` \| `disable` | một phần nhỏ cho mục gợi ý |
+| `/brief` | `/brief` \| `force` \| `enable [HH:mm]` \| `disable` | một phần nhỏ cho mục đề xuất |
 | `/refresh` | `/refresh [thị trường] [force]` | không |
 | `/suggest` | `/suggest <mã> [full\|lean] [force]` - tùy chọn theo thứ tự tùy ý sau mã; `/suggest stops` đọc lại các vị thế đang giữ chưa có kế hoạch thoát hoặc đã quá hạn cửa sổ | **có** - chạy cả quy trình tranh luận |
 | `/sources` | `/sources` - nhà cung cấp dữ liệu nào đang phản hồi | không |
@@ -570,7 +570,7 @@ hủy bút toán, hồ sơ, danh sách theo dõi). Những câu này đều hợ
 ```text
 "so HPG với HSG rồi cho tôi một đề xuất"
 "danh mục của tôi đang lệch chỗ nào?"
-"tháng vừa rồi các gợi ý đúng được bao nhiêu?"
+"tháng vừa rồi các đề xuất đúng được bao nhiêu?"
 "tin gì đáng chú ý với FPT tuần này?"
 ```
 
@@ -604,7 +604,7 @@ openalpha start --background         # bật dịch vụ nền để bản tin v
 
 Nếu dịch vụ nền (daemon) không chạy và dữ liệu có vẻ cũ, gõ `/refresh` trước bước 1 để nạp phần còn
 thiếu của phiên gần nhất. Nó chỉ nạp các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi
-bạn còn giữ mã, theo dõi mã hay đang chờ chấm điểm gợi ý cũ.
+bạn còn giữ mã, theo dõi mã hay đang chờ chấm điểm đề xuất cũ.
 
 - `/refresh crypto` nạp riêng thị trường đó, kể cả khi nó đã tắt.
 - `/refresh force` nạp lại toàn bộ. Chỉ dùng khi bạn nghi dữ liệu sai.
@@ -685,7 +685,7 @@ Một lần `/rebalance` xét mọi thị trường cùng lúc, không cần ch�
 | Việc | Lệnh | Vì sao |
 |---|---|---|
 | Cân lại danh mục | `> /rebalance` | Sau một quãng giá trôi, tỷ trọng lệch mục tiêu. Chỉ đề xuất khi lệch đủ lớn - tháng êm có khi chẳng cần lệnh nào |
-| Soi thành tích gợi ý | `> /reflect` | Tỷ lệ thắng, so với chỉ số chuẩn, độ chuẩn xác theo mức tin cậy. Dữ liệu này cũng quay lại hiệu chỉnh các đề xuất sau ([6.7](#67-reflect---vòng-học)) |
+| Soi thành tích đề xuất | `> /reflect` | Tỷ lệ thắng, so với chỉ số chuẩn, độ chuẩn xác theo mức tin cậy. Dữ liệu này cũng quay lại hiệu chỉnh các đề xuất sau ([6.7](#67-reflect---vòng-học)) |
 | Soi chủ đề đầu tư | `> /themes` | Chủ đề vĩ mô đổi chậm, một hai lần mỗi tháng là đủ ([6.8](#68-themes---chủ-đề-đầu-tư)) |
 | Kiểm chi phí | `openalpha cost --period month --breakdown` | Tháng vừa rồi tốn bao nhiêu, cho agent nào, mô hình nào |
 | Sao lưu sổ | `openalpha db backup` | Sổ lệnh là thứ duy nhất không tái tạo được từ mạng |
@@ -871,7 +871,7 @@ chỉ mất các mục đó, không mất cả bản tin. Mục **việc tiếp 
 của các mục trước:
 
 - chỉ nhắc `/rebalance` khi thật sự lệch tỷ trọng,
-- chỉ nhắc xem gợi ý khi có gợi ý,
+- chỉ nhắc xem đề xuất khi có đề xuất,
 - chỉ nhắc xem cảnh báo khi có cảnh báo nổ.
 
 #### Một mục vắng mặt không có nghĩa là hỏng
@@ -914,7 +914,7 @@ Ngắn gọn: bảng điểm tháng là lời nhắc tự động, `/reflect` l�
 
 ### 6.7 `/reflect` - vòng học
 
-`/reflect` trả lời câu hỏi khó chịu nhưng cần thiết: **các gợi ý cũ có đúng không?**
+`/reflect` trả lời câu hỏi khó chịu nhưng cần thiết: **các đề xuất cũ có đúng không?**
 
 Chỉ đề xuất **có hành động** (mua hoặc giảm), **đã chốt kết quả** và **đã hết cửa sổ theo dõi** được tính. Kết quả "giữ nguyên"
 không bao giờ vào bảng thành tích - hệ thống chặn cứng, không dựa vào quy ước.
@@ -984,7 +984,7 @@ phiên bản hoặc xem báo cáo đầy đủ:
 
 ```text
 "cho tôi báo cáo thành tích đầy đủ"
-"thành tích của các gợi ý ở phiên bản chiến lược hiện tại?"
+"thành tích của các đề xuất ở phiên bản chiến lược hiện tại?"
 ```
 
 Đóng góp lũy kế chỉ là **xấp xỉ**. Nó cộng dồn theo thứ tự ra đề xuất, và cố tình bỏ qua việc các vị
@@ -1031,7 +1031,7 @@ Chỉ áp dụng cho cổ phiếu VN.
   thắng hay thua VN-Index. Nhóm nào chưa đủ 20 nhận định thì chỉ in số đếm. Bảng chỉ tính những lần
   chấm theo cách tính điểm hiện tại, nên khi trọng số đổi thì bảng bắt đầu lại. **Trước khi bảng này nói
   được điều gì, đừng coi điểm số là tín hiệu mua.**
-- **Không phải gợi ý giao dịch.** `/themes` không đưa giá vào, cắt lỗ hay khối lượng. Muốn soi một mã
+- **Không phải đề xuất giao dịch.** `/themes` không đưa giá vào, cắt lỗ hay khối lượng. Muốn soi một mã
   để giao dịch thì dùng `/suggest <mã>`.
 - **Soát riêng một chủ đề.** Có tin lớn chạm đúng một chủ đề thì gõ `/themes run <id>`: hệ thống chỉ
   soát lại chủ đề đó cùng ngành và mã của nó, không đụng chủ đề khác, không tìm chủ đề mới, nên rẻ

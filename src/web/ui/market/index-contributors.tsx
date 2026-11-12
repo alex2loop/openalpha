@@ -3,7 +3,7 @@ import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
 import { printDisplayOf } from '@/web/state/market'
 import { toCaveatText } from '@/web/text/caveat-text'
-import { formatFixed, formatPrice } from '@/web/text/figures'
+import { formatPrice, formatSignedFixed, toneOfFixed } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -87,7 +87,7 @@ function toRankedRow(row: Contributor, market: string) {
     figure: formatPrice(row.price, printDisplayOf(market)),
     pill: {
       text: formatPoints(row.point),
-      tone: row.point > 0 ? ('up' as const) : ('down' as const),
+      tone: toneOfFixed(row.point, POINT_DIGITS),
     },
   }
 }
@@ -103,5 +103,5 @@ function withoutListText(title: string, caveats: IndexContributorsResponse['cave
 
 /** Index points with their sign, which is the whole of what the figure says. */
 function formatPoints(points: number): string {
-  return `${points > 0 ? '+' : ''}${formatFixed(points, POINT_DIGITS)}`
+  return formatSignedFixed(points, POINT_DIGITS)
 }

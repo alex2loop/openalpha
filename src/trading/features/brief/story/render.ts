@@ -29,7 +29,7 @@ import {
   renderProvenanceLine,
 } from '@/trading/render/layout'
 import { renderBlockRule, renderLabelledRow } from '@/trading/render/section'
-import { renderValue } from '@/trading/render/section-values'
+import { renderValue, unitOfSection } from '@/trading/render/section-values'
 
 type ReadySection = Extract<BriefSectionResult, { readonly status: 'ready' }>
 
@@ -266,7 +266,7 @@ function factLines(
   facts: readonly FactRow[],
   role: StoryRole
 ): readonly StoryLine[] {
-  const unit = view.section.currency === undefined ? {} : { currency: view.section.currency }
+  const unit = unitOfSection(view.section)
 
   // A figure under the counterpoint argues against the reading, so it says so before the number.
   const lead =
@@ -306,7 +306,7 @@ function renderWatch(view: StoryView, row: BriefSectionRow): string | undefined 
     return undefined
   }
 
-  const unit = section.currency === undefined ? {} : { currency: section.currency }
+  const unit = unitOfSection(section)
   const sentence = t(locale, `trading.brief.story.watch.${shape}`, {
     value: renderValue(locale, [WATCH_FIELDS[shape], row.threshold], unit),
     sessions: countOf(locale, row.sessions),

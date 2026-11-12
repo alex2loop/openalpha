@@ -106,7 +106,7 @@ flowchart LR
 ```
 
 A durable claim is unique per job *and* scheduled instant, which prevents duplicate automatic runs. A
-job cannot overlap itself, and the global cap bounds everything. Finalisation writes the outcome and
+job cannot overlap itself, and the global cap bounds everything. Finalization writes the outcome and
 advances, retries or disables the job in one transaction.
 
 The claim carries a lease: 5 minutes (`OCCURRENCE_LEASE_TTL_MS`), renewed every 2 minutes on a wall
@@ -125,7 +125,7 @@ run-now claims are cleared after that sweep.
 Retries share one policy with heartbeats (`scheduler/backoff.ts`): `60 s x 2^(failures - 1)`, capped
 at 30 minutes; a cron job is disabled after 3 consecutive failures. Halts that do not count as
 failures: shutdown, approval denied or timed out, an agent cap, a paused agent, a missed slot. Delivery runs
-after finalisation, so a delivery error never fails the run.
+after finalization, so a delivery error never fails the run.
 
 A tick that finds a due job not already running first asks the shared reachability probe
 (`core/utils/reachability`: one lookup of the host the trading loops wait on, 5 s budget, cut short when the
@@ -134,7 +134,7 @@ the tick returns before admitting anything, so the jobs stay due and no attempt 
 `scheduler.tick_offline` is logged once per offline stretch, and a tick with nothing held back ends the stretch.
 
 Lateness is judged on the claimed occurrence, in `runScheduledOccurrence`: a cron job whose
-`nextRunAt` is more than `lateGraceMs` (`[schedule] late_grace_ms`, 15 minutes; `resolveSchedule` refuses a value under one tick plus the probe budget, 35 s, because a slot is first seen at the next tick, which chains after the previous one and may wait out the probe first) behind the clock is finalised
+`nextRunAt` is more than `lateGraceMs` (`[schedule] late_grace_ms`, 15 minutes; `resolveSchedule` refuses a value under one tick plus the probe budget, 35 s, because a slot is first seen at the next tick, which chains after the previous one and may wait out the probe first) behind the clock is finalized
 with `MISSED_SLOT_MESSAGE` and a `skip` transition instead of running, which advances the cadence from now and
 keeps the failure count. Interval and once jobs are never skipped: they name no clock time. The intraday report loop reads the same value and skips a
 send whose wake-up is that late (`trading.intraday_late`).
@@ -150,7 +150,7 @@ outlasts the grace. `workflow.tick_offline` is logged once per offline stretch.
 Each 30-second tick scans every agent's `HEARTBEAT.md` and runs due tasks, up to three agents at once
 and one agent's tasks in sequence. Completion is recorded once per task after the run. A file over
 65,536 bytes is not run, and a file keeps at most 20 tasks; names are at most 128 characters and the
-interval at least 60 s. A recognised `session` or `duplicate_window` line with an empty or invalid
+interval at least 60 s. A recognized `session` or `duplicate_window` line with an empty or invalid
 value drops the whole task.
 
 ### The response protocol

@@ -1,10 +1,11 @@
 import type { NavBenchmarkWire, TradingNavResponse } from '@/app/server/wire/nav'
 import type { NavBenchmark, NavHistory } from '@/trading/api'
 import { toInstrumentWire } from '@/app/server/mappers/trading'
+import { apportionedBenchmarkLegs } from '@/trading/api'
 
 function toNavBenchmarkWire(benchmark: NavBenchmark): NavBenchmarkWire {
   return {
-    legs: benchmark.legs.map((leg) => ({
+    legs: apportionedBenchmarkLegs(benchmark).map((leg) => ({
       segment: leg.segment,
       weight: leg.weight,
       ...(leg.instrument === undefined ? {} : { instrument: toInstrumentWire(leg.instrument) }),

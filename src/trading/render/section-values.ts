@@ -20,7 +20,7 @@ import type {
 import type { OutcomeVerdict } from '@/trading/kernel/outcome-verdict'
 import type { DisclosureKind } from '@/trading/markets/disclosure-calendar'
 import { formatSpendUsd } from '@/core/utils/cost'
-import { formatDay, type MessageKey, t } from '@/i18n'
+import { formatDay, type MessageKey, renderQuoteUnit, t } from '@/i18n'
 import { BRIEF_NUMERIC_FIELDS } from '@/trading/kernel/operator/brief-section'
 import { isTradingDayText } from '@/trading/render/datetime'
 import {
@@ -286,7 +286,7 @@ const VALUE_FORMATTERS = Object.freeze({
   valuePct: formatFixedFraction,
   volatilityDaily: formatFraction,
   weekChange: formatSignedFlow,
-  winRate: formatFraction,
+  winRate: formatWholeFraction,
   yearPercentile: formatTimeRank,
 } satisfies Record<BriefNumericField, (locale: Locale, value: number) => string>)
 
@@ -336,14 +336,18 @@ const TEXT_FORMATTERS: Partial<Record<BriefField, (value: string) => string>> = 
 
 /** Money carries the unit its row is denominated in; every other field either states its own or is
  *  not money at all — and a row whose header already named the currency says it once. */
-function unitFor(field: BriefField, unit: RowUnit): string {
+function unitFor(locale: Locale, field: BriefField, unit: RowUnit): string {
   const { currency } = unit
 
   if (currency === undefined || unit.stated === true) {
     return ''
   }
 
-  return MONEY_FIELDS.has(field) || PRICE_FIELDS.has(field) ? ` ${currency}` : ''
+  if (PRICE_FIELDS.has(field)) {
+    return ` ${renderQuoteUnit(locale, currency, unit.quoteUnit)}`
+  }
+
+  return MONEY_FIELDS.has(field) ? ` ${currency}` : ''
 }
 
 function isNumericField(field: BriefField): field is BriefNumericField {
@@ -355,8 +359,24 @@ function isNumericField(field: BriefField): field is BriefNumericField {
  *  needs đồng's own precision, and would restate the code on every cell to get it. */
 export interface RowUnit {
   readonly currency?: CurrencyCode
+  /** The measure a price is per where its ticker does not imply it. Only prices carry it: a turnover
+   *  is money, not a price per anything. */
+  readonly quoteUnit?: string
   /** Set where something above the row already names the currency, so the message says it once. */
   readonly stated?: true
+}
+
+/** What a section states about every row under it: its currency and, for a price block, the measure
+ *  its prices are per. Spread rather than assigned, because `exactOptionalPropertyTypes` rejects an
+ *  absent field handed over as a present-and-undefined one. */
+export function unitOfSection(section: {
+  readonly currency?: CurrencyCode
+  readonly quoteUnit?: string
+}): RowUnit {
+  return {
+    ...(section.currency === undefined ? {} : { currency: section.currency }),
+    ...(section.quoteUnit === undefined ? {} : { quoteUnit: section.quoteUnit }),
+  }
 }
 
 /** A field's text and the unit it is denominated in, under one owner: a price formatted at one
@@ -370,7 +390,7 @@ export function renderValue(
 ): string {
   const [field] = entry
 
-  return `${valueText(locale, entry, unit.currency)}${unitFor(field, unit)}`
+  return `${valueText(locale, entry, unit.currency)}${unitFor(locale, field, unit)}`
 }
 
 function valueText(
