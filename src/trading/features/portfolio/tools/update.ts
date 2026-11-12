@@ -37,6 +37,7 @@ export function createPortfolioUpdateTool(
         ref: args.id,
         draft: args.draft,
         typedPrice: toTypedPrice(args.priceConfirmed),
+        requiresListed: true,
         now: Date.now(),
         signal: ctx.signal,
       })

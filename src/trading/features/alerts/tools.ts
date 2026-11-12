@@ -29,7 +29,7 @@ export function createAlertManageTool(alerts: AlertService, markets: MarketSchem
   return createTool({
     name: 'alert_manage',
     description:
-      'List, create, or disable price alerts. Listing spans every alert this operator has, in every state and every chat; a new one is delivered to the chat it was created from when that chat can receive notices; one created from the terminal goes to the default chat, and creation is refused when no chat is reachable.',
+      'List, create, or disable price alerts. Listing spans every alert this operator has, in every state and every chat; on a dealer board (VN gold) an alert watches the buy price, what the shop pays; a new one is delivered to the chat it was created from when that chat can receive notices; one created from the terminal goes to the default chat, and creation is refused when no chat is reachable.',
     inputSchema: alertActionInputOf(markets),
     inputExamples: [
       { action: 'list' },

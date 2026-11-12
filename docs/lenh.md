@@ -737,7 +737,7 @@ ghi sổ và `/trade`.
 | `/themes` | `/themes` - tìm các chủ đề đầu tư đang hình thành ở Việt Nam và tiêu ngân sách LLM; `/themes run <id>` - soát lại một chủ đề đang theo dõi, không tìm chủ đề mới và chỉ báo cáo chủ đề đó, với một phần nhỏ chi phí; `/themes show` - đọc báo cáo đã lưu, không gọi mô hình; `/themes approve\|reject\|retire <id>` - chuyển trạng thái một chủ đề. Chỉ operator dùng được |
 | `/rebalance` | `/rebalance`; `/rebalance <mã>...` - tính khoảng cách tới mục tiêu, không cân nhắc bằng chứng và không gọi mô hình. Xem [`/rebalance` tính những gì](#rebalance-tính-những-gì) |
 | `/reflect` | `/reflect`, không nhận tham số - các đề xuất trước đây thực tế chạy ra sao. Chỉ đếm đề xuất đã hết cửa sổ theo dõi; một dòng cuối cho biết còn bao nhiêu đề xuất đã chạm mức và đang chờ hết cửa sổ |
-| `/alert` | `/alert` hoặc `/alert list [số dòng]` để xem danh sách; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ; `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
+| `/alert` | `/alert` hoặc `/alert list [số dòng]` để xem danh sách; `/alert create <mã> above\|below <ngưỡng>`, hoặc `thị-trường:mã` khi một tên trần mơ hồ (với vàng VN, cảnh báo theo dõi giá mua vào, số tiền tiệm trả khi bạn bán, và ghi rõ điều đó); `/alert disable <id>` (mã ngắn mà danh sách và thông báo in ra; khớp nhiều thì câu trả lời liệt kê mã đầy đủ). Danh sách gồm cả các dòng cảnh báo thoát và sàng lọc do hệ thống đặt, bên cạnh dòng của bạn |
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` dựng lại bất chấp bản chụp đã lưu của hôm nay. Khi thị trường chính là Việt Nam, bản tin mở đầu bằng câu chuyện thị trường và phần nhìn lại các câu chuyện trước. Dưới tiêu đề là một dải số liệu chính (VN-Index, VN30, vàng SJC, vàng thế giới, bitcoin, USD/VND). Xem [Bản tin khi chưa có danh sách theo dõi](#bản-tin-khi-chưa-có-danh-sách-theo-dõi) và [Bản tin khi chưa có sổ](#bản-tin-khi-chưa-có-sổ) |
 | `/refresh` | `/refresh [thị-trường] [force]`, thứ tự tùy ý. Không nêu thị trường thì chỉ làm mới các thị trường bạn còn dùng: nhóm đang bật trong hồ sơ, hoặc nơi bạn đang giữ mã, theo dõi mã hay còn gợi ý chờ chấm điểm. Thị trường còn lại được liệt kê là bỏ qua; gõ thẳng tên thì vẫn nạp. `force` tải lại bất kể dữ liệu nào đang mới. Vàng thế giới đọc giá trực tiếp nên không có gì để nạp, và câu lệnh nói rõ điều đó. Một loại dữ liệu trải ra nhiều công cụ sẽ báo đã tới đâu |
 | `/sources` | `/sources` - nhà cung cấp nào đã ngừng trả lời, hoặc một dòng duy nhất nếu không có. Trạng thái cầu dao là bộ nhớ của chính tiến trình này, nên một lần gọi CLI mới báo rằng chưa gọi nhà cung cấp nào, chứ không khẳng định mọi thứ khỏe |
@@ -828,6 +828,10 @@ luôn ghi rõ nó. Điều này quan trọng vì một dòng sổ làm đổi m�
 
 Sổ chỉ ghi thứ bạn nắm giữ được: một chỉ số hay hợp đồng tương lai (VN-Index, VN30F1M) không ai nắm giữ,
 nên `/record` và `/update` từ chối dòng nêu tên chúng, khi danh sách đã lưu của thị trường đó nhận ra tên. Một dòng cũ đã nêu tên một chỉ số hay hợp đồng như vậy chỉ có thể xóa hoặc đổi sang mã khác.
+
+Một `thị-trường:mã` mà danh sách đã lưu của thị trường đó không có thì chưa được ghi ngay: câu trả lời nêu mã
+đó, gợi ý mã gần nhất đã lưu và hỏi đây có phải giao dịch thật không. Bấm nút, hoặc gửi lại đúng câu lệnh với
+`confirm` ở cuối, thì dòng được ghi như bạn gõ. `/update` chỉ hỏi khi nó đổi mã.
 
 ```text
 /record deposit|withdrawal|fee|loss <sàn> <số tiền> <tiền tệ> <ngày>

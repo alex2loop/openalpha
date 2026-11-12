@@ -4,7 +4,7 @@ import type {
   SlashContext,
   SlashResult,
 } from '@/core/types/command'
-import type { AlertService } from '@/trading/features/alerts/types'
+import type { Alert, AlertService } from '@/trading/features/alerts/types'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { InstrumentRef, MarketRef, TickerRequest } from '@/trading/kernel/instrument'
 import type { AlertCondition } from '@/trading/kernel/operator/alert'
@@ -28,6 +28,7 @@ import {
   SYNTAX_POINTER_KEY,
   usage,
 } from '@/trading/kernel/surface/surface'
+import { exitPriceOf } from '@/trading/markets/stored-quote'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { joinSections } from '@/trading/render/layout'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
@@ -158,10 +159,11 @@ async function conventionByInstrument(
   return new Map(entries.flat())
 }
 
-/** One batched read for the page's names, keyed the way instruments are keyed everywhere else: two
- *  markets can list the same ticker, and keying on the symbol alone collapsed their rows onto one
- *  price. `quoteBoard` carries its own caveats and never throws for a missing name, so an instrument it
- *  could not answer for simply renders without its distance. */
+/** One batched read for the page's names, on the side an alert watches (a dealer board's buy price),
+ *  keyed the way instruments are keyed everywhere else: two markets can list the same ticker, and
+ *  keying on the symbol alone collapsed their rows onto one price. `quoteBoard` carries its own
+ *  caveats and never throws for a missing name, so an instrument it could not answer for simply
+ *  renders without its distance. */
 async function priceByInstrument(
   deps: AlertCommandDeps,
   instruments: readonly InstrumentRef[],
@@ -176,7 +178,7 @@ async function priceByInstrument(
   return new Map(
     quoteBoard.items.map((item) => [
       buildInstrumentKey({ market: item.market, ticker: item.ticker }),
-      item.last,
+      exitPriceOf({ price: item.last, ...(item.board === undefined ? {} : { board: item.board }) }),
     ])
   )
 }
@@ -223,25 +225,48 @@ async function runCreate(
     signal: ctx.signal,
   })
 
-  const created = {
+  return renderCreated(ctx, {
+    alert,
+    origin,
+    dealerBoard: resolved.market.manifest.quotesDealerBoard === true,
+  })
+}
+
+interface CreatedAlert {
+  readonly alert: Alert
+  readonly origin: DeliveryAddress
+  readonly dealerBoard: boolean
+}
+
+/** The confirmation, plus what the reader could not guess: which side a dealer board's alert
+ *  watches, and where it arrives when it was armed from a terminal rather than the chat it reaches. */
+function renderCreated(ctx: SlashContext, created: CreatedAlert): SlashResult {
+  const { alert, origin } = created
+  const confirmation = {
     key: 'slash.tradingAlertCreated',
     values: { id: toIdHandle(alert.id) },
   } as const
+  const notes = [
+    ...(created.dealerBoard
+      ? [t(ctx.locale, 'trading.alert.buySideNote', { ticker: alert.instrument.ticker })]
+      : []),
+    ...(isSameAddress(alert.delivery, origin)
+      ? []
+      : [
+          t(ctx.locale, 'trading.alert.deliverTo', {
+            channel: alert.delivery.channel,
+            brand: BRAND.name,
+          }),
+        ]),
+  ]
 
-  if (isSameAddress(alert.delivery, origin)) {
-    return { kind: 'message', messages: [created] }
+  if (notes.length === 0) {
+    return { kind: 'message', messages: [confirmation] }
   }
 
-  // Armed from a terminal: say where the alert will actually arrive, since this chat is not it.
   return {
     kind: 'text',
-    text: [
-      t(ctx.locale, created.key, created.values),
-      t(ctx.locale, 'trading.alert.deliverTo', {
-        channel: alert.delivery.channel,
-        brand: BRAND.name,
-      }),
-    ].join('\n'),
+    text: [t(ctx.locale, confirmation.key, confirmation.values), ...notes].join('\n'),
   }
 }
 

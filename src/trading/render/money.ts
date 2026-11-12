@@ -72,6 +72,8 @@ export interface QuoteConvention {
   readonly currency: CurrencyCode
   readonly unit: QuoteUnit
   readonly display?: PriceDisplay
+  /** Set where the market quotes a dealer board: a level on it is watched on the buy side. */
+  readonly dealerBoard?: true
 }
 
 /** A price and the convention it prints in. The currency is its own field rather than the market's,
@@ -80,14 +82,18 @@ export interface QuotedIn {
   readonly currency: CurrencyCode
   readonly unit?: QuoteUnit
   readonly display?: PriceDisplay
+  /** The price is a dealer board's buy side, which the line carrying it names. */
+  readonly dealerBoard?: true
   /** Joins the currency to its number with a no-break space, for a cell a narrow screen may wrap. */
   readonly bindCurrency?: boolean
 }
 
 /** The convention's optional halves, ready to spread into a `QuotedIn` — or nothing at all when
  *  the registry had no convention for that market. `exactOptionalPropertyTypes` rejects forwarding
- *  an optional field any other way, and every price-bearing surface needs the same two. */
-export function quotedInOf(convention?: QuoteConvention): Pick<QuotedIn, 'unit' | 'display'> {
+ *  an optional field any other way, and every price-bearing surface needs the same three. */
+export function quotedInOf(
+  convention?: QuoteConvention
+): Pick<QuotedIn, 'unit' | 'display' | 'dealerBoard'> {
   if (convention === undefined) {
     return {}
   }
@@ -95,6 +101,7 @@ export function quotedInOf(convention?: QuoteConvention): Pick<QuotedIn, 'unit' 
   return {
     unit: convention.unit,
     ...(convention.display === undefined ? {} : { display: convention.display }),
+    ...(convention.dealerBoard === undefined ? {} : { dealerBoard: convention.dealerBoard }),
   }
 }
 

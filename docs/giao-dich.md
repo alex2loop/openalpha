@@ -666,6 +666,7 @@ Cảnh báo thoát và cảnh báo sàng lọc gửi tới chat của bản tin.
 - Mỗi nhịp duyệt qua mọi cảnh báo đang hoạt động, nên cắt lỗ hay mục tiêu được kiểm mỗi phút dù có bao nhiêu cảnh báo.
 - Mỗi **công cụ mỗi nhịp** chỉ lấy một giá, dùng chung cho mọi cảnh báo theo dõi mã đó. Vừa nhanh vừa nhẹ cho giới hạn tốc độ của nguồn. Nó chỉ sống trong một nhịp.
 - Ngưỡng được so với **đỉnh và đáy của phiên**, không chỉ giá cuối, nên một mức bị chạm giữa hai lần kiểm vẫn nổ. Cảnh báo tạo sau khi phiên đã mở chỉ đọc giá cuối trong phiên đó, vì đỉnh và đáy của phiên gồm cả các biến động trước khi nó bắt đầu theo dõi.
+- Trên bảng giá của tiệm (vàng VN), cảnh báo theo dõi **giá mua vào**, số tiền tiệm trả khi bạn bán: cùng phía mà danh mục của bạn được định giá và mức cắt lỗ, mục tiêu được theo dõi, nên một khoản nắm giữ không thể vừa chạm ở chỗ này vừa chưa chạm ở chỗ kia. Chỉ đọc giá cuối đó, không dùng đỉnh và đáy của phiên. Danh sách, câu xác nhận, thông báo và bản tin đều ghi rõ phía này ("giá mua vào"), và khoảng cách trong `/alert list` đo từ giá đó. Cảnh báo bạn đặt từ trước vẫn giữ ngưỡng cũ và nay được đọc theo giá mua vào.
 - Cảnh báo trên thị trường đóng hẳn (cuối tuần, nghỉ trưa) bị bỏ qua để khỏi tốn giá trực tiếp. Trước giờ mở và sau giờ đóng vẫn đánh giá theo giá đóng đã chốt.
 - Giá thiếu hoặc không hữu hạn thì cảnh báo vẫn hoạt động và nói rõ lý do. Một cảnh báo lặng lẽ ngừng theo dõi tệ hơn một cảnh báo nói rằng nó không nhìn được.
 
@@ -1244,7 +1245,7 @@ ngày của nó; với vàng trong nước, hoặc mã chưa có giá đóng c�
 mười lần trở lên thì chưa được lưu ngay. Câu trả lời đưa ra cả hai con số và hỏi bạn có đúng ý không,
 vì lệch xa cỡ đó gần như luôn là gõ thiếu hoặc thừa vài số 0.
 
-Bấm "Đúng giá này, lưu lại", hoặc gửi lại đúng lệnh đó với `confirm` ở cuối, thì giá được lưu như bạn
+Bấm "Đúng giá này, lưu lại", hoặc gửi lại đúng câu lệnh đó với `confirm` ở cuối, thì giá được lưu như bạn
 gõ. Không có gì được giữ lại giữa hai bước: bỏ qua câu hỏi thì không có gì được ghi.
 
 - `/record`, `/update` và `/alert create` đều hỏi như vậy.
@@ -1257,6 +1258,24 @@ gõ. Không có gì được giữ lại giữa hai bước: bỏ qua câu hỏi
 
 Bội số đặt ở `[trading.typed_prices] confirm_multiple` (mặc định 10). Ứng dụng desktop cũng được kiểm
 như vậy khi request ghi sổ hoặc đặt cảnh báo gửi kèm `typedPrice`.
+
+Một mã được chỉ bằng `thị-trường:mã` mà danh sách đã lưu của thị trường đó không có thì cũng được giữ lại
+như vậy (`/record gold-vn:ZZZ ...`, `/record equity-vn:ZZZQ ...`): gõ nhầm mã sẽ tạo ra một vị thế mà
+không thị trường nào niêm yết. Câu trả lời nêu mã và thị trường, gợi ý mã gần nhất đã lưu nếu có, rồi hỏi
+đây có phải giao dịch thật không (mã đã hủy niêm yết, mới niêm yết, hoặc danh sách chưa được làm mới).
+Bấm "Đây là giao dịch thật, ghi đúng như đã gõ", hoặc gửi lại đúng câu lệnh đó với `confirm` ở cuối, thì dòng được ghi
+như bạn gõ. Không có gì được giữ lại giữa hai bước.
+
+- `/record`, `/update` và các công cụ `portfolio_record` / `portfolio_update` của trợ lý AI đều hỏi.
+  `/update` chỉ hỏi khi nó đổi mã, nên một mã đã hủy niêm yết vẫn sửa được giá và ngày.
+- Việc kiểm chỉ đọc các danh sách đã lưu, không tra mạng. Thị trường chưa từng làm mới, thị trường có danh
+  sách không đọc được, và crypto (tra tên qua mạng) không bị kiểm, dòng được ghi luôn. Mã đang
+  tạm ngừng hay đã hủy niêm yết nhưng còn trong danh sách cũng không bị hỏi.
+- `/record sync`, `/trade` và lệnh thoát đã khớp không bao giờ hỏi: sàn là nơi nêu tên lệnh khớp đó.
+- Một lần `confirm` trả lời cả hai câu hỏi (mã chưa niêm yết và giá lệch xa), nên giá lệch xa ở một mã
+  chưa niêm yết không bị hỏi lại.
+- Sổ trên ứng dụng desktop hỏi theo cách đó khi gửi kèm `typedPrice`: dịch vụ nền trả `name_unlisted` cùng
+  câu hỏi, và form giao dịch có nút "Đây là giao dịch thật, ghi đúng như đã gõ".
 
 #### Dòng xác nhận ghi nói gì về phí
 

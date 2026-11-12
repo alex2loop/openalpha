@@ -60,6 +60,8 @@ A system-armed alert carries an origin string the arming pass reconciles against
 
 The threshold is part of the exit identity, so a stop the trail raised is a new origin: it arms, and the old one retires. Operator alerts carry no origin.
 
+On a market whose manifest sets `quotesDealerBoard` (`gold-vn`) every alert, operator or system, is evaluated on the board's buy side through `exitPriceOf` ([observation.ts](../../../src/trading/features/alerts/observation.ts)), with no session extremes. The flag travels on `QuoteConvention.dealerBoard` and `QuotedIn.dealerBoard` (`quotedInOf` spreads it), which is how the list, the notice and the brief's level rows name the side without reading a quote; the office page reads `MarketWire.quotesDealerBoard` from `/v1/markets`.
+
 The trail's per-session memo (`trailedThrough`) is set only once the raise has settled: written, lost to a concurrent raise, or not asked for. A failed write leaves it unset, so the next tick retries instead of waiting a session. The failure isolation of the alert loop is in [operations](operations.md#tick-failure-classification).
 
 ## Track record and batches

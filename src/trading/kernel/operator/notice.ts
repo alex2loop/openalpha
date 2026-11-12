@@ -19,6 +19,8 @@ interface AlertQuote {
   readonly currency: CurrencyCode
   readonly unit?: QuoteUnit
   readonly display?: PriceDisplay
+  /** Set where the observed price is a dealer board's buy side, which the notice then names. */
+  readonly dealerBoard?: true
 }
 
 export const NOTICE_KINDS = Object.freeze([

@@ -24,6 +24,7 @@
       "market": "gold-vn",
       "currency": "VND",
       "quoteUnit": "currency-per-luong",
+      "quotesDealerBoard": true,
       "region": "vn",
       "ownsRegion": false,
       "segment": "gold-vn",

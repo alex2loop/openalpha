@@ -10,8 +10,10 @@ import type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import { foldBook } from '@/trading/features/ledger/book'
 import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
-import { assertTradePrice, dayOf, validatorFor } from '@/trading/features/ledger/mutate'
+import { assertNameListed } from '@/trading/features/ledger/holdable'
+import { dayOf, validatorFor } from '@/trading/features/ledger/mutate'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
+import { assertTradePrice } from '@/trading/features/ledger/trade-price'
 import { orderLedger } from '@/trading/features/ledger/validate'
 import { finalizeTransaction } from '@/trading/features/ledger/write'
 import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
@@ -19,6 +21,8 @@ import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
 export interface PreviewLedgerOptions {
   readonly draft: LedgerTxnDraftInput
   readonly typedPrice?: TypedPrice
+  /** Holds a name no stored list has for a yes, as the write would. */
+  readonly requiresListed?: true
   /** The row an edit replaces: it is left out of the book the draft is checked against. */
   readonly replacing?: LedgerEntryId
   readonly now: number
@@ -46,7 +50,18 @@ export async function previewRecord(
   const { draft, fillSource } = await resolveDraft(deps, options.draft, options.signal)
   const transaction = await finalizeTransaction(deps, { draft, signal: options.signal })
 
+  const previous =
+    options.replacing === undefined
+      ? null
+      : await deps.ledger.findById(options.replacing, options.signal)
+
   // Asked before the row is held, as the write would ask: a confirm must not meet a second question.
+  await assertNameListed(deps, {
+    transaction,
+    previous: previous?.transaction,
+    fillSource,
+    request: options,
+  })
   await assertTradePrice(deps, {
     transaction,
     typedPrice: options.typedPrice,

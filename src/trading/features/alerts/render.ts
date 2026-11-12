@@ -97,11 +97,15 @@ function renderTitle(locale: Locale, count: number, market: MarketRef | undefine
 }
 
 function renderRow(locale: Locale, alert: Alert, options: AlertRenderOptions): string {
-  return `${t(locale, 'trading.render.alert.row', {
+  const quote = quoteOf(options, alert)
+  const key =
+    quote?.dealerBoard === true ? 'trading.render.alert.rowBuy' : 'trading.render.alert.row'
+
+  return `${t(locale, key, {
     state: renderDeclaredValue(locale, `trading.alert.state.${alert.state}`),
     ticker: alert.instrument.ticker,
     condition: renderDeclaredValue(locale, `trading.alert.condition.${alert.condition}`),
-    threshold: formatPriceIn(locale, alert.threshold, quoteOf(options, alert)),
+    threshold: formatPriceIn(locale, alert.threshold, quote),
     id: toIdHandle(alert.id),
   })}${renderDistance(locale, alert, options)}`
 }
@@ -173,8 +177,12 @@ function priceLine(locale: Locale, notice: AlertNotice): string {
   const condition = renderDeclaredValue(locale, `trading.alert.condition.${alert.condition}`)
   const threshold = formatPriceIn(locale, alert.threshold, quote)
   const observed = formatPriceIn(locale, alert.observedPrice, quote)
+  const reading =
+    quote?.dealerBoard === true
+      ? t(locale, 'trading.alert.observedBuy', { price: observed })
+      : observed
 
-  return `${alert.instrument.ticker} ${label}${condition} ${threshold} (${observed})`
+  return `${alert.instrument.ticker} ${label}${condition} ${threshold} (${reading})`
 }
 
 function exitLevelOf(notice: AlertNotice): ReturnType<typeof parseExitLevel> {

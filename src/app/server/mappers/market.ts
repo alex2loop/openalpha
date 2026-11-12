@@ -125,6 +125,7 @@ export function toMarketsWire(view: TradingMarketsView, off: ReadonlySet<string>
         currency: market.currency,
         quoteUnit: market.unit,
         ...(market.display === undefined ? {} : { priceDisplay: market.display }),
+        ...(market.dealerBoard === undefined ? {} : { quotesDealerBoard: market.dealerBoard }),
         region: market.region,
         ownsRegion: market.ownsRegion,
         segment: market.segment,

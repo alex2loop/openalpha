@@ -4,6 +4,7 @@ import type { UnconfirmedPriceWire } from '@/app/server/wire/errors'
 import type { LedgerEntryWire, LedgerPreviewResponse } from '@/app/server/wire/money'
 import type { LedgerDraft, LedgerKind } from '@/web/state/trade'
 import type { FormFailure } from '@/web/ui/dialogs/field-errors'
+import type { AskedQuestion } from '@/web/ui/dialogs/price-confirm'
 import { formatDay } from '@/i18n'
 import {
   heldPositions,
@@ -94,7 +95,7 @@ export interface TradeForm {
   /** The market price the daemon measured the typed one against, when it is too far from it. */
   readonly farPrice: Signal<UnconfirmedPriceWire | undefined>
   readonly venues: Signal<readonly VenueChoice[]>
-  readonly question: Signal<string | undefined>
+  readonly question: Signal<AskedQuestion | undefined>
   readonly failure: Signal<FormFailure | undefined>
   /** The sentences the page itself gave a field it refused before sending, by the daemon's path. */
   readonly refused: Signal<ReadonlyMap<string, string>>

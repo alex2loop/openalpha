@@ -7,13 +7,14 @@ import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { parseExitLevel } from '@/trading/features/alerts/types'
+import { exitPriceOf } from '@/trading/markets/stored-quote'
 
 export interface PriceObservation {
   readonly price: number
   readonly high: number
   readonly low: number
-  /** What a holder is paid to sell, where a dealer board quotes it apart from `price`. */
+  /** What a holder is paid to sell, where a dealer board quotes it apart from `price`; the side an
+   *  alert on that board is watched on. */
   readonly exitPrice?: number
   /** When the session behind `high` and `low` began, where the reading says. */
   readonly sessionFromAt?: number
@@ -35,14 +36,15 @@ export function toCrossing(
   return { crossed: hasCrossed(alert, observation), price: crossingPrice(alert, observation) }
 }
 
-/** An exit level sits on the price a holder is paid, so a dealer board's exit alert reads its buy
- *  price. An alert armed after its session opened reads the last price alone: the session's
- *  extremes include moves from before it was watching. Every other alert reads the quote as
- *  printed. */
+/** Every alert on a dealer board reads its buy price, the one side a holder is paid and the book is
+ *  valued on, so the same holding never reads crossed in one place and not in another. An alert
+ *  armed after its session opened reads the last price alone: the session's extremes include moves
+ *  from before it was watching. Every other alert reads the quote as printed. */
 function watchedObservation(alert: ActiveAlert, observation: PriceObservation): PriceObservation {
   const { exitPrice, price, sessionFromAt } = observation
 
-  if (exitPrice !== undefined && parseExitLevel(alert.origin) !== null) {
+  // A board has no session extremes to read: no dealer-board market keeps a session today.
+  if (exitPrice !== undefined) {
     return { price: exitPrice, high: exitPrice, low: exitPrice }
   }
 
@@ -85,7 +87,7 @@ export async function observePrice(
     price,
     high: Math.max(price, high),
     low: Math.min(price, low),
-    ...(board === undefined ? {} : { exitPrice: board.buyPrice }),
+    ...(board === undefined ? {} : { exitPrice: exitPriceOf({ price, board }) }),
     ...(session?.fromAt === undefined ? {} : { sessionFromAt: session.fromAt }),
   }
 }

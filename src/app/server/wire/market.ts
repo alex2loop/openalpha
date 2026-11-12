@@ -266,6 +266,9 @@ export interface MarketWire {
   readonly currency: string
   readonly quoteUnit: string
   readonly priceDisplay?: { readonly divisor: number; readonly decimals: number }
+  /** Every quote is a dealer board (two sides, no last trade), and an alert on it watches the buy
+   *  side. Absent otherwise. */
+  readonly quotesDealerBoard?: true
   readonly region: string
   /** Its calendar is its region's trading day; the owner of `homeRegion` is the default market. */
   readonly ownsRegion: boolean

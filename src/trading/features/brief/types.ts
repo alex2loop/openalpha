@@ -252,6 +252,9 @@ export interface BriefAlertRow {
   readonly condition: AlertCondition
   readonly threshold: number
   readonly observedPrice: number
+  /** Set where `observedPrice` is a dealer board's buy side: the row labels it with the board's own
+   *  buy cell. */
+  readonly dealerBoard?: true
   /** Absent for a market the registry does not list, which prints the price bare. */
   readonly currency?: CurrencyCode
   /** The measure the prices are per, where the ticker does not imply it (gold: lượng, ounce). */

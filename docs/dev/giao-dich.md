@@ -60,6 +60,8 @@ Một cảnh báo do hệ thống dựng mang một chuỗi origin mà lượt d
 
 Ngưỡng là một phần danh tính của cảnh báo thoát, nên một cắt lỗ mà trail đã nâng là một origin mới: nó được dựng, và cái cũ nghỉ hẳn. Cảnh báo của operator không mang origin.
 
+Ở thị trường mà manifest đặt `quotesDealerBoard` (`gold-vn`), mọi cảnh báo, của operator hay của hệ thống, đều được đánh giá trên phía mua vào của bảng giá qua `exitPriceOf` ([observation.ts](../../src/trading/features/alerts/observation.ts)), không dùng đỉnh đáy phiên. Cờ này đi theo `QuoteConvention.dealerBoard` và `QuotedIn.dealerBoard` (`quotedInOf` chép sang), nhờ đó danh sách, thông báo và các dòng mức của bản tin ghi rõ phía giá mà không cần đọc giá; trang văn phòng đọc `MarketWire.quotesDealerBoard` từ `/v1/markets`.
+
 Bộ nhớ theo phiên của trail (`trailedThrough`) chỉ được đặt sau khi việc nâng đã ngã ngũ: đã ghi, thua một lần nâng đồng thời, hoặc không cần nâng. Một lần ghi hỏng để nó không được đặt, nên nhịp kế tiếp thử lại thay vì chờ một phiên. Cách vòng cảnh báo cô lập lỗi nằm ở [vận hành](van-hanh.md#phân-loại-lỗi-của-một-lượt).
 
 ## Bảng thành tích và các phiên chạy hàng loạt

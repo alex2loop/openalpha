@@ -30,6 +30,8 @@ Vietnamese now calls a suggestion an "đề xuất" and a typed command a "câu 
 
 ### Fixed
 
+- `/record` and `/update` no longer book a ticker no market lists: a typo such as `gold-vn:ZZZ` or `equity-vn:ZZZQ` is held with the closest stored name and the chance to confirm it as a real trade (delisted, newly listed, or a list not refreshed yet). The assistant's record and update tools and the office page's trade form ask the same way; `/record sync` and `/trade` fills are never held.
+- A price alert on VN gold now watches the buy price, what the shop pays you, the same side your holding is valued on and its stop and target are watched on, so one holding no longer reads as crossed in one place and not in another. `/alert list`, the confirmation, the notice, the brief and the office page name the side ("buy price"), and the distance to the level is measured from it. Alerts you already set keep their level and are now read on the buy side (a notice that fired just before the upgrade may label the old price).
 - `/rebalance` now sells a fund you hold in a segment whose ETF cap is 0, whatever its score.
 - The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included. A ceiling the order prompt named passes as the order you confirmed only if it has not grown past the figure you were shown plus a small margin of 0.05% of the portfolio for price moves (never applied to a cap of 0 or an ETF share that could not be measured); one crossed or deepened since you looked (another fill, a price jump) refuses the order and says which.
 - A refused order says in your language which limit it crossed.

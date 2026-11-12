@@ -9,6 +9,7 @@ import type {
   LedgerWriteResult,
 } from '@/trading/features/ledger/types'
 import type { LedgerWriteDeps } from '@/trading/features/ledger/write'
+import type { ListedNameDeps } from '@/trading/features/market-data/reads/listed-name'
 import type { TypedPriceDeps } from '@/trading/features/market-data/reads/typed-price'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { ExitPlanner } from '@/trading/features/suggestion/exit-plan/types'
@@ -23,8 +24,9 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { foldBook } from '@/trading/features/ledger/book'
 import { isResolvedDraft } from '@/trading/features/ledger/draft'
 import { assertFxRateUsed } from '@/trading/features/ledger/fx-used'
-import { assertHoldable } from '@/trading/features/ledger/holdable'
+import { assertHoldable, assertNameListed } from '@/trading/features/ledger/holdable'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
+import { assertTradePrice } from '@/trading/features/ledger/trade-price'
 import {
   assertLedgerValid,
   assertVenuesKnown,
@@ -35,7 +37,6 @@ import {
   finalizeTransaction,
   withKeptAnnotations,
 } from '@/trading/features/ledger/write'
-import { assertTypedPrice } from '@/trading/features/market-data/reads/typed-price'
 import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { isIdRef } from '@/trading/kernel/instrument'
 import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
@@ -53,7 +54,9 @@ export interface LedgerMutateDeps extends LedgerWriteDeps {
    *  book then holds unwatched. */
   readonly exitPlans: ExitPlanner
   readonly marketData: Pick<MarketDataService, 'instrumentQuoteConvention' | 'quoteBoard'>
-  readonly marketDataStore: LedgerWriteDeps['marketDataStore'] & TypedPriceDeps['marketDataStore']
+  readonly marketDataStore: LedgerWriteDeps['marketDataStore'] &
+    TypedPriceDeps['marketDataStore'] &
+    ListedNameDeps['marketDataStore']
   readonly config: Pick<TradingConfig, 'typedPrices'>
 }
 
@@ -79,6 +82,7 @@ type LedgerMutation =
       readonly fillSource?: FillSource
       readonly typedPrice?: TypedPrice
       readonly requiresStatedRate?: true
+      readonly requiresListed?: true
       readonly now: number
       readonly signal: AbortSignal
     }
@@ -87,6 +91,7 @@ type LedgerMutation =
       readonly ref: string
       readonly draft: LedgerTxnDraft
       readonly typedPrice?: TypedPrice
+      readonly requiresListed?: true
       readonly now: number
       readonly signal: AbortSignal
     }
@@ -130,6 +135,12 @@ export async function mutateLedger(
 
   assertVenuesKnown(transaction, venueManifestOf(deps))
   await assertHoldable(deps, { transaction, signal: mutation.signal })
+  await assertNameListed(deps, {
+    transaction,
+    previous: previous?.transaction,
+    fillSource: undefined,
+    request: mutation,
+  })
   await assertTradePrice(deps, {
     transaction,
     typedPrice: mutation.typedPrice,
@@ -292,20 +303,7 @@ async function recordEntry(
     }),
   }
 
-  assertVenuesKnown(entry.transaction, venueManifestOf(deps))
-  await assertHoldable(deps, { transaction: entry.transaction, signal: mutation.signal })
-  await assertTradePrice(deps, {
-    transaction: entry.transaction,
-    typedPrice: mutation.typedPrice,
-    fillSource: mutation.fillSource,
-    signal: mutation.signal,
-  })
-  await assertFxRateUsed(deps, {
-    draft: mutation.draft,
-    transaction: entry.transaction,
-    ...(mutation.requiresStatedRate === undefined ? {} : { requiresStatedRate: true }),
-    signal: mutation.signal,
-  })
+  await assertRecordable(deps, mutation, entry.transaction)
 
   const result = await deps.ledger.insertValidated(
     { entry, idempotencyKey: mutation.idempotencyKey, requestFingerprint },
@@ -320,6 +318,34 @@ async function recordEntry(
   return result.duplicateOf === undefined
     ? { entry: result.entry }
     : { entry: result.entry, duplicateOf: result.duplicateOf }
+}
+
+/** The checks a new row passes before it is written; the venue's own fill answers the name and
+ *  price questions itself. */
+async function assertRecordable(
+  deps: LedgerMutateDeps,
+  mutation: ResolvedRecord,
+  transaction: LedgerTxn
+): Promise<void> {
+  assertVenuesKnown(transaction, venueManifestOf(deps))
+  await assertHoldable(deps, { transaction, signal: mutation.signal })
+  await assertNameListed(deps, {
+    transaction,
+    fillSource: mutation.fillSource,
+    request: mutation,
+  })
+  await assertTradePrice(deps, {
+    transaction,
+    typedPrice: mutation.typedPrice,
+    fillSource: mutation.fillSource,
+    signal: mutation.signal,
+  })
+  await assertFxRateUsed(deps, {
+    draft: mutation.draft,
+    transaction,
+    ...(mutation.requiresStatedRate === undefined ? {} : { requiresStatedRate: true }),
+    signal: mutation.signal,
+  })
 }
 
 /** The row a ref names, for a caller that shows it before changing it. */
@@ -376,46 +402,6 @@ async function resolveEntryId(
   }
 
   return found
-}
-
-/** A price the venue filled is its own figure, never a typed one, so only the board scale is
- *  checked for it. */
-export async function assertTradePrice(
-  deps: Pick<LedgerMutateDeps, 'marketData' | 'marketDataStore' | 'config' | 'markets' | 'logger'>,
-  check: {
-    readonly transaction: LedgerTxn
-    readonly typedPrice: TypedPrice | undefined
-    readonly fillSource: FillSource | undefined
-    readonly signal: AbortSignal
-  }
-): Promise<void> {
-  const { transaction, fillSource } = check
-
-  if (!('unitPrice' in transaction)) {
-    return
-  }
-
-  // A rights issue is priced by the issuer, often at par far under the market, never by a trade.
-  const typedPrice =
-    transaction.kind === 'rights' || (fillSource !== undefined && fillSource !== 'operator')
-      ? undefined
-      : check.typedPrice
-  const market = deps.markets.find(transaction.instrument.market)
-
-  // A row is validated against the registry, so its market is always found.
-  if (market === null) {
-    return
-  }
-
-  await assertTypedPrice(deps, {
-    instrument: transaction.instrument,
-    market,
-    price: transaction.unitPrice,
-    day: transaction.at,
-    typedPrice,
-    confirmMultiple: deps.config.typedPrices.confirmMultiple,
-    signal: check.signal,
-  })
 }
 
 /** Validates, then keeps the fold it just proved valid. Two passes over the same rows rather than

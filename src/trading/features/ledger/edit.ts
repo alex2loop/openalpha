@@ -132,6 +132,7 @@ async function runUpdate(
     ref,
     draft,
     typedPrice,
+    requiresListed: true,
     now: Date.now(),
     signal: ctx.signal,
   })

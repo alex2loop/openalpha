@@ -16,15 +16,20 @@ function renderEventPrompt(app: App, fired: AlertFired): string {
     .describeMarkets(fired.firedAt)
     .markets.find((entry) => entry.market === fired.instrument.market)
 
+  const observed = formatPriceIn(
+    language,
+    fired.observedPrice,
+    market === undefined ? {} : { currency: market.currency, ...quotedInOf(market) }
+  )
+
   return t(language, 'scheduler.eventPrompt', {
     ticker: fired.instrument.ticker,
     what: t(language, `scheduler.event.${fired.event}`),
     time: formatInstant(language, fired.firedAt, timezone),
-    price: formatPriceIn(
-      language,
-      fired.observedPrice,
-      market === undefined ? {} : { currency: market.currency, ...quotedInOf(market) }
-    ),
+    price:
+      market?.dealerBoard === true
+        ? t(language, 'trading.alert.observedBuy', { price: observed })
+        : observed,
   })
 }
 

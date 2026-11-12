@@ -24,6 +24,7 @@ export type {
   TradingSetupView,
   TradingTrackRecordView,
 } from '@/trading/wiring/host/view-types'
+export { InstrumentUnlistedError } from '@/trading/features/market-data/reads/listed-name'
 export { PriceUnconfirmedError } from '@/trading/features/market-data/reads/typed-price'
 export { apportionedBenchmarkLegs } from '@/trading/features/portfolio/render/nav'
 export { keptCaveats } from '@/trading/features/portfolio/render/rebalance-gaps'

@@ -145,7 +145,7 @@ async function recordDraft(
     readonly now: number
   }
 ): Promise<{ readonly text: string; readonly staged: boolean }> {
-  const preview = await stageForFxRate(deps, ctx, input)
+  const preview = await stageForFxRate(deps, ctx, { ...input, requiresListed: true })
 
   if (preview !== undefined) {
     return { text: preview, staged: true }
@@ -153,6 +153,7 @@ async function recordDraft(
 
   const result = await deps.portfolio.record({
     ...input,
+    requiresListed: true,
     idempotencyKey: ctx.requestId,
     signal: ctx.signal,
   })

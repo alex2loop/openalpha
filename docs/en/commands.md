@@ -751,7 +751,7 @@ The rest fit in a line.
 | `/themes` | `/themes` - looks for investment themes forming in Vietnam and spends LLM budget; `/themes run <id>` - re-checks one tracked theme, looks for no new ones and reports on it alone, for a fraction of the cost; `/themes show` - reads the stored report, no model call; `/themes approve\|reject\|retire <id>` - moves one theme. Operator only |
 | `/rebalance` | `/rebalance`; `/rebalance <ticker>...` - sizes the gap to target, weighing no evidence and calling no model. See [What /rebalance sizes](#what-rebalance-sizes) |
 | `/reflect` | `/reflect`, which takes no arguments - how your past calls actually performed. Only calls whose window has passed are counted; a closing line says how many more already hit a level and are waiting for theirs |
-| `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous; `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
+| `/alert` | `/alert` or `/alert list [count]` lists them; `/alert create <ticker> above\|below <threshold>`, or `market:ticker` where a bare name is ambiguous (on VN gold the alert watches the buy price, what the shop pays you, and says so); `/alert disable <id>` (the short id the list and the notice print; if it matches several, the reply lists their full ids). The list includes system-armed exit and screener rows beside your own |
 | `/brief` | `/brief`; `/brief force`; `/brief enable [HH:mm]`; `/brief disable`. `force` rebuilds past today's stored snapshot. With a Vietnam home, the brief opens with the market story and a look back at earlier ones. Under the title sits a strip of headline figures (VN-Index, VN30, SJC gold, world gold, bitcoin, USD/VND). See [A brief with no watchlist](#a-brief-with-no-watchlist) and [A brief with no book](#a-brief-with-no-book) |
 | `/refresh` | `/refresh [market] [force]`, in either order. With no market it refreshes the markets you still use: a segment switched on in your profile, or one where you hold, watch or wait on a scored call. The rest are listed as skipped; naming one refreshes it anyway. `force` refetches regardless of what is already current. World gold is read live, so there is nothing to refresh and the command says so. A kind that fans out over instruments reports how far through it is |
 | `/sources` | `/sources` - which providers have stopped answering, or a single line when none has. Breaker state is this process's own memory, so a fresh CLI invocation reports that no provider has been called rather than claiming health |
@@ -844,6 +844,10 @@ of the book.
 The ledger only books what you can hold: nobody holds an index or a futures contract (VN-Index,
 VN30F1M), so `/record` and `/update` refuse a row that names one when the market's stored list
 recognizes the name. A legacy row that already names a level can only be deleted or given another ticker.
+
+A `market:ticker` the market's stored list does not hold is not booked straight away: the reply names it,
+offers the closest stored name and asks whether it is a real trade. Tap the button or send the same command
+again with `confirm` at the end to book it as typed. `/update` asks only when it changes the instrument.
 
 ```text
 /record deposit|withdrawal|fee|loss <venue> <amount> <currency> <date>

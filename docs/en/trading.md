@@ -663,6 +663,7 @@ Exit and screener alerts go to the brief's chat. So while that chat stays revoke
 - A tick pages through every active alert, so a stop or target is checked each minute however many are live.
 - One quote is fetched **per instrument per tick** and reused by every alert watching that name. That is faster and kinder to the source's rate limit. It lives for one tick only.
 - Thresholds compare against the **session's high and low**, not just the last price, so a level touched between two checks still fires. An alert created after its session opened reads only the last price for that session, because the high and low include moves from before it was watching.
+- On a dealer board (VN gold) an alert watches the **buy price**, what the shop pays you: the same side your holding is valued on and its stop and target are watched on, so one holding never reads as crossed in one place and not in another. Only that last price is read, with no session high or low. The list, the confirmation, the notice and the brief name the side ("buy price"), and the distance in `/alert list` is measured from it. An alert you set before this keeps its threshold and is now read on the buy side.
 - Alerts on a hard-closed market (a weekend, the lunch break) are skipped rather than burning live quotes. Pre-open and post-close still evaluate against the settled close.
 - A missing or non-finite quote leaves the alert active and reports why. An alert that silently stops watching is worse than one that says it could not look.
 
@@ -1248,6 +1249,24 @@ is saved as typed. Nothing is held in between: ignore the question and nothing i
 
 `[trading.typed_prices] confirm_multiple` sets the multiple (default 10). The desktop app's ledger and
 alert requests check the same way when they send `typedPrice`.
+
+A name that `market:ticker` points at but the market's stored list does not hold is held the same way
+(`/record gold-vn:ZZZ ...`, `/record equity-vn:ZZZQ ...`): a typo would otherwise book a holding no
+market lists. The reply names the ticker and the market, offers the closest stored name when there is
+one, and asks whether it is a real trade (delisted, newly listed, or a list not refreshed yet). Tap
+"It's a real trade, save it as typed", or send the same command again with `confirm` at the end, and it is
+booked as typed. Nothing is held in between.
+
+- `/record`, `/update` and the assistant's `portfolio_record` / `portfolio_update` ask. `/update` asks only
+  when it changes the instrument, so a delisted holding stays correctable (price, day).
+- The check reads the stored lists only, with no network lookup. A market never refreshed, one whose
+  list cannot be read, and crypto (which looks names up over the network) are not checked, and the row is
+  written. A halted or delisted name still on the list is not asked about either.
+- `/record sync`, `/trade` and an exit that filled never ask: the venue named that fill.
+- The one `confirm` covers both questions (an unlisted name and a far price), so a far price on an
+  unlisted name is not asked again.
+- The desktop app's ledger asks the same way when it sends `typedPrice`: the daemon answers
+  `name_unlisted` with the question, and the trade form offers "It's a real trade, save it as typed".
 
 #### What a write confirmation says about the fee
 
