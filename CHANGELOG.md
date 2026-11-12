@@ -9,37 +9,28 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ## [1.6.0] - 2026-11-12
 
-The office page now shows who worked on each run and for how long, with what each person cost (on your own computer only), and says plainly when it has lost touch with OpenAlpha instead of showing old work as live. Many small fixes make the Screen board, ticker cards, crypto moves and the track record read the same everywhere.
-> Trang văn phòng giờ cho thấy ai đã làm gì trong mỗi lượt chạy, mất bao lâu và tốn bao nhiêu (chỉ trên máy bạn), và nói rõ khi mất liên lạc với OpenAlpha thay vì vẫn hiện việc cũ như đang chạy. Nhiều sửa lỗi nhỏ giúp Màn lọc, thẻ mã, biến động giá crypto và thành tích đề xuất đọc giống nhau ở mọi nơi.
+The office page now shows who worked on each run, for how long and at what cost, and says plainly when it has lost touch with OpenAlpha. Crypto moves, the Screen board and a name's past calls read the same everywhere.
+> Trang văn phòng giờ cho thấy ai làm gì trong mỗi lượt chạy, mất bao lâu và tốn bao nhiêu, và nói rõ khi mất liên lạc với OpenAlpha. Biến động giá crypto, Màn lọc và các đề xuất cũ của một mã giờ đọc giống nhau ở mọi nơi.
 
 ### Added
 
-- "Who did what": a timeline of each run on the office page (jobs, chat, agent tab, activity) with one lane per person, how long each took, and on the installed app what each cost; a batch lets you pick a name.
-- When the page loses OpenAlpha, it says since when: the office stops moving, running clocks freeze, the jobs list and agent tab say they may be out of date, and a chat answer cut by the drop says so with the time.
-- `GET /v1/runs/:runId/timeline` for apps: a run's people, times and costs from the run log.
+- "Who did what": a timeline of each run on the office page, one lane per person with how long they were busy and, on the installed app, what they cost.
+- When the page loses OpenAlpha it says since when, freezes the office and greys out Stop.
+- `GET /v1/runs/:runId/timeline` for apps.
 
 ### Changed
 
-- On the Screen board, a name whose ticker is what you typed comes first; one name for the screen everywhere ("Screen" / "Màn lọc"); a "so với bảng" place now reads in the same direction as the figure beside it; missing figures sit on their own line.
-- A crypto price's move is measured against the last settled close on every surface and venue, never a rolling 24-hour figure.
-- A ticker card's past calls count each idea once and only once its window has passed, the same as `/reflect`; the card title no longer shows an internal key; the board scale reads "×1.000".
-- Event notes from a source in another language are tagged with that language; an unknown ticker names the markets that were searched.
-- `/screen` with an out-of-range number and `/reflect` with any argument answer with how to use them.
+- A crypto move is always measured against the last settled close, never a rolling 24-hour figure; with no close it shows no move.
+- A name's card counts its past calls as `/reflect` does: repeats once, only calls whose window has passed.
+- On the Screen board search, the name whose ticker you typed comes first.
+- Answers name markets in full ("Crypto market"), and `/screen` with a wrong number says it takes 1 to 50.
 
 ### Fixed
 
-- `/overview crypto` and the brief's crypto headline rows no longer fall back to the market-cap board's rolling 24-hour move when the daily close cannot be read; with no close they show no move.
-- "Not listed" and "no such kind" answers name the market in full ("Crypto market") instead of its internal id.
-- `/screen equity-vn:FPT crypto` answers with the kind problem alone, not also with a line saying FPT is not on the Screen.
-- `/screen` with an out-of-range number says the range it accepts (1 to 50).
-- Stop is greyed out while the page cannot reach OpenAlpha.
-- A data refresh stopped halfway is tried again within minutes, so a day's factor board is no longer lost.
-- At start the office page shows one data refresh in the running list, not three.
-- A person's time in "Who did what" is how long they were busy, so many helpers at once can no longer add up to more than the whole run.
-- In "Who did what" on a run over several names, typing text that matches no name says so instead of showing another name's steps.
-- With the chat and the information panel both open, the "not sure what everyone is doing" note is centred on the free part of the office instead of hiding under the panel.
-- People outside the debate (the assistant, the research helpers, the theme analyst) show their names, not raw ids, in "Who did what", the cost list and the AI calls.
-- A repeated "reasoning not supported" warning is logged once for each provider, model and reasoning setting, not on every request.
+- At start the office shows one data refresh, not three.
+- A data refresh stopped halfway is tried again within minutes.
+- `/screen equity-vn:FPT crypto` answers with the kind problem alone.
+- The "reasoning not supported" warning is logged once per provider, model and setting, not on every request.
 
 ## [1.5.1] - 2026-11-11
 
