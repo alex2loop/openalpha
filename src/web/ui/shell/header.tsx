@@ -53,7 +53,11 @@ export function Header() {
       {isFirstRunOver.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
       <LayoutSwitch />
-      {hasScene && <ClockControl />}
+      {hasScene && (
+        <div class="header-clock">
+          <ClockControl />
+        </div>
+      )}
       {hasScene && !isAnalysisOnly.value && <WeatherChip />}
       {!isAnalysisOnly.value && <BellButton anchor={bellAnchor} />}
       <KeysButton />

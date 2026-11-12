@@ -139,6 +139,31 @@
   flex: none;
 }
 
+/* The web header's AI note is a disclosure and is never clipped: it keeps the room its shortest
+   sentence needs on two lines (90px, glyph included) and the spend gives way for it. */
+:root[data-layout="phone"] .header-grow:has(.header-ai-note) {
+  min-width: 90px;
+}
+
+/* The clock's popover is fixed, so its wrapper takes no box of its own. */
+.header-clock {
+  display: contents;
+}
+
+/* Beside the note a small phone drops the scene's own controls, the clock first and then the 2D | 3D
+   switch, rather than the note or the spend. The widths are where the note stops fitting. */
+@media (width < 400px) {
+  .header:has(.header-ai-note) .header-clock {
+    display: none;
+  }
+}
+
+@media (width < 380px) {
+  .header:has(.header-ai-note) .view-switch {
+    display: none;
+  }
+}
+
 /* The key list is a keyboard's; a phone's header has no room for it. */
 :root[data-layout="phone"] .header-keys {
   display: none;
