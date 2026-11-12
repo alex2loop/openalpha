@@ -7,7 +7,7 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
-## [1.6.0] - 2026-11-11
+## [1.6.0] - 2026-11-12
 
 The office page now shows who worked on each run and for how long, with what each person cost (on your own computer only), and says plainly when it has lost touch with OpenAlpha instead of showing old work as live. Many small fixes make the Screen board, ticker cards, crypto moves and the track record read the same everywhere.
 > Trang văn phòng giờ cho thấy ai đã làm gì trong mỗi lượt chạy, mất bao lâu và tốn bao nhiêu (chỉ trên máy bạn), và nói rõ khi mất liên lạc với OpenAlpha thay vì vẫn hiện việc cũ như đang chạy. Nhiều sửa lỗi nhỏ giúp Màn lọc, thẻ mã, biến động giá crypto và thành tích đề xuất đọc giống nhau ở mọi nơi.
