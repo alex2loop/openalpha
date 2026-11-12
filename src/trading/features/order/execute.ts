@@ -149,10 +149,10 @@ async function assertBookStillAllows(deps: OrderServiceDeps, input: ExecuteInput
 /** The caps as they stand now, as what refuses the order. `prepare` measured them against a book an
  *  order still going out has not written to yet, so the verdict is taken again where nothing else
  *  can be placed in between; otherwise two confirms read one book and both clear a ceiling only
- *  one may. A profile ceiling refuses only where it crosses one the confirm-time prepare did not
- *  measure, and then only past `RECHECK_TOLERANCE_PCT_NAV`: what that prepare measured passes as
- *  the order the operator confirmed. A holding that lost its price since then refuses the buy
- *  here too. Every other term is this order's own. */
+ *  one may. A profile ceiling refuses only where it crosses one the staged prompt did not
+ *  name, and then only past `RECHECK_TOLERANCE_PCT_NAV`: what the operator was shown passes as the
+ *  order they confirmed, and a ceiling crossed since refuses it. A holding that lost its price
+ *  since then refuses the buy here too. Every other term is this order's own. */
 async function bookCapRefusals(deps: OrderServiceDeps, input: ExecuteInput): Promise<BookRefusals> {
   const { prepared, staged } = input
   const [book, unmirrored, profile] = await Promise.all([
@@ -185,7 +185,7 @@ async function bookCapRefusals(deps: OrderServiceDeps, input: ExecuteInput): Pro
           instrument: staged.instrument,
           segment: prepared.segment,
           notionalBase: prepared.notionalBase,
-          accepted: prepared.breaches,
+          accepted: staged.shownBreaches,
           tolerancePctNav: RECHECK_TOLERANCE_PCT_NAV,
           ...(prepared.instrumentKind === undefined
             ? {}

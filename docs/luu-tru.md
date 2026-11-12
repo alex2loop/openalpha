@@ -96,7 +96,8 @@ không cho điều đó xảy ra.
 
 **Lệnh.** `order_intents` và `resting_exits` thuộc về tính năng đặt lệnh, và cả hai đều bền:
 
-- ý định đã dựng giữ các điều khoản bạn đã xem và token để xác nhận chúng;
+- ý định đã dựng giữ các điều khoản bạn đã xem, các trần bị vượt mà câu hỏi xác nhận đã nêu, và token để
+  xác nhận chúng;
 - dòng kết cục ghi lại một lệnh đã đặt được nhưng không ghi được vào sổ;
 - dòng đang treo là lệnh chốt lời hoặc cắt lỗ đang chạy ở đúng sàn nó nêu tên. Một công cụ có thể có một
   lệnh mỗi sàn.

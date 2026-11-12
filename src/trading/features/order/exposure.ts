@@ -1,10 +1,10 @@
 import type { ValuedBook } from '@/trading/features/portfolio/types'
 import type { InstrumentKind, InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
-import type { CapBreach } from '@/trading/kernel/operator/exposure'
+import type { BreachSubject, CapBreach } from '@/trading/kernel/operator/exposure'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import { OrderError } from '@/trading/features/order/types'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
-import { etfBreaches, isBreached } from '@/trading/kernel/operator/exposure'
+import { breachSubject, etfBreaches, isBreached } from '@/trading/kernel/operator/exposure'
 import { isSegmentDisabled, positionCapOf } from '@/trading/kernel/operator/profile'
 
 /** What the write window forgives a ceiling by, as a fraction of NAV. Sizing lands a buy right at
@@ -22,9 +22,9 @@ interface OrderExposureInput {
   readonly instrumentKind?: InstrumentKind
   /** The order's value in the book's own currency, as the caps beside it are measured. */
   readonly notionalBase: number
-  /** The breaches measured when the order was last prepared; the re-check refuses only a ceiling
-   *  crossed since. */
-  readonly accepted?: readonly CapBreach[]
+  /** The breaches the operator was shown when the order was staged; the re-check refuses only a
+   *  ceiling that is not among them. */
+  readonly accepted?: readonly BreachSubject[]
   /** How far past a positive ceiling a weight may land and still hold, as a fraction of NAV. Only
    *  the write window sets it; a ceiling of zero is a closed bucket and takes none. */
   readonly tolerancePctNav?: number
@@ -57,7 +57,7 @@ export function breachedCaps(input: OrderExposureInput): readonly CapBreach[] {
   }
 
   const addedPctNav = input.notionalBase / navBase
-  const accepted = new Set((input.accepted ?? []).map(breachSubject))
+  const accepted = new Set(input.accepted)
   const tolerancePctNav = input.tolerancePctNav ?? 0
 
   return [
@@ -75,18 +75,6 @@ function isWithinTolerance(breach: CapBreach, tolerancePctNav: number): boolean 
     breach.capPctNav > 0 &&
     breach.combinedPctNav - breach.capPctNav <= Math.min(tolerancePctNav, breach.capPctNav)
   )
-}
-
-/** What a breach is of, not by how far: one the prompt carried only grows as the book fills. */
-function breachSubject(breach: CapBreach): string {
-  switch (breach.kind) {
-    case 'position':
-      return `${breach.kind}:${breach.ticker}`
-    case 'sector':
-      return `${breach.kind}:${breach.sector}`
-    default:
-      return `${breach.kind}:${breach.segment}`
-  }
 }
 
 function positionBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {

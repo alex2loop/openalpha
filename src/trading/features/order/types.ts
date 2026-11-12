@@ -16,7 +16,7 @@ import type {
   VenueRef,
 } from '@/trading/kernel/instrument'
 import type { StopCover } from '@/trading/kernel/operator/alert'
-import type { CapBreach } from '@/trading/kernel/operator/exposure'
+import type { BreachSubject, CapBreach } from '@/trading/kernel/operator/exposure'
 import type {
   ExitReceipt,
   OrderReceipt,
@@ -167,7 +167,8 @@ export interface UnmirroredIntent {
 }
 
 /** The operator's terms as they were staged. Never the verdict: quote, drift and caps are re-run
- *  at confirm, because minutes pass between the two. */
+ *  at confirm, because minutes pass between the two. The one thing kept of the verdict is which
+ *  ceilings the prompt named, so the confirm can tell a breach they saw from one that is new. */
 export interface StagedOrder {
   readonly token: string
   readonly clientOrderId: string
@@ -184,6 +185,9 @@ export interface StagedOrder {
   /** The estimated notional in the book's currency, so a placed order the ledger has not yet seen
    *  still counts against the cash a later order may spend. */
   readonly notionalBase: number
+  /** The ceilings the prompt named when this was staged; empty on a row staged without any, and on
+   *  one stored before they were kept, where none is known to have been shown. */
+  readonly shownBreaches: readonly BreachSubject[]
   readonly createdAt: number
 }
 
@@ -301,9 +305,9 @@ export interface PreparedOrder {
    *  settlement asset. */
   readonly currency: CurrencyCode
   readonly rejections: readonly CapRejection[]
-  /** Ceilings this buy would cross as this prepare measured them, stated on the prompt. At confirm
-   *  the order is prepared again and what that measures passes as the order the operator confirmed;
-   *  the write window refuses only a ceiling crossed after it. Always empty on a sell, which takes
+  /** Ceilings this buy would cross as this prepare measured them, stated on the prompt and kept on
+   *  the staged row. The confirm prepares again and measures afresh, but only what staging showed
+   *  passes: the write window refuses any other ceiling. Always empty on a sell, which takes
    *  exposure off. */
   readonly breaches: readonly CapBreach[]
 }

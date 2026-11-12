@@ -482,7 +482,7 @@ Order failures come from `/trade` and `order_place`. They split by whether your 
 | `order.below_minimum` | Quantity below the exchange minimum. | Raise the size. |
 | `order.exit_below_minimum` | At the stop price the position would be below the exchange's minimum order, so its stop could not be placed. | Raise the size a little. |
 | `order.unfilled` | Did not fill in time and was canceled. | Place again if you still want it. |
-| `order.book_moved` | Another order went out while this one waited, so the caps no longer allow it. | Check the book and place again. |
+| `order.book_moved` | Since you looked at this order the book moved and the caps no longer allow it; says what changed. | Review the order and place it again if you still want it. |
 | `order.book_unpriced` | A holding in your book has no price right now, so the caps cannot be checked against it. | `/portfolio` names the holding; `/refresh` its market, then place again. |
 | `order.approval_bypassed` | Orders need an approval prompt, and this session bypassed it. | Run it in a `manual` session, or also set `[trading.orders] allow_unattended`. |
 | `order.buying_halted` | Buying is switched off (`/trade halt`). Sells and exits still go out. | Only you can switch buying back on. |

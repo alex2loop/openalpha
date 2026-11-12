@@ -3095,7 +3095,7 @@
     "order.fee_unreported": "Lệnh đã khớp nhưng sàn chưa liệt kê các giao dịch của lệnh nên chưa biết phí. Một lát nữa hãy chạy /record sync cho sàn này, lệnh sẽ được ghi vào sổ.",
     "order.unpriced_fill": "Sàn báo lệnh đã khớp nhưng không kèm giá, nên sổ không ghi được giá vốn.",
     "order.unmirrorable": "Lệnh đã khớp nhưng sổ từ chối bút toán.",
-    "order.book_moved": "Một lệnh khác đã đi ra trong lúc lệnh này còn chờ, nên hạn mức của bạn không còn cho phép. Hãy kiểm tra lại sổ rồi đặt lại.",
+    "order.book_moved": "Từ lúc bạn xem lệnh, sổ đã thay đổi nên hạn mức của bạn không còn cho phép lệnh này - hãy xem lại lệnh rồi đặt lại nhé. Điều đã thay đổi",
     "order.book_unpriced": "Hiện có mã đang nắm chưa có giá nên mình chưa kiểm tra được hạn mức cho lệnh mua này và đã giữ lệnh lại. /portfolio cho biết đó là mã nào; hãy chạy /refresh cho thị trường của mã đó để lấy giá, rồi đặt lại lệnh.",
     "order.exit_oversized": "Số này lớn hơn phần sàn đang giữ, nên một phần lệnh thoát sẽ không bao giờ khớp. Hãy bỏ trống để bảo vệ toàn bộ, hoặc ghi số bằng hoặc nhỏ hơn",
     "order.venue_ambiguous": "Nhiều sàn có thể khớp lệnh này; hãy ghi theo dạng sàn:mã với một trong các sàn sau.",

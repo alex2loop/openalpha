@@ -23,6 +23,8 @@ const QUARTERS_TABLE = 'quarterly_accounts'
 const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
+const ORDER_INTENTS_TABLE = 'order_intents'
+const SHOWN_BREACHES_MIGRATION_ID = '2026_11_12_180037_add_order_intent_shown_breaches'
 const SCREENED_NAMES_MIGRATION_ID = '2026_11_09_182105_add_screened_names'
 const SCREENED_NAMES_TABLE = 'screened_names'
 const PUBLIC_BRIEFS_MIGRATION_ID = '2026_11_06_185835_add_public_briefs'
@@ -220,6 +222,26 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** The breaches a staged order named go with their column; the previous release prepares an order
+ *  again at confirm and never read them. */
+async function assertShownBreachesRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, ORDER_INTENTS_TABLE, 'shown_breaches'),
+    'shown_breaches migration did not add the column'
+  )
+
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: SHOWN_BREACHES_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'shown_breaches rollback did not complete')
+  assertState(
+    !(await hasColumn(db, ORDER_INTENTS_TABLE, 'shown_breaches')),
+    'shown_breaches rollback kept the column'
+  )
 }
 
 /** The stored names go with their one table; the next accounts pass reads the board and stores
@@ -572,6 +594,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertShownBreachesRollback(db)
     await assertScreenedNamesRollback(db)
     await assertPublicBriefsRollback(db)
     await assertOverridesRollback(db)

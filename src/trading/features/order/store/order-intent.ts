@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 import type {
   OrderSide,
   OrderType,
@@ -7,11 +9,14 @@ import type {
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
 import { marketRef, ticker, venueRef } from '@/trading/kernel/instrument'
+import { parseJson } from '@/trading/kernel/store/store-row'
 
 const COLUMNS =
   'token, client_order_id, market, ticker, venue, symbol, side, order_type, quantity, limit_price, ' +
-  'take_profit, stop_loss, quote_price, notional_base, created_at'
-const COLUMN_COUNT = 15
+  'take_profit, stop_loss, quote_price, notional_base, shown_breaches, created_at'
+const COLUMN_COUNT = 16
+
+const shownBreachesSchema = z.array(z.string())
 
 interface IntentRow {
   readonly token: string
@@ -28,6 +33,8 @@ interface IntentRow {
   readonly stop_loss: number | null
   readonly quote_price: number
   readonly notional_base: number
+  /** JSON array of breach subjects. Null on a row staged before the column existed. */
+  readonly shown_breaches: string | null
   readonly created_at: number
 }
 
@@ -132,6 +139,7 @@ async function stage(deps: StoreDeps, order: StagedOrder, signal: AbortSignal): 
       order.stopLoss ?? null,
       order.quotePrice,
       order.notionalBase,
+      JSON.stringify(order.shownBreaches),
       order.createdAt,
     ]
   )
@@ -265,7 +273,9 @@ async function sweepExpired(deps: StoreDeps, input: SweepInput): Promise<void> {
 }
 
 /** The `side` and `order_type` casts are safe because both columns carry a CHECK admitting exactly
- *  the literals of their union — the database refuses any other value at write time. */
+ *  the literals of their union — the database refuses any other value at write time. A row with no
+ *  `shown_breaches` reads as none shown, so every breach measured at its confirm is new and refuses
+ *  the order: a legacy row never lets an unseen ceiling through. */
 function toStagedOrder(row: IntentRow): StagedOrder {
   return {
     token: row.token,
@@ -278,6 +288,12 @@ function toStagedOrder(row: IntentRow): StagedOrder {
     quantity: row.quantity,
     quotePrice: row.quote_price,
     notionalBase: row.notional_base,
+    shownBreaches:
+      row.shown_breaches === null
+        ? []
+        : parseJson(row.shown_breaches, 'staged order breaches', (value) =>
+            shownBreachesSchema.parse(value)
+          ),
     createdAt: row.created_at,
     ...(row.limit_price === null ? {} : { limitPrice: row.limit_price }),
     ...(row.take_profit === null ? {} : { takeProfit: row.take_profit }),

@@ -3095,7 +3095,7 @@
     "order.fee_unreported": "The order filled but the exchange has not listed its trades yet, so the fee is not known. Run /record sync for this exchange in a minute and it will be booked.",
     "order.unpriced_fill": "The venue reported a fill with no price, so the book cannot record what it cost.",
     "order.unmirrorable": "The order filled but the ledger rejected the entry.",
-    "order.book_moved": "Another order went out while this one was waiting, so your caps no longer allow it. Check the book, then place it again.",
+    "order.book_moved": "Since you looked at this order, the book has moved and your caps no longer allow it. Review the order and place it again if you still want it. What changed",
     "order.book_unpriced": "A holding in your book has no price right now, so I can't check this buy against your caps and held it back. /portfolio names the holding; run /refresh for its market to load a price, then place the order again.",
     "order.exit_oversized": "That is more than this venue holds, so part of the exit could never fill. Leave the size out to cover all of it, or name one at or below",
     "order.venue_ambiguous": "More than one venue can fill this order; write venue:ticker naming one of these.",

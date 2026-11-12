@@ -91,7 +91,8 @@ impossible.
 
 **Orders.** `order_intents` and `resting_exits` belong to the order feature, and both are durable:
 
-- a staged intent holds the terms you were shown and the token that confirms them;
+- a staged intent holds the terms you were shown, the cap breaches the prompt named, and the token
+  that confirms them;
 - an outcome row records an order that placed but could not be mirrored into the ledger;
 - a resting row is a take-profit or stop-loss live at the venue it names. An instrument can hold one
   per venue.

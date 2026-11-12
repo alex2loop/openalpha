@@ -31,7 +31,7 @@ Vietnamese now calls a suggestion an "đề xuất" and a typed command a "câu 
 ### Fixed
 
 - `/rebalance` now sells a fund you hold in a segment whose ETF cap is 0, whatever its score.
-- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included. A breach measured when you confirm passes as the order you confirmed; a ceiling crossed after that check refuses it, with a small margin of 0.05% of the portfolio for price moves that never applies to a cap of 0 or an ETF share that could not be measured.
+- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included. Only the ceilings the order prompt named pass as the order you confirmed; one crossed since you looked (another fill, a price jump) refuses it and says which, with a small margin of 0.05% of the portfolio for price moves that never applies to a cap of 0 or an ETF share that could not be measured.
 - A refused order says in your language which limit it crossed.
 - A ledger figure above 1e15 (amount, price, quantity, fee or rate) is refused as implausible instead of being saved.
 - Editing and deleting an agent at the same moment no longer race, so an edit cannot bring back a deleted agent.

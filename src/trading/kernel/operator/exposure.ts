@@ -37,6 +37,21 @@ export type CapBreach =
       readonly capPctNav: number
     }
 
+/** What a breach is of, not by how far: a ceiling the operator was shown only grows as the book
+ *  fills, so the confirm matches on this and not on the figures. */
+export type BreachSubject = string
+
+export function breachSubject(breach: CapBreach): BreachSubject {
+  switch (breach.kind) {
+    case 'position':
+      return `${breach.kind}:${breach.ticker}`
+    case 'sector':
+      return `${breach.kind}:${breach.sector}`
+    default:
+      return `${breach.kind}:${breach.segment}`
+  }
+}
+
 /** A cap at or below zero is a segment the sizer already refused, so nothing sized could have landed
  *  there and a "breach" of it would be arithmetic on a limit nobody hit. */
 export function isBreached(combinedPctNav: number, capPctNav: number): boolean {
