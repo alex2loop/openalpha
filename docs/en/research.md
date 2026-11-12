@@ -34,8 +34,8 @@ To chat with that agent directly, use `openalpha chat --agent deep-researcher`. 
 | Profile | Questions | Review rounds | Plan approval |
 | --- | --- | --- | --- |
 | `quick` | 1, no planner | 0 | none |
-| `standard` (default) | up to 7 | at most 1 | plan shown, not editable |
-| `thorough` | up to 7 | up to 2 for a complex question, otherwise at most 1 | interactive |
+| `standard` (default) | up to 7 for a complex question, otherwise up to `[loop] max_parallel_delegations` (5 by default) | at most 1 | plan shown, not editable |
+| `thorough` | same as `standard` | up to 2 for a complex question, otherwise at most 1 | interactive |
 
 A top-level `thorough` run needs someone to review the plan interactively. With nobody attached, it
 is cancelled before spending anything rather than running the most expensive depth unreviewed.

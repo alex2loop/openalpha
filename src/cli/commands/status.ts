@@ -8,9 +8,8 @@ import { liveDaemon, type RunningDaemon, readStalePid } from '@/cli/daemon-guard
 import { readDaemonDegraded, readDaemonTasks } from '@/cli/daemon-ready'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { hint, style, success, warn } from '@/cli/ui/colors'
-import { formatSessionRow } from '@/cli/ui/format'
+import { formatSessionRow, formatSpendOfCap } from '@/cli/ui/format'
 import { BRAND } from '@/core/brand'
-import { formatSpend } from '@/core/utils/cost'
 import { pluralKey, t } from '@/i18n'
 import { formatInstant } from '@/trading/api'
 
@@ -186,5 +185,5 @@ async function printSpend(app: CliApp, locale: Locale): Promise<void> {
   const today = await app.resolve('spendReader').forPeriod('day', Date.now())
 
   app.out(style.heading(t(locale, 'cli.statusSpendTodayHeading')))
-  app.out(`  ${formatSpend(today, app.config.budget.maxDailyUsd)}`)
+  app.out(`  ${formatSpendOfCap(locale, today, app.config.budget.maxDailyUsd)}`)
 }

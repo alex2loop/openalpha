@@ -88,7 +88,7 @@ luôn hạn mức khi có bật. Bản theo tuần và theo khoảng tự chọn
 nhất để trả lời "đổi sang mô hình kia có đáng không?": chạy trước và sau, rồi so cả tiền lẫn độ trễ.
 
 Nó còn in một khối **Theo agent** trước các dòng theo mô hình, mỗi agent chịu chi phí một dòng kèm số đã tiêu. Với
-`--period day` mặc định, mỗi dòng còn cho thấy mức trần của agent ("$0.02 / $0.50 hôm nay"). Tuần hoặc tháng thì bỏ mức
+`--period day` mặc định, mỗi dòng còn cho thấy mức trần của agent ("0,0200 USD / 0,5000 USD hôm nay"). Tuần hoặc tháng thì bỏ mức
 trần đi, vì mức trần ngày đặt cạnh chi phí cả tuần dễ gây hiểu lầm.
 
 `status` cũng hiện chi tiêu hôm nay. Một phiên chạy bị ngân sách dừng sẽ đi theo đường `budget` thông thường. Phần chi phí
@@ -122,7 +122,7 @@ Khi API bật, ứng dụng cho thấy chi phí trước khi chạy và sau khi 
 
 [Trang văn phòng](van-hanh.md#trang-văn-phòng) giữ chi phí trước mắt bạn mà không cần câu lệnh nào:
 
-- **Chip.** Chip chi phí AI trên đầu trang cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày, ví dụ "0,42 / 2,00 USD". Khi chưa đặt mức trần, chip chỉ hiện số đã tiêu. Chip chuyển sang màu cảnh báo trong hai trường hợp: chi tiêu vượt tỷ lệ cảnh báo (`soft_warn_ratio`) của mức trần ngày hoặc tháng, hoặc hôm nay đã có một cảnh báo hay một lần dừng vì ngân sách.
+- **Chip.** Chip chi phí AI trên đầu trang cho thấy hôm nay đã tiêu bao nhiêu so với mức trần ngày, ví dụ "0,42 / 2,00 USD". Khi chưa đặt mức trần, và trên điện thoại, chip chỉ hiện số đã tiêu; mức trần vẫn có trong cửa sổ chi tiết. Chip chuyển sang màu cảnh báo trong hai trường hợp: chi tiêu vượt tỷ lệ cảnh báo (`soft_warn_ratio`) của mức trần ngày hoặc tháng, hoặc hôm nay đã có một cảnh báo hay một lần dừng vì ngân sách.
 - **Cửa sổ chi tiết.** Bấm vào chip để xem hôm nay và cả tháng so với mức trần, cùng mục "Theo việc hôm nay": mỗi việc của hôm nay kèm số nó tốn, việc cha đã gồm phần của các agent con. Cửa sổ nhắc lại quy tắc quan trọng: chuông báo cho bạn ở tỷ lệ cảnh báo, và chạm mức trần thì các phiên chạy mới dừng lại. "Đổi ngân sách" đưa thẳng tới dòng ngân sách.
 - **Báo cáo đầy đủ.** "Xem đủ báo cáo" mở hôm nay, 7 ngày qua, 30 ngày qua hoặc tháng này, tính theo chính ngày của dịch vụ nền (daemon). Báo cáo có tổng của khoảng đã chọn, ngày cao nhất, một cột cho mỗi ngày trên thang USD kèm ngày tháng, và ba mục gập: theo việc, theo agent và theo mô hình, kèm số lần gọi và số lần gọi lỗi của từng mô hình.
   - Một dòng phía trên các cột nêu ngày đang trỏ chuột hoặc đang focus, mặc định là ngày mới nhất. Bấm vào một cột để xem các phiên chạy của ngày đó, mỗi phiên kèm các lần gọi AI.

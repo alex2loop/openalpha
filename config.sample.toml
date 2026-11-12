@@ -557,7 +557,8 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # model does the thinking, so mcp serve never reads [[models]] or [web_search].
 # A configured [[model_tiers.decisions]] still sorts headlines. The app gets the
 # quantity to buy or sell, never cash, costs or trade history.
-# `openalpha mcp install --host <app>` prints the server entry in that app's format.
+# `openalpha mcp install --host <app>` prints the server entry in that app's format
+# and writes the OpenAlpha skill into that app's skills folder (--skill-dir moves it).
 
 
 # ---- MCP servers ------------------------------------------------------------

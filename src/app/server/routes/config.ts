@@ -21,6 +21,7 @@ import {
   toRedactedConfig,
   toRestoredConfig,
 } from '@/app/server/routes/config-guard'
+import { serializeFileWrite } from '@/app/server/routes/file-write'
 import { fieldsRefusal, readJsonBody } from '@/app/server/routes/params'
 import { saveEditedConfig } from '@/cli/api'
 import { probeConfig } from '@/core/config/load'
@@ -90,9 +91,22 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
     return apiError('invalid_body')
   }
 
+  // Read before the write window opens: a slow upload must not hold every other config write.
+  const sent = await readJsonBody(req, MAX_CONFIG_BYTES)
+  const expected = req.headers.get(IF_MATCH_HEADER)
+
+  return await serializeFileWrite(() => writeConfig(ctx, sent, expected))
+}
+
+/** Reads the file, checks it is still the one the sender read, and writes: all inside one window,
+ *  so a second writer holding the same `If-Match` sees the first one's result and conflicts. */
+async function writeConfig(
+  ctx: ApiRouteContext,
+  sent: unknown,
+  expected: string | null
+): Promise<Response> {
   const { configPath, missing } = await probeConfig({ configPath: ctx.app.configPath })
   const text = await readDiskText(configPath)
-  const expected = req.headers.get(IF_MATCH_HEADER)
 
   // A tree read before another edit landed would put that edit back as it was, so it is refused.
   if (expected !== null && expected !== hashString(text)) {
@@ -103,7 +117,7 @@ async function handleConfigPut(req: Request, ctx: ApiRouteContext): Promise<Resp
   }
 
   const disk = toDiskTree(text)
-  const body = toRestoredConfig(await readJsonBody(req, MAX_CONFIG_BYTES), disk)
+  const body = toRestoredConfig(sent, disk)
 
   // Validate before writing: a config that cannot resolve would take the daemon down on next boot.
   if (!(validateBootConfigTree(body, BOOT_RESOLVE).ok && isPlainRecord(body))) {

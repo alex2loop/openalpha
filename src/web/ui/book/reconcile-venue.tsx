@@ -7,7 +7,7 @@ import {
   syncVenue,
   toCashKind,
 } from '@/web/state/orders'
-import { formatAmount, formatQuantity } from '@/web/text/figures'
+import { formatQuantity } from '@/web/text/figures'
 import { joinInline, joinList } from '@/web/text/glyphs'
 import { toFailureText, tr } from '@/web/text/tr'
 import { toVenueName } from '@/web/text/venue'
@@ -84,8 +84,7 @@ function MismatchRow({
   readonly venue: string
   readonly mismatch: ReconcileMismatch
 }) {
-  const figure = mismatch.cash ? formatAmount : formatQuantity
-  const size = `${figure(Math.abs(mismatch.delta))} ${mismatch.asset}`
+  const size = `${formatQuantity(Math.abs(mismatch.delta))} ${mismatch.asset}`
   const isVenueAhead = mismatch.delta < 0
 
   return (
@@ -97,8 +96,8 @@ function MismatchRow({
             delta: size,
           }),
           tr('ui.office.reconcile.bookVenue', {
-            booked: figure(mismatch.booked),
-            held: figure(mismatch.held),
+            booked: formatQuantity(mismatch.booked),
+            held: formatQuantity(mismatch.held),
           }),
         ])}
       </span>

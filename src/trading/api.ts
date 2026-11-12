@@ -230,6 +230,7 @@ export { AnalysisError, analysisId } from '@/trading/features/suggestion/analysi
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
 export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'
 export { shownCall } from '@/trading/features/suggestion/render/second-opinion'
+export { renderModelRate } from '@/trading/features/suggestion/track-record/render-breakdown'
 export { renderCallScoredNotice } from '@/trading/features/suggestion/track-record/scored-notice'
 export {
   isRecordedPlan,
@@ -265,7 +266,11 @@ export { formatClock, formatInstant } from '@/trading/render/datetime'
 export { describeEvent } from '@/trading/render/event'
 export { renderFocusLabel } from '@/trading/render/focus'
 export { toPlainText } from '@/trading/render/fold'
-export { formatSignedFixedFraction, resolveRenderContext } from '@/trading/render/format'
+export {
+  formatCount,
+  formatSignedFixedFraction,
+  resolveRenderContext,
+} from '@/trading/render/format'
 export { formatPriceIn, quotedInOf } from '@/trading/render/money'
 export { renderLoopQuarantineNotice } from '@/trading/render/quarantine'
 export { renderRestatementNotice } from '@/trading/render/restatement'

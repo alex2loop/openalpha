@@ -1,11 +1,5 @@
 import type { AbsolutePositionWire, TradingPortfolioResponse } from '@/app/server/wire/trading'
-import {
-  formatPrice,
-  formatSignedPercent,
-  PERCENT,
-  toneOfPercent,
-  WHOLE_DISPLAY,
-} from '@/web/text/figures'
+import { formatSignedMoney, formatSignedPercent, PERCENT, toneOfMoney } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 
 // Priced holdings only: an unpriced one adds to neither side, so the percent stays honest.
@@ -25,8 +19,8 @@ export function Unrealized({ book }: { readonly book: TradingPortfolioResponse }
   return (
     <p>
       {tr('ui.office.today.bookPnl')}{' '}
-      <b class={`is-${toneOfPercent(percent)}-text`}>
-        {formatPrice(profit, WHOLE_DISPLAY)} {book.baseCurrency} ({formatSignedPercent(percent)})
+      <b class={`is-${toneOfMoney(profit, book.baseCurrency)}-text`}>
+        {formatSignedMoney(profit, book.baseCurrency)} ({formatSignedPercent(percent)})
       </b>
     </p>
   )

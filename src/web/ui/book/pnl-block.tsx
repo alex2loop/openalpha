@@ -1,7 +1,12 @@
 import type { AbsolutePositionWire, TradingPortfolioResponse } from '@/app/server/wire/trading'
 import { readBlock } from '@/web/state/block'
 import { heldPositions, holdingsBlock } from '@/web/state/market'
-import { formatPrice, formatSignedPercent, toneOfPercent, WHOLE_DISPLAY } from '@/web/text/figures'
+import {
+  formatSignedMoney,
+  formatSignedPercent,
+  toneOfMoney,
+  toneOfPercent,
+} from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
 import { PnlTotals } from '@/web/ui/book/pnl-totals'
@@ -73,8 +78,8 @@ function PnlRow({
       <b>
         <TickerLink ticker={position.instrument.ticker} market={position.instrument.market} />
       </b>
-      <span>
-        {formatPrice(position.unrealizedPnlBase, WHOLE_DISPLAY)} {currency}
+      <span class={`is-${toneOfMoney(position.unrealizedPnlBase, currency)}-text`}>
+        {formatSignedMoney(position.unrealizedPnlBase, currency)}
       </span>
       <span class={`pill is-${toneOfPercent(move)}`}>{formatSignedPercent(move)}</span>
     </div>

@@ -1,9 +1,9 @@
 import type { LedgerEntryWire } from '@/app/server/wire/money'
 import { formatDay } from '@/i18n'
 import { locale } from '@/web/state/session'
-import { formatAmount, formatQuantity } from '@/web/text/figures'
+import { formatQuantity, formatRecordedMoney } from '@/web/text/figures'
 import { joinInline } from '@/web/text/glyphs'
-import { formatMarketPrice } from '@/web/text/market-price'
+import { formatRecordedMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
 import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { TickerLink } from '@/web/ui/ticker/ticker-link'
@@ -64,14 +64,14 @@ function describeEntry(entry: LedgerEntryWire): RowCells {
         instrument: entry.instrument,
         name: entry.instrument.ticker,
         quantity: formatQuantity(entry.quantity),
-        price: formatMarketPrice(entry.instrument.market, entry.unitPrice),
+        price: formatRecordedMarketPrice(entry.instrument.market, entry.unitPrice, entry.currency),
       }
     case 'dividend':
       return {
         instrument: entry.instrument,
         name: entry.instrument.ticker,
         quantity: '',
-        price: `${formatAmount(entry.amount)} ${entry.currency}`,
+        price: formatRecordedMoney(entry.amount, entry.currency),
       }
     case 'split':
     case 'distribution':
@@ -85,7 +85,7 @@ function describeEntry(entry: LedgerEntryWire): RowCells {
       return {
         name: entry.currency,
         quantity: '',
-        price: `${formatAmount(entry.amount)} ${entry.currency}`,
+        price: formatRecordedMoney(entry.amount, entry.currency),
       }
   }
 }

@@ -103,13 +103,26 @@
 
 /* A phone keeps its pills their short labels: none is clipped. */
 :root[data-layout="phone"] .header {
-  gap: 6px;
+  gap: 4px;
   padding: 0 var(--s1);
 }
 
 :root[data-layout="phone"] .header .chip {
   flex: none;
-  padding: 0 9px;
+  padding: 0 7px;
+}
+
+/* The spend is the one pill with a figure that grows, so it gives way with an ellipsis before any
+   control beside it is pushed off the edge. */
+:root[data-layout="phone"] .header .chip:has(.header-cost-amount) {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.header-cost-amount {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 :root[data-layout="phone"] .header .chip svg {
@@ -124,6 +137,31 @@
 }
 :root[data-layout="phone"] .header :is(.bell-button, .gear-button) {
   flex: none;
+}
+
+/* The web header's AI note is a disclosure and is never clipped: it keeps the room its shortest
+   sentence needs on two lines (90px, glyph included) and the spend gives way for it. */
+:root[data-layout="phone"] .header-grow:has(.header-ai-note) {
+  min-width: 90px;
+}
+
+/* The clock's popover is fixed, so its wrapper takes no box of its own. */
+.header-clock {
+  display: contents;
+}
+
+/* Beside the note a small phone drops the scene's own controls, the clock first and then the 2D | 3D
+   switch, rather than the note or the spend. The widths are where the note stops fitting. */
+@media (width < 400px) {
+  .header:has(.header-ai-note) .header-clock {
+    display: none;
+  }
+}
+
+@media (width < 380px) {
+  .header:has(.header-ai-note) .view-switch {
+    display: none;
+  }
 }
 
 /* The key list is a keyboard's; a phone's header has no room for it. */

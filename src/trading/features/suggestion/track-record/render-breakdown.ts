@@ -1,4 +1,5 @@
 import type { Locale } from '@/core/types/locale'
+import type { ModelRecord } from '@/trading/features/suggestion/track-record/model-record'
 import type {
   TrackRecordModelCount,
   TrackRecordVersionCount,
@@ -80,6 +81,19 @@ export function renderDebateModelLines(
     renderSectionTitle(SECTION_ICONS.breakdown, t(locale, 'trading.render.reflect.byDebateModel')),
     ...models.map((entry) => `${INDENT[1]}${renderDebateModelLine(locale, entry)}`),
   ]
+}
+
+/** One model's own win rate with the range it likely sits in, as one cell; absent below the
+ *  reporting minimum, like the rate. */
+export function renderModelRate(locale: Locale, record: ModelRecord): string | undefined {
+  if (record.winRate === undefined) {
+    return undefined
+  }
+
+  return t(locale, 'trading.render.reflect.modelRate', {
+    rate: formatWholeFraction(locale, record.winRate),
+    range: renderRateRange(locale, record, formatWholeFraction),
+  })
 }
 
 function renderDebateModelLine(locale: Locale, entry: TrackRecordModelCount): string {

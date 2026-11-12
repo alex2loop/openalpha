@@ -6,7 +6,8 @@ import { usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { flagBool } from '@/cli/parsing/args'
 import { style } from '@/cli/ui/colors'
-import { formatSpend, formatTokenCount, formatUsd, sentTokensOf } from '@/core/utils/cost'
+import { formatSpendOfCap } from '@/cli/ui/format'
+import { formatSpendUsd, formatTokenCount, sentTokensOf } from '@/core/utils/cost'
 import { formatDuration } from '@/core/utils/duration'
 import { dayInZone, daysSinceMonday, MS_PER_DAY, parseIsoDay, utcDay } from '@/core/utils/time'
 import { pluralKey, t } from '@/i18n'
@@ -58,7 +59,7 @@ export const costCommand: Command = createCommand({
 
     app.out(style.heading(t(locale, 'cli.costHeading')))
     app.out(t(locale, 'cli.costRangeLine', { from: range.fromDay, to: range.toDay }))
-    app.out(t(locale, 'cli.costTotalLine', { cost: formatCost(total, period, app.config.budget) }))
+    app.out(t(locale, 'cli.costTotalLine', { cost: formatCost(app, total, period) }))
 
     if (flagBool(args, 'breakdown')) {
       const rows =
@@ -157,20 +158,19 @@ function resolvePeriod(value: unknown): CostPeriod | undefined {
   return undefined
 }
 
-function formatCost(
-  total: number,
-  period: CostPeriod | undefined,
-  budget: { readonly maxDailyUsd: number; readonly maxMonthlyUsd: number }
-): string {
+function formatCost(app: CliApp, total: number, period: CostPeriod | undefined): string {
+  const locale = app.config.locale.language
+  const { maxDailyUsd, maxMonthlyUsd } = app.config.budget
+
   if (period === 'day') {
-    return formatSpend(total, budget.maxDailyUsd)
+    return formatSpendOfCap(locale, total, maxDailyUsd)
   }
 
   if (period === 'month') {
-    return formatSpend(total, budget.maxMonthlyUsd)
+    return formatSpendOfCap(locale, total, maxMonthlyUsd)
   }
 
-  return formatUsd(total)
+  return formatSpendUsd(locale, total)
 }
 
 interface BreakdownInput {
@@ -195,11 +195,11 @@ function printAgentTotals(app: CliApp, input: BreakdownInput): void {
 
     app.out(
       cap === undefined
-        ? t(locale, 'cli.costAgentLine', { agent, spent: formatUsd(spent) })
+        ? t(locale, 'cli.costAgentLine', { agent, spent: formatSpendUsd(locale, spent) })
         : t(locale, 'cli.costAgentCapped', {
             agent,
-            spent: formatUsd(spent),
-            cap: formatUsd(cap),
+            spent: formatSpendUsd(locale, spent),
+            cap: formatSpendUsd(locale, cap),
           })
     )
   }
@@ -242,7 +242,7 @@ function spendSegments(locale: Locale, row: SpendBreakdownRow): readonly string[
     row.averageLatencyMs === undefined ? undefined : formatDuration(locale, row.averageLatencyMs)
 
   return [
-    formatUsd(row.costUsd),
+    formatSpendUsd(locale, row.costUsd),
     t(locale, callsKey, { calls: row.calls }),
     ...(row.failedCalls === 0
       ? []

@@ -1,7 +1,13 @@
 import type { ComponentChildren } from 'preact'
 
 import type { TradingPortfolioResponse } from '@/app/server/wire/trading'
-import { formatPrice, formatSignedFraction, toneOfPercent, WHOLE_DISPLAY } from '@/web/text/figures'
+import {
+  formatMoney,
+  formatSignedFraction,
+  formatSignedMoney,
+  type Tone,
+  toneOfMoney,
+} from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 
 /** What was put in, what closed trades and dividends made, the fees still in the cost of what is
@@ -10,7 +16,9 @@ import { tr } from '@/web/text/tr'
 export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse }) {
   const { baseCurrency, netDepositsBase, realizedPnlBase, dividendsBase, feesBase, totalPnlBase } =
     book
-  const money = (value: number): string => `${formatPrice(value, WHOLE_DISPLAY)} ${baseCurrency}`
+  const money = (value: number): string => formatMoney(value, baseCurrency)
+  const signedMoney = (value: number): string => formatSignedMoney(value, baseCurrency)
+  const toneOf = (value: number): Tone => toneOfMoney(value, baseCurrency)
 
   return (
     <div class="row-list">
@@ -18,8 +26,8 @@ export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse })
         <FigureRow label={tr('ui.office.book.netDeposits')}>{money(netDepositsBase)}</FigureRow>
       )}
       {realizedPnlBase !== undefined && (
-        <FigureRow label={tr('ui.office.book.realizedPnl')} signedBy={realizedPnlBase}>
-          {money(realizedPnlBase)}
+        <FigureRow label={tr('ui.office.book.realizedPnl')} tone={toneOf(realizedPnlBase)}>
+          {signedMoney(realizedPnlBase)}
         </FigureRow>
       )}
       {dividendsBase !== undefined && dividendsBase !== 0 && (
@@ -29,8 +37,8 @@ export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse })
         <FigureRow label={tr('ui.office.book.fees')}>{money(feesBase)}</FigureRow>
       )}
       {totalPnlBase !== undefined && (
-        <FigureRow label={tr('ui.office.book.totalPnl')} signedBy={totalPnlBase}>
-          {money(totalPnlBase)}
+        <FigureRow label={tr('ui.office.book.totalPnl')} tone={toneOf(totalPnlBase)}>
+          {signedMoney(totalPnlBase)}
           {netDepositsBase !== undefined && netDepositsBase > 0 && (
             <> ({formatSignedFraction(totalPnlBase / netDepositsBase)})</>
           )}
@@ -40,22 +48,20 @@ export function PnlTotals({ book }: { readonly book: TradingPortfolioResponse })
   )
 }
 
-/** `signedBy` colours the figure by its direction; absent, it is a plain amount. */
+/** `tone` colours the figure by its direction; absent, it is a plain amount. */
 function FigureRow({
   label,
-  signedBy,
+  tone,
   children,
 }: {
   readonly label: string
-  readonly signedBy?: number
+  readonly tone?: Tone
   readonly children: ComponentChildren
 }) {
   return (
     <div class="row figure-row">
       <span>{label}</span>
-      <b class={signedBy === undefined ? undefined : `is-${toneOfPercent(signedBy)}-text`}>
-        {children}
-      </b>
+      <b class={tone === undefined ? undefined : `is-${tone}-text`}>{children}</b>
     </div>
   )
 }

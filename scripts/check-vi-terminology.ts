@@ -157,6 +157,11 @@ const ORDER_SCOPES: readonly TermScope[] = Object.freeze([
 const TERM_RULES: readonly TermRule[] = Object.freeze([
   ...SESSION_SCOPES.map((scope) => ({ ...scope, forbidden: [BARE_SESSION_RE], why: BARE_SESSION_WHY })),
   ...ORDER_SCOPES.map((scope) => ({ ...scope, forbidden: [BARE_ORDER_RE], why: BARE_ORDER_WHY })),
+  {
+    key: 'trading.focus.',
+    forbidden: [BARE_ORDER_RE],
+    why: 'a resolved suggestion is "đề xuất"; a bare "lệnh" is an exchange order',
+  },
   ...REDUCE_KEYS.map((key) => ({ key, forbidden: REDUCE_BUY_TERMS, why: REDUCE_LEVELS_WHY })),
   {
     key: 'trading.action.reduce',

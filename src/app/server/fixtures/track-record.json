@@ -45,7 +45,16 @@
         "winRate": 0.6364
       }
     ],
-    "byModel": [{ "model": "anthropic/claude-sonnet-5", "resolvedCount": 9, "winCount": 6 }],
+    "byModel": [
+      {
+        "model": "openai/gpt-5.5",
+        "resolvedCount": 21,
+        "winCount": 13,
+        "winRate": 0.619,
+        "rate": "62% won (likely between 41% and 79%)"
+      },
+      { "model": "anthropic/claude-sonnet-5", "resolvedCount": 9, "winCount": 6 }
+    ],
     "caveats": [
       {
         "code": "reporting.sample-below-minimum",

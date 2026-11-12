@@ -167,13 +167,30 @@ button.research-row {
   border-top: 1px solid var(--border);
 }
 
+.record-models {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: var(--s1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The rows share the list's columns, so the counts line up down the list. */
 .record-model {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: var(--s1);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   padding: 4px 0;
   border-top: 1px solid var(--border);
-  font-variant-numeric: tabular-nums;
+}
+
+.record-model > :first-child {
+  overflow-wrap: break-word;
+}
+
+/* The rate carries its range, so it may wrap, between words, instead of squeezing the model's name. */
+.record-model > :last-child {
+  text-align: end;
+  text-wrap: balance;
 }
 
 .opportunity-ask {

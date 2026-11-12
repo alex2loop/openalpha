@@ -37,7 +37,7 @@ export async function probeRunDirectories(
       rows.push({
         name: checkLabel(locale, 'data-dir'),
         status: 'warn',
-        detail: t(locale, 'cli.doctorRunDirLarge', { agent, size: formatBytes(bytes) }),
+        detail: t(locale, 'cli.doctorRunDirLarge', { agent, size: formatBytes(locale, bytes) }),
       })
     }
   }

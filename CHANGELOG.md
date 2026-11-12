@@ -7,6 +7,30 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.6.1] - 2026-11-12
+
+Money, prices and your ledger now read the same on the web, in the terminal and in chat, with cents in a dollar book and every digit you recorded. An ETF cap of 0 now really keeps funds out, and a few rare failures that could lose a settings change or stop OpenAlpha are fixed.
+> Tiền, giá và sổ giao dịch giờ hiển thị giống nhau trên web, trong terminal và trong chat: sổ tính bằng đô la có số lẻ đến cent, và sổ giữ đủ mọi chữ số bạn đã ghi. Trần ETF bằng 0 giờ chặn được ETF thật sự, và vài lỗi hiếm có thể làm mất một thay đổi cài đặt hay làm OpenAlpha dừng đã được sửa.
+
+### Changed
+
+- On the web, money follows its currency's own decimals (cents in a USD book, whole đồng in a VND one), crypto prices keep the digits they show in chat (2.346, not 2.35), and gains and losses carry ▲/▼ and their colour, on each holding too.
+- The ledger shows every digit you recorded, so you can check it against your broker's slip; on a phone each row wraps to two lines instead of cutting a figure.
+- AI spend reads the same everywhere in your language, for example "0,0142 USD / 2,0000 USD (1%)".
+- Large English figures are spelled out ("76.5 billion"), and the win rate per model shows a whole percent with its likely range, as `/reflect` does.
+- On a phone the header shows today's AI spend alone (the cap is one tap away), and the web version hides the clock and the 2D | 3D switch on narrow screens so the "Not advice" note always fits.
+- In Vietnamese, past calls are called "đề xuất" and portfolio buckets "nhóm" everywhere.
+- A run stopped by its budget no longer quotes dollar amounts in its history.
+
+### Fixed
+
+- A buy of an ETF into a segment whose ETF cap is 0 is now flagged by `/trade` and refused by the assistant, with a plain line saying your profile keeps ETFs out.
+- Two settings saves at the same moment, from two tabs, no longer lose one; the second is told the settings changed.
+- With Postgres, a connection dropped in the middle of a write no longer stops OpenAlpha.
+- When Telegram asks the bot to slow down, it now waits as long as Telegram asked.
+- A drawing error on the office page shows a short message and a Reload button instead of a blank page.
+- Long model names wrap at the slash on a phone instead of in the middle of a word.
+
 ## [1.6.0] - 2026-11-12
 
 The office page now shows who worked on each run, for how long and at what cost, and says plainly when it has lost touch with OpenAlpha. Crypto moves, the Screen board and a name's past calls read the same everywhere.
@@ -821,6 +845,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.6.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.1
 [1.4.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.3
 [1.4.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.2
 [1.4.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.1

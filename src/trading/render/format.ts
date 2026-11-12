@@ -3,14 +3,16 @@ import type { Locale } from '@/core/types/locale'
 import type { CaveatSeverity } from '@/trading/kernel/caveat'
 import type { WatchMark } from '@/trading/kernel/operator/brief-story'
 import type { OrderSide } from '@/trading/kernel/venue/spot-adapter'
-import { hasMessage, type MessageKey, t } from '@/i18n'
-import { type ScoreBand, scoreBand } from '@/trading/markets/factor-scoring'
 import {
   CRYPTO_SUBUNIT_DIGITS,
-  FRACTION_QUANTUM,
-  formatNumber,
   hasMagnitude,
-} from '@/trading/render/number'
+  hasMessage,
+  isSubUnit,
+  type MessageKey,
+  t,
+} from '@/i18n'
+import { type ScoreBand, scoreBand } from '@/trading/markets/factor-scoring'
+import { FRACTION_QUANTUM, formatNumber } from '@/trading/render/number'
 
 /** One marker per block a reader scans for. A concept the agent tools already show wears the same
  *  glyph as its `presentation.emoji`, so one thing never reads as two. Section identity only —
@@ -88,8 +90,6 @@ export const SIDE_MARKS = Object.freeze({
 } satisfies Record<OrderSide, string>)
 
 const PERCENT_PER_UNIT = 100
-/** Where a value stops being quoted in decimal places and starts being quoted in significant ones. */
-const SUB_UNIT_FLOOR = 1
 /** Half of the last digit `formatFraction` displays. Below it a change prints as 0%, and a verb
  *  read off the raw sign would tell the operator to trade nothing. */
 const FRACTION_DISPLAY_EPSILON = FRACTION_QUANTUM / 2
@@ -159,13 +159,6 @@ export function formatAmount(locale: Locale, value: number): string {
 
 export function formatFixedAmount(locale: Locale, value: number): string {
   return formatNumber(locale, isSubUnit(value) ? 'subUnitFixed' : 'amountFixed', value)
-}
-
-/** Whether the value is small enough that decimal places stop carrying it and significant digits
- *  take over: `Intl` reports two decimals for `BTC` and `XAU`, which are not ISO currencies, and a
- *  coin trading at 0.00002 needs every digit after the point. */
-export function isSubUnit(value: number): boolean {
-  return value !== 0 && Math.abs(value) < SUB_UNIT_FLOOR
 }
 
 export function formatQuantity(locale: Locale, value: number): string {

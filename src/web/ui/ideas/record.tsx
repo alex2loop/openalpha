@@ -1,11 +1,13 @@
+import { Fragment } from 'preact'
+
 import type { SuggestionWire, TradingTrackRecordResponse } from '@/app/server/wire/trading'
 import { pluralKey } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { SHARED_FOCUS } from '@/web/state/agents'
 import { useBlock } from '@/web/state/block'
 import { AWAITING_WINDOW_CODE } from '@/web/text/caveat-text'
-import { formatFixedFraction } from '@/web/text/figures'
-import { isNoteLine } from '@/web/text/glyphs'
+import { formatCount } from '@/web/text/figures'
+import { ABSENT_CELL, isNoteLine } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { useUnstripped } from '@/web/ui/kit/cautions'
@@ -148,15 +150,27 @@ function ByModel({
   return (
     <>
       <h3 class="sub-head">{tr('ui.office.record.byModel')}</h3>
-      <div class="row-list">
+      <div class="record-models">
         {models.map((model) => (
           <div key={model.model} class="record-model">
-            <span>{model.model}</span>
-            <span>{`${model.winCount}/${model.resolvedCount}`}</span>
-            <span>{formatFixedFraction(model.winRate)}</span>
+            <span>{withBreakAfterSlash(model.model)}</span>
+            <span>{`${formatCount(model.winCount)}/${formatCount(model.resolvedCount)}`}</span>
+            <span>{model.rate ?? ABSENT_CELL}</span>
           </div>
         ))}
       </div>
     </>
   )
+}
+
+// A model id is `vendor/name`: offering a break after the slash keeps a long id from splitting
+// inside a word on a phone.
+function withBreakAfterSlash(id: string) {
+  return id.split('/').map((part, index) => (
+    <Fragment key={index}>
+      {index > 0 && '/'}
+      {index > 0 && <wbr />}
+      {part}
+    </Fragment>
+  ))
 }

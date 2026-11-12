@@ -1,7 +1,7 @@
 import type { CliApp } from '@/cli/types'
 import type { AgentProfile } from '@/engine/api'
 import type { AgentFocusRef } from '@/trading/api'
-import { formatUsd } from '@/core/utils/cost'
+import { formatSpendUsd } from '@/core/utils/cost'
 import { t } from '@/i18n'
 import { renderFocusLabel, resolveRunFocus } from '@/trading/api'
 
@@ -53,8 +53,8 @@ export async function agentExtraLines(
         ? []
         : [
             t(locale, 'cli.agentSpend', {
-              spent: formatUsd(spent.get(agent.id) ?? 0),
-              cap: formatUsd(agent.maxDailyUsd),
+              spent: formatSpendUsd(locale, spent.get(agent.id) ?? 0),
+              cap: formatSpendUsd(locale, agent.maxDailyUsd),
             }),
           ]),
       ...(record?.lines ?? []),

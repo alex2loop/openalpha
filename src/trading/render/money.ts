@@ -1,6 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { CurrencyCode, MarketRef, PriceDisplay, QuoteUnit } from '@/trading/kernel/instrument'
-import { t } from '@/i18n'
+import { isIsoCurrency, isSubUnit, minorUnitsOf, priceDecimals, t } from '@/i18n'
 import {
   formatAmount,
   formatCount,
@@ -8,21 +8,10 @@ import {
   formatFixedAmount,
   formatFlow,
   formatSignedFlow,
-  isSubUnit,
   renderDeclaredValue,
   withGlyph,
 } from '@/trading/render/format'
-import {
-  FRACTION_DIGITS,
-  formatFixedDigits,
-  SUB_UNIT_SIGNIFICANT_DIGITS,
-} from '@/trading/render/number'
-
-/** ISO 4217 as the runtime itself knows it. Asked rather than tabulated, and asked by membership
- *  rather than by code length: `Intl` accepts any well-formed three-letter code and reports two
- *  decimals for it, so `BTC` is indistinguishable from `USD` by shape alone. Anything absent here
- *  is a settlement token with no minor-unit table of its own. */
-const ISO_CURRENCIES: ReadonlySet<string> = new Set(Intl.supportedValuesOf('currency'))
+import { formatFixedDigits } from '@/trading/render/number'
 
 /** A divisor above 1 means prices render in board points rather than currency units, so the currency
  *  name would mislabel them and a "whole units, not board price" warning has something to warn
@@ -44,35 +33,6 @@ function boardPrice(locale: Locale, value: number, display: PriceDisplay): strin
   return formatFixedDigits(locale, value / display.divisor, display.decimals)
 }
 
-// Bounded by the registered markets' currencies, so it needs no eviction.
-const minorUnits = new Map<string, number>()
-
-/** How many decimals a currency actually has. VND, JPY and KRW have none, and printing two states a
- *  denomination that does not exist. Asked of `Intl` rather than tabulated here, so an ISO currency
- *  the system has never seen still prints correctly. */
-export function minorUnitsOf(currency: CurrencyCode): number {
-  const cached = minorUnits.get(currency)
-
-  if (cached !== undefined) {
-    return cached
-  }
-
-  const resolved = ISO_CURRENCIES.has(currency) ? isoMinorUnits(currency) : FRACTION_DIGITS
-
-  minorUnits.set(currency, resolved)
-
-  return resolved
-}
-
-/** `Intl` throws `RangeError` at construction for a code outside ISO 4217, so the lookup can only
- *  be reached for one it knows. */
-function isoMinorUnits(currency: CurrencyCode): number {
-  return (
-    new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions()
-      .maximumFractionDigits ?? FRACTION_DIGITS
-  )
-}
-
 /** Money with its own currency's precision, then the ISO code. The code rather than `Intl`'s symbol:
  *  `₫` and `US$` in one document read as decoration, while the code is what a broker slip carries.
  *
@@ -83,7 +43,7 @@ function isoMinorUnits(currency: CurrencyCode): number {
  *  book, and rounded away unseen in a đồng one. A price is the other question and keeps every
  *  digit either way — see `formatFixedPrice`. */
 export function formatMoney(locale: Locale, value: number, currency: CurrencyCode): string {
-  return isSubUnit(value) && !ISO_CURRENCIES.has(currency)
+  return isSubUnit(value) && !isIsoCurrency(currency)
     ? `${formatAmount(locale, value)} ${currency}`
     : `${formatFixedDigits(locale, value, minorUnitsOf(currency))} ${currency}`
 }
@@ -160,21 +120,6 @@ export function formatFixedPrice(locale: Locale, value: number, currency: Curren
   return isSubUnit(value)
     ? formatFixedAmount(locale, value)
     : formatFixedDigits(locale, value, priceDecimals(value, currency))
-}
-
-/** A token with no minor units of its own keeps the significant digits a sub-unit price prints, so a
- *  coin at 2,067 is not cut to 2,07 under its own tick. */
-function priceDecimals(value: number, currency: CurrencyCode): number {
-  const minor = minorUnitsOf(currency)
-
-  // `!(x >= 1)` so a zero or NaN keeps the minor units rather than asking `Intl` for infinite digits.
-  if (ISO_CURRENCIES.has(currency) || !(Math.abs(value) >= 1)) {
-    return minor
-  }
-
-  const wholeDigits = Math.floor(Math.log10(Math.abs(value))) + 1
-
-  return Math.max(minor, SUB_UNIT_SIGNIFICANT_DIGITS - wholeDigits)
 }
 
 /** A recorded price may name the instrument it is per; a declared unit already says what one is. */

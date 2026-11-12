@@ -6,12 +6,11 @@ import { heldPositions, holdingsBlock, keyOf, stopsBlock } from '@/web/state/mar
 import { locale } from '@/web/state/session'
 import {
   formatFixedFraction,
-  formatPrice,
   formatQuantity,
+  formatSignedMoney,
   formatSignedPercent,
   PERCENT,
-  toneOfPercent,
-  WHOLE_DISPLAY,
+  toneOfMoney,
 } from '@/web/text/figures'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { tr } from '@/web/text/tr'
@@ -80,9 +79,8 @@ function HoldingFacts({ position, stop, currency }: HoldingFactsProps) {
       )}
       <Fact
         label={tr('ui.office.book.pnl')}
-        value={`${formatPrice(position.unrealizedPnlBase, WHOLE_DISPLAY)} ${currency}`}
-        tone={toneOfPercent(move)}
-        note={formatSignedPercent(move)}
+        value={`${formatSignedMoney(position.unrealizedPnlBase, currency)} (${formatSignedPercent(move)})`}
+        tone={toneOfMoney(position.unrealizedPnlBase, currency)}
       />
       <Fact label={tr('ui.office.ticker.weight')} value={formatFixedFraction(weight)} />
       {stop?.stop !== undefined && (
@@ -99,17 +97,13 @@ interface FactProps {
   readonly label: string
   readonly value: string
   readonly tone?: 'up' | 'down' | 'flat'
-  readonly note?: string
 }
 
-function Fact({ label, value, tone, note }: FactProps) {
+function Fact({ label, value, tone }: FactProps) {
   return (
     <div>
       <dt>{label}</dt>
-      <dd class={tone === undefined ? '' : `is-${tone}-text`}>
-        {value}
-        {note !== undefined && <span class="meta"> {note}</span>}
-      </dd>
+      <dd class={tone === undefined ? '' : `is-${tone}-text`}>{value}</dd>
     </div>
   )
 }

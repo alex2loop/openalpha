@@ -24,6 +24,17 @@ export {
   termOfMarket,
   termOfTicker,
 } from './glossary'
+export {
+  CRYPTO_SUBUNIT_DIGITS,
+  FRACTION_DIGITS,
+  hasMagnitude,
+  isIsoCurrency,
+  isSubUnit,
+  minorUnitsOf,
+  NUMBER_FORMATS,
+  priceDecimals,
+  SUB_UNIT_SIGNIFICANT_DIGITS,
+} from './precision'
 
 type Catalog = typeof en
 

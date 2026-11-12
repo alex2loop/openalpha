@@ -6,6 +6,7 @@ import type {
 } from '@/trading/features/ledger/types'
 import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import { isWord } from '@/core/utils/text'
+import { minorUnitsOf } from '@/i18n'
 import {
   CASH_TXN_KINDS,
   FX_AUTO,
@@ -24,7 +25,6 @@ import {
   SELL_ALL,
   SYNTAX_POINTER_KEY,
 } from '@/trading/kernel/surface/surface'
-import { minorUnitsOf } from '@/trading/render/money'
 
 export const SYNC_ACTION = 'sync'
 

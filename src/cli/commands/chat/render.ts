@@ -10,6 +10,7 @@ import { createMarkdownStream } from '@/cli/ui/markdown'
 import { createPlanView } from '@/cli/ui/plan'
 import { createSpinner } from '@/cli/ui/spinner'
 import { isPersistentProgress } from '@/core/stream-events'
+import { formatDuration } from '@/core/utils/duration'
 import { sanitizeDisplayText } from '@/core/utils/text'
 import { MS_PER_SECOND } from '@/core/utils/time'
 import { t, translateDisplayText, translateToolError, translateToolLabel } from '@/i18n'
@@ -303,7 +304,7 @@ function renderMetric(state: RenderState, event: TurnMetric): void {
   if (isVerbose()) {
     flushReasoning(state)
     clearReasoningDeltas(state)
-    printActivityLine(state, formatTurnMetric(event))
+    printActivityLine(state, formatTurnMetric(state.locale, event))
   }
 }
 
@@ -470,12 +471,8 @@ function toSummarySuffix(summary: string | undefined): string {
   return text.startsWith('\n') ? `:${text}` : `: ${text}`
 }
 
-function formatTurnMetric(metric: TurnMetric): string {
-  return `${sanitizeDisplayText(metric.model)} · ${formatLatency(metric.latencyMs)} · ctx ${metric.contextPct}%`
-}
+function formatTurnMetric(locale: Locale, metric: TurnMetric): string {
+  const context = t(locale, 'footer.context', { percent: metric.contextPct })
 
-function formatLatency(latencyMs: number): string {
-  return latencyMs < MS_PER_SECOND
-    ? `${Math.round(latencyMs)}ms`
-    : `${(latencyMs / MS_PER_SECOND).toFixed(1)}s`
+  return `${sanitizeDisplayText(metric.model)} · ${formatDuration(locale, metric.latencyMs)} · ${context}`
 }

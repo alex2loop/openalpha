@@ -14,7 +14,7 @@ import { screenMarket } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
 import { isAdvanced } from '@/web/state/prefs'
-import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
+import { formatCount } from '@/web/text/figures'
 import { isInfoLine, joinInline, splitInline, withoutLeadingIcon } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
@@ -188,8 +188,8 @@ function BoardBody({ board, analyzed }: BoardBodyProps) {
     <>
       <p class="funnel">
         {tr('ui.office.ideas.screenFunnel', {
-          universe: formatPrice(board.universeSize, WHOLE_DISPLAY),
-          kept: formatPrice(card.rows.length, WHOLE_DISPLAY),
+          universe: formatCount(board.universeSize),
+          kept: formatCount(card.rows.length),
         })}
       </p>
       {card.rows.map((row) => (

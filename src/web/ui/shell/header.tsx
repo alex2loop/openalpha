@@ -53,7 +53,11 @@ export function Header() {
       {isFirstRunOver.value && <CostChip anchor={costAnchor} />}
       {hasScene && <ViewSwitch />}
       <LayoutSwitch />
-      {hasScene && <ClockControl />}
+      {hasScene && (
+        <div class="header-clock">
+          <ClockControl />
+        </div>
+      )}
       {hasScene && !isAnalysisOnly.value && <WeatherChip />}
       {!isAnalysisOnly.value && <BellButton anchor={bellAnchor} />}
       <KeysButton />
@@ -176,7 +180,30 @@ function CostChip({ anchor }: AnchorProps) {
     >
       <CoinIcon />
       <span class="header-cost-label">{tr('ui.office.cost.todayLabel')}</span>
-      {formatSpent(view?.todayUsd, view?.caps.dailyUsd)}
+      <CostText todayUsd={view?.todayUsd} dailyUsd={view?.caps.dailyUsd} />
     </Chip>
+  )
+}
+
+interface CostTextProps {
+  readonly todayUsd: number | undefined
+  readonly dailyUsd: number | undefined
+}
+
+// A phone shows today's spend alone, the cap left to the popover, and says both to a screen reader.
+function CostText({ todayUsd, dailyUsd }: CostTextProps) {
+  const full = formatSpent(todayUsd, dailyUsd)
+
+  if (breakpoint.value !== 'phone') {
+    return full
+  }
+
+  return (
+    <>
+      <span class="header-cost-amount" aria-hidden="true">
+        {formatSpent(todayUsd, undefined)}
+      </span>
+      <span class="sr">{full}</span>
+    </>
   )
 }

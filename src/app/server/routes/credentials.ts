@@ -14,6 +14,7 @@ import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import { buildServerOnlyText } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { isExposedOnDisk } from '@/app/server/routes/config'
+import { serializeFileWrite } from '@/app/server/routes/file-write'
 import { parsePathId, readJsonBody } from '@/app/server/routes/params'
 import {
   getEnv,
@@ -42,18 +43,6 @@ const SERVER_ONLY_KEYS = Object.freeze({
   booted: 'errors.credentialsServerOnly',
   saved: 'errors.credentialsServerOnlySaved',
 } as const)
-
-// One env-file read-modify-write at a time: two saves at once would each rewrite the file from
-// the same read and lose one key.
-let envWriteTail: Promise<unknown> = Promise.resolve()
-
-function serializeEnvWrite<T>(op: () => Promise<T>): Promise<T> {
-  const run = envWriteTail.then(op, op)
-
-  envWriteTail = run
-
-  return run
-}
 
 interface Credential {
   readonly name: string
@@ -93,7 +82,7 @@ async function handleCredentialWrite(req: Request, ctx: ApiRouteContext): Promis
   }
 
   try {
-    await serializeEnvWrite(() =>
+    await serializeFileWrite(() =>
       writeEnvFileValue({
         path: ctx.app.resolve('keyFile').path,
         name,
@@ -120,7 +109,7 @@ async function handleCredentialRemove(req: Request, ctx: ApiRouteContext): Promi
   }
 
   const name = parseAllowedName(req, ctx)
-  const removed = await serializeEnvWrite(() =>
+  const removed = await serializeFileWrite(() =>
     removeEnvFileValue(ctx.app.resolve('keyFile').path, name)
   )
 

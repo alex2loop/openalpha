@@ -1,6 +1,11 @@
 import type { DealerBoardWire } from '@/app/server/wire/quote-detail'
 import { findMarket, priceDisplayOf, printDisplayOf } from '@/web/state/market'
-import { formatFixedFraction, formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
+import {
+  formatCount,
+  formatExactAmount,
+  formatFixedFraction,
+  formatPrice,
+} from '@/web/text/figures'
 import { ABSENT_CELL, joinInline } from '@/web/text/glyphs'
 import { tr } from '@/web/text/tr'
 
@@ -26,6 +31,14 @@ export function formatMarketPrice(
   }
 
   return withCurrency(market, formatBarePrice(market, value, reading), reading)
+}
+
+/** A price as a ledger row records it: every digit, since the reader checks it against a fill. A
+ *  board-scaled market keeps its board form and no currency; any other names the row's currency. */
+export function formatRecordedMarketPrice(market: string, value: number, currency: string): string {
+  const board = priceDisplayOf(market)
+
+  return board === undefined ? `${formatExactAmount(value)} ${currency}` : formatPrice(value, board)
 }
 
 /** A dealer's two sides, each labelled, with the currency said once after them where the market has
@@ -62,8 +75,7 @@ export function toTickFormatter(
   market: string,
   reading?: LevelReading
 ): (value: number, step: number) => string {
-  const display = displayOf(market, reading)
-  const divisor = display?.divisor ?? 1
+  const divisor = reading?.isLevel === true ? 1 : (priceDisplayOf(market)?.divisor ?? 1)
 
   return (value, step) => formatPrice(value, { divisor, decimals: decimalsOf(step / divisor) })
 }
@@ -107,7 +119,7 @@ function boardScaleNote(market: string): string | undefined {
   }
 
   return tr('trading.quote-unit.board', {
-    divisor: formatPrice(found.priceDisplay.divisor, WHOLE_DISPLAY),
+    divisor: formatCount(found.priceDisplay.divisor),
     currency: found.currency,
   })
 }

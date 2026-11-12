@@ -4,7 +4,7 @@ import { ROUTES } from '@/web/api/routes'
 import { readBlock, useBlock } from '@/web/state/block'
 import { openBook } from '@/web/state/book'
 import { heldPositions, holdingsBlock, stopBreaches } from '@/web/state/market'
-import { formatPrice, WHOLE_DISPLAY } from '@/web/text/figures'
+import { formatMoney } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { EmptyBookActions } from '@/web/ui/book/empty-actions'
 import { Unrealized } from '@/web/ui/book/unrealized'
@@ -51,9 +51,7 @@ function BookFigures({ book }: { readonly book: TradingPortfolioResponse }) {
   return (
     <>
       <p class="meta">{tr('ui.office.today.bookNav')}</p>
-      <p class="big-figure">
-        {formatPrice(book.navBase, WHOLE_DISPLAY)} {book.baseCurrency}
-      </p>
+      <p class="big-figure">{formatMoney(book.navBase, book.baseCurrency)}</p>
       <Unrealized book={book} />
       <p class="meta">
         {tr(pluralKey(held, 'ui.office.today.bookHeldOne', 'ui.office.today.bookHeld'), {
