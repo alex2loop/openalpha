@@ -7,41 +7,34 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
-## [Unreleased]
+## [1.6.2] - 2026-11-12
 
-Vietnamese now calls a suggestion an "đề xuất" and a typed command a "câu lệnh" everywhere, the web reads figures, gold prices and the trade form's day the way the terminal and chat do, and a round of rare failures around caps, orders and settings is fixed.
-> Tiếng Việt giờ gọi một gợi ý là "đề xuất" và một lệnh gõ vào là "câu lệnh" ở mọi nơi, web đọc số liệu, giá vàng và ngày ở biểu mẫu giao dịch giống terminal và chat, và một loạt lỗi hiếm quanh các mức trần, lệnh đặt và cài đặt đã được sửa.
+Gold prices name their unit everywhere and gold alerts watch the price the shop pays you; orders re-check your caps right before they go out; a mistyped ticker is asked about before it reaches your ledger; and the web, the terminal and chat read figures, dates and Vietnamese terms the same way.
+> Giá vàng giờ ghi rõ đơn vị ở mọi nơi và cảnh báo giá vàng theo dõi giá tiệm mua vào; lệnh được kiểm lại hạn mức ngay trước khi gửi đi; mã gõ nhầm được hỏi lại trước khi vào sổ; và web, terminal, chat đọc số liệu, ngày tháng và thuật ngữ tiếng Việt giống nhau.
 
 ### Changed
 
-- In Vietnamese, a suggestion is "đề xuất" and something you type is a "câu lệnh", in the terminal, in chat and on the office page; "lệnh" is kept for an order at an exchange.
-- Web gold prices show their unit, per tael or per ounce, as chat does.
-- Gold prices on price alerts, exit levels, analysis price lines and the price tape show that unit too.
-- The web trade form opens on your home market's trading day, the same day the terminal and chat propose (the UTC day for a market that trades around the clock).
-- Web figures read like the rest: no "-0,00", macro and benchmark moves in whole percents, a portfolio's return in the same form as `/portfolio`, and token counts grouped.
-- In the terminal, a billed call too small for four decimals keeps two significant digits, so AI spend never reads "0,0000 USD" for a call that cost something.
-- Win rates and hit rates, in chat as well, are a whole percent everywhere.
-- `/cost` shows the dates of the range it covers, and token counts in the millions read as "1,2M".
-- History shows why a run stopped (turn limit, budget, restart and the like) in your language, followed by the provider's message when it adds something; any other detail is shown as recorded.
-- The app's English text uses US spelling ("canceled", "behavior", "labeled").
+- Gold prices show their unit, per lượng (tael) or per ounce, on every surface: prices, the market tab and its session card, the price tape, the brief, alerts, exit levels and analysis lines. A gold shop's board shows its buy and sell prices and the gap between them, never a "closing price".
+- A price alert on VN gold watches the buy price, what the shop pays you, the same side your holding is valued on, and every place it appears says so. Alerts you already set keep their level and are now read this way.
+- In Vietnamese, a suggestion is an "đề xuất", something you type is a "câu lệnh" and a call to the AI is a "lượt gọi", in the terminal, in chat, on the office page and in the guides; "lệnh" is kept for an order at an exchange.
+- The web reads figures like the terminal and chat: no "-0,00", macro and benchmark weights in whole percents that add up to 100, a portfolio's return in the same form as `/portfolio`, and grouped token counts.
+- Win rates and hit rates are a whole percent everywhere; a cap line that would round to its own cap shows two decimals instead.
+- AI spend in the terminal never reads "0,0000 USD" for a call that cost something; `/cost` shows its dates day-first, and large token counts read as "1,2M".
+- History says why a run stopped (turn limit, budget, a restart) in your language, followed by the provider's message when it adds something.
 - `openalpha logs --help`, `key --help`, `autostart --help` and `db migrate --help` mark the default subcommand and show its flags.
-- 1.6.1's "AI spend reads the same everywhere" applies to the terminal and chat. The web keeps cents in its header chip, as the budgets guide describes.
-- Documentation: Vietnamese and English pages use the same terms and spelling as the app, and the commands guide lists the real argument names.
+- The web trade form opens on your home market's trading day, the day the terminal and chat propose.
+- Sector names use one capitalization per language, and English text uses US spelling.
 
 ### Fixed
 
-- `/record` and `/update` no longer book a ticker no market lists: a typo such as `gold-vn:ZZZ` or `equity-vn:ZZZQ` is held with the closest stored name and the chance to confirm it as a real trade (delisted, newly listed, or a list not refreshed yet). The assistant's record and update tools and the office page's trade form ask the same way; `/record sync` and `/trade` fills are never held.
-- A price alert on VN gold now watches the buy price, what the shop pays you, the same side your holding is valued on and its stop and target are watched on, so one holding no longer reads as crossed in one place and not in another. `/alert list`, the confirmation, the notice, the brief and the office page name the side ("buy price"), and the distance to the level is measured from it. Alerts you already set keep their level and are now read on the buy side (a notice that fired just before the upgrade may label the old price).
-- `/rebalance` now sells a fund you hold in a segment whose ETF cap is 0, whatever its score.
-- The assistant checks the caps again just before an order goes out, your profile's position, segment and ETF ceilings included. A ceiling the order prompt named passes as the order you confirmed only if it has not grown past the figure you were shown plus a small margin of 0.05% of the portfolio for price moves (never applied to a cap of 0 or an ETF share that could not be measured); one crossed or deepened since you looked (another fill, a price jump) refuses the order and says which.
-- A refused order says in your language which limit it crossed.
-- A staged order whose saved record cannot be read keeps its confirm code, and `/trade` status skips that one record instead of failing.
-- Market tab: the world gold row in the session card shows "USD/oz" like the other gold prices, and a gold shop board's ticker page shows its buy and sell prices with the gap, with no closing-price label; the gold range line shows its unit too, and a shop board's price loads on the first visit.
-- A ledger figure above 1e15 (amount, price, quantity, fee or rate) is refused as implausible instead of being saved.
+- `/record` and `/update` no longer book a ticker no market lists. A typo such as `equity-vn:FPQ` is held with the closest name ("FPC?") and a button to confirm it as a real trade, for a delisted or newly listed name. The assistant and the web trade form ask the same way; trades read from your exchange are never held.
+- An order now re-checks your profile's position, segment and ETF caps just before it goes out. A cap the order prompt showed you passes only if it has not grown since you looked; one crossed or deepened in between, by another fill or a price move, refuses the order and says which cap, in your language.
+- `/rebalance` sells a fund you hold in a segment whose ETF cap is 0, whatever its score, and says why.
+- A ledger figure far beyond any real one (a slip of several zeros) is refused and named instead of breaking your book's totals.
+- A staged order whose saved record cannot be read keeps its confirm code, and `/trade` status no longer fails because of it.
 - Editing and deleting an agent at the same moment no longer race, so an edit cannot bring back a deleted agent.
-- Saving settings on the web is all or nothing: a failed save leaves your settings as they were.
-- The macro documents kept for the extractor are described as at least 775 days (about 25 months), which is what OpenAlpha keeps.
-- `config.sample.toml` lists every built-in venue that cannot set markets.
+- Saving settings on the web is all or nothing.
+- The guides state how long macro documents are kept (at least 775 days), and `config.sample.toml` lists every built-in venue that cannot set markets.
 
 ## [1.6.1] - 2026-11-12
 
@@ -881,6 +874,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.6.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.2
 [1.6.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.1
 [1.4.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.3
 [1.4.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.2
