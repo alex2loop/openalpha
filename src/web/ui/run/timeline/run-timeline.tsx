@@ -269,7 +269,7 @@ function pickSubject(subjects: readonly Subject[], typed: string | undefined): s
   return subjects.find((subject) => subject.ticker.toLowerCase() === wanted)?.ticker
 }
 
-// Text that starts a name the list holds asks for a pick; text no name holds says so.
+// Text some name holds, as the list filters, asks for a pick; text no name holds says so.
 function toSubjectCue(subjects: readonly Subject[], typed: string): string {
   const query = typed.trim()
   const isPartial = subjects.some((subject) =>
