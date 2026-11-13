@@ -8,7 +8,7 @@ import type {
 } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
 import { PermanentChannelError } from '@/channels/permanent-error'
-import { plainRenderer, stripMarkdown } from '@/channels/renderer'
+import { plainRenderer, plainTextOf } from '@/channels/renderer'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
 import { ChannelError, ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -143,7 +143,7 @@ async function sendZaloMessage(
   const res = await sendMessage({
     token,
     chatId: out.chatId,
-    text: stripMarkdown(out.text),
+    text: plainTextOf(out),
     ...(signal === undefined ? {} : { signal }),
   })
 

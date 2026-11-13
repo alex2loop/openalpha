@@ -907,7 +907,7 @@ recorded at `gold-shop` stay there, since assets cannot move between venues. Sel
 ### Orders and venue credentials
 
 `[trading.orders]` alone decides whether an order may be placed at all. A cap of `0` means uncapped.
-`maximum_price_drift` is a **fraction**: `0.5` means fifty percent, not half of one.
+`maximum_price_drift` is a **fraction**, at most `0.1` (ten percent): `0.005` is half a percent. A value above `0.1`, such as `5` typed for five percent, is refused at startup instead of switching the guard off.
 
 `allow_unattended` exists because approval mode `bypass` lets a call through before the approval
 gate is consulted. Placing an order unattended therefore takes two decisions from you, not one; see

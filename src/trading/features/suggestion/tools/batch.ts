@@ -8,6 +8,7 @@ import type { DebateMode } from '@/trading/kernel/config'
 import { SOCIAL_CHANNEL } from '@/core/channels'
 import { ToolError, ValidationError } from '@/core/errors'
 import { createTool } from '@/core/tool'
+import { toMarkdownText } from '@/core/utils/surface-text'
 import { type AgentMarketData, toAgentBatchResult } from '@/trading/features/suggestion/agent-view'
 import {
   labelOutsideFocus,
@@ -17,7 +18,6 @@ import { rootAgentFocus } from '@/trading/kernel/operator/focus'
 import { toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { instrumentQueryInput, type MarketSchema } from '@/trading/kernel/surface/surface'
 import { reporterOf } from '@/trading/kernel/surface/tool-progress'
-import { toMarkdownText } from '@/trading/render/fold'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 
 /** A fan-out pays one debate per name inside a single chat turn, so discovery runs the shallow

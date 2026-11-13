@@ -36,8 +36,10 @@ Treat this page as a map. For the exact syntax of the version you installed, run
 - `--version` and `-v` do what `version` does.
 - Invalid flags, missing values, invalid choices, and validation errors exit `2` **before** the
   command does anything. A malformed command never half-runs.
-- A broken `config.toml` exits `2` the same way on every command that needs it. Four still run and say
-  what is wrong: `version` exits `0`, and `doctor`, `onboard` and `config validate` exit `1`.
+- A broken `config.toml` exits `2` the same way on every command that needs it. Help and four commands
+  still run: help (`--help`, `help <command>`, bare `openalpha`) exits `0` in your language, or the default
+  one when the language cannot be read. `version` exits `0`, and `doctor`, `onboard` and `config validate`
+  say what is wrong and exit `1`.
 - Global flags may come before or after the command, but not after a `--`.
 - `--` ends option parsing: every token after it is a positional argument. A negative number (`-5`,
   `-3.2`, `-5%`) is a value, never an unknown flag.
@@ -640,7 +642,7 @@ openalpha zalo login [--profile <name>]
 
 Links a personal Zalo account for the `zalo_personal` channel. It saves a QR image and prints where.
 Scan it with the Zalo app and confirm on the phone. A fresh code replaces it about every 100 seconds,
-and the command gives up after five. The login is saved under `--profile`, or the channel's `profile`
+and the command gives up after five minutes. The login is saved under `--profile`, or the channel's `profile`
 when you leave it out, and the QR image is deleted when you are done. A running daemon picks the login
 up on its next reconnect.
 
@@ -744,7 +746,7 @@ The rest fit in a line.
 | `/profile` | `/profile` or `/profile show` shows it; `/profile set <field> <value>` (a share takes `20%` or `0.2`); `/profile enable\|disable <segment>`; `/profile reset` |
 | `/watchlist` | `/watchlist` - live quotes for the names you follow, at most twelve (what you hold is on `/portfolio`) (a longer list is truncated and says so); `/watchlist add <ticker>...`; `/watchlist remove <ticker>...` |
 | `/price` | `/price <ticker>`, or `market:ticker` where a bare name is ambiguous. A market that quotes a two-sided dealer board (VN gold) prints both sides and the spread instead of a settled/live pair: a board states no last trade and keeps no daily series to close against. The title names the sector beside the ticker where the market files one (a bank reads `NAB · Banks`; a fund, an index, a coin and gold name none) |
-| `/market` | `/market` - where one market is right now, beside the last session that settled; `/market enable\|disable` - turn the scheduled sends on or off (they go to the default chat, not necessarily this one) |
+| `/market` | `/market` - where one market is right now, beside the last session that settled; `/market enable\|disable` - turn the scheduled sends on or off (they go to the default chat, not necessarily this one). Nothing is sent until you set `send_times` under `[trading.intraday]`; enabling with none set says so |
 | `/overview` | `/overview` - how the markets you use are doing (segments switched on, plus any market you hold or watch), macro block included; `/overview <market>...` - only those markets, e.g. `/overview crypto` |
 | `/screen` | `/screen [market] [count] [kind]`, in any order (`count` is a whole number from 1 to 50, default 10; a number outside that range, or one with a fractional part like `5.5`, gives the usage line, which states the range, rather than being read as a ticker; `+5` and `3.0` are read as 5 and 3), or `/screen [market:]ticker` for one name's key figures, with the same labels, groups and rounding as its Screen row and the "Key figures" block on its card (a name that did not make the screen gets a line saying so, with only the notes about that name or the whole board, never a note about another name; a name on another market takes that market, as in `crypto:BTC`). The market defaults to the one whose calendar `[locale] region` names; `kind` narrows to one instrument kind the market lists. A name on your exclusion list still ranks and is marked, never hidden. Each name takes one row: its rank, ticker and the sector its market files it under (none for a fund, an index or a coin), verdict and composite, its price and move, the three factors that stand out (the factors a name lacks are listed on a line of their own under its row), then the plain values its market states beside them (a VN stock: distance from its 240-session high, its 63-session move against the VN-Index, average daily range, room left to foreigners, and its P/E beside the sector's median; a coin: market cap, 24-hour traded value, 7- and 30-day change); a narrow chat wraps between facts, never inside one, and the readings behind the scores (P/E, foreign and proprietary net flow, funding, open interest, long-short ratio and the like) sit in a fold below. On the web edition `/screen` lists every priced name in ticker order, one row each, with its sector beside the ticker and what each factor read and where it sits on the board; filters (including the instrument kind), sorting, adding a name to your watchlist and CSV export are on the Screen board |
 | `/suggest` | Spends LLM budget on one name. See [Suggestions](#suggestions) |
@@ -1091,7 +1093,7 @@ claim check, about half the wait) only when you ask for a quick or short analysi
 **What the client's model may see.** The served tools return relative figures - weights, suggestion
 outcomes, `sizePctNav` - plus exactly one absolute figure: the order quantity (`units`) on a
 suggestion and on each `portfolio_rebalance` line, which you need in order to place the order. NAV,
-cash, costs, P&L and transaction amounts are never served:
+cash, costs, P/L and transaction amounts are never served:
 
 - a suggestion's averaging-down and recent-exit warnings reach the model without their cost and loss
   figures;

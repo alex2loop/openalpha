@@ -133,7 +133,11 @@ cùng cổng quyền, cùng cửa sổ giới hạn tần suất và cùng cuộ
 
 Chiều vào (`InboundMessage`): `channel`, `chatId`, `userId`, `messageId`, `text`, `receivedAt` tính bằng
 epoch-ms, và tùy chọn `reactionRef`, `isGroup`, `addressedToBot`. Chiều ra (`ChannelOutbound`): `channel`,
-`chatId`, `text`, và tùy chọn `replyToMessageId`, `buttons`, `useMarkup`, `silent`.
+`chatId`, `text`, và tùy chọn `replyToMessageId`, `buttons`, `useMarkup`, `silent`, `surfaceText`.
+`surfaceText` đánh dấu văn bản do bề mặt giao dịch viết (câu trả lời của lệnh, bản tin, cảnh báo), khác với
+câu trả lời của mô hình: kênh văn bản thuần chỉ gỡ đúng các ký hiệu bề mặt đã viết (`toPlainText`, bộ gỡ
+của CLI, nên trích dẫn giữ nhãn và phần gập giữ thụt lề), còn mọi văn bản khác đi qua bộ gỡ markdown
+chung, giữ liên kết dạng `nhãn (url)`.
 
 Phía trên adapter, mọi mã đều là chuỗi mờ. Mã Telegram dạng số được chuẩn hóa thành chuỗi trước mọi khâu
 xét duyệt, nên `12345` và `"12345"` không bao giờ bất đồng về chuyện bạn là ai.

@@ -260,7 +260,7 @@ export function createTradingNoticeSender(options: NoticeSenderOptions): Trading
       return await delivery.sendAcknowledged(
         notice.target,
         { text, notice },
-        { ...(signal === undefined ? {} : { signal }), ...noticeLabelOf(notice) }
+        { ...(signal === undefined ? {} : { signal }), ...noticeLabelOf(notice), surfaceText: true }
       )
     },
     // The attached channel runtimes plus the attached notice surfaces are the whole routing table:

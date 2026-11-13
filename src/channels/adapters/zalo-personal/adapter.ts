@@ -12,7 +12,7 @@ import type {
 } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
 import type { LruMap } from '@/core/utils/collections'
-import { plainRenderer, stripMarkdown } from '@/channels/renderer'
+import { plainRenderer, plainTextOf } from '@/channels/renderer'
 import { ChannelError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { lruMap } from '@/core/utils/collections'
@@ -174,7 +174,7 @@ async function sendMessage(
 
   const threadType = await resolveThreadType(state, link, out.chatId)
   const result = await throttle.run(
-    () => link.api.sendMessage(stripMarkdown(out.text), out.chatId, threadType),
+    () => link.api.sendMessage(plainTextOf(out), out.chatId, threadType),
     signal
   )
 

@@ -267,7 +267,6 @@ export { describeCaveat } from '@/trading/render/caveat'
 export { formatClock, formatInstant } from '@/trading/render/datetime'
 export { describeEvent } from '@/trading/render/event'
 export { renderFocusLabel } from '@/trading/render/focus'
-export { toPlainText } from '@/trading/render/fold'
 export {
   formatCount,
   formatSignedFixedFraction,

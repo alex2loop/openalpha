@@ -23,7 +23,6 @@ const KEY_SEPARATOR = ':'
 // about the ticker rather than about the attempt.
 const SKIP_BY_CAVEAT: Readonly<Record<string, SkipReason>> = Object.freeze({
   'market.detector-failed': 'unreachable',
-  'market.ticker-shared': 'ambiguous',
 })
 
 /** Why one fill the venue reported did not become a row. Each is a fact about that fill, never a
@@ -437,9 +436,8 @@ async function resolvedMarket(
     }
 
     // A market that detects by fetching answers "no market lists this" the same way it answers
-    // "I could not ask" and "two assets answered". Reading any of them as the first tells the
-    // operator a listed coin is listed nowhere, and a burst of fills is exactly what exhausts a
-    // provider's rate limit.
+    // "I could not ask". Reading the second as the first tells the operator a listed coin is listed
+    // nowhere, and a burst of fills is exactly what exhausts a provider's rate limit.
     const reason = skipForCaveats(
       resolutions.flatMap((entry) => (entry.kind === 'unresolved' ? entry.result.caveats : []))
     )

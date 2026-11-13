@@ -28,7 +28,7 @@ function createHelpCommand(root: () => Group): Command {
   return createCommand({
     ...CLI_COMMAND_METADATA.help,
     spec: { positionalRest: HELP_TOPIC_ARG },
-    needs: { boot: false, configFile: 'optional' },
+    needs: { boot: false, configFile: 'probe' },
     run: (args, app) => root().exec([...flagList(args, HELP_TOPIC_ARG), HELP_FLAG], app, []),
   })
 }

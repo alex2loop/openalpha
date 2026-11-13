@@ -7,7 +7,12 @@ import type { RunInput, Runner, RunResult } from '@/engine/api'
 import type { EventFireClaim, EventJobMatch, JobEvent } from '@/scheduler/event/types'
 
 export interface DeliverySink {
-  notify(target: DeliveryTarget, text: string): Promise<void>
+  /** `surfaceText` marks the text as a slash command's own output rather than a model's prose. */
+  notify(
+    target: DeliveryTarget,
+    text: string,
+    options?: { readonly surfaceText?: boolean }
+  ): Promise<void>
 }
 
 export interface DeliveryTarget {

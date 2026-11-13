@@ -9,6 +9,7 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { formatSpendUsd } from '@/core/utils/cost'
+import { toFoldLines } from '@/core/utils/surface-text'
 import { formatDay, formatShortDay, renderAiLabel, t } from '@/i18n'
 import { renderStoryLines } from '@/trading/features/brief/story/render'
 import { briefSessionOf, renderBriefStrip } from '@/trading/features/brief/strip'
@@ -17,7 +18,6 @@ import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { BRIEF_STRUCTURAL_FIELDS } from '@/trading/kernel/operator/brief-section'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import { formatClock } from '@/trading/render/datetime'
-import { toFoldLines } from '@/trading/render/fold'
 import { renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
 import {
   joinSections,

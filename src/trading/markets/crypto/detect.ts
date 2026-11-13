@@ -15,7 +15,6 @@ import {
   STABLECOIN_TICKERS,
 } from '@/trading/markets/crypto/policy'
 import { isTokenizedEquity, loadUniverseBoard } from '@/trading/markets/crypto/universe'
-import { CAVEAT_SUBJECT_SEPARATOR } from '@/trading/render/format'
 
 /** Pure and synchronous, so a ticker this market could never list never reaches CoinGecko. Pegs and
  *  wrapped mirrors are excluded here rather than at the screen because they are not candidates for
@@ -30,10 +29,8 @@ export function cryptoCandidacy(candidate: Ticker): TickerCandidacy {
     : 'possible'
 }
 
-/** Resolution is by market-cap rank inside the ceiling. Several tokens legitimately share a symbol,
- *  and picking the higher-ranked one silently is how a suggestion ends up about a different asset
- *  than the user asked for — so a collision refuses, naming the coins that collide. Cross-*market*
- *  ambiguity is the registry's to report; a collision inside crypto is this market's own. */
+/** The board holds one row per symbol: where several coins share a ticker the adapter keeps the
+ *  largest, so the ticker resolves to that coin. */
 export async function detectCrypto(
   deps: MarketDeps,
   options: DetectInstrumentOptions
@@ -44,28 +41,10 @@ export async function detectCrypto(
     return undetected(result.caveats, options.ticker)
   }
 
-  const matches = result.value.filter(
+  const first = result.value.find(
     (record) =>
       record.instrument.ticker === options.ticker && record.rank <= MAXIMUM_RESOLUTION_RANK
   )
-
-  if (matches.length > 1) {
-    return {
-      kind: 'no-match',
-      caveats: [
-        {
-          code: 'market.ticker-shared',
-          detail: {
-            ticker: options.ticker,
-            market: CRYPTO_MARKET_REF,
-            names: matches.map((record) => record.name).join(CAVEAT_SUBJECT_SEPARATOR),
-          },
-        },
-      ],
-    }
-  }
-
-  const [first] = matches
 
   if (first !== undefined) {
     return matched(first)

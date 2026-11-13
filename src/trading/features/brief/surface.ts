@@ -2,6 +2,7 @@ import type { Locale } from '@/core/types/locale'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
+import { toPlainText } from '@/core/utils/surface-text'
 import {
   briefTitle,
   caveatsOf,
@@ -12,7 +13,6 @@ import { renderStoryLines, type StoryLine } from '@/trading/features/brief/story
 import { renderBriefStrip } from '@/trading/features/brief/strip'
 import { renderQuotedReading, renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { renderCaveatLines } from '@/trading/render/caveat'
-import { toPlainText } from '@/trading/render/fold'
 import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 import { toBriefSectionText } from '@/trading/render/section'

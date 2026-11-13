@@ -189,9 +189,9 @@ export function renderEtfCapLines(
 }
 
 /** The reserve split only: where cash lands is a row of the table like every other segment, and
- *  saying it twice was the table's one ragged line. The split is measured over settled cash, so a
- *  book still waiting on sale proceeds names that figure rather than leaving the reader to subtract
- *  it from the row above. */
+ *  saying it twice was the table's one ragged line. The split is measured over settled cash at book
+ *  cost, so a book still waiting on sale proceeds, or holding foreign cash above cost, names that
+ *  figure rather than leaving the reader to subtract it from the row above. */
 export function renderCashLine(
   locale: Locale,
   advice: RebalancePlanReady,

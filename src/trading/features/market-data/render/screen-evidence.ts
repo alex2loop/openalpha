@@ -4,6 +4,7 @@ import type { FactorId } from '@/trading/kernel/factor'
 import type { CurrencyCode, PriceDisplay, TradingDay } from '@/trading/kernel/instrument'
 import type { ScreenCandidate } from '@/trading/kernel/market/market-capability'
 import type { RenderContext } from '@/trading/render/format'
+import { toFoldLines } from '@/core/utils/surface-text'
 import { t } from '@/i18n'
 import {
   boardFacts,
@@ -12,7 +13,6 @@ import {
 } from '@/trading/features/market-data/render/screen-facts'
 import { byDistinctiveness } from '@/trading/markets/factor-scoring'
 import { screenRating } from '@/trading/markets/screen-rating'
-import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
   formatScoreValue,

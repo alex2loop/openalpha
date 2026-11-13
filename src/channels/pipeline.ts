@@ -5,16 +5,10 @@ import type { ProactiveSubscription } from '@/channels/delivery/outbound/proacti
 import type { ChannelPlanReviewer } from '@/channels/delivery/plan-review'
 import type { BudgetCaps, InboundQueue } from '@/channels/delivery/queue'
 import type { SentMessages } from '@/channels/delivery/sent-messages'
-import type { InboundHandlerDeps } from '@/channels/delivery/types'
+import type { InboundHandlerDeps, ReplySend } from '@/channels/delivery/types'
 import type { OperatorContext } from '@/channels/operator'
 import type { ChannelSettings } from '@/channels/schema'
-import type {
-  AdmissionMode,
-  ChannelAdapter,
-  InboundInbox,
-  OperatorNotices,
-  OutboundButton,
-} from '@/channels/types'
+import type { AdmissionMode, ChannelAdapter, InboundInbox, OperatorNotices } from '@/channels/types'
 import type { SlashDispatcher, SpendReader } from '@/commands/api'
 import type { EventBus } from '@/core/events'
 import type { Logger } from '@/core/logging/logger'
@@ -105,11 +99,7 @@ export interface Pipeline {
 
 interface NotifierSend {
   readonly notifier: NotifierType
-  readonly sendText: (
-    chatId: string,
-    text: string,
-    buttons?: readonly OutboundButton[]
-  ) => Promise<void>
+  readonly sendText: (chatId: string, text: string) => Promise<void>
 }
 
 function createNotifier(deps: PipelineDeps): NotifierSend {
@@ -142,13 +132,11 @@ function createNotifier(deps: PipelineDeps): NotifierSend {
 /** An answer to the operator's own message goes straight out, as an agent reply does. The
  *  notifier's per-minute window meters unsolicited notices; a reply held behind it lands a minute
  *  late, under whatever the operator asked next. */
-function createReplySender(
-  deps: PipelineDeps
-): (chatId: string, text: string, buttons?: readonly OutboundButton[]) => Promise<void> {
+function createReplySender(deps: PipelineDeps): ReplySend {
   const { adapter, settings, outboundSignal } = deps
   const useMarkup = resolveOutboundMarkup(adapter, settings, true)
 
-  return async (chatId, text, buttons) => {
+  return async (chatId, text, options) => {
     const chunks = selectRenderer(adapter, useMarkup).chunk(text, adapter.capabilities.maxTextLen)
 
     for (const [index, chunk] of chunks.entries()) {
@@ -162,7 +150,10 @@ function createReplySender(
           chatId,
           text: chunk,
           ...(useMarkup ? { useMarkup: true as const } : {}),
-          ...(last && buttons !== undefined && buttons.length > 0 ? { buttons } : {}),
+          ...(options?.surfaceText === true ? { surfaceText: true as const } : {}),
+          ...(last && options?.buttons !== undefined && options.buttons.length > 0
+            ? { buttons: options.buttons }
+            : {}),
         },
         { signal: outboundSignal }
       )
@@ -260,7 +251,7 @@ export function createPipeline(deps: PipelineDeps): Pipeline {
 // logged and dropped rather than retried into a chat that may be the reason it failed.
 function subscribeNotices(
   deps: PipelineDeps,
-  sendText: (chatId: string, text: string, buttons?: readonly OutboundButton[]) => Promise<void>
+  sendText: (chatId: string, text: string) => Promise<void>
 ): void {
   const { bus, locale, logger, outboundSignal: signal } = deps
   const notice: Notice = { sendText, logger }
@@ -337,11 +328,7 @@ function subscribeRecoveryNotices(deps: PipelineDeps, notice: Notice): void {
 }
 
 interface Notice {
-  readonly sendText: (
-    chatId: string,
-    text: string,
-    buttons?: readonly OutboundButton[]
-  ) => Promise<void>
+  readonly sendText: (chatId: string, text: string) => Promise<void>
   readonly logger: Logger
 }
 
@@ -359,11 +346,7 @@ interface HandlerParts {
   readonly planReviewer: ChannelPlanReviewer
   readonly slashRuns: ActiveSlashRuns
   readonly sent: SentMessages
-  readonly sendText: (
-    chatId: string,
-    text: string,
-    buttons?: readonly OutboundButton[]
-  ) => Promise<void>
+  readonly sendText: ReplySend
 }
 
 function orchestratorDeps(deps: PipelineDeps, parts: HandlerParts): OrchestratorDeps {

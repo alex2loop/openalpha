@@ -1,7 +1,9 @@
+import type { UnmirroredExposure } from '@/trading/features/order/store/order-intent'
 import type { ValuedBook } from '@/trading/features/portfolio/types'
 import type { InstrumentKind, InstrumentRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { CapBreach, ShownBreach } from '@/trading/kernel/operator/exposure'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
+import type { MarketRegistry } from '@/trading/markets/types'
 import { OrderError } from '@/trading/features/order/types'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
 import { etfBreaches, isBreached, toShownBreach } from '@/trading/kernel/operator/exposure'
@@ -13,10 +15,17 @@ import { isSegmentDisabled, positionCapOf } from '@/trading/kernel/operator/prof
 export const RECHECK_TOLERANCE_PCT_NAV = 0.0005
 
 interface OrderExposureInput {
-  readonly profile: UserProfile
+  /** None saved declares no ceilings, so a buy without one is measured against nothing. */
+  readonly profile: UserProfile | null
   readonly book: ValuedBook
   readonly instrument: InstrumentRef
   readonly segment: PortfolioSegment
+  /** Buys that placed at the exchange and never reached the ledger: the book cannot weigh them, so
+   *  the position and segment ceilings add them to what it holds. */
+  readonly unmirrored: UnmirroredExposure['buys']
+  /** Files an unmirrored buy under its segment; a market it no longer finds counts toward no
+   *  segment, and toward the position ceiling only by instrument. */
+  readonly markets: Pick<MarketRegistry, 'find'>
   /** Absent where the market publishes none, which leaves the segment's ETF ceiling unmeasured
    *  rather than assuming the name is not one. */
   readonly instrumentKind?: InstrumentKind
@@ -28,6 +37,10 @@ interface OrderExposureInput {
   /** How far past a positive ceiling a weight may land and still hold, as a fraction of NAV. Only
    *  the write window sets it; a ceiling of zero is a closed bucket and takes none. */
   readonly tolerancePctNav?: number
+}
+
+interface MeasuredOrder extends OrderExposureInput {
+  readonly profile: UserProfile
 }
 
 /** A buy against a saved profile is judged by weights of NAV, and a book with an unpriced holding
@@ -47,22 +60,24 @@ export function assertBookPriced(book: ValuedBook, profile: UserProfile | null):
  *  is not among them: a name's sector needs a provider read the order path does not make, and a
  *  network call on the confirmation prompt is worse than a limit stated one short. It is still
  *  reported once the fill is booked, by the ledger fold `/portfolio` and `/rebalance` read. */
-export function breachedCaps(input: OrderExposureInput): readonly CapBreach[] {
-  const navBase = input.book.navBase
+export function breachedCaps(order: OrderExposureInput): readonly CapBreach[] {
+  const { profile } = order
+  const navBase = order.book.navBase
 
   // No denominator, no weights. `assertBookPriced` has already refused an unpriced book, so what
   // is left is a book worth nothing, which a ratio cannot be taken against either.
-  if (navBase === undefined || navBase <= 0) {
+  if (profile === null || navBase === undefined || navBase <= 0) {
     return []
   }
 
+  const input: MeasuredOrder = { ...order, profile }
   const addedPctNav = input.notionalBase / navBase
   const shown = new Map((input.accepted ?? []).map((seen) => [seen.subject, seen]))
   const tolerancePctNav = input.tolerancePctNav ?? 0
 
   return [
-    ...positionBreach(input, addedPctNav),
-    ...segmentBreach(input, addedPctNav),
+    ...positionBreach(input, addedPctNav, navBase),
+    ...segmentBreach(input, addedPctNav, navBase),
     ...etfBreach(input, addedPctNav),
   ].filter(
     (breach) =>
@@ -102,9 +117,16 @@ function isWithinTolerance(breach: CapBreach, tolerancePctNav: number): boolean 
   )
 }
 
-function positionBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {
+function positionBreach(
+  input: MeasuredOrder,
+  addedPctNav: number,
+  navBase: number
+): readonly CapBreach[] {
+  const unmirroredPctNav = unmirroredWeightOf(input, navBase, (buy) =>
+    isSameInstrument(buy.instrument, input.instrument)
+  )
   const crossed = crossedWeights({
-    heldPctNav: heldWeightOf(input.book, input.instrument),
+    heldPctNav: heldWeightOf(input.book, input.instrument) + unmirroredPctNav,
     addedPctNav,
     capPctNav: positionCapOf(input.profile.caps[input.segment], input.instrumentKind),
   })
@@ -114,11 +136,21 @@ function positionBreach(input: OrderExposureInput, addedPctNav: number): readonl
     : [{ kind: 'position', ticker: input.instrument.ticker, ...crossed }]
 }
 
-function segmentBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {
-  const { book, profile, segment } = input
+function segmentBreach(
+  input: MeasuredOrder,
+  addedPctNav: number,
+  navBase: number
+): readonly CapBreach[] {
+  const { book, markets, profile, segment } = input
   const caps = profile.caps[segment]
+  const unmirroredPctNav = unmirroredWeightOf(
+    input,
+    navBase,
+    (buy) => markets.find(buy.instrument.market)?.manifest.segment === segment
+  )
   const heldPctNav =
-    book.segmentValues.find((value) => value.segment === segment)?.weightPctNav ?? 0
+    (book.segmentValues.find((value) => value.segment === segment)?.weightPctNav ?? 0) +
+    unmirroredPctNav
   // A switched-off segment holds nothing, so any buy into it crosses its zero ceiling. The sizer
   // never proposes one; only a typed order or a tool call can reach it. A segment the profile
   // records no caps for is not off, as in the draft direction, so its buys stay unmeasured here.
@@ -135,7 +167,7 @@ function segmentBreach(input: OrderExposureInput, addedPctNav: number): readonly
 }
 
 /** The segment's ETF share, which only an ETF adds to. */
-function etfBreach(input: OrderExposureInput, addedPctNav: number): readonly CapBreach[] {
+function etfBreach(input: MeasuredOrder, addedPctNav: number): readonly CapBreach[] {
   if (input.instrumentKind !== ETF_KIND) {
     return []
   }
@@ -171,6 +203,17 @@ function crossedWeights(input: {
   return isBreached(combinedPctNav, input.capPctNav)
     ? { combinedPctNav, capPctNav: input.capPctNav }
     : undefined
+}
+
+/** The weight of NAV the unmirrored buys a ceiling counts would add, as the held weight beside it. */
+function unmirroredWeightOf(
+  input: OrderExposureInput,
+  navBase: number,
+  isCounted: (buy: UnmirroredExposure['buys'][number]) => boolean
+): number {
+  return (
+    input.unmirrored.filter(isCounted).reduce((total, buy) => total + buy.notionalBase, 0) / navBase
+  )
 }
 
 /** Positions are keyed by instrument and venue; one name held at two custodians is one position

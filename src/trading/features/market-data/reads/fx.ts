@@ -17,9 +17,10 @@ import { shiftCalendarDay } from '@/trading/markets/calendar'
 /** A same-currency rate is arithmetic, not a provider answer; it still needs a stamp so callers
  *  never special-case a missing one. */
 const IDENTITY_SOURCE_ID = sourceId('identity')
-/** How old a rate may be and still stand for a day: a stored one marking a book through a provider
+/** How far a rate may sit from the day it stands for: a stored one marking a book through a provider
  *  outage, or a dated close answering a day the pair did not trade. A weekend plus a holiday is the
- *  longest gap worth papering over; past that the refusal is the honest answer. */
+ *  longest gap worth papering over, before the day or after it; past that the refusal is the honest
+ *  answer. */
 const RATE_MAXIMUM_AGE_DAYS = 3
 /** What a pair with no direct route is bridged through. Every fiat provider quotes against it, and
  *  the coin providers price their coins in it. */
@@ -209,8 +210,9 @@ async function storedRate(
 ): Promise<SourceResult<FxQuote> | null> {
   const stored = await readStored(deps, options)
   const oldest = shiftCalendarDay(options.asOf, -RATE_MAXIMUM_AGE_DAYS)
+  const newest = shiftCalendarDay(options.asOf, RATE_MAXIMUM_AGE_DAYS)
 
-  if (stored === null || stored.asOf < oldest) {
+  if (stored === null || stored.asOf < oldest || stored.asOf > newest) {
     return null
   }
 

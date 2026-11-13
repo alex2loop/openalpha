@@ -133,7 +133,11 @@ payload that names no slash command goes to the control callbacks instead.
 
 Inbound (`InboundMessage`): `channel`, `chatId`, `userId`, `messageId`, `text`, an epoch-ms `receivedAt`,
 and optional `reactionRef`, `isGroup` and `addressedToBot`. Outbound (`ChannelOutbound`): `channel`,
-`chatId`, `text`, and optional `replyToMessageId`, `buttons`, `useMarkup` and `silent`.
+`chatId`, `text`, and optional `replyToMessageId`, `buttons`, `useMarkup`, `silent` and `surfaceText`.
+`surfaceText` marks text the trading surface wrote (a command answer, a brief, an alert) as opposed to a
+model's reply: a plain channel strips exactly the markers the surface writes (`toPlainText`, the CLI's
+stripper, so a citation keeps its label and a fold keeps its indent) and every other text with the
+general markdown stripper, which keeps a link as `label (url)`.
 
 Ids are opaque strings above the adapter. Numeric Telegram ids are normalized to strings before any
 admission check, so `12345` and `"12345"` cannot disagree about who you are.

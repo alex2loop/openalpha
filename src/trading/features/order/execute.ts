@@ -176,21 +176,18 @@ async function bookCapRefusals(deps: OrderServiceDeps, input: ExecuteInput): Pro
     book,
     unmirrored,
   })
-  const breaches =
-    profile === null
-      ? []
-      : breachedCaps({
-          profile,
-          book,
-          instrument: staged.instrument,
-          segment: prepared.segment,
-          notionalBase: prepared.notionalBase,
-          accepted: staged.shownBreaches,
-          tolerancePctNav: RECHECK_TOLERANCE_PCT_NAV,
-          ...(prepared.instrumentKind === undefined
-            ? {}
-            : { instrumentKind: prepared.instrumentKind }),
-        })
+  const breaches = breachedCaps({
+    profile,
+    book,
+    instrument: staged.instrument,
+    segment: prepared.segment,
+    notionalBase: prepared.notionalBase,
+    unmirrored: unmirrored.buys,
+    markets: deps.markets,
+    accepted: staged.shownBreaches,
+    tolerancePctNav: RECHECK_TOLERANCE_PCT_NAV,
+    ...(prepared.instrumentKind === undefined ? {} : { instrumentKind: prepared.instrumentKind }),
+  })
 
   return {
     rejections,

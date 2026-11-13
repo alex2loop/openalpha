@@ -23,7 +23,6 @@
     "src/channels/delivery/plan-review.ts#createChannelPlanReviewer": 44,
     "src/channels/delivery/reply.ts#createReply": 51,
     "src/channels/delivery/slash-notice.ts#openSlashNotice": 56,
-    "src/channels/delivery/slash.ts#dispatchSlash": 42,
     "src/channels/pipeline.ts#createPipeline": 45,
     "src/channels/start.ts#buildResult": 41,
     "src/cli/command.ts#createGroup": 46,

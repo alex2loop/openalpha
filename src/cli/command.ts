@@ -100,7 +100,7 @@ const HELP_NEEDS: Required<Needs> = {
   boot: false,
   bootScope: 'persistence',
   startup: 'none',
-  configFile: 'optional',
+  configFile: 'probe',
   daemon: 'any',
   bootMode: 'cli',
   prepareDaemon: 'none',

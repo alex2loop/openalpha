@@ -1,5 +1,6 @@
-import type { ChannelRenderer } from '@/channels/types'
+import type { ChannelOutbound, ChannelRenderer } from '@/channels/types'
 import { chunkText } from '@/channels/delivery/format'
+import { toPlainText } from '@/core/utils/surface-text'
 
 // Pre-compiled at module top: these run on every outbound message (perf rule, spec §12).
 const FENCED_CODE_RE = /```[a-zA-Z0-9]*\n?([\s\S]*?)```/g
@@ -17,7 +18,7 @@ const BLOCKQUOTE_RE = /^[ \t]*>[ \t]?/gm
 const BULLET_RE = /^([ \t]*)[*+][ \t]+/gm
 const EXCESS_NEWLINES_RE = /\n{3,}/g
 
-export function stripMarkdown(text: string): string {
+function stripMarkdown(text: string): string {
   return text
     .replace(FENCED_CODE_RE, '$1')
     .replace(INLINE_CODE_RE, '$1')
@@ -34,6 +35,12 @@ export function stripMarkdown(text: string): string {
     .replace(BULLET_RE, '$1- ')
     .replace(EXCESS_NEWLINES_RE, '\n\n')
     .trim()
+}
+
+/** What a channel without markdown shows for an outbound message: the surface's own output loses
+ *  only the markers the surface wrote, any other text is stripped of whatever markdown it carries. */
+export function plainTextOf(out: ChannelOutbound): string {
+  return out.surfaceText === true ? toPlainText(out.text) : stripMarkdown(out.text)
 }
 
 export const plainRenderer: ChannelRenderer = {

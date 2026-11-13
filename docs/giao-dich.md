@@ -1108,7 +1108,7 @@ Cảnh báo được gọi bằng mã sáu ký tự (phần đuôi của mã dà
 
 Cảnh báo giá hay cảnh báo thoát lệnh khi chạm sẽ mở đầu bằng tiêu đề và bước tiếp theo. Với thoát lệnh, đó là dòng `/record sell` để bạn điền khi bán xong, rồi `/suggest` để xem lại.
 
-Trong chat, `/transactions` mặc định hiện 10 dòng. `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
+Trong chat, `/transactions` mặc định hiện 10 dòng. `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi/lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
 
 `/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo.
 
@@ -1293,7 +1293,7 @@ như bạn gõ. Không có gì được giữ lại giữa hai bước.
   E1VFVN30 at VPS is now 1,000 at an average cost of 35.37
 ```
 
-Giá vốn bình quân đã gồm phí mua, nên khớp với con số app công ty chứng khoán của bạn hiện, và mọi phép định giá cùng P&L đều đo so với nó. Vì vậy mua rồi bán lại ở cùng giá sẽ hiện đúng là một khoản lỗ nhỏ.
+Giá vốn bình quân đã gồm phí mua, nên khớp với con số app công ty chứng khoán của bạn hiện, và mọi phép định giá cùng lãi/lỗ đều đo so với nó. Vì vậy mua rồi bán lại ở cùng giá sẽ hiện đúng là một khoản lỗ nhỏ.
 
 - Mức phí bạn nêu lệch xa tỷ lệ đã cấu hình thì dòng tỷ lệ được thay bằng mức lệch, không bị lặng lẽ chấp nhận.
 - Thị trường không có tỷ lệ cấu hình thì không in cả hai dòng: không có gì để đo so với, và một số 0 sẽ bị đọc thành sự đồng ý.
@@ -1306,7 +1306,7 @@ Mọi trường đều có nhãn ở đây và không ở đâu khác. Dòng xá
 
 | | Khung nhìn tương đối | Khung nhìn tuyệt đối |
 |---|---|---|
-| Hiện | tỷ trọng, phần trăm, phần trăm lợi suất | tiền: NAV, tiền mặt, giá vốn, P&L |
+| Hiện | tỷ trọng, phần trăm, phần trăm lợi suất | tiền: NAV, tiền mặt, giá vốn, lãi/lỗ |
 | Với tới từ | công cụ của agent, chat | API HTTP cục bộ đã xác thực của bạn và các lệnh gạch chéo |
 
 Chúng là hai kiểu khác nhau với các trường khác nhau. Một agent không thể vô tình biết quy mô tài khoản của bạn, vì không đường mã nào đưa cho nó một cuốn sổ tính bằng tiền.
@@ -1410,7 +1410,7 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
 - **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
   báo ngay.
 - **Mỗi mã được đặt luôn kế hoạch thoát**, tính theo giá vốn bạn đã gõ. Một mã đang giao dịch thấp hơn
-  nhiều so với giá vốn đó có thể đã nằm dưới mức cắt lỗ, và `/portfolio` khi ấy ghi "đã xuyên mức cắt
+  nhiều so với giá vốn đó có thể đã nằm dưới mức cắt lỗ, và `/portfolio` khi ấy ghi "đã thủng mức cắt
   lỗ". Đó là lời nhắc xem lại mã, không phải lỗi ghi sổ.
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
@@ -1667,7 +1667,7 @@ Phân bổ không có bề mặt riêng: `portfolio_rebalance` và `/rebalance` 
 Thẻ Danh mục của [trang văn phòng](van-hanh.md#trang-văn-phòng) ghi đúng những dòng mà `/record`, `/update` và `/delete` ghi, qua cùng các bước kiểm tra, và không bao giờ gửi lệnh.
 
 - **Mọi loại dòng.** Biểu mẫu ghi có ba nút Mua, Bán và Khác, mở sẵn Mua hoặc Bán; nút "Khác" mở danh sách gồm cổ tức tiền mặt (số tiền thực nhận, theo tiền tệ của thị trường), cổ tức bằng cổ phiếu hay cổ phiếu thưởng (số cổ phiếu nhận thêm), chia tách (số cổ phiếu thêm vào, số âm khi gộp cổ phiếu), mua cổ phiếu quyền (kèm giá mua; để trống phí thì ghi là 0), chuyển tiền (giữa hai sàn của bạn; chọn cùng một sàn ở hai đầu thì bị từ chối trước khi gửi), nạp tiền, rút tiền, phí và lỗ đã thực hiện (khoản lỗ từ trước khi bạn ghi sổ). Một thay đổi số cổ phiếu cho thấy sau khi ghi bạn sẽ nắm bao nhiêu. Lịch sử liệt kê mọi loại, có bộ lọc, và dòng nào cũng sửa hoặc xóa được, có hoàn tác. Ngày mở sẵn là ngày giao dịch của thị trường nhà, cùng ngày mà CLI và chat đề xuất (ngày UTC khi thị trường nhà giao dịch suốt ngày đêm).
-- **Danh mục đã làm ra bao nhiêu.** Danh mục > Hiệu quả liệt kê, theo tiền tệ của sổ, số tiền bạn đã nạp ròng sau khi trừ tiền rút, lãi hoặc lỗ đã chốt, phần cổ tức nằm trong đó, phí giao dịch còn trong phần bạn đang giữ, và tổng lãi lỗ so với số đã nạp kèm tỷ lệ phần trăm. Các số này là những số `/portfolio` in; riêng cổ tức thì `/portfolio` không in thành một dòng riêng. Lãi hoặc lỗ đã chốt vẫn hiện khi có một mã chưa có giá; phí và tổng thì phải chờ có tổng tài sản.
+- **Danh mục đã làm ra bao nhiêu.** Danh mục > Hiệu quả liệt kê, theo tiền tệ của sổ, số tiền bạn đã nạp ròng sau khi trừ tiền rút, lãi/lỗ đã chốt, phần cổ tức nằm trong đó, phí giao dịch còn trong phần bạn đang giữ, và tổng lãi/lỗ so với số đã nạp kèm tỷ lệ phần trăm. Các số này là những số `/portfolio` in; riêng cổ tức thì `/portfolio` không in thành một dòng riêng. Lãi/lỗ đã chốt vẫn hiện khi có một mã chưa có giá; phí và tổng thì phải chờ có tổng tài sản.
 - **Tỷ giá bạn đã trả.** Khi một dòng dùng tiền tệ khác với tiền của sổ và cần tỷ giá, như nạp USDT vào một sổ tính bằng VND hay mua ở một sàn không giữ USDT, ô Tỷ giá hiện ra, điền sẵn giá thị trường ngày đó; hãy sửa thành tỷ giá bạn thực trả. Ô này không được để trống, nên trang không bao giờ lưu một dòng như vậy ở mức giá bạn chưa thấy. Dòng trả bằng USDT mà sàn đã giữ (mua, chuyển tiền, phí) không có ô tỷ giá. Nếu không đọc được giá trong ngày, biểu mẫu nói rõ, cho nút Thử lại và chưa cho lưu. Sửa một dòng thì giữ tỷ giá đã ghi của nó.
 - **Đối chiếu với sàn.** Lịch sử > Đối chiếu với sàn đọc từng sàn đã có khóa, như `/reconcile`: khớp, hoặc sàn đang giữ nhiều hơn hay ít hơn sổ bao nhiêu, kèm một nút mở biểu mẫu ghi điền sẵn phần chênh (giá để bạn tự điền). Sàn chưa có khóa thì nêu tên biến của nó và dẫn tới Cài đặt > Sàn giao dịch; sàn không đọc được số dư, hoặc không trả lời, thì nói vậy. "Đồng bộ lệnh khớp từ <sàn>" làm đúng việc của `/record sync`: đọc các lệnh đã khớp, ghi những lệnh sổ còn thiếu, và không đặt lệnh nào. Nếu trả lời chậm, trang đọc lại sổ chứ không gửi đồng bộ lần hai.
 - **Lệnh.** Khi có sàn đặt lệnh được và `[api] orders` đang bật, Danh mục có thẻ *Lệnh*.
@@ -1823,6 +1823,7 @@ Trần tiền mặt tính tiền khả dụng từ các dòng sổ lệnh, nên 
 - Mã là **chỉ tài sản gốc**: `BTC`, không bao giờ là `BTC/USDT`. Cặp được dựng cho bạn.
 - Khối lượng luôn tính bằng **đơn vị gốc**: `0.001` nghĩa là 0,001 BTC, không phải 0,001 USDT giá trị.
 - `tp`/`sl` chỉ đi kèm lệnh mua, vì một lệnh bán chính là lối thoát.
+- Mỗi nhãn (`limit`, `tp`, `sl`, và `qty` ở `/trade exit`) chỉ được xuất hiện một lần. Nhãn lặp lại bị từ chối kèm dòng hướng dẫn, chứ không lấy giá trị cuối.
 - Lệnh mua mặc định cần `sl`. Đặt `require_stop_loss = false` dưới `[trading.orders]` để cho phép không có.
 
 Tiền tố `sàn:` là tùy chọn và chỉ cần khi có hơn một sàn có thể trả lời. Định tuyến chọn đúng một sàn khớp được lệnh, thu hẹp lệnh bán về các sàn thật sự đang nắm một phần bán được, và từ chối mọi trường hợp khác kèm các ứng viên được nêu tên. Nó không bao giờ chọn hộ bạn, vì một lệnh tiền thật không được phụ thuộc vào một mặc định mà không ai đọc lại. Một lệnh bán bị từ chối khi vượt phần đã chốt và chưa được bảo vệ ở sàn đã định tuyến:
@@ -1940,7 +1941,7 @@ Mọi lần ghi lên một sàn (xác nhận, lối thoát, hủy) chạy từng
 - Các trần tính trên cả cuốn sổ: tiền mặt chi được và số lệnh đang mở. Hai lần xác nhận chạy cùng lúc sẽ mỗi cái đo một cuốn sổ mà cái kia chưa ghi vào, và cả hai cùng vượt qua một trần mà chỉ một cái được phép.
 - Hai lời gọi `/trade exit` chạy cùng lúc sẽ mỗi cái đọc *không có gì đang treo* và đặt, để lại lối thoát thứ hai mà chốt chặn xung đột sinh ra để ngăn.
 
-Các trần được đọc **lại** bên trong cửa sổ đó, kể cả trần vị thế, trần nhóm và trần ETF của hồ sơ đã lưu. Lệnh đang chờ giữ lại các trần mà câu hỏi xác nhận đã nêu, kèm con số đã hiện. Một trần đã nêu chỉ được coi là lệnh bạn đã xác nhận khi nó chưa vượt xa hơn con số đó cộng một biên nhỏ: trần bị vượt từ lúc bạn xem (một lệnh khác khớp, giá nhảy), hay mức vượt đã sâu thêm, thì lệnh bị từ chối, kể cả khi bước xác nhận đo thấy nó trước. Lệnh được đặt chờ trước khi có phần lưu này được coi là chưa nêu trần nào. Biên nhỏ bằng 0,05% danh mục, để bù cho giá nhích giữa hai lần kiểm tra; biên này không áp dụng cho trần bằng 0 hay phần ETF chưa đo được. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved`, nói bằng ngôn ngữ của bạn điều gì đã đổi từ lúc bạn xem và đã vượt giới hạn nào, thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`.
+Các trần được đọc **lại** bên trong cửa sổ đó, kể cả trần vị thế, trần nhóm và trần ETF của hồ sơ đã lưu. Lệnh đang chờ giữ lại các trần mà câu hỏi xác nhận đã nêu, kèm con số đã hiện. Một trần đã nêu chỉ được coi là lệnh bạn đã xác nhận khi nó chưa vượt xa hơn con số đó cộng một biên nhỏ: trần bị vượt từ lúc bạn xem (một lệnh khác khớp, giá nhảy), hay mức vượt đã sâu thêm, thì lệnh bị từ chối, kể cả khi bước xác nhận đo thấy nó trước. Lệnh được đặt chờ trước khi có phần lưu này được coi là chưa nêu trần nào. Biên nhỏ bằng 0,05% danh mục, để bù cho giá nhích giữa hai lần kiểm tra; biên này không áp dụng cho trần bằng 0 hay phần ETF chưa đo được. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved`, nói bằng ngôn ngữ của bạn điều gì đã đổi từ lúc bạn xem và đã vượt giới hạn nào, thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`. Các lệnh mua đã tới sàn nhưng chưa vào sổ (nằm trong mục *Đã đặt trên sàn, chưa có trong sổ*) vẫn tính vào trần vị thế của cùng mã và trần nhóm của cùng nhóm cho tới khi được xử lý.
 
 ### 9. Kiểm chứng, theo đúng thứ tự này
 

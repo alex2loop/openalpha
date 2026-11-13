@@ -876,6 +876,9 @@ honest record. It never places an order you did not approve.
 
 [1.6.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.2
 [1.6.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.1
+[1.6.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.0
+[1.5.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.5.1
+[1.5.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.5.0
 [1.4.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.3
 [1.4.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.2
 [1.4.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.1
@@ -884,7 +887,11 @@ honest record. It never places an order you did not approve.
 [1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
 [1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
 [1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0
+[1.1.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.1.2
+[1.1.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.1.1
+[1.1.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.1.0
 [1.0.17]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.17
+[1.0.16]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.16
 [1.0.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.15
 [1.0.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.14
 [1.0.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.13

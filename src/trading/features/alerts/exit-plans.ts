@@ -56,7 +56,7 @@ interface ExitPlanDeps {
   readonly trailedThrough: LruMap<string, TradingDay>
   /** Plan id to the instant its trail may read the series again after the market could not serve it. */
   readonly trailRetryAt: LruMap<string, number>
-  /** Plan id to the settled session a newer strategy version last tried to replace it in. */
+  /** Plan id to the settled session a newer strategy version last got an answer to replace it in. */
   readonly replannedOn: LruMap<string, TradingDay>
   /** Whether a stop rests at the exchange behind each held name, keyed by `buildInstrumentKey`.
    *  Absent on an install with no exchange, where nothing could rest anywhere. */
@@ -119,28 +119,22 @@ async function isolated<T>(
   }
 }
 
-/** True at most once a settled session per plan, and only for one an older strategy version
- *  priced: a replacement the store refuses that day is not re-read from the bars every tick. */
-function claimsReplan(
+/** The settled session a replacement is due for, or null: only for a plan an older strategy version
+ *  priced, and not again once that session's replacement was answered. */
+function replanDayOf(
   deps: ExitPlanDeps,
   plan: StoredSuggestion,
   at: { readonly market: Market | null; readonly now: number }
-): boolean {
+): TradingDay | null {
   const { market, now } = at
 
   if (market === null || plan.strategyVersion === market.manifest.strategyVersion) {
-    return false
+    return null
   }
 
   const settled = resolveSettledDay(market.manifest.calendar, now)
 
-  if (deps.replannedOn.get(plan.id) === settled) {
-    return false
-  }
-
-  deps.replannedOn.set(plan.id, settled)
-
-  return true
+  return deps.replannedOn.get(plan.id) === settled ? null : settled
 }
 
 function movedLevels(from: StoredSuggestion, to: StoredSuggestion): boolean {
@@ -181,11 +175,20 @@ async function planHolding(
   const { instrument, standing, options } = input
   const market = deps.markets.find(instrument.market)
 
-  if (standing !== null && !claimsReplan(deps, standing, { market, now: options.now })) {
+  const replanDay =
+    standing === null ? null : replanDayOf(deps, standing, { market, now: options.now })
+
+  if (standing !== null && replanDay === null) {
     return standing
   }
 
   const planned = await planCaught(deps, input)
+
+  // Only a replacement that answered spends the day: a refusal the store gives is not re-read from
+  // the bars every tick, while one that threw (a provider outage) is retried on the next.
+  if (standing !== null && replanDay !== null && planned !== null) {
+    deps.replannedOn.set(standing.id, replanDay)
+  }
 
   if (planned?.kind !== 'planned') {
     return planned?.kind === 'standing' ? planned.plan : standing

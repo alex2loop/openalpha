@@ -393,8 +393,8 @@ When a run stops early, the CLI exits with the code below and prints the sentenc
 | `agent_paused` | 16 | The agent is paused. | `openalpha agent resume <id>`. |
 | `abort` | 130 | You canceled. | Send a new message to start again. |
 
-A run that runs out of time (no exit code of its own) says "Timed out before the agent finished".
-Send another message to continue, or raise `[loop] max_duration_ms`.
+A run that runs out of time exits `12` too (the same code as `session_busy`) and says "Timed out before
+the agent finished". Send another message to continue, or raise `[loop] max_duration_ms`.
 
 Which spend cap a `budget` stop names:
 

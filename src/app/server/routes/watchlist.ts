@@ -14,10 +14,7 @@ const NAMES = z.array(z.string().min(1)).max(MAX_NAMES).exactOptional()
 const WATCHLIST_BODY: z.ZodType<WatchlistUpdateBody> = z.object({ add: NAMES, remove: NAMES })
 
 // A name two markets claim, which a surface asks the operator to qualify rather than call unknown.
-const AMBIGUOUS_CODES: ReadonlySet<Caveat['code']> = new Set([
-  'market.ticker-ambiguous',
-  'market.ticker-shared',
-])
+const AMBIGUOUS_CODES: ReadonlySet<Caveat['code']> = new Set(['market.ticker-ambiguous'])
 
 type WatchlistChange = Awaited<ReturnType<TradingHost['updateWatchlist']>>
 

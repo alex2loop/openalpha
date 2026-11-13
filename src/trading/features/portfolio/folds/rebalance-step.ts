@@ -88,23 +88,26 @@ export function roundToLot(
   return (quantity * sizing.unitPriceBase) / nav
 }
 
-/** Divides by the same price the row was lot-rounded against, so the count is one an order fills.
- *  That holds because a held name's candidate carries the book's own valuation price: `pricedValue`
- *  returns it verbatim for a name the valuation already priced. A candidate that preferred a live
- *  quote for a held name would part the quantity from the rounding without either side saying so. */
+/** Divides by the price the row was lot-rounded against, so the count is one an order fills. A buy
+ *  is sized at what a buy pays and a sale at what a sale gets: on a dealer board the two differ, and
+ *  a reduce rounds at the held name's valuation mark, which is the `exitPriceBase` the candidate
+ *  carries. A candidate that preferred another price would part the quantity from the rounding
+ *  without either side saying so. */
 export function sizeOf(
   change: PositionChange,
   candidate: PortfolioCandidate,
   nav: number
 ): OrderSize {
   const valueBase = Math.abs(change.changePctNav) * nav
+  const isBuy = change.changePctNav > 0
+  const unitPriceBase = isBuy ? candidate.unitPriceBase : candidate.exitPriceBase
 
   return {
     valueBase,
-    quantity: valueBase / candidate.unitPriceBase,
+    quantity: valueBase / unitPriceBase,
     boardLot: candidate.boardLot,
-    unitPriceBase: candidate.unitPriceBase,
-    unitPrice: candidate.unitPrice,
+    unitPriceBase,
+    unitPrice: isBuy ? candidate.unitPrice : candidate.exitPrice,
     currency: candidate.currency,
   }
 }

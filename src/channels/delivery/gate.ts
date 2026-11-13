@@ -1,12 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import type { OperatorContext } from '@/channels/operator'
-import type {
-  AdmissionMode,
-  ChannelCallbackQuery,
-  InboundMessage,
-  OutboundButton,
-} from '@/channels/types'
+import type { AdmissionMode, ChannelCallbackQuery, InboundMessage } from '@/channels/types'
 import type { ChannelId } from '@/core/channels'
 import type { EventBus } from '@/core/events'
 import type { SessionId } from '@/core/ids'
@@ -51,11 +46,7 @@ interface GateDeps {
   readonly configIds: readonly string[]
   readonly operatorUserIds: readonly string[]
   readonly mode: AdmissionMode
-  readonly sendText: (
-    chatId: string,
-    text: string,
-    buttons?: readonly OutboundButton[]
-  ) => Promise<void>
+  readonly sendText: (chatId: string, text: string) => Promise<void>
   readonly bus: EventBus
   readonly logger: Logger
   readonly locale: Locale

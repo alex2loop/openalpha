@@ -157,7 +157,10 @@ export interface BoardCache {
   get(request: BoardRequest): Promise<SourceResult<BoardSnapshot>>
 }
 
+/** Keyed by the day asked for, not the snapshot's own: the snapshot is stamped with the vendors'
+ *  board day, which differs from the request whenever the counters have not published today's. */
 interface CachedBoard {
+  readonly requestedOn: TradingDay
   readonly result: Extract<SourceResult<BoardSnapshot>, { readonly kind: 'available' }>
   readonly fetchedAt: number
 }
@@ -171,7 +174,7 @@ export function boardCache(deps: MarketDeps, manifest: MarketManifest): BoardCac
       // quotes. A session can open inside the window, so a hit is re-tested rather than trusted.
       if (
         cached !== null &&
-        cached.result.value.asOf === request.asOf &&
+        cached.requestedOn === request.asOf &&
         request.now - cached.fetchedAt <= BOARD_CACHE_TTL_MS &&
         !isBoardStale(manifest.calendar, cached.result.value.board, request.now)
       ) {
@@ -181,7 +184,7 @@ export function boardCache(deps: MarketDeps, manifest: MarketManifest): BoardCac
       const result = await loadBoardSnapshot(deps, manifest, request)
 
       if (result.kind === 'available' && !request.signal.aborted) {
-        cached = { result, fetchedAt: request.now }
+        cached = { requestedOn: request.asOf, result, fetchedAt: request.now }
       }
 
       return result

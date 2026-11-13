@@ -337,7 +337,7 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
 - **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
   báo ngay.
 - **Mỗi mã ghi vào được đặt luôn kế hoạch thoát**, tính theo giá vốn bạn ghi. Mã đang lỗ sâu so với giá
-  vốn thì giá hôm nay có thể đã nằm dưới mức cắt lỗ đó, và `/portfolio` sẽ báo "đã xuyên mức cắt lỗ".
+  vốn thì giá hôm nay có thể đã nằm dưới mức cắt lỗ đó, và `/portfolio` sẽ báo "đã thủng mức cắt lỗ".
   Đó là nhắc bạn xem lại mã ấy, không phải sổ ghi sai.
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu

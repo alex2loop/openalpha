@@ -7,6 +7,7 @@ import type {
   StagedOrder,
   UnmirroredIntent,
 } from '@/trading/features/order/types'
+import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { ShownBreach } from '@/trading/kernel/operator/exposure'
 import type { StoredShape } from '@/trading/kernel/store/store-payload'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
@@ -67,6 +68,13 @@ interface UnmirroredRow {
   readonly avg_price: number | null
 }
 
+interface ExposureRow {
+  readonly market: string
+  readonly ticker: string
+  readonly side: string
+  readonly notional_base: number
+}
+
 /** Not the service's claim input: the store is told the cutoff rather than deriving it, because
  *  the confirm TTL is the service's to own. */
 interface ClaimIntentInput {
@@ -98,11 +106,17 @@ interface StagedListInput {
   readonly signal: AbortSignal
 }
 
-/** What placed at the exchange and is not in the book: how many orders, and the cash the buys among
- *  them took. A sell's proceeds are not credited back, because they too have not been booked. */
+interface UnmirroredBuy {
+  readonly instrument: InstrumentRef
+  readonly notionalBase: number
+}
+
+/** What placed at the exchange and is not in the book: how many orders, the buys among them and the
+ *  cash those took. A sell's proceeds are not credited back, because they too have not been booked. */
 export interface UnmirroredExposure {
   readonly count: number
   readonly spentBase: number
+  readonly buys: readonly UnmirroredBuy[]
 }
 
 export interface OrderIntentStore {
@@ -255,14 +269,21 @@ async function unmirroredExposure(
 ): Promise<UnmirroredExposure> {
   assertNotAborted(signal)
 
-  const rows = await deps.db.query<{ readonly count: number; readonly spent_base: number }>(
-    'SELECT COUNT(*) AS count, ' +
-      "COALESCE(SUM(CASE WHEN side = 'buy' THEN notional_base ELSE 0 END), 0) AS spent_base " +
-      'FROM order_intents WHERE failure IS NOT NULL'
+  const rows = await deps.db.query<ExposureRow>(
+    'SELECT market, ticker, side, notional_base FROM order_intents WHERE failure IS NOT NULL'
   )
-  const row = rows[0]
+  const buys = rows
+    .filter((row) => row.side === 'buy')
+    .map((row) => ({
+      instrument: { market: marketRef(row.market), ticker: ticker(row.ticker) },
+      notionalBase: Number(row.notional_base),
+    }))
 
-  return { count: Number(row?.count ?? 0), spentBase: Number(row?.spent_base ?? 0) }
+  return {
+    count: rows.length,
+    spentBase: buys.reduce((total, buy) => total + buy.notionalBase, 0),
+    buys,
+  }
 }
 
 async function listUnmirrored(

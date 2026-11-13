@@ -747,7 +747,7 @@ Each market publishes only the per-market sections it has data for, so adding a 
 
 - `/suggest` heads with the call (`BUY`, `NO ENTRY today`...), then one price level per line, then the reasoning and what would prove it wrong, then the factors and debate. The evidence day, profile, board scale and index-tier note close the report.
 - `/rebalance` titles itself with the plan in one line (how many names to buy or sell and the money involved); each order keeps its first slice and weight, and NAV and profile close the page.
-- `/portfolio` puts a cash-above-target warning right under the headline, and splits cash on hand from profit and loss.
+- `/portfolio` puts a cash-above-target warning right under the headline, and splits cash on hand from P/L.
 - `/overview` prints a macro driver table once: a second market reading the same composite says so in one line instead of repeating it.
 - Headlines and citations print as their sources publish them; one in a language other than yours is marked, e.g. `(Vietnamese)`.
 
@@ -1100,7 +1100,7 @@ Alerts are named by a six-character id (the end of the long one) in `/alert list
 
 A fired price or exit alert opens with the headline and the next step. For an exit, that is the sale's `/record sell` line for you to fill in, then `/suggest` for a fresh look.
 
-In a chat, `/transactions` shows 10 rows by default. `/portfolio` lists positions right after the warnings, then cash, profit and loss and allocation, with at most three closed trips on a phone.
+In a chat, `/transactions` shows 10 rows by default. `/portfolio` lists positions right after the warnings, then cash, P/L and allocation, with at most three closed trips on a phone.
 
 `/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo.
 
@@ -1284,7 +1284,7 @@ booked as typed. Nothing is held in between.
   E1VFVN30 at VPS is now 1,000 at an average cost of 35.37
 ```
 
-The average cost includes the entry fee, so it matches the figure your broker's app shows, and every valuation and P&L measures against it. A round trip at the same price therefore reads as the small loss it is.
+The average cost includes the entry fee, so it matches the figure your broker's app shows, and every valuation and P/L measures against it. A round trip at the same price therefore reads as the small loss it is.
 
 - A stated fee that sits far from the configured rate replaces the rate line with how far off it is, rather than being silently accepted.
 - A market with no configured rate prints neither line: there is nothing to measure against, and a zero would read as agreement.
@@ -1297,7 +1297,7 @@ This is a structural boundary, not a permission flag.
 
 | | Relative view | Absolute view |
 |---|---|---|
-| Shows | weights, percentages, return percentages | money: NAV, cash, cost basis, P&L |
+| Shows | weights, percentages, return percentages | money: NAV, cash, cost basis, P/L |
 | Reachable from | agent tools, chat | your authenticated local HTTP API and slash commands |
 
 They are different types with different fields. An agent cannot learn your account size by accident, because no code path hands it a money-valued book.
@@ -1423,7 +1423,7 @@ you sold.
 - **The deposit has to come first.** Every write checks the whole book, and a buy or loss with no cash
   behind it is refused.
 - **Each name gets an exit plan straight away**, measured from the cost you typed. A name trading well
-  below that cost may already sit under its stop, and `/portfolio` then says it is "through its stop".
+  below that cost may already sit under its stop, and `/portfolio` then says it "broke its stop".
   That is a prompt to review the name, not a booking error.
 
 Then open `/portfolio` and compare its cash with your broker's balance. Here: 200 million in, less 95
@@ -1451,7 +1451,7 @@ an average cost is off; fix it with `/update <id>` rather than adding a row.
   on ETH and the 300 loss, leaves 600 USDT. With the venue's key set, `/reconcile` checks it for you.
 
 If the book doesn't need to remember the old loss, skip it: deposit your current cash plus what your
-holdings cost, and drop the `loss` line. Profit and loss then start from today.
+holdings cost, and drop the `loss` line. P/L then starts from today.
 
 Either way, the history of each name you sold is gone: `/transactions` shows one loss line. `/reflect`
 is unaffected, because it scores the assistant's calls, not your trades.
@@ -1680,7 +1680,7 @@ Allocation has no surface of its own: `portfolio_rebalance` and `/rebalance` rep
 The Portfolio tab of the [office page](operations.md#the-office-page) writes the same rows as `/record`, `/update` and `/delete`, through the same checks, and never sends an order.
 
 - **Every kind of row.** The record form has three buttons, Buy, Sell and Other, and opens on Buy or Sell; "Other" opens a menu of dividend (the amount received, in the market's currency), distribution (the shares received), split (shares added, negative for a reverse split), rights (with the purchase price; an empty fee is recorded as 0), transfer (between two of your venues; the same venue on both sides is refused before anything is sent), deposit, withdrawal, fee and loss (money lost before you kept the ledger). A share change shows what the holding will be once recorded. History lists every kind, with a filter, and every row can be edited or deleted, with undo. The date opens on your home market's trading day, the same day the CLI and chat propose (the UTC day when the home market trades around the clock).
-- **What the book has made.** Portfolio > Performance lists, in the book's currency, what you put in net of withdrawals, the realized profit or loss, the dividends inside it, the trading fees still in what you hold, and the total against what you put in, with its percent. The figures are the ones `/portfolio` prints; it does not print the dividends as a line of their own. Realized profit or loss shows even while a holding has no price, and the fees and the total wait for the total assets.
+- **What the book has made.** Portfolio > Performance lists, in the book's currency, what you put in net of withdrawals, the realized P/L, the dividends inside it, the trading fees still in what you hold, and the total against what you put in, with its percent. The figures are the ones `/portfolio` prints; it does not print the dividends as a line of their own. Realized P/L shows even while a holding has no price, and the fees and the total wait for the total assets.
 - **The rate you paid.** When a row is in a currency other than the book's and a rate applies, such as a USDT deposit on a VND book or a buy at a venue holding no USDT, a Rate field appears, filled with that day's market rate; change it to the rate you actually paid. It cannot be left empty, so the page never saves such a row at a rate you did not see. A row paid from USDT the venue already holds (a buy, a transfer, a fee) shows no rate field. If the day's rate cannot be read, the form says so, offers Retry and does not save yet. Editing a row keeps its booked rate.
 - **Check against venues.** History > Check against venues reads each venue that has a key, as `/reconcile` does: a match, or how much more or less the venue holds than the ledger, with a button that opens the record form filled with the difference (the price is left for you). A venue with no key names its variables and links to Settings > Exchanges; one that cannot read balances, or does not answer, says so. "Sync fills from <venue>" does what `/record sync` does: it reads the filled orders and books the ones the ledger lacks, and places no order. If the answer is slow, the page reads the ledger again rather than sending the sync twice.
 - **Orders.** Where a venue can place orders and `[api] orders` is on, Portfolio has an *Orders* tab.
@@ -1836,6 +1836,7 @@ This is bookkeeping, not a transfer. It tells the ledger what you hold so the bo
 - The ticker is the **base asset alone**: `BTC`, never `BTC/USDT`. The pair is built for you.
 - The quantity is always in **base units**: `0.001` means 0.001 BTC, not 0.001 USDT's worth.
 - `tp`/`sl` ride a buy only, since a sell is itself the exit.
+- Each label (`limit`, `tp`, `sl`, and `qty` on `/trade exit`) may appear once. A repeated one is refused with the usage line rather than keeping the last.
 - A buy needs `sl` by default. Set `require_stop_loss = false` under `[trading.orders]` to allow one without.
 
 The `venue:` prefix is optional and only needed when more than one venue could answer. Routing picks the single venue that can fill the order, narrows a sell to the venues actually holding a sellable parcel, and refuses anything else with the candidates named. It never picks one for you, because a real-money order must not depend on a default nobody re-reads. A sell is refused above what is settled and not guarded at the routed venue:
@@ -1953,7 +1954,7 @@ Every write to an exchange (a confirm, an exit, a cancel) runs one at a time. Th
 - The caps are whole-book: spendable cash and the open-trade count. Two confirms running together would each measure a book the other has not written to, and both clear a ceiling only one may.
 - Two `/trade exit` calls running together would each read *nothing resting* and place, leaving the second exit the conflict guard exists to prevent.
 
-The caps are read **again** inside that window, and so are the saved profile's position, segment and ETF ceilings. The staged order keeps the ceilings its prompt named, each with the figure it showed. A ceiling it named passes as the order you confirmed only while it has not grown past that figure plus a small margin; one crossed since you looked (another fill, a price jump), or one that has deepened, refuses it, even if the confirm measures it first. An order staged before this was kept counts as having named none. The margin is 0.05% of the portfolio, for price moves between the two; it never applies to a cap of 0 or to an ETF share that could not be measured. An order the book no longer allows is refused with `order.book_moved`, which says in your language what changed since you looked and which limit it crossed, rather than trimmed, because the size and the levels are what you said yes to. A holding that lost its price in the meantime refuses the buy with `order.book_unpriced`.
+The caps are read **again** inside that window, and so are the saved profile's position, segment and ETF ceilings. The staged order keeps the ceilings its prompt named, each with the figure it showed. A ceiling it named passes as the order you confirmed only while it has not grown past that figure plus a small margin; one crossed since you looked (another fill, a price jump), or one that has deepened, refuses it, even if the confirm measures it first. An order staged before this was kept counts as having named none. The margin is 0.05% of the portfolio, for price moves between the two; it never applies to a cap of 0 or to an ETF share that could not be measured. An order the book no longer allows is refused with `order.book_moved`, which says in your language what changed since you looked and which limit it crossed, rather than trimmed, because the size and the levels are what you said yes to. A holding that lost its price in the meantime refuses the buy with `order.book_unpriced`. Buys that reached the exchange but never reached your book (listed under *Placed at the exchange, missing from your book*) count toward the position ceiling of the same name and the segment ceiling of the same segment until they are settled.
 
 ### 9. Verify, in this order
 

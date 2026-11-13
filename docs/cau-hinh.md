@@ -900,7 +900,7 @@ cứ để nguyên.
 ### Lệnh và thông tin đăng nhập của sàn
 
 Chỉ `[trading.orders]` quyết định một lệnh có được đặt hay không. Trần `0` là không chặn.
-`maximum_price_drift` là một **phân số**: `0.5` nghĩa là năm mươi phần trăm, không phải nửa phần trăm.
+`maximum_price_drift` là một **phân số**, tối đa `0.1` (mười phần trăm): `0.005` là nửa phần trăm. Giá trị lớn hơn `0.1`, chẳng hạn gõ `5` cho năm phần trăm, bị từ chối khi khởi động thay vì tắt mất lớp bảo vệ này.
 
 `allow_unattended` có vì chế độ phê duyệt `bypass` cho một lời gọi đi qua trước khi cổng phê duyệt kịp
 hỏi. Nên đặt lệnh khi không có người trông cần **hai** quyết định của bạn, không phải một; xem

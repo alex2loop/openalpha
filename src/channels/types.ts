@@ -53,6 +53,10 @@ export interface ChannelOutbound {
   readonly buttons?: readonly OutboundButton[]
   readonly useMarkup?: boolean
   readonly silent?: boolean
+  /** The text is the trading surface's own output (a command answer, a brief, an alert), not a
+   *  model's reply. A channel that renders no markdown strips exactly what the surface writes, so a
+   *  citation keeps its label without the redirect URL behind it; a model's link stays whole. */
+  readonly surfaceText?: boolean
 }
 
 export interface OutboundTarget {
@@ -288,6 +292,8 @@ export interface AcknowledgedSendOptions {
   /** Set only for a reading the operator may reply to; the runtime files the delivered chunks
    *  under it. */
   readonly noticeLabel?: string
+  /** The text is the trading surface's own output; see `ChannelOutbound.surfaceText`. */
+  readonly surfaceText?: boolean
 }
 
 /** A line meant for the operator alone, at most as often as its owner allows. Null when there is

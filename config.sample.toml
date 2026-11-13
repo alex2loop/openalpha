@@ -312,7 +312,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # maximum_stake_quote = 0            # most one buy may spend, in USDT; 0 = uncapped
 # maximum_open_trades = 0            # max open positions a new buy may add to (adding to a held name is not a new one); 0 = uncapped
 # maximum_price_drift = 0.005        # how far a limit may sit from the live quote, and the live quote
-#                                    # from the one you were shown (market orders), as a fraction
+#                                    # from the one you were shown (market orders), as a fraction (max 0.1)
 # allow_unattended = false           # true = allow orders without interactive approval
 # require_stop_loss = true           # refuse a buy with no `sl`; false allows it
 # The kill switch is not a setting: /trade halt holds every new buy until /trade resume.

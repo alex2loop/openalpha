@@ -399,8 +399,8 @@ Khi một phiên chạy dừng sớm, CLI thoát với mã dưới đây và in 
 | `agent_paused` | 16 | Agent đang tạm dừng. | `openalpha agent resume <id>`. |
 | `abort` | 130 | Bạn đã hủy. | Gửi tin nhắn mới để bắt đầu lại. |
 
-Phiên chạy hết giờ (không có mã thoát riêng) báo "Hết thời gian trước khi agent làm xong". Gửi tin
-nhắn tiếp để làm tiếp, hoặc tăng `[loop] max_duration_ms`.
+Phiên chạy hết giờ cũng thoát với mã `12` (trùng mã của `session_busy`) và báo "Hết thời gian trước khi
+agent làm xong". Gửi tin nhắn tiếp để làm tiếp, hoặc tăng `[loop] max_duration_ms`.
 
 Một lần dừng `budget` nêu trần nào bị chạm:
 

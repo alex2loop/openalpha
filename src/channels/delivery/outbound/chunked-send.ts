@@ -14,6 +14,8 @@ interface ChunkedSendOptions {
   readonly text: string
   /** Whether this path renders markup at all; the channel's own capability still decides. */
   readonly markup: boolean
+  /** The text is the trading surface's own output; see `ChannelOutbound.surfaceText`. */
+  readonly surfaceText?: boolean
   readonly signal?: AbortSignal
 }
 
@@ -63,6 +65,7 @@ export async function sendChunked(
     const { outcome, ref } = await notifier.notify(target, chunk, {
       ...(signal === undefined ? {} : { signal }),
       ...(useMarkup ? { useMarkup: true as const } : {}),
+      ...(options.surfaceText === true ? { surfaceText: true as const } : {}),
     })
 
     if (outcome !== 'delivered') {

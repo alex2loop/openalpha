@@ -24,6 +24,15 @@ import type {
 } from '@/core/types/session'
 import type { AgentRegistry, RunRegistry } from '@/engine/api'
 
+interface ReplyOptions {
+  readonly buttons?: readonly OutboundButton[]
+  /** The text is the trading surface's own output; see `ChannelOutbound.surfaceText`. */
+  readonly surfaceText?: boolean
+}
+
+/** An answer to the operator's own message. */
+export type ReplySend = (chatId: string, text: string, options?: ReplyOptions) => Promise<void>
+
 export interface InboundHandlerDeps {
   readonly channelId: ChannelId
   readonly gate: Gate
@@ -48,11 +57,7 @@ export interface InboundHandlerDeps {
   readonly signal: AbortSignal
   readonly runExchange: (exchange: Exchange) => Promise<void>
   readonly redeliver: (answer: FinalAnswer) => Promise<void>
-  readonly sendText: (
-    chatId: string,
-    text: string,
-    buttons?: readonly OutboundButton[]
-  ) => Promise<void>
+  readonly sendText: ReplySend
   readonly onCallback: (query: ChannelCallbackQuery) => Promise<void>
   readonly logger: Logger
   readonly locale: Locale
