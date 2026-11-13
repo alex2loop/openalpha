@@ -7,6 +7,36 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.6.3] - 2026-11-13
+
+Order caps now count orders that filled at the exchange but never reached your ledger, gold rebalancing prices a buy at what the shop charges, Zalo shows command replies without long links, and the same event reads the same everywhere.
+> Hạn mức lệnh giờ tính cả lệnh đã khớp ở sàn nhưng chưa vào sổ, kế hoạch cân bằng vàng tính giá mua theo giá tiệm bán ra, Zalo hiện kết quả câu lệnh không kèm đường link dài, và cùng một sự kiện được gọi giống nhau ở mọi nơi.
+
+### Changed
+
+- `maximum_price_drift` is capped at `0.1` (ten percent). A config with a larger value, such as `5` typed for five percent, is refused at startup with a message naming the key, instead of quietly switching the drift guard off.
+- On Zalo, command replies, briefs and alerts read like the terminal: a source shows its name without the long redirect link, and detail lines keep their indent. Answers from the assistant keep their links.
+- One word per event: a broken stop is "thủng mức cắt lỗ" / "broke its stop" in the terminal, chat and the web; "Lãi/lỗ" and "P/L" label profit and loss; the most-traded board has one name; the English gold board reads "shop buys / shop sells".
+- `/market enable` and `/market` say plainly when no send times are set and name the `send_times` key to add.
+- `openalpha --help` and `help <command>` work even when `config.toml` cannot be read.
+- `agent bind --help` marks `--channel` as required.
+
+### Fixed
+
+- A buy now counts orders that filled at the exchange but are not in your ledger yet against the per-name and per-group caps, both on the confirmation prompt and again just before the order goes out.
+- `/rebalance` sizes a buy of gold you already hold at the shop's selling price and a sale at its buying price; if the shop board cannot be read, a planned sale still shows, at your book's price.
+- The reserve warning and the cash advice in `/rebalance` read the same settled cash; a note says when foreign cash sits at cost while the table marks it at today's rate.
+- The web hides "Unrealized P/L" while a holding has no price, as the terminal does, and shows the server's own figure.
+- `/suggest` on a tokenized stock (for example NVDAB or NVDAX) says what it is instead of "check the spelling" or analysing it as a coin; more stablecoins and tokenized stocks stay off the crypto board and breadth.
+- A record dated in the past no longer converts at an exchange rate from days after that date when the rate providers are down.
+- The VN gold board is read once per day asked instead of on every price read.
+- A replan for an older strategy version that fails during a provider outage is retried later instead of waiting for the next session, without a warning on every check.
+- A repeated `limit`, `tp` or `sl` in `/trade` is refused instead of silently keeping the last one.
+- The web budget fields use the page's decimal separator.
+- On the web, Book and Today update right after a `/record`, `/update`, `/delete` or `/profile` change typed in the chat, and the web version saves its copy then too; a holding shows its own price, not "—".
+- Error lines that list channels say "(không có)" in Vietnamese.
+- Docs: a run that times out exits with code `12`; the commands open to every chat member are named; `zalo login` gives up after five minutes; missing release links were added.
+
 ## [1.6.2] - 2026-11-12
 
 Gold prices name their unit everywhere and gold alerts watch the price the shop pays you; orders re-check your caps right before they go out; a mistyped ticker is asked about before it reaches your ledger; and the web, the terminal and chat read figures, dates and Vietnamese terms the same way.
@@ -874,8 +904,12 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.6.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.3
 [1.6.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.2
 [1.6.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.1
+[1.6.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.0
+[1.5.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.5.1
+[1.5.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.5.0
 [1.4.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.3
 [1.4.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.2
 [1.4.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.4.1
@@ -884,7 +918,11 @@ honest record. It never places an order you did not approve.
 [1.2.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.2
 [1.2.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.1
 [1.2.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.2.0
+[1.1.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.1.2
+[1.1.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.1.1
+[1.1.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.1.0
 [1.0.17]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.17
+[1.0.16]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.16
 [1.0.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.15
 [1.0.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.14
 [1.0.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.0.13

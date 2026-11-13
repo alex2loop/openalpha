@@ -35,7 +35,6 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market.ticker-not-listed', severity: 'warn' },
   { code: 'market.ticker-ambiguous', severity: 'warn' },
   { code: 'market.ticker-also-listed', severity: 'warn' },
-  { code: 'market.ticker-shared', severity: 'warn' },
   { code: 'market.ticker-not-active', severity: 'warn' },
   { code: 'market.tokenized-equity', severity: 'warn' },
   { code: 'market.not-registered', severity: 'warn' },

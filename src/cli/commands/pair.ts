@@ -48,7 +48,7 @@ function resolveChannel(args: ParsedArgs, app: CliApp): ChannelResult {
       ok: false,
       error: t(locale, 'cli.pairUnknownChannel', {
         id: raw,
-        available: availableChannelIds(definitions),
+        available: availableChannelIds(locale, definitions),
       }),
     }
   }

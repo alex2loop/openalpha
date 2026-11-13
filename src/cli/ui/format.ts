@@ -100,8 +100,11 @@ export function truncateDisplay(value: string, maxWidth: number): string {
   return result
 }
 
-export function availableChannelIds(definitions: readonly ChannelDefinition[]): string {
-  return definitions.map((definition) => definition.id).join(', ') || '(none)'
+export function availableChannelIds(
+  locale: Locale,
+  definitions: readonly ChannelDefinition[]
+): string {
+  return definitions.map((definition) => definition.id).join(', ') || t(locale, 'cli.channelsNone')
 }
 
 export function formatSessionStatus(locale: Locale, status: SessionStatus): string {

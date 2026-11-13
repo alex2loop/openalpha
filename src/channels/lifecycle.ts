@@ -57,21 +57,17 @@ export function createChannelRuntime(deps: ChannelRuntimeDeps): ChannelRuntime {
     snapshot: () => ({ channel: adapter.id, ...state.status }),
     isWorking: pipeline.isWorking,
     notify: async (target, text, options) => {
+      const { noticeLabel, ...send } = options ?? {}
       const { outcome, messageIds } = await sendChunked(
         { notifier: pipeline.notifier, adapter, settings: deps.settings },
-        {
-          target,
-          text,
-          markup: true,
-          ...(options?.signal === undefined ? {} : { signal: options.signal }),
-        }
+        { target, text, markup: true, ...send }
       )
 
       if (outcome === 'delivered') {
         fileNotice(pipeline.sent, {
           chatId: target.chatId,
           messageIds,
-          label: options?.noticeLabel,
+          label: noticeLabel,
         })
 
         return 'accepted'

@@ -186,6 +186,9 @@ export interface AbsolutePositionWire {
   /** The buy price in the market's own currency, fees included (`costBasisNative / quantity`);
    *  absent at quantity 0. */
   readonly unitCostNative?: number
+  /** The mark the value stands on, in the market's own currency; absent while the position is
+   *  unpriced. */
+  readonly price?: number
   /** The day of the first buy since the position last opened from flat; absent at quantity 0. */
   readonly heldSince?: string
   readonly marketValueBase?: number

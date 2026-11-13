@@ -10,10 +10,10 @@ import type {
 import type { SuggestionDirection } from '@/trading/features/suggestion/types'
 import type { LeanDebateReason } from '@/trading/kernel/config'
 import type { SuggestionAction } from '@/trading/kernel/conviction'
+import { toFoldLines } from '@/core/utils/surface-text'
 import { type MessageKey, t } from '@/i18n'
 import { isTraderRefusal } from '@/trading/features/suggestion/debate/types'
 import { DEBATE_MODE_ROLES } from '@/trading/kernel/config'
-import { toFoldLines } from '@/trading/render/fold'
 import {
   DIRECTION_MARKS,
   formatCount,

@@ -9,6 +9,8 @@ export const JOB_MAX_DURATION_MS = 900_000
 export interface JobExecution {
   readonly result: RunResult
   readonly denied: boolean
+  /** The result is the trading surface's own text, not a model's. */
+  readonly surfaceText?: true | undefined
 }
 
 interface RunAgentOptions {
@@ -28,7 +30,7 @@ export async function runAgent(
   })
 
   if (answer?.kind === 'text') {
-    return { result: toCommandResult(answer.text), denied: false }
+    return { result: toCommandResult(answer.text), denied: false, surfaceText: answer.surfaceText }
   }
 
   const asked: Job =

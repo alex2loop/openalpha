@@ -356,7 +356,16 @@ async function capsFor(deps: OrderServiceDeps, caps: CapsInput): Promise<Caps> {
 
   return {
     notionalBase,
-    breaches: buyBreaches(profile, caps, { book, notionalBase }),
+    breaches: breachedCaps({
+      profile,
+      book,
+      instrument: caps.instrument,
+      segment: caps.segment,
+      notionalBase,
+      unmirrored: unmirrored.buys,
+      markets: deps.markets,
+      ...(caps.instrumentKind === undefined ? {} : { instrumentKind: caps.instrumentKind }),
+    }),
     rejections: rejectionsFor(deps, {
       instrument: caps.instrument,
       side: input.request.side,
@@ -414,11 +423,6 @@ function venueCashBase(terms: CapTerms): number {
   return available - terms.unmirrored.spentBase
 }
 
-interface ValuedOrder {
-  readonly book: ValuedBook
-  readonly notionalBase: number
-}
-
 /** The profile a buy is held to, read where the book is: here when the order is prepared and again
  *  inside the write window, so both judge it by the same rule. A sell takes exposure off, so it
  *  reads none, and an operator who has saved none has declared no ceilings, which states nothing
@@ -429,25 +433,6 @@ export async function findBuyProfile(
   signal: AbortSignal
 ): Promise<UserProfile | null> {
   return side === 'buy' ? await deps.findProfile(signal) : null
-}
-
-function buyBreaches(
-  profile: UserProfile | null,
-  caps: CapsInput,
-  valued: ValuedOrder
-): readonly CapBreach[] {
-  if (profile === null) {
-    return []
-  }
-
-  return breachedCaps({
-    profile,
-    book: valued.book,
-    instrument: caps.instrument,
-    segment: caps.segment,
-    notionalBase: valued.notionalBase,
-    ...(caps.instrumentKind === undefined ? {} : { instrumentKind: caps.instrumentKind }),
-  })
 }
 
 function driftOf(quote: number, limit: number): number {

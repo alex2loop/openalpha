@@ -162,6 +162,20 @@ export const STABLECOIN_TICKERS: ReadonlySet<string> = new Set([
   'RLUSD',
   'EURC',
   'STABLE',
+  'U',
+  'GHO',
+  'YLDS',
+  'SOFID',
+  'BFUSD',
+  'OUSD',
+  'USD0',
+  'FRAX',
+  'USX',
+  'USAT',
+  'AUSD',
+  'USDAI',
+  'GUSD',
+  'CRVUSD',
 ])
 
 /** Mirrors of another asset: a wrapped or staked coin doubles a position inside this universe, and

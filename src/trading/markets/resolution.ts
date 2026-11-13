@@ -20,9 +20,9 @@ const INCONCLUSIVE_CODES: ReadonlySet<CaveatCode> = new Set([
 /** Misses a detector already accounted for. Adding `ticker-unknown` on top of one would answer
  *  "no market lists it" over a market that does and said why it will not resolve it. */
 const EXPLAINED_MISS_CODES: ReadonlySet<CaveatCode> = new Set([
-  'market.ticker-shared',
   'market.ticker-not-active',
   'market.ticker-not-listed',
+  'market.tokenized-equity',
 ])
 const UNIVERSE_EMPTY = 'market-data.universe-empty'
 const BOARD_ONLY: Pick<DetectInstrumentOptions, 'boardOnly'> = Object.freeze({ boardOnly: true })

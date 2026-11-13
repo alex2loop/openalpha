@@ -311,6 +311,11 @@ const GLOBAL_CONFUSIONS: readonly TermRule[] = Object.freeze([
     forbidden: ['số lượng'],
     why: 'a quantity of shares or coins is "khối lượng"; a count of rows is "số dòng"',
   },
+  {
+    key: EVERY_KEY,
+    forbidden: [/xuyên\s+(?:mức\s+)?cắt lỗ/i],
+    why: 'a broken stop is "thủng mức cắt lỗ" on every surface; "xuyên" names the same event in different words',
+  },
 ])
 
 /** The old tone-mark placement: on the second vowel of a closing `oa`, `oe` or `uy` ("khoá",

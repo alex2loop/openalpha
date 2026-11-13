@@ -494,7 +494,7 @@ Một lệnh mua cũng giữ hiệu lực cho tới khi không còn thực hiệ
 - đề xuất mới nhất trên mã là một lệnh mua chưa chốt, nằm trong cửa sổ kết cục của nó;
 - bạn chưa giao dịch mã đó;
 - giá trực tiếp nằm giữa cắt lỗ và giá vô hiệu của nó;
-- không phiên đã chốt nào kể từ đó giao dịch xuyên qua cắt lỗ.
+- không phiên đã chốt nào kể từ đó giao dịch thủng mức cắt lỗ.
 
 Cái gì không đọc được thì chạy mới, và `force` luôn chạy mới.
 
@@ -1108,7 +1108,7 @@ Cảnh báo được gọi bằng mã sáu ký tự (phần đuôi của mã dà
 
 Cảnh báo giá hay cảnh báo thoát lệnh khi chạm sẽ mở đầu bằng tiêu đề và bước tiếp theo. Với thoát lệnh, đó là dòng `/record sell` để bạn điền khi bán xong, rồi `/suggest` để xem lại.
 
-Trong chat, `/transactions` mặc định hiện 10 dòng. `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
+Trong chat, `/transactions` mặc định hiện 10 dòng. `/portfolio` liệt kê các vị thế ngay sau phần cảnh báo, rồi mới đến tiền mặt, lãi/lỗ và phân bổ, với tối đa ba lần đóng vị thế gần nhất trên điện thoại.
 
 `/alert create` và `/brief enable` cần một nơi để gửi tới, như Telegram hay Zalo.
 
@@ -1121,6 +1121,8 @@ Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 
 Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán. Thị trường mà nhóm bạn đã tắt, và bạn không nắm giữ hay theo dõi mã nào ở đó, sẽ không được tìm khi gõ mã trần: `BTC` được hiểu là đồng coin, còn quỹ Mỹ cùng tên phải gõ `equity-us:BTC`. Vàng thế giới không phải nhóm bạn tắt nên `XAUUSD` vẫn đọc được.
+
+Một mã là cổ phiếu token hóa (cổ phiếu được bọc thành token) không bị đọc như tài sản crypto: `/suggest` trả lời nó là gì và nhờ bạn gõ đúng mã cổ phiếu gốc.
 
 **HTTP** (chỉ trên máy này, xác thực bằng bearer token). `openalpha start` mở một API cục bộ theo mặc định (`[api] enabled = false` để tắt) (xem [`[api]`](cau-hinh.md)).
 
@@ -1293,7 +1295,7 @@ như bạn gõ. Không có gì được giữ lại giữa hai bước.
   E1VFVN30 at VPS is now 1,000 at an average cost of 35.37
 ```
 
-Giá vốn bình quân đã gồm phí mua, nên khớp với con số app công ty chứng khoán của bạn hiện, và mọi phép định giá cùng P&L đều đo so với nó. Vì vậy mua rồi bán lại ở cùng giá sẽ hiện đúng là một khoản lỗ nhỏ.
+Giá vốn bình quân đã gồm phí mua, nên khớp với con số app công ty chứng khoán của bạn hiện, và mọi phép định giá cùng lãi/lỗ đều đo so với nó. Vì vậy mua rồi bán lại ở cùng giá sẽ hiện đúng là một khoản lỗ nhỏ.
 
 - Mức phí bạn nêu lệch xa tỷ lệ đã cấu hình thì dòng tỷ lệ được thay bằng mức lệch, không bị lặng lẽ chấp nhận.
 - Thị trường không có tỷ lệ cấu hình thì không in cả hai dòng: không có gì để đo so với, và một số 0 sẽ bị đọc thành sự đồng ý.
@@ -1306,7 +1308,7 @@ Mọi trường đều có nhãn ở đây và không ở đâu khác. Dòng xá
 
 | | Khung nhìn tương đối | Khung nhìn tuyệt đối |
 |---|---|---|
-| Hiện | tỷ trọng, phần trăm, phần trăm lợi suất | tiền: NAV, tiền mặt, giá vốn, P&L |
+| Hiện | tỷ trọng, phần trăm, phần trăm lợi suất | tiền: NAV, tiền mặt, giá vốn, lãi/lỗ |
 | Với tới từ | công cụ của agent, chat | API HTTP cục bộ đã xác thực của bạn và các lệnh gạch chéo |
 
 Chúng là hai kiểu khác nhau với các trường khác nhau. Một agent không thể vô tình biết quy mô tài khoản của bạn, vì không đường mã nào đưa cho nó một cuốn sổ tính bằng tiền.
@@ -1347,7 +1349,7 @@ Tỷ giá USD liên ngân hàng cố ý không dùng cho coin. USDT không phả
 Một dòng có thể mang tỷ giá của chính bạn thay vì tỷ giá thị trường:
 
 - `fx <giá>` ở cuối dòng `/record` lưu đúng giá bạn đã trả, với nguồn ghi là `operator`.
-- `fx auto` cố ý lấy tỷ giá thị trường của ngày đó.
+- `fx auto` cố ý lấy tỷ giá thị trường của ngày đó. Tỷ giá ghi ngày cách ngày hỏi hơn 3 ngày bị từ chối, không được dùng thay.
 - Dòng tiền mặt giờ cũng có thể ghi bằng đồng tiền mà thị trường của sàn niêm yết. Nên
   `/record deposit binance 1000 USDT 2026-08-14 fx 26600` là một dòng hợp lệ.
 - Không có `fx` thì dòng bằng ngoại tệ được xem trước và giữ lại chờ `/record confirm`, thay vì ghi
@@ -1370,12 +1372,12 @@ Một vòng giao dịch crypto, từng bước, với tỷ giá bạn đã trả
 1. **Nạp USDT kèm tỷ giá bạn đã trả.** `/record deposit binance 1000 USDT 2026-08-14 fx 26600`.
 2. **Mua bằng số USDT đó, không `fx`.** `/record buy binance crypto:BTC 0.01 60000 USDT 2026-08-14` (hoặc `/record buy binance BTC 0.01 60000` khi BTC chỉ niêm yết ở một thị trường). Lệnh dùng số USDT theo giá vốn của nó; thêm `fx` ở đây sẽ bị từ chối kèm lý do.
 3. **Bán ngược về USDT.** `/record sell binance crypto:BTC all 65000 USDT 2026-09-01`.
-4. **Rút USDT theo tỷ giá lúc bạn bán.** `/record withdrawal binance 500 USDT 2026-09-20 fx 26900` ghi phần chênh giữa hai tỷ giá thành lãi lỗ đã chốt.
+4. **Rút USDT theo tỷ giá lúc bạn bán.** `/record withdrawal binance 500 USDT 2026-09-20 fx 26900` ghi phần chênh giữa hai tỷ giá thành lãi/lỗ đã chốt.
 5. **Kiểm tra** bằng `/portfolio`, `/transactions`, và `/reconcile` khi sàn đã có khóa.
 
 Đã có sẵn USDT hoặc coin ở sàn trước khi bắt đầu sổ? Ghi số dư hôm nay, không cần ghi lại lịch sử:
 
-- **Chỉ có USDT:** một dòng nạp bằng số USDT bạn đang giữ, kèm `fx <giá vốn bình quân>`, hoặc `fx auto` nếu bạn không biết (lãi lỗ tỷ giá trước ngày đó khi ấy không được tính).
+- **Chỉ có USDT:** một dòng nạp bằng số USDT bạn đang giữ, kèm `fx <giá vốn bình quân>`, hoặc `fx auto` nếu bạn không biết (lãi/lỗ tỷ giá trước ngày đó khi ấy không được tính).
 - **USDT và coin:** nạp số USDT đang giữ cộng với giá vốn của các coin, rồi mỗi coin một dòng mua với khối lượng hiện tại, giá vốn bình quân và phí `0`. Khi đó số USDT trong sổ khớp với sàn. Phí `0` sẽ in một ghi chú "phí lệch"; với số dư đầu kỳ thì cứ bỏ qua.
 
 ```text
@@ -1404,13 +1406,13 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
 - **Ngày mua nên lùi về trước vài hôm.** Cổ phiếu VN về tài khoản sau T+2, nên ghi ngày hôm nay thì
   hai phiên tới sổ chưa cho bán mã đó.
 - **Khoản lỗ ghi bằng `loss`**, đừng dùng `withdrawal` hay `fee`. Ghi `withdrawal` thì sổ tưởng bạn
-  rút tiền về túi và lãi lỗ trông đẹp hơn thực tế. Ghi `fee` thì khoản lỗ thành phí môi giới. `loss`
+  rút tiền về túi và lãi/lỗ trông đẹp hơn thực tế. Ghi `fee` thì khoản lỗ thành phí môi giới. `loss`
   trừ tiền mà vẫn giữ nguyên số tiền bạn đã nạp, nên `/portfolio` ghi rõ "Lãi/lỗ đã chốt: -15.000.000
   VND".
 - **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
   báo ngay.
 - **Mỗi mã được đặt luôn kế hoạch thoát**, tính theo giá vốn bạn đã gõ. Một mã đang giao dịch thấp hơn
-  nhiều so với giá vốn đó có thể đã nằm dưới mức cắt lỗ, và `/portfolio` khi ấy ghi "đã xuyên mức cắt
+  nhiều so với giá vốn đó có thể đã nằm dưới mức cắt lỗ, và `/portfolio` khi ấy ghi "đã thủng mức cắt
   lỗ". Đó là lời nhắc xem lại mã, không phải lỗi ghi sổ.
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
@@ -1438,7 +1440,7 @@ hoặc giá vốn, sửa bằng `/update <mã bút toán>` chứ đừng thêm d
   mua BTC, 500 mua ETH và 300 lỗ, còn 600 USDT. Đã khai khóa API thì `/reconcile` so giúp bạn.
 
 Không cần sổ nhớ khoản lỗ cũ thì đơn giản hơn nữa: nạp đúng số tiền mặt đang có cộng giá vốn các mã
-đang giữ, bỏ dòng `loss`. Lãi lỗ khi đó tính từ hôm nay.
+đang giữ, bỏ dòng `loss`. Lãi/lỗ khi đó tính từ hôm nay.
 
 Gộp như vậy thì mất lịch sử từng mã đã bán: `/transactions` chỉ thấy một dòng lỗ. Đề xuất cũ của
 trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm đề xuất chứ không chấm giao dịch của
@@ -1593,6 +1595,10 @@ Trần triển khai được in ra là của cả cuốn sổ, không phải c�
 
 Nên một mã mà kế hoạch liệt kê có thể là mã mà đề xuất từ chối hôm đó. Kế hoạch nói vậy ở chỗ nó liệt kê một lệnh mua. Nó không chạy tranh luận, nên không tốn lời gọi mô hình nào.
 
+Trên bảng giá đại lý (vàng VN), lệnh mua được tính theo giá bán của tiệm và lệnh bán theo giá mua của tiệm, đúng phía mà mỗi lệnh thực sự khớp. Nếu không đọc được bảng giá trực tiếp, mã vàng bạn đang giữ dùng giá sổ cho cả hai phía, nên lệnh bán của nó vẫn được lập.
+
+Khi bạn giữ ngoại tệ, dòng tiền đã về tài khoản có thêm một ghi chú ngắn: ngoại tệ ở đó tính theo giá vốn bạn đã bỏ ra, còn bảng nhóm tính theo tỷ giá hôm nay, nên hai con số lệch nhau một chút. Chênh lệch làm tròn thành không thì không có ghi chú.
+
 Một khoảng cách mà kế hoạch không khép được trong một lô thì được nói thẳng, thay vì để trông như đang khép dần, nhưng chỉ khi bạn còn hành động được với nó. Khi khoảng cách nhỏ hơn mức câu chữ in ra được, mã đó coi như đã ở mục tiêu. Một ghi chú nói nó lệch `0%` sẽ đọc như kế hoạch đang tự cãi chính mình.
 
 Có một kết luận mà kế hoạch không đi vòng qua. Nếu kết luận đã lưu mới nhất của một mã đang nắm là `reduce` trên bằng chứng, mã đó không nhận lệnh tăng, dù nó nằm dưới mục tiêu bao xa. Kế hoạch nêu tên nó thay vì lặng lẽ bỏ dòng đó đi.
@@ -1667,7 +1673,7 @@ Phân bổ không có bề mặt riêng: `portfolio_rebalance` và `/rebalance` 
 Thẻ Danh mục của [trang văn phòng](van-hanh.md#trang-văn-phòng) ghi đúng những dòng mà `/record`, `/update` và `/delete` ghi, qua cùng các bước kiểm tra, và không bao giờ gửi lệnh.
 
 - **Mọi loại dòng.** Biểu mẫu ghi có ba nút Mua, Bán và Khác, mở sẵn Mua hoặc Bán; nút "Khác" mở danh sách gồm cổ tức tiền mặt (số tiền thực nhận, theo tiền tệ của thị trường), cổ tức bằng cổ phiếu hay cổ phiếu thưởng (số cổ phiếu nhận thêm), chia tách (số cổ phiếu thêm vào, số âm khi gộp cổ phiếu), mua cổ phiếu quyền (kèm giá mua; để trống phí thì ghi là 0), chuyển tiền (giữa hai sàn của bạn; chọn cùng một sàn ở hai đầu thì bị từ chối trước khi gửi), nạp tiền, rút tiền, phí và lỗ đã thực hiện (khoản lỗ từ trước khi bạn ghi sổ). Một thay đổi số cổ phiếu cho thấy sau khi ghi bạn sẽ nắm bao nhiêu. Lịch sử liệt kê mọi loại, có bộ lọc, và dòng nào cũng sửa hoặc xóa được, có hoàn tác. Ngày mở sẵn là ngày giao dịch của thị trường nhà, cùng ngày mà CLI và chat đề xuất (ngày UTC khi thị trường nhà giao dịch suốt ngày đêm).
-- **Danh mục đã làm ra bao nhiêu.** Danh mục > Hiệu quả liệt kê, theo tiền tệ của sổ, số tiền bạn đã nạp ròng sau khi trừ tiền rút, lãi hoặc lỗ đã chốt, phần cổ tức nằm trong đó, phí giao dịch còn trong phần bạn đang giữ, và tổng lãi lỗ so với số đã nạp kèm tỷ lệ phần trăm. Các số này là những số `/portfolio` in; riêng cổ tức thì `/portfolio` không in thành một dòng riêng. Lãi hoặc lỗ đã chốt vẫn hiện khi có một mã chưa có giá; phí và tổng thì phải chờ có tổng tài sản.
+- **Danh mục đã làm ra bao nhiêu.** Danh mục > Hiệu quả liệt kê, theo tiền tệ của sổ, số tiền bạn đã nạp ròng sau khi trừ tiền rút, lãi/lỗ đã chốt, phần cổ tức nằm trong đó, phí giao dịch còn trong phần bạn đang giữ, và tổng lãi/lỗ so với số đã nạp kèm tỷ lệ phần trăm. Các số này là những số `/portfolio` in; riêng cổ tức thì `/portfolio` không in thành một dòng riêng. Lãi/lỗ đã chốt vẫn hiện khi có một mã chưa có giá; phí và tổng thì phải chờ có tổng tài sản.
 - **Tỷ giá bạn đã trả.** Khi một dòng dùng tiền tệ khác với tiền của sổ và cần tỷ giá, như nạp USDT vào một sổ tính bằng VND hay mua ở một sàn không giữ USDT, ô Tỷ giá hiện ra, điền sẵn giá thị trường ngày đó; hãy sửa thành tỷ giá bạn thực trả. Ô này không được để trống, nên trang không bao giờ lưu một dòng như vậy ở mức giá bạn chưa thấy. Dòng trả bằng USDT mà sàn đã giữ (mua, chuyển tiền, phí) không có ô tỷ giá. Nếu không đọc được giá trong ngày, biểu mẫu nói rõ, cho nút Thử lại và chưa cho lưu. Sửa một dòng thì giữ tỷ giá đã ghi của nó.
 - **Đối chiếu với sàn.** Lịch sử > Đối chiếu với sàn đọc từng sàn đã có khóa, như `/reconcile`: khớp, hoặc sàn đang giữ nhiều hơn hay ít hơn sổ bao nhiêu, kèm một nút mở biểu mẫu ghi điền sẵn phần chênh (giá để bạn tự điền). Sàn chưa có khóa thì nêu tên biến của nó và dẫn tới Cài đặt > Sàn giao dịch; sàn không đọc được số dư, hoặc không trả lời, thì nói vậy. "Đồng bộ lệnh khớp từ <sàn>" làm đúng việc của `/record sync`: đọc các lệnh đã khớp, ghi những lệnh sổ còn thiếu, và không đặt lệnh nào. Nếu trả lời chậm, trang đọc lại sổ chứ không gửi đồng bộ lần hai.
 - **Lệnh.** Khi có sàn đặt lệnh được và `[api] orders` đang bật, Danh mục có thẻ *Lệnh*.
@@ -1823,6 +1829,7 @@ Trần tiền mặt tính tiền khả dụng từ các dòng sổ lệnh, nên 
 - Mã là **chỉ tài sản gốc**: `BTC`, không bao giờ là `BTC/USDT`. Cặp được dựng cho bạn.
 - Khối lượng luôn tính bằng **đơn vị gốc**: `0.001` nghĩa là 0,001 BTC, không phải 0,001 USDT giá trị.
 - `tp`/`sl` chỉ đi kèm lệnh mua, vì một lệnh bán chính là lối thoát.
+- Mỗi nhãn (`limit`, `tp`, `sl`, và `qty` ở `/trade exit`) chỉ được xuất hiện một lần. Nhãn lặp lại bị từ chối kèm dòng hướng dẫn, chứ không lấy giá trị cuối.
 - Lệnh mua mặc định cần `sl`. Đặt `require_stop_loss = false` dưới `[trading.orders]` để cho phép không có.
 
 Tiền tố `sàn:` là tùy chọn và chỉ cần khi có hơn một sàn có thể trả lời. Định tuyến chọn đúng một sàn khớp được lệnh, thu hẹp lệnh bán về các sàn thật sự đang nắm một phần bán được, và từ chối mọi trường hợp khác kèm các ứng viên được nêu tên. Nó không bao giờ chọn hộ bạn, vì một lệnh tiền thật không được phụ thuộc vào một mặc định mà không ai đọc lại. Một lệnh bán bị từ chối khi vượt phần đã chốt và chưa được bảo vệ ở sàn đã định tuyến:
@@ -1940,7 +1947,7 @@ Mọi lần ghi lên một sàn (xác nhận, lối thoát, hủy) chạy từng
 - Các trần tính trên cả cuốn sổ: tiền mặt chi được và số lệnh đang mở. Hai lần xác nhận chạy cùng lúc sẽ mỗi cái đo một cuốn sổ mà cái kia chưa ghi vào, và cả hai cùng vượt qua một trần mà chỉ một cái được phép.
 - Hai lời gọi `/trade exit` chạy cùng lúc sẽ mỗi cái đọc *không có gì đang treo* và đặt, để lại lối thoát thứ hai mà chốt chặn xung đột sinh ra để ngăn.
 
-Các trần được đọc **lại** bên trong cửa sổ đó, kể cả trần vị thế, trần nhóm và trần ETF của hồ sơ đã lưu. Lệnh đang chờ giữ lại các trần mà câu hỏi xác nhận đã nêu, kèm con số đã hiện. Một trần đã nêu chỉ được coi là lệnh bạn đã xác nhận khi nó chưa vượt xa hơn con số đó cộng một biên nhỏ: trần bị vượt từ lúc bạn xem (một lệnh khác khớp, giá nhảy), hay mức vượt đã sâu thêm, thì lệnh bị từ chối, kể cả khi bước xác nhận đo thấy nó trước. Lệnh được đặt chờ trước khi có phần lưu này được coi là chưa nêu trần nào. Biên nhỏ bằng 0,05% danh mục, để bù cho giá nhích giữa hai lần kiểm tra; biên này không áp dụng cho trần bằng 0 hay phần ETF chưa đo được. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved`, nói bằng ngôn ngữ của bạn điều gì đã đổi từ lúc bạn xem và đã vượt giới hạn nào, thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`.
+Các trần được đọc **lại** bên trong cửa sổ đó, kể cả trần vị thế, trần nhóm và trần ETF của hồ sơ đã lưu. Lệnh đang chờ giữ lại các trần mà câu hỏi xác nhận đã nêu, kèm con số đã hiện. Một trần đã nêu chỉ được coi là lệnh bạn đã xác nhận khi nó chưa vượt xa hơn con số đó cộng một biên nhỏ: trần bị vượt từ lúc bạn xem (một lệnh khác khớp, giá nhảy), hay mức vượt đã sâu thêm, thì lệnh bị từ chối, kể cả khi bước xác nhận đo thấy nó trước. Lệnh được đặt chờ trước khi có phần lưu này được coi là chưa nêu trần nào. Biên nhỏ bằng 0,05% danh mục, để bù cho giá nhích giữa hai lần kiểm tra; biên này không áp dụng cho trần bằng 0 hay phần ETF chưa đo được. Một lệnh mà cuốn sổ không còn cho phép bị từ chối với `order.book_moved`, nói bằng ngôn ngữ của bạn điều gì đã đổi từ lúc bạn xem và đã vượt giới hạn nào, thay vì bị cắt bớt, vì cỡ và các mức giá là thứ bạn đã đồng ý. Nếu trong lúc đó một khoản nắm mất giá, lệnh mua bị từ chối với `order.book_unpriced`. Các lệnh mua đã tới sàn nhưng chưa vào sổ (nằm trong mục *Đã đặt trên sàn, chưa có trong sổ*) vẫn tính vào trần vị thế của cùng mã và trần nhóm của cùng nhóm cho tới khi được xử lý.
 
 ### 9. Kiểm chứng, theo đúng thứ tự này
 

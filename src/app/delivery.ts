@@ -164,7 +164,7 @@ function createSenders(
     },
 
     sink: {
-      async notify(target: DeliveryTarget, text: string): Promise<void> {
+      async notify(target, text, options): Promise<void> {
         const router = parts.capture()
         const surface = surfaces.find(target.channel)
 
@@ -181,7 +181,7 @@ function createSenders(
           throw new ChannelError('not_initialized', `no channel attached for ${target.channel}`)
         }
 
-        if ((await router(target, text)) !== 'accepted') {
+        if ((await router(target, text, options)) !== 'accepted') {
           throw new ChannelError('send_failed', `notification dropped for ${target.channel}`)
         }
 

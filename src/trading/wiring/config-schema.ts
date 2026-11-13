@@ -21,6 +21,10 @@ const ENV_VAR_RE = /^[A-Z_][A-Z0-9_]*$/
 // round trip. Nothing real reaches five percent a side.
 const MAXIMUM_COST_RATE = 0.05
 
+// The drift guard reads a fraction: 5 typed for five percent would widen it to 500% and stop it
+// refusing anything. Ten percent is past any quote move an order should still fill through.
+const MAXIMUM_PRICE_DRIFT = 0.1
+
 // The operator's level keys are bounded where a value stops being a choice and becomes a typo: a
 // stop under 2% sits inside one ordinary session's swing, past 30% is a loss no plan should budget,
 // and past 5 ATRs or 5R the levels are well beyond the widest any shipped market uses (3).
@@ -72,7 +76,7 @@ export const tradingConfigPatchSchema = z.strictObject({
     .strictObject({
       maximum_stake_quote: z.number().nonnegative().optional(),
       maximum_open_trades: z.int().nonnegative().optional(),
-      maximum_price_drift: z.number().positive().optional(),
+      maximum_price_drift: z.number().positive().max(MAXIMUM_PRICE_DRIFT).optional(),
       allow_unattended: z.boolean().optional(),
       require_stop_loss: z.boolean().optional(),
     })

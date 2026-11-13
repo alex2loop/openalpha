@@ -43,7 +43,7 @@ export function toMarkdownV2(text: string): string {
 
 /** What a message resent without `parse_mode` should read as: the agent's text with every marker
  *  and escape this module added taken back out. */
-export function toPlainText(markdownV2: string): string {
+export function fromMarkdownV2(markdownV2: string): string {
   return replaceOutside(markdownV2, {
     pattern: PLAIN_TOKEN_RE,
     onMatch: toPlainToken,

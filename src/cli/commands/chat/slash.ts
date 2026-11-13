@@ -15,8 +15,8 @@ import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { LOCAL_USER_ID, sessionId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { hasRunFooter } from '@/core/utils/footer'
+import { toPlainText } from '@/core/utils/surface-text'
 import { bindLocale, t } from '@/i18n'
-import { toPlainText } from '@/trading/api'
 
 const CLI_CHANNEL_ID = LOCAL_CHANNEL_ID
 

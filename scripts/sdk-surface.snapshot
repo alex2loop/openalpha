@@ -181,6 +181,7 @@ core/utils/hash
 core/utils/message
 core/utils/reachability
 core/utils/retry
+core/utils/surface-text
 core/utils/text
 core/utils/time
 core/utils/url

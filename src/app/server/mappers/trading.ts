@@ -251,6 +251,8 @@ export function toPortfolioWire(sized: PortfolioView, locale: Locale): TradingPo
       ? {}
       : { totalPnlBase: book.navBase - book.book.netDepositsBase }),
     ...(book.feesBase === undefined ? {} : { feesBase: book.feesBase }),
+    ...(book.investedBase === undefined ? {} : { investedBase: book.investedBase }),
+    ...(book.unrealizedPnlBase === undefined ? {} : { unrealizedPnlBase: book.unrealizedPnlBase }),
     positions: book.positions.map((position) => toPositionWire(position, context)),
     shares: { segments: sized.shares },
     caveats: toCaveatWires(book.caveats, locale),
@@ -288,6 +290,7 @@ function toPositionWire(
 
   return {
     ...base,
+    price: position.price,
     marketValueBase: position.valueBase,
     unrealizedPnlBase: position.valueBase - base.investedBase,
     ...(navBase === undefined || navBase === 0

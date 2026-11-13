@@ -14,6 +14,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import { allocationRows, desiredWeights } from '@/trading/features/portfolio/folds/allocation'
 import { isWeakHolding } from '@/trading/features/portfolio/folds/policy'
 import { gapRows, rebalanceRows } from '@/trading/features/portfolio/folds/rebalance'
+import { isReportableGap } from '@/trading/features/portfolio/folds/rebalance-caveat'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { toProfileStamp } from '@/trading/kernel/operator/profile'
 
@@ -187,6 +188,7 @@ function isValidCandidate(candidate: AdviceInput['candidates'][number]): boolean
   const finite = [
     candidate.marketScore,
     candidate.unitPriceBase,
+    candidate.exitPriceBase,
     candidate.boardLot,
     candidate.maximumPositionPctNav,
     ...(candidate.averageDailyTurnoverBase === undefined
@@ -200,6 +202,7 @@ function isValidCandidate(candidate: AdviceInput['candidates'][number]): boolean
   return (
     finite &&
     candidate.unitPriceBase > 0 &&
+    candidate.exitPriceBase > 0 &&
     candidate.boardLot > 0 &&
     candidate.maximumPositionPctNav >= 0 &&
     (candidate.averageDailyTurnoverBase === undefined || candidate.averageDailyTurnoverBase >= 0)
@@ -287,9 +290,8 @@ function cashSegmentAdvice(
       sum + Math.max(row.changePctNav, 0) * input.buyCashMultiple(row.instrument.market),
     0
   )
-  // Currency cash is held at cost in the book; NAV and the segment table mark it at today's rate.
-  const settledBase = input.valued.book.availableCashBase + (input.valued.currencyCashGainBase ?? 0)
-  const cashPctNav = Math.max(settledBase / nav - purchases, 0)
+  // At book cost, the basis sizing spends; the segment table also marks foreign cash at today's rate.
+  const cashPctNav = Math.max(input.valued.book.availableCashBase / nav - purchases, 0)
   const liquidReservePctNav = Math.min(cashPctNav, input.profile.reservePctNav)
   const termDepositEligiblePctNav = Math.max(cashPctNav - liquidReservePctNav, 0)
 
@@ -298,6 +300,7 @@ function cashSegmentAdvice(
     liquidReservePctNav,
     termDepositEligiblePctNav,
     posture: termDepositEligiblePctNav > 0 ? 'term-deposit-eligible' : 'fully-liquid',
+    foreignCashAtCost: isReportableGap(Math.abs(input.valued.currencyCashGainBase ?? 0) / nav),
     // A reserve shortfall is already the `reserve-below-target` finding; one condition, one owner.
     caveats: [],
   }

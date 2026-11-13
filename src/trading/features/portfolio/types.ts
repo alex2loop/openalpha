@@ -301,6 +301,9 @@ export interface CashSegmentTarget {
   readonly liquidReservePctNav: number
   readonly termDepositEligiblePctNav: number
   readonly posture: CashPosture
+  /** Foreign cash sits at what it cost while the segment table marks it at today's rate, so the
+   *  two cash figures differ by its FX gain or loss. */
+  readonly foreignCashAtCost: boolean
   readonly caveats: readonly Caveat[]
 }
 

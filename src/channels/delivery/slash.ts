@@ -1,25 +1,25 @@
 import { randomUUID } from 'node:crypto'
 
 import type { InboundHandlerDeps } from '@/channels/delivery/types'
-import type { InboundMessage, OutboundButton } from '@/channels/types'
+import type { InboundMessage } from '@/channels/types'
 import type { HelpRequest, ResolvedSlashCommand } from '@/commands/api'
 import type { AgentId, RunId, SessionId } from '@/core/ids'
 import type {
-  Affordance,
   CommandRole,
   CommandSurface,
   LongRunningExecution,
   SlashContext,
+  SlashResult,
 } from '@/core/types/command'
 import type { SessionRouteLease } from '@/core/types/session'
-import { TELEGRAM_CALLBACK_DATA_MAX_BYTES } from '@/channels/adapters/telegram/protocol'
-import { buildAbortCallbackData, COMMAND_CALLBACK_ACTION } from '@/channels/delivery/callbacks'
+import { buildAbortCallbackData } from '@/channels/delivery/callbacks'
 import { channelControlHelp } from '@/channels/delivery/control'
 import { formatChannelFooter, joinFooter } from '@/channels/delivery/format'
 import { runInCommandLane } from '@/channels/delivery/slash-lane'
 import { openSlashNotice, type SlashNotice } from '@/channels/delivery/slash-notice'
+import { joinLines, offeredNext } from '@/channels/delivery/slash-offer'
 import { operatorContextOf } from '@/channels/operator'
-import { parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
+import { parseHelpLine, renderCommandHelp, renderMessages, writesSurfaceText } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import {
   abortError,
@@ -332,16 +332,9 @@ async function dispatchSlash(options: DispatchSlashOptions): Promise<SlashRunReq
     case 'message':
       await deps.sendText(msg.chatId, renderMessages(bindLocale(deps.locale), result))
       return null
-    case 'text': {
-      const footer = hasRunFooter(resolved?.policy, result)
-        ? await sessionFooter(deps, ctx.sessionId, elapsedMs)
-        : null
-      const offered = offeredNext(deps, result.affordances ?? [])
-      const body = footer === null ? result.text : joinFooter(result.text, footer)
-
-      await deps.sendText(msg.chatId, joinLines(body, offered.lines), offered.buttons)
+    case 'text':
+      await sendTextResult(options, { result, sessionId: ctx.sessionId, elapsedMs })
       return null
-    }
     case 'agent':
       return {
         text: result.retryMessage,
@@ -358,45 +351,25 @@ async function dispatchSlash(options: DispatchSlashOptions): Promise<SlashRunReq
   }
 }
 
-/** What the reader could run next, rendered the way the destination can carry it: a keyboard where
- *  the channel has one, lines they can type where it does not. Nothing exists only as a button, so
- *  a payload too large for the wire degrades to a line rather than disappearing. */
-function offeredNext(
-  deps: InboundHandlerDeps,
-  affordances: readonly Affordance[]
-): { readonly buttons: readonly OutboundButton[]; readonly lines: readonly string[] } {
-  const buttons: OutboundButton[] = []
-  const lines: string[] = []
-
-  for (const affordance of affordances) {
-    const callbackId = `${COMMAND_CALLBACK_ACTION}${affordance.command}`
-
-    if (deps.adapter.capabilities.inlineButtons && fitsCallbackData(callbackId)) {
-      buttons.push({ label: labelOf(affordance), callbackId })
-      continue
-    }
-
-    lines.push(
-      t(deps.locale, 'channel.affordanceLine', {
-        label: labelOf(affordance),
-        command: affordance.command,
-      })
-    )
-  }
-
-  return { buttons, lines }
+interface TextReply {
+  readonly result: Extract<SlashResult, { readonly kind: 'text' }>
+  readonly sessionId: SessionId
+  readonly elapsedMs: number
 }
 
-function labelOf(affordance: Affordance): string {
-  return affordance.icon === undefined ? affordance.label : `${affordance.icon} ${affordance.label}`
-}
+async function sendTextResult(options: DispatchSlashOptions, reply: TextReply): Promise<void> {
+  const { deps, msg, resolved } = options
+  const { result, sessionId, elapsedMs } = reply
+  const footer = hasRunFooter(resolved?.policy, result)
+    ? await sessionFooter(deps, sessionId, elapsedMs)
+    : null
+  const offered = offeredNext(deps, result.affordances ?? [])
+  const body = footer === null ? result.text : joinFooter(result.text, footer)
 
-function fitsCallbackData(callbackId: string): boolean {
-  return new TextEncoder().encode(callbackId).length <= TELEGRAM_CALLBACK_DATA_MAX_BYTES
-}
-
-function joinLines(body: string, lines: readonly string[]): string {
-  return lines.length === 0 ? body : [body, '', ...lines].join('\n')
+  await deps.sendText(msg.chatId, joinLines(body, offered.lines), {
+    buttons: offered.buttons,
+    surfaceText: writesSurfaceText(resolved?.command),
+  })
 }
 
 /** The answer matters more than the footer, so an unreadable ledger sends the body bare. */

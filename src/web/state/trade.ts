@@ -131,7 +131,8 @@ export async function deleteTrade(entryId: string): Promise<void> {
   await afterWrite(undefined)
 }
 
-/** The daemon wrote rows the page did not send (a venue sync): every reader of the book reads again. */
+/** The daemon wrote rows the page did not send (a venue sync, a ledger command typed in the chat):
+ *  every reader of the book reads again. */
 export async function markLedgerChanged(): Promise<void> {
   await afterWrite(undefined)
 }

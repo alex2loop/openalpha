@@ -36,7 +36,7 @@ import { pauseJobsOfAgent } from '@/scheduler/api'
 
 const CHANNEL_FLAG = {
   type: 'string',
-  describe: { key: 'cliHelp.flagChannelId' },
+  describe: { key: 'cliHelp.flagRequiredChannelId' },
 } satisfies NonNullable<Spec['flags']>[string]
 
 interface ChatTarget {
@@ -348,7 +348,7 @@ async function showAgent(args: ParsedArgs, app: CliApp): Promise<number> {
   return 0
 }
 
-// Shared by bind/unbind/bindings: all three need a validated channel + chatId pair.
+// Bind and unbind both name a chat by a validated channel + chatId pair.
 function requireChannel(args: ParsedArgs, app: CliApp): OrError<{ readonly channel: ChannelId }> {
   const locale = app.config.locale.language
   const raw = flagString(args, 'channel')
@@ -372,7 +372,7 @@ function requireChannel(args: ParsedArgs, app: CliApp): OrError<{ readonly chann
       kind: 'error',
       error: t(locale, 'cli.agentUnknownChannel', {
         id: raw,
-        available: availableChannelIds(definitions),
+        available: availableChannelIds(locale, definitions),
       }),
     }
   }

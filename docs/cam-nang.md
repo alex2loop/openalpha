@@ -299,7 +299,7 @@ Khi USDT đã nằm trên sàn, sàn giữ luôn cả giá vốn của nó. Mộ
 ghi lại lịch sử:
 
 - **Chỉ có USDT:** một dòng nạp đúng số USDT đang có, kèm `fx <giá vốn bình quân>`, hoặc `fx auto` nếu
-  không nhớ (lãi lỗ tỷ giá trước ngày này khi đó không được tính).
+  không nhớ (lãi/lỗ tỷ giá trước ngày này khi đó không được tính).
 - **Có cả coin:** nạp USDT bằng số đang có cộng với số đã bỏ ra mua coin, rồi ghi mỗi coin một lệnh mua
   theo khối lượng hiện có, giá vốn bình quân và phí `0`. Số USDT trong sổ sau đó về đúng số trên sàn.
   Dòng phí `0` có kèm câu "Phí lệch" - với số dư ban đầu thì bỏ qua.
@@ -331,13 +331,13 @@ lỗ bao nhiêu trên những mã đã bán. Mỗi điều là vài dòng:
 - **Ngày mua nên lùi về trước vài hôm.** Cổ phiếu VN về tài khoản sau T+2, nên ghi ngày hôm nay thì
   hai phiên tới sổ chưa cho bán mã đó.
 - **Khoản lỗ ghi bằng `loss`**, đừng dùng `withdrawal` hay `fee`. Ghi `withdrawal` thì sổ tưởng bạn
-  rút tiền về túi và lãi lỗ trông đẹp hơn thực tế. Ghi `fee` thì khoản lỗ thành phí môi giới. `loss`
+  rút tiền về túi và lãi/lỗ trông đẹp hơn thực tế. Ghi `fee` thì khoản lỗ thành phí môi giới. `loss`
   trừ tiền mà vẫn giữ nguyên số tiền bạn đã nạp, nên `/portfolio` ghi rõ "Lãi/lỗ đã chốt: ▼ -15.000.000
   VND".
 - **Dòng nạp phải có ngày trước các dòng mua và dòng lỗ.** Sổ kiểm cả cuốn mỗi lần ghi, thiếu tiền là
   báo ngay.
 - **Mỗi mã ghi vào được đặt luôn kế hoạch thoát**, tính theo giá vốn bạn ghi. Mã đang lỗ sâu so với giá
-  vốn thì giá hôm nay có thể đã nằm dưới mức cắt lỗ đó, và `/portfolio` sẽ báo "đã xuyên mức cắt lỗ".
+  vốn thì giá hôm nay có thể đã nằm dưới mức cắt lỗ đó, và `/portfolio` sẽ báo "đã thủng mức cắt lỗ".
   Đó là nhắc bạn xem lại mã ấy, không phải sổ ghi sai.
 
 Ghi xong, mở `/portfolio` và so tiền mặt với số dư thật bên công ty chứng khoán. Ví dụ trên: 200 triệu
@@ -365,7 +365,7 @@ hoặc giá vốn, sửa bằng `/update <mã bút toán>` chứ đừng thêm d
   mua BTC, 500 mua ETH và 300 lỗ, còn 600 USDT. Đã khai khóa API thì `/reconcile` so giúp bạn.
 
 Không cần sổ nhớ khoản lỗ cũ thì đơn giản hơn nữa: nạp đúng số tiền mặt đang có cộng giá vốn các mã
-đang giữ, bỏ dòng `loss`. Lãi lỗ khi đó tính từ hôm nay.
+đang giữ, bỏ dòng `loss`. Lãi/lỗ khi đó tính từ hôm nay.
 
 Gộp như vậy thì mất lịch sử từng mã đã bán: `/transactions` chỉ thấy một dòng lỗ. Đề xuất cũ của
 trợ lý và `/reflect` không bị ảnh hưởng, vì chúng chấm điểm đề xuất chứ không chấm giao dịch của
@@ -928,7 +928,7 @@ Tác vụ nền chạy mười hai tiếng một lần, đối chiếu từng đ
   ra đề xuất.
 - Trong mỗi phiên, **cắt lỗ được kiểm trước chốt lời**. Một cây nến ngày không cho biết đỉnh hay đáy
   đến trước, nên hệ thống chọn cách đọc bất lợi hơn - không tô hồng thành tích.
-- Năm kết quả, gọi tên theo cả cách đề xuất đóng lẫn con số lãi lỗ cuối cùng:
+- Năm kết quả, gọi tên theo cả cách đề xuất đóng lẫn con số lãi/lỗ cuối cùng:
   - **Chốt lời**: chạm mục tiêu và giữ được lãi - tính là trúng.
   - **Chốt một phần, phần còn lại trả lại lãi**: lệnh đã chốt một phần ở mục tiêu, nhưng phần giữ lại
     trượt xuống, nên cả lệnh về 0 hoặc lỗ - tính là trượt dù giá từng chạm mục tiêu.
@@ -936,7 +936,7 @@ Tác vụ nền chạy mười hai tiếng một lần, đối chiếu từng đ
   - **Thoát ở mức dừng đã nâng, vẫn có lãi**: mức dừng được kéo lên cao hơn giá vào rồi mới bị chạm, nên
     cả lệnh vẫn có lãi - tính là trúng.
   - **Hết thời gian**: hết cửa sổ mà chưa chạm mức nào, thoát ở giá đóng cửa phiên cuối; trúng hay trượt
-    theo con số lãi lỗ.
+    theo con số lãi/lỗ.
   Nguồn có lỗ hổng và không bao giờ đủ nến thì một mốc theo số phiên đã trôi qua vẫn cho đề xuất hết
   hạn - dòng đó không chờ mãi.
 - **Chỉ tính sau khi hết cửa sổ**: một đề xuất đã chạm mức vẫn phải chờ hết cửa sổ của nó (28 ngày với

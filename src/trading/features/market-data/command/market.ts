@@ -159,6 +159,10 @@ function nextLine(locale: Locale, options: NextLineOptions): string {
     return t(locale, 'trading.intraday.next.off')
   }
 
+  if (plan.sendTimes.length === 0) {
+    return t(locale, 'trading.intraday.next.noTimes')
+  }
+
   const at = nextIntradayFireAt(plan, now)
 
   if (at === null) {

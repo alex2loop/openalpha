@@ -2,15 +2,13 @@ import type { AbsolutePositionWire, TradingPortfolioResponse } from '@/app/serve
 import { formatSignedMoney, formatSignedPercent, PERCENT, toneOfMoney } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 
-// Priced holdings only: an unpriced one adds to neither side, so the percent stays honest.
-/** "Lãi/lỗ chưa chốt": the sum over the priced holdings, in the book's currency, beside its percent
- *  of what they cost. */
+/** "Lãi/lỗ chưa chốt": the engine's book figure in the book's currency, beside its percent of what
+ *  the holdings cost. The engine leaves both out while any holding or currency cash is unpriced, so
+ *  nothing shows rather than a partial figure. */
 export function Unrealized({ book }: { readonly book: TradingPortfolioResponse }) {
-  const priced = book.positions.filter((position) => position.unrealizedPnlBase !== undefined)
-  const profit = priced.reduce((sum, position) => sum + (position.unrealizedPnlBase ?? 0), 0)
-  const invested = priced.reduce((sum, position) => sum + position.investedBase, 0)
+  const { unrealizedPnlBase: profit, investedBase: invested } = book
 
-  if (priced.length === 0 || invested <= 0) {
+  if (profit === undefined || invested === undefined || invested <= 0) {
     return null
   }
 

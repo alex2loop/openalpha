@@ -169,6 +169,7 @@ function exitReconcileDeps(
     trailedThrough: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
     trailRetryAt: lruMap<string, number>(PLAN_MEMO_CAPACITY),
     replannedOn: lruMap<string, TradingDay>(PLAN_MEMO_CAPACITY),
+    replanRetryAt: lruMap<string, number>(PLAN_MEMO_CAPACITY),
     tradeableHoldingsAt: deps.tradeableHoldingsAt,
     ...(deps.restingStops === undefined ? {} : { restingStops: deps.restingStops }),
   }

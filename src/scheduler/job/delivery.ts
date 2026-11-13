@@ -9,6 +9,12 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { withLeadParagraph } from '@/core/utils/text'
 import { CRON_AUTO_DISABLE_THRESHOLD, UNCOUNTED_HALT_MESSAGES } from '@/scheduler/job/outcome'
 
+/** What one delivery carries; `surfaceText` is the execution's own flag, passed through. */
+interface JobText {
+  readonly text: string
+  readonly surfaceText?: true | undefined
+}
+
 interface AutoDisableNoticeInput {
   readonly job: Job
   readonly transition: SchedulerJobTransition
@@ -20,11 +26,11 @@ interface AutoDisableNoticeInput {
 // Returns the failure message when delivery fails, so the caller can record it on the occurrence.
 export async function deliverText(
   job: Job,
-  text: string,
-  deps: SchedulerDeps
+  deps: SchedulerDeps,
+  message: JobText
 ): Promise<string | undefined> {
   try {
-    await notify(job, deps, text)
+    await notify(job, deps, message)
     return undefined
   } catch (err: unknown) {
     const formatted = formatErrForLog(err)
@@ -42,7 +48,7 @@ export async function deliverPartial(
     return
   }
 
-  await deliverText(job, deps.renderPartialNotice(result), deps)
+  await deliverText(job, deps, { text: deps.renderPartialNotice(result) })
 }
 
 export async function notifyIfAutoDisabled(input: AutoDisableNoticeInput): Promise<void> {
@@ -75,7 +81,9 @@ export async function notifyIfAutoDisabled(input: AutoDisableNoticeInput): Promi
 }
 
 // A CLI-created job has no chatId, so it falls back to whichever channel declared one.
-async function notify(job: Job, deps: SchedulerDeps, text: string): Promise<void> {
+async function notify(job: Job, deps: SchedulerDeps, message: JobText): Promise<void> {
+  const { text, surfaceText } = message
+
   if (text.trim() === '') {
     return
   }
@@ -89,5 +97,9 @@ async function notify(job: Job, deps: SchedulerDeps, text: string): Promise<void
 
   const label = deps.renderAiLabel(job)
 
-  await deps.notifier.notify(target, withLeadParagraph(label, text))
+  await deps.notifier.notify(
+    target,
+    withLeadParagraph(label, text),
+    surfaceText === undefined ? undefined : { surfaceText }
+  )
 }

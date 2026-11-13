@@ -67,6 +67,13 @@ interface Tail {
   readonly stopLoss?: number
 }
 
+const TAIL_FIELDS: ReadonlyMap<string, keyof Tail> = new Map([
+  [LIMIT_LABEL, 'limitPrice'],
+  [QUANTITY_LABEL, 'quantity'],
+  [TAKE_PROFIT_LABEL, 'takeProfit'],
+  [STOP_LOSS_LABEL, 'stopLoss'],
+])
+
 /** Positional up to the quantity, then labeled pairs: a fourth and fifth bare number in a row is a
  *  line no operator can read back to themselves. The instrument is one token, `[venue:]ticker`, so
  *  nothing here is read off the argument count. The ticker is the base asset alone — a `Ticker`
@@ -245,23 +252,18 @@ function parseTail(rest: readonly string[]): Tail | null {
 
   for (let index = 0; index < rest.length; index += LABELLED_PAIR) {
     const value = parseFiniteNumber(rest[index + 1])
-    const label = rest[index]?.toLowerCase()
+    const field = TAIL_FIELDS.get(rest[index]?.toLowerCase() ?? '')
 
-    if (value === null || value <= 0) {
+    if (value === null || value <= 0 || field === undefined) {
       return null
     }
 
-    if (label === LIMIT_LABEL) {
-      tail = { ...tail, limitPrice: value }
-    } else if (label === QUANTITY_LABEL) {
-      tail = { ...tail, quantity: value }
-    } else if (label === TAKE_PROFIT_LABEL) {
-      tail = { ...tail, takeProfit: value }
-    } else if (label === STOP_LOSS_LABEL) {
-      tail = { ...tail, stopLoss: value }
-    } else {
+    // A label given twice is two answers to one question, never a value this may pick between.
+    if (field in tail) {
       return null
     }
+
+    tail = { ...tail, [field]: value }
   }
 
   return tail

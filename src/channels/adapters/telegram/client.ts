@@ -6,7 +6,7 @@ import { BROWSER_HEADERS } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
-import { toPlainText } from './markup'
+import { fromMarkdownV2 } from './markup'
 import {
   type BotIdentity,
   buildTelegramUrl,
@@ -332,7 +332,7 @@ async function postWithPlainFallback(
 
   const plainRes = await postJson(ctx, {
     method: req.method,
-    body: { ...req.body, parse_mode: undefined, text: toPlainText(req.body.text) },
+    body: { ...req.body, parse_mode: undefined, text: fromMarkdownV2(req.body.text) },
     ...signal,
   })
 

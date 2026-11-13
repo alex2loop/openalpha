@@ -1,6 +1,9 @@
 import type { SuggestionRunResult } from '@/trading/features/suggestion/types'
+import type { CaveatCode } from '@/trading/kernel/caveat'
 import type { MarketResolution } from '@/trading/markets/types'
 import { isLevelKind } from '@/trading/kernel/instrument'
+
+const TOKENIZED_EQUITY: CaveatCode = 'market.tokenized-equity'
 
 type UnsupportedResult = Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>
 type ResolvedMarket = Extract<MarketResolution, { readonly kind: 'resolved' }>
@@ -28,7 +31,9 @@ export function unsupported(
     return { ...base, reason: unavailableReasonOf(resolution) }
   }
 
-  return { ...base, reason: 'ticker-not-supported' }
+  const tokenized = resolution.caveats.some((caveat) => caveat.code === TOKENIZED_EQUITY)
+
+  return { ...base, reason: tokenized ? 'tokenized-equity' : 'ticker-not-supported' }
 }
 
 // A market with no stored universe has never been refreshed, and /refresh is the step that helps

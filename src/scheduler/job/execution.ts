@@ -316,7 +316,10 @@ async function finishScheduledExecution(options: FinishScheduledExecutionOptions
   }
 
   if (outcome.status === 'success') {
-    const deliveryError = await deliverText(job, execution.result.text, deps)
+    const deliveryError = await deliverText(job, deps, {
+      text: execution.result.text,
+      surfaceText: execution.surfaceText,
+    })
 
     if (deliveryError !== undefined && finalized) {
       await deps.occurrences.recordDeliveryError(claim.runId, deliveryError)
@@ -373,7 +376,10 @@ async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Pro
   }
 
   if (outcome.status === 'success') {
-    const deliveryError = await deliverText(job, execution.result.text, deps)
+    const deliveryError = await deliverText(job, deps, {
+      text: execution.result.text,
+      surfaceText: execution.surfaceText,
+    })
 
     if (deliveryError !== undefined) {
       await deps.occurrences.recordDeliveryError(runId, deliveryError)

@@ -14,6 +14,8 @@ show it.
 | `zalo` | Zalo bot | plain text | no | yes | no | no |
 | `zalo_personal` | Your own Zalo account (unofficial) | plain text | no | yes | yes | no |
 
+On the plain-text channels, a source in a report or a brief shows as its name, without the long link behind it. A link the assistant writes itself in a chat reply stays whole.
+
 A channel starts only once its config and credentials are in place, and it runs inside the daemon.
 
 ### Zalo Personal
@@ -64,7 +66,7 @@ operator_user_ids = [123456789]
 | `enabled` | all | Set `false` to switch a configured channel off |
 | `token_env`, `token_file` | `telegram`, `zalo` | Bot token, read in that order. `zalo_personal` has no token; it uses the stored `profile` |
 | `allowed_ids` | all | Chats or users let in. On `telegram`, setting it turns pairing off unless `pairing = true` |
-| `operator_user_ids` | all | Who counts as the operator: who may run every command that reads or changes your book (`/trade`, `/record`, `/portfolio`, `/suggest`, `/alert`, `/brief`, `/themes` and the rest of the trading commands), plus `/config`, `/new`, `/social`, `/upgrade` and the in-chat pairing controls (`/pair`, `/approve`, `/deny`). Anyone else the bot admits gets the public commands only, such as `/price`. Pairing controls work only from a chat listed in `allowed_ids`; in a group, list the group's own id there too. Without it, everyone the bot admits counts as the operator in their own private chat, so set it when you share the bot |
+| `operator_user_ids` | all | Who counts as the operator: who may run every command that reads or changes your book (`/trade`, `/record`, `/portfolio`, `/suggest`, `/alert`, `/brief`, `/themes` and the rest of the trading commands), plus `/config`, `/new`, `/social`, `/upgrade` and the in-chat pairing controls (`/pair`, `/approve`, `/deny`). Anyone else the bot admits gets the public commands only, such as `/setup`, `/price`, `/overview`, `/screen`, `/sources` and `/glossary`. Pairing controls work only from a chat listed in `allowed_ids`; in a group, list the group's own id there too. Without it, everyone the bot admits counts as the operator in their own private chat, so set it when you share the bot |
 | `pairing` | `telegram` | Force pairing on or off |
 | `dm_policy` | `zalo` | `pairing`, `allowlist` or `disabled`. Defaults to `pairing`, or `allowlist` once `allowed_ids` is set, the same as Telegram |
 | `i_accept_ban_risk`, `profile` | `zalo_personal` | The required opt-in, and which saved QR login to use |

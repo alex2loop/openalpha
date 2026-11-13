@@ -1,5 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { Caveat, CaveatDetail, CaveatSeverity } from '@/trading/kernel/caveat'
+import { toFoldLines } from '@/core/utils/surface-text'
 import { hasMessage, type MessageKey, t } from '@/i18n'
 import {
   caveatSeverity,
@@ -7,7 +8,6 @@ import {
   WITHOUT_SOURCES_DETAIL,
 } from '@/trading/kernel/caveat'
 import { isCurrencyCode } from '@/trading/kernel/instrument'
-import { toFoldLines } from '@/trading/render/fold'
 import {
   CAVEAT_SUBJECT_SEPARATOR,
   renderProvidedValue,

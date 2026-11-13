@@ -7,15 +7,9 @@ import { tr } from '@/web/text/tr'
 
 /** A few seconds, so a run of writes (a batch of `/record` lines) is one copy. */
 const AUTOSAVE_DEBOUNCE_MS = 4_000
-/** Commands that write what a visitor cannot fetch again. */
-const SAVING_COMMANDS = Object.freeze([
-  'record',
-  'update',
-  'delete',
-  'profile',
-  'watchlist',
-  'suggest',
-])
+/** Commands that write what a visitor cannot fetch again and finish as a run. The ledger and profile
+ *  commands answer in place, so `ledgerRevision` hears them instead. */
+const SAVING_COMMANDS = Object.freeze(['watchlist', 'suggest'])
 const HANDLE_DB = 'oa.file'
 const HANDLE_STORE = 'handles'
 const HANDLE_KEY = 'save'
@@ -261,7 +255,8 @@ async function stopActive(): Promise<void> {
   await current?.autosave.stop()
 }
 
-// A ledger write from a form bumps the revision; the commands write through the chat.
+// A book write, from a form or a ledger or profile line typed in the chat, bumps the revision; the
+// other commands finish as runs.
 function watchWrites(autosave: FileAutosave): () => void {
   let seen = ledgerRevision.peek()
   const stopRevision = effect(() => {

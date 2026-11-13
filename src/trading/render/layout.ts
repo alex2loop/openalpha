@@ -2,11 +2,11 @@ import type { Locale } from '@/core/types/locale'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
+import { ROW_INDENT } from '@/core/utils/surface-text'
 import { formatDay, t } from '@/i18n'
 import { formatInstant } from '@/trading/render/datetime'
 import { formatCount } from '@/trading/render/format'
 
-const ROW_INDENT = '  '
 const SECTION_SEPARATOR = '\n\n'
 const SOURCE_SEPARATOR = ', '
 const MAX_LISTED_SOURCES = 3

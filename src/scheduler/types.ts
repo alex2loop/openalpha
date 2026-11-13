@@ -7,7 +7,12 @@ import type { RunInput, Runner, RunResult } from '@/engine/api'
 import type { EventFireClaim, EventJobMatch, JobEvent } from '@/scheduler/event/types'
 
 export interface DeliverySink {
-  notify(target: DeliveryTarget, text: string): Promise<void>
+  /** `surfaceText` marks the text as the trading surface's own output rather than a model's prose. */
+  notify(
+    target: DeliveryTarget,
+    text: string,
+    options?: { readonly surfaceText?: true }
+  ): Promise<void>
 }
 
 export interface DeliveryTarget {
@@ -203,7 +208,7 @@ interface SchedulerOccurrenceStore {
 /** What a job whose prompt is a slash command came to: the reply to deliver, or the turn the command
  *  hands to an agent. */
 export type JobCommandAnswer =
-  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'text'; readonly text: string; readonly surfaceText?: true }
   | { readonly kind: 'agent'; readonly message: string; readonly agentId?: AgentId }
 
 export interface JobCommandRun {

@@ -2,7 +2,7 @@ import type { BaseStatistics } from '@/trading/features/market-data/reads/statis
 import type { MarketDataStore } from '@/trading/features/market-data/store/market-data'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { PortfolioCandidate } from '@/trading/features/portfolio/folds/candidate'
-import type { ReduceVerdicts, ValuedBook } from '@/trading/features/portfolio/types'
+import type { ReduceVerdicts, ValuedBook, ValuedPosition } from '@/trading/features/portfolio/types'
 import type { Caveat, EvidenceReduceReasonCode } from '@/trading/kernel/caveat'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type {
@@ -22,6 +22,7 @@ import {
 } from '@/trading/kernel/instrument'
 import { positionCapOf } from '@/trading/kernel/operator/profile'
 import { listedFactsOf } from '@/trading/markets/registry'
+import { exitPriceOf } from '@/trading/markets/stored-quote'
 
 const CANDIDATE_CONCURRENCY = 5
 
@@ -120,6 +121,8 @@ async function toCandidate(
     ...listed,
     unitPriceBase: priced.priceBase,
     unitPrice: priced.price,
+    exitPriceBase: priced.exitPriceBase,
+    exitPrice: priced.exitPrice,
     currency: priced.currency,
     boardLot: market.manifest.boardLot.size,
     ...(statistics?.averageDailyTurnoverBase === undefined
@@ -171,36 +174,61 @@ function unmeasuredVolatilityCaveats(
 }
 
 /** Both readings of one mark: the base-currency figure sizing divides by, and the market's own
- *  quote, which is what an order line prints. Named for the pair `ValuedPosition` already carries. */
+ *  quote, which is what an order line prints. Named for the pair `ValuedPosition` already carries,
+ *  once for the side a buy fills and once for the side a sale does. */
 interface CandidateMark {
   readonly priceBase: number
   readonly price: number
+  readonly exitPriceBase: number
+  readonly exitPrice: number
   readonly currency: CurrencyCode
 }
 
-/** The book price is authoritative when it exists; otherwise the live quote, converted to the base
- *  currency at the booking day, prices a screened name the operator does not yet hold. A quote that
- *  did not resolve yields no candidate rather than an invented weight. */
 interface MarkRequest {
   readonly options: CandidateOptions
   readonly instrument: InstrumentRef
   readonly market: Market
 }
 
+/** The book price is authoritative where one price serves both sides. A dealer board's valuation is
+ *  the side a sale gets, so a held name there reads the live quote for what a buy pays and keeps the
+ *  book's mark for the sale; if that read fails the book's mark stands for both sides, so the sale is
+ *  still planned. Otherwise the live quote, converted to the base currency at the booking day,
+ *  prices a screened name the operator does not yet hold. A quote that did not resolve yields no
+ *  candidate for such a name rather than an invented weight. */
 async function pricedValue(
   deps: CandidateDeps,
   request: MarkRequest
 ): Promise<CandidateMark | null> {
   const { options, instrument, market } = request
   const key = buildInstrumentKey(instrument)
-  const entry = options.valued.positions.find(
+  const found = options.valued.positions.find(
     (position) => buildInstrumentKey(position.position.instrument) === key
   )
+  const held = found?.kind === 'priced' ? found : undefined
 
-  if (entry?.kind === 'priced') {
-    return { priceBase: entry.priceBase, price: entry.price, currency: market.manifest.currency }
+  if (held !== undefined && held.dealerBuy !== true) {
+    return bookMarkOf(held, market.manifest.currency)
   }
 
+  const live = await liveMarkOf(deps, { options, instrument, held })
+
+  if (live === null && held !== undefined) {
+    return bookMarkOf(held, market.manifest.currency)
+  }
+
+  return live
+}
+
+async function liveMarkOf(
+  deps: CandidateDeps,
+  request: {
+    readonly options: CandidateOptions
+    readonly instrument: InstrumentRef
+    readonly held: Extract<ValuedPosition, { readonly kind: 'priced' }> | undefined
+  }
+): Promise<CandidateMark | null> {
+  const { options, instrument, held } = request
   const view = await deps.marketData.quote({
     ticker: instrument.ticker,
     market: instrument.market,
@@ -221,13 +249,33 @@ async function pricedValue(
     signal: options.signal,
   })
 
-  return rate.kind === 'unavailable'
-    ? null
-    : {
-        priceBase: view.value.quote.price * rate.value.rate,
-        price: view.value.quote.price,
-        currency: view.value.currency,
-      }
+  if (rate.kind === 'unavailable') {
+    return null
+  }
+
+  const exitPrice = held?.price ?? exitPriceOf(view.value.quote)
+
+  return {
+    priceBase: view.value.quote.price * rate.value.rate,
+    price: view.value.quote.price,
+    exitPriceBase: held?.priceBase ?? exitPrice * rate.value.rate,
+    exitPrice,
+    currency: view.value.currency,
+  }
+}
+
+/** One price serves both sides, so the book's own mark is what a buy pays and what a sale gets. */
+function bookMarkOf(
+  held: Extract<ValuedPosition, { readonly kind: 'priced' }>,
+  currency: CurrencyCode
+): CandidateMark {
+  return {
+    priceBase: held.priceBase,
+    price: held.price,
+    exitPriceBase: held.priceBase,
+    exitPrice: held.price,
+    currency,
+  }
 }
 
 interface AdviceInputDeps extends CandidateDeps {

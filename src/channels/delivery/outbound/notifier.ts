@@ -28,6 +28,7 @@ interface NotifyResult {
 interface NotifyOptions {
   readonly signal?: AbortSignal
   readonly useMarkup?: boolean
+  readonly surfaceText?: boolean
 }
 
 interface NotifierDeps {
@@ -72,6 +73,7 @@ export class Notifier {
   notify(target: OutboundTarget, text: string, options?: NotifyOptions): Promise<NotifyResult> {
     const signal = options?.signal
     const useMarkup = options?.useMarkup
+    const surfaceText = options?.surfaceText
     // Guarded before any enqueue or listener: arming and immediately tearing down would leave a
     // note in the queue for a caller that already gave up on it.
     if (signal?.aborted === true) {
@@ -87,6 +89,7 @@ export class Notifier {
         chatId: target.chatId,
         text,
         ...(useMarkup === undefined ? {} : { useMarkup }),
+        ...(surfaceText === undefined ? {} : { surfaceText }),
       },
       sendSignal:
         signal === undefined ? this.deps.signal : AbortSignal.any([this.deps.signal, signal]),

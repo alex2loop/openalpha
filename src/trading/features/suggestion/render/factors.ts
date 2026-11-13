@@ -5,13 +5,13 @@ import type { FactorAttribution, FactorComposite, FactorResult } from '@/trading
 import type { FactorMetric, FactorMetricId } from '@/trading/kernel/factor-metric'
 import type { RenderContext } from '@/trading/render/format'
 import type { QuotedIn } from '@/trading/render/money'
+import { toFoldLines } from '@/core/utils/surface-text'
 import { t } from '@/i18n'
 import { CHECKLIST_METRICS, renderChecklist } from '@/trading/features/suggestion/render/checklist'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { scoreBand } from '@/trading/markets/factor-scoring'
-import { toFoldLines } from '@/trading/render/fold'
 import {
   formatCount,
   formatScore,

@@ -9,6 +9,7 @@ import type {
   MissingMacroDriver,
 } from '@/trading/kernel/market/market-macro'
 import type { RenderContext } from '@/trading/render/format'
+import { toFoldLines } from '@/core/utils/surface-text'
 import { formatDay, t } from '@/i18n'
 import { SCORE_LIMIT } from '@/trading/markets/factor-scoring'
 import {
@@ -18,7 +19,6 @@ import {
   RISK_ON_AT,
 } from '@/trading/markets/macro-risk'
 import { CHART_CELLS, LADDER_MARKS, renderLadder } from '@/trading/render/chart'
-import { toFoldLines } from '@/trading/render/fold'
 import {
   formatFixedAmount,
   formatFixedPercent,

@@ -9,6 +9,8 @@
   "dividendsBase": 1500000,
   "totalPnlBase": 10000000,
   "feesBase": 160000,
+  "investedBase": 56000000,
+  "unrealizedPnlBase": 1800000,
   "positions": [
     {
       "instrument": {
@@ -19,6 +21,7 @@
       "belowMinimumSize": false,
       "settledQuantity": 1500,
       "heldSince": "2026-08-14",
+      "price": 28400,
       "marketValueBase": 56800000,
       "investedBase": 55000000,
       "unrealizedPnlBase": 1800000,

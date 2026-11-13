@@ -18,10 +18,16 @@ import {
   STABLECOIN_TICKERS,
 } from '@/trading/markets/crypto/policy'
 
-/** The issuer brand every tokenized-equity row carries in its name. Both routed providers spell it
- *  differently around the brand — "Tesla xStock" on one, "Tesla tokenized stock (xStock)" on the
- *  other — so the marker is matched inside the name rather than at either end of it. */
-const TOKENIZED_EQUITY_NAME_MARKER = 'xstock'
+/** The wording a tokenized-equity row carries in its name, matched inside it because the routed
+ *  providers spell it differently around the brand: "Tesla xStock", "Tesla tokenized stock (xStock)",
+ *  "NVIDIA (bStocks Tokenized Stock)", "NVIDIA Tokenized bStocks", "iShares Core S&P 500 Tokenized
+ *  ETF (Ondo)". */
+const TOKENIZED_EQUITY_NAME_MARKERS: readonly string[] = [
+  'xstock',
+  'bstocks',
+  'tokenized stock',
+  'tokenized etf',
+]
 
 /** A row carrying the session change every mover is ranked on. */
 type Moving = MarketCapRecord & { readonly changePct: number }
@@ -185,5 +191,7 @@ function isLiquidUniverseRow(record: MarketCapRecord): boolean {
  *  can argue. The symbol cannot carry the rule — real coins end in X — so the provider's own name
  *  for the row is what answers. */
 export function isTokenizedEquity(record: MarketCapRecord): boolean {
-  return record.name.toLowerCase().includes(TOKENIZED_EQUITY_NAME_MARKER)
+  const name = record.name.toLowerCase()
+
+  return TOKENIZED_EQUITY_NAME_MARKERS.some((marker) => name.includes(marker))
 }

@@ -30,9 +30,10 @@ import { INDENT } from '@/trading/render/layout'
 import { renderBoardScaleNotes } from '@/trading/render/money'
 import { renderStopRaised } from '@/trading/render/stop-raised'
 
-/** A series the market could not serve is asked again after this, not on every tick: the read
- *  reaches a provider, and an outage would otherwise cost one request per held name a minute. */
-const TRAIL_RETRY_MS = 15 * 60_000
+/** A trail series the market could not serve, or a replacement that threw, is asked again after
+ *  this, not on every tick: either reaches a provider, and an outage would otherwise cost one
+ *  request per held name a minute. */
+const PLAN_RETRY_MS = 15 * 60_000
 /** A stop the operator set in the exchange's app is moved there by hand, never by `/trade exit`,
  *  which would place a second one beside it. */
 const PLACEMENT_BY_COVER: Readonly<Record<StopCover, StopPlacement>> = Object.freeze({
@@ -56,8 +57,11 @@ interface ExitPlanDeps {
   readonly trailedThrough: LruMap<string, TradingDay>
   /** Plan id to the instant its trail may read the series again after the market could not serve it. */
   readonly trailRetryAt: LruMap<string, number>
-  /** Plan id to the settled session a newer strategy version last tried to replace it in. */
+  /** Plan id to the settled session its replacement by a newer strategy version was last answered
+   *  in, by a new plan or by a refusal. A replacement that threw leaves it unset. */
   readonly replannedOn: LruMap<string, TradingDay>
+  /** Plan id to the instant its replacement may be tried again after one threw. */
+  readonly replanRetryAt: LruMap<string, number>
   /** Whether a stop rests at the exchange behind each held name, keyed by `buildInstrumentKey`.
    *  Absent on an install with no exchange, where nothing could rest anywhere. */
   restingStops?(options: PortfolioAtOptions): Promise<ReadonlyMap<string, StopCover>>
@@ -119,28 +123,22 @@ async function isolated<T>(
   }
 }
 
-/** True at most once a settled session per plan, and only for one an older strategy version
- *  priced: a replacement the store refuses that day is not re-read from the bars every tick. */
-function claimsReplan(
+/** The settled session a replacement is due for, or null: only for a plan an older strategy version
+ *  priced, and not again once that session's replacement was answered. */
+function replanDayOf(
   deps: ExitPlanDeps,
   plan: StoredSuggestion,
   at: { readonly market: Market | null; readonly now: number }
-): boolean {
+): TradingDay | null {
   const { market, now } = at
 
   if (market === null || plan.strategyVersion === market.manifest.strategyVersion) {
-    return false
+    return null
   }
 
   const settled = resolveSettledDay(market.manifest.calendar, now)
 
-  if (deps.replannedOn.get(plan.id) === settled) {
-    return false
-  }
-
-  deps.replannedOn.set(plan.id, settled)
-
-  return true
+  return deps.replannedOn.get(plan.id) === settled ? null : settled
 }
 
 function movedLevels(from: StoredSuggestion, to: StoredSuggestion): boolean {
@@ -148,12 +146,16 @@ function movedLevels(from: StoredSuggestion, to: StoredSuggestion): boolean {
 }
 
 /** A replacement that throws leaves the standing plan armed; only a holding with no plan has
- *  nothing to fall back to. */
+ *  nothing to fall back to. It is tried again after `PLAN_RETRY_MS`, and logged on each attempt. */
 async function planCaught(
   deps: ExitPlanDeps,
   input: PlanHoldingInput
 ): Promise<RecordedPlanResult | null> {
   const { instrument, standing, options } = input
+
+  if (standing !== null && options.now < (deps.replanRetryAt.get(standing.id) ?? 0)) {
+    return null
+  }
 
   try {
     return await deps.exitPlans.plan({ instrument, now: options.now, signal: options.signal })
@@ -162,6 +164,7 @@ async function planCaught(
       throw err
     }
 
+    deps.replanRetryAt.set(standing.id, options.now + PLAN_RETRY_MS)
     deps.logger.warn('trading.exit_replan_failed', {
       ticker: instrument.ticker,
       err: formatErrForLog(err),
@@ -181,11 +184,20 @@ async function planHolding(
   const { instrument, standing, options } = input
   const market = deps.markets.find(instrument.market)
 
-  if (standing !== null && !claimsReplan(deps, standing, { market, now: options.now })) {
+  const replanDay =
+    standing === null ? null : replanDayOf(deps, standing, { market, now: options.now })
+
+  if (standing !== null && replanDay === null) {
     return standing
   }
 
   const planned = await planCaught(deps, input)
+
+  // Only a replacement that answered spends the day: a refusal the store gives is not re-read from
+  // the bars every tick, while one that threw (a provider outage) is retried after PLAN_RETRY_MS.
+  if (standing !== null && replanDay !== null && planned !== null) {
+    deps.replannedOn.set(standing.id, replanDay)
+  }
 
   if (planned?.kind !== 'planned') {
     return planned?.kind === 'standing' ? planned.plan : standing
@@ -298,7 +310,7 @@ async function trailPlanStop(deps: ExitPlanDeps, input: TrailPlanInput): Promise
 }
 
 /** The settled series a trail reads, or nothing when the market could not serve it: then the read
- *  waits `TRAIL_RETRY_MS` rather than reaching the provider on every tick of an outage. */
+ *  waits `PLAN_RETRY_MS` rather than reaching the provider on every tick of an outage. */
 async function readTrailSeries(
   deps: ExitPlanDeps,
   input: {
@@ -323,7 +335,7 @@ async function readTrailSeries(
   })
 
   if (series.kind !== 'available') {
-    deps.trailRetryAt.set(plan.id, options.now + TRAIL_RETRY_MS)
+    deps.trailRetryAt.set(plan.id, options.now + PLAN_RETRY_MS)
 
     return undefined
   }

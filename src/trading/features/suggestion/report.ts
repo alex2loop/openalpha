@@ -16,6 +16,7 @@ import type { FactorAttribution } from '@/trading/kernel/factor'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { MarketCosts } from '@/trading/markets/cost'
 import { isAbortError } from '@/core/errors'
+import { toMarkdownText, withoutFolds } from '@/core/utils/surface-text'
 import { toReportResult } from '@/trading/features/suggestion/agent-view'
 import { summarizeFactorAttribution } from '@/trading/features/suggestion/pipeline/attribution'
 import {
@@ -25,7 +26,6 @@ import {
 import { renderSuggestionText } from '@/trading/features/suggestion/render/suggestion'
 import { toScoredRows } from '@/trading/features/suggestion/track-record/reflect'
 import { marketTradeCost } from '@/trading/markets/cost'
-import { toMarkdownText, withoutFolds } from '@/trading/render/fold'
 import { resolveRenderContext, TOOL_SURFACE } from '@/trading/render/format'
 import { SURFACE_LIMITS } from '@/trading/surface-limits'
 

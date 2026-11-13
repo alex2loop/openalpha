@@ -45,7 +45,7 @@ export {
   createSlashCommand,
 } from '@/commands/dispatcher/registration'
 export { describeCommand, type LocaleLookup, renderMessages } from '@/commands/dispatcher/render'
-export { commandHeadOf, HELP_COMMAND } from '@/commands/dispatcher/resolve'
+export { commandHeadOf, HELP_COMMAND, writesSurfaceText } from '@/commands/dispatcher/resolve'
 export {
   SCHEDULED_COMMAND_SURFACE,
   scheduledCommandLine,

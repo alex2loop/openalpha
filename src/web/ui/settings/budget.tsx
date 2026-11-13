@@ -2,11 +2,10 @@ import type { CostReport } from '@/app/server/wire/system'
 import { cost } from '@/web/state/cost'
 import { isTree, saveConfig } from '@/web/state/settings'
 import { toDecimal } from '@/web/text/decimal'
+import { formatFieldFigure } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { Skeleton } from '@/web/ui/kit/skeleton'
 import { SettingRow, useDraft } from '@/web/ui/settings/row'
-
-const BUDGET_STEP = '0.5'
 
 /** Ngân sách AI: the most the daemon may spend a day and a month; 0 is no limit. */
 export function BudgetRow() {
@@ -17,8 +16,8 @@ export function BudgetRow() {
 
 function BudgetFields({ caps }: { readonly caps: CostReport['caps'] }) {
   const { draft, isChanged, markSaved } = useDraft({
-    day: String(caps.dailyUsd),
-    month: String(caps.monthlyUsd),
+    day: formatFieldFigure(caps.dailyUsd),
+    month: formatFieldFigure(caps.monthlyUsd),
   })
   const day = toDecimal(draft.value.day)
   const month = toDecimal(draft.value.month)
@@ -83,10 +82,9 @@ function CapField({ label, value, onInput }: CapFieldProps) {
     <label class="form-field form-label">
       {label}
       <input
-        type="number"
+        type="text"
+        inputMode="decimal"
         class="form-number"
-        min="0"
-        step={BUDGET_STEP}
         value={value}
         onInput={(event) => onInput(event.currentTarget.value)}
       />

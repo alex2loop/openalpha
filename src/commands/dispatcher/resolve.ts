@@ -49,6 +49,12 @@ export function commandHeadOf(line: string): string | null {
   return parsed === null ? null : `${COMMAND_PREFIX}${normalizeName(parsed.raw)}`
 }
 
+/** A command listed under a `/help` group is the trading surface's own, and its text is written in
+ *  that surface's markup; the core and plugin commands answer in general markdown instead. */
+export function writesSurfaceText(command: SlashCommand | undefined): boolean {
+  return command?.group !== undefined
+}
+
 export function isCommandVisible(
   policy: SlashInvocationPolicy,
   surface?: CommandSurface,
