@@ -33,6 +33,7 @@ Order caps now count orders that filled at the exchange but never reached your l
 - A replan for an older strategy version that fails during a provider outage is retried later instead of waiting for the next session, without a warning on every check.
 - A repeated `limit`, `tp` or `sl` in `/trade` is refused instead of silently keeping the last one.
 - The web budget fields use the page's decimal separator.
+- On the web, Book and Today update right after a `/record`, `/update`, `/delete` or `/profile` change typed in the chat, and the web version saves its copy then too; a holding shows its own price, not "—".
 - Error lines that list channels say "(không có)" in Vietnamese.
 - Docs: a run that times out exits with code `12`; the commands open to every chat member are named; `zalo login` gives up after five minutes; missing release links were added.
 
