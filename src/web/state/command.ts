@@ -5,6 +5,7 @@ import { COMMAND_PREFIX, isFinished, sendMessage, thread } from '@/web/state/cha
 import { isAnalysisOnly } from '@/web/state/edition'
 import { isCommandRun, runs } from '@/web/state/live'
 import { quietCommands } from '@/web/state/quiet-command'
+import { markLedgerChanged } from '@/web/state/trade'
 
 const HISTORY_MAX = 50
 // A key is a long run of letters and digits, so a typed line holding one is refused on the web
@@ -28,6 +29,11 @@ export const FORCE_ARG = 'force'
 export const SUGGEST_STOPS_ARG = 'stops'
 export const ALERT_CREATE_COMMAND = '/alert create'
 export const WATCHLIST_ADD_COMMAND = '/watchlist add'
+// Commands that change the book and answer in place, so no run event says they ended. `/profile`
+// changes it only with an action other than `show`.
+const BOOK_WRITE_COMMANDS: ReadonlySet<string> = new Set(['/record', '/update', '/delete'])
+const PROFILE_COMMAND = '/profile'
+const PROFILE_SHOW_ACTION = 'show'
 
 // What the operator sent, oldest first.
 const sent = signal<readonly string[]>([])
@@ -149,7 +155,7 @@ export function recall(direction: 'older' | 'newer'): void {
 
 // What was sent joins the recall history; a refused send marks the box not sent.
 function send(text: string): boolean {
-  if (!sendMessage(text)) {
+  if (!sendMessage(text, isBookWrite(text) ? { onDone: readBookAgain } : {})) {
     notSent.value = 'offline'
     return false
   }
@@ -157,6 +163,23 @@ function send(text: string): boolean {
   sent.value = [...sent.value.filter((held) => held !== text), text].slice(-HISTORY_MAX)
 
   return true
+}
+
+function isBookWrite(text: string): boolean {
+  const [command = '', action] = text.trim().split(WHITESPACE_RE)
+
+  if (command === PROFILE_COMMAND) {
+    return action !== undefined && action !== PROFILE_SHOW_ACTION
+  }
+
+  return BOOK_WRITE_COMMANDS.has(command)
+}
+
+// The daemon changed the book on a line the page did not write itself: the book and what stands
+// on it read again, and the saved copy follows.
+function readBookAgain(): void {
+  // The session load records its own failure, so this never rejects.
+  markLedgerChanged().catch(() => undefined)
 }
 
 // A draft the operator typed outranks a button's command.

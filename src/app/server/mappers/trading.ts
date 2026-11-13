@@ -290,6 +290,7 @@ function toPositionWire(
 
   return {
     ...base,
+    price: position.price,
     marketValueBase: position.valueBase,
     unrealizedPnlBase: position.valueBase - base.investedBase,
     ...(navBase === undefined || navBase === 0

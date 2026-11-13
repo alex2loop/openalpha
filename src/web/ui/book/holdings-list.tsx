@@ -62,7 +62,7 @@ function HoldingRow({ position, stop, isBreach }: HoldingRowProps) {
   const move = toMovePercent(position)
   const weight = position.weightPctNav === undefined ? undefined : position.weightPctNav / PERCENT
   const rest = [
-    formatMarketPrice(instrument.market, stop?.price),
+    formatMarketPrice(instrument.market, position.price),
     formatFixedFraction(weight),
     ...(stop === undefined ? [] : describeStop(stop)),
     ...(isBreach ? [tr('ui.office.tape.breach')] : []),
