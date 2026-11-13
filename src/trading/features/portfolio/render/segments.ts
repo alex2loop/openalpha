@@ -233,12 +233,12 @@ export function renderCashLine(
     : 'trading.render.rebalance.cashSettled'
   const settledAmount = money('settled', cashSegment.cashPctNav)
 
-  return `${INDENT[1]}${t(locale, key, {
-    ...base,
-    ...amounts,
-    ...settledAmount,
-    settled,
-  })}`
+  const line = t(locale, key, { ...base, ...amounts, ...settledAmount, settled })
+  const note = cashSegment.foreignCashAtCost
+    ? ` ${t(locale, 'trading.render.rebalance.cashAtCostNote')}`
+    : ''
+
+  return `${INDENT[1]}${line}${note}`
 }
 
 /** Each segment's name in the operator's language, keyed by id, for the segments listed and the

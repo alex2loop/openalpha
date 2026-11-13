@@ -166,7 +166,8 @@ function segmentBreach(
   return crossed === undefined ? [] : [{ kind: 'segment', segment, ...crossed }]
 }
 
-/** The segment's ETF share, which only an ETF adds to. */
+/** The segment's ETF share, which only an ETF adds to. Unmirrored buys are not counted: orders place
+ *  only at venues that hold crypto, and no coin is an ETF. */
 function etfBreach(input: MeasuredOrder, addedPctNav: number): readonly CapBreach[] {
   if (input.instrumentKind !== ETF_KIND) {
     return []

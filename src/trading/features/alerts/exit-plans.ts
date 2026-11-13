@@ -58,6 +58,9 @@ interface ExitPlanDeps {
   readonly trailRetryAt: LruMap<string, number>
   /** Plan id to the settled session a newer strategy version last got an answer to replace it in. */
   readonly replannedOn: LruMap<string, TradingDay>
+  /** Plan id to the settled session its failed replacement was last logged in: the replacement is
+   *  retried every tick, the warning is not. */
+  readonly replanWarnedOn: LruMap<string, TradingDay>
   /** Whether a stop rests at the exchange behind each held name, keyed by `buildInstrumentKey`.
    *  Absent on an install with no exchange, where nothing could rest anywhere. */
   restingStops?(options: PortfolioAtOptions): Promise<ReadonlyMap<string, StopCover>>
@@ -142,24 +145,28 @@ function movedLevels(from: StoredSuggestion, to: StoredSuggestion): boolean {
 }
 
 /** A replacement that throws leaves the standing plan armed; only a holding with no plan has
- *  nothing to fall back to. */
+ *  nothing to fall back to. It is retried on the next tick, and logged once per plan per session. */
 async function planCaught(
   deps: ExitPlanDeps,
-  input: PlanHoldingInput
+  input: PlanHoldingInput,
+  replanDay: TradingDay | null
 ): Promise<RecordedPlanResult | null> {
   const { instrument, standing, options } = input
 
   try {
     return await deps.exitPlans.plan({ instrument, now: options.now, signal: options.signal })
   } catch (err: unknown) {
-    if (standing === null || isAbortError(err)) {
+    if (standing === null || replanDay === null || isAbortError(err)) {
       throw err
     }
 
-    deps.logger.warn('trading.exit_replan_failed', {
-      ticker: instrument.ticker,
-      err: formatErrForLog(err),
-    })
+    if (deps.replanWarnedOn.get(standing.id) !== replanDay) {
+      deps.replanWarnedOn.set(standing.id, replanDay)
+      deps.logger.warn('trading.exit_replan_failed', {
+        ticker: instrument.ticker,
+        err: formatErrForLog(err),
+      })
+    }
 
     return null
   }
@@ -182,7 +189,7 @@ async function planHolding(
     return standing
   }
 
-  const planned = await planCaught(deps, input)
+  const planned = await planCaught(deps, input, replanDay)
 
   // Only a replacement that answered spends the day: a refusal the store gives is not re-read from
   // the bars every tick, while one that threw (a provider outage) is retried on the next.

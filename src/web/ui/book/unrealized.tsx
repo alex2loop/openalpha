@@ -2,15 +2,13 @@ import type { AbsolutePositionWire, TradingPortfolioResponse } from '@/app/serve
 import { formatSignedMoney, formatSignedPercent, PERCENT, toneOfMoney } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 
-/** "Lãi/lỗ chưa chốt": the sum over the priced holdings, in the book's currency, beside its percent
- *  of what they cost. Shown only while the book has a NAV: the engine leaves the book's figure out
- *  while any holding or currency cash is unpriced, and a sum over the rest would read as complete. */
+/** "Lãi/lỗ chưa chốt": the engine's book figure in the book's currency, beside its percent of what
+ *  the holdings cost. The engine leaves both out while any holding or currency cash is unpriced, so
+ *  nothing shows rather than a partial figure. */
 export function Unrealized({ book }: { readonly book: TradingPortfolioResponse }) {
-  const priced = book.positions.filter((position) => position.unrealizedPnlBase !== undefined)
-  const profit = priced.reduce((sum, position) => sum + (position.unrealizedPnlBase ?? 0), 0)
-  const invested = priced.reduce((sum, position) => sum + position.investedBase, 0)
+  const { unrealizedPnlBase: profit, investedBase: invested } = book
 
-  if (book.navBase === undefined || priced.length === 0 || invested <= 0) {
+  if (profit === undefined || invested === undefined || invested <= 0) {
     return null
   }
 

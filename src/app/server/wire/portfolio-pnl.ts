@@ -12,4 +12,9 @@ export interface PortfolioPnlWire {
   readonly totalPnlBase?: number
   /** The trading fees inside the cost of what is held, not every fee paid; absent with `navBase`. */
   readonly feesBase?: number
+  /** What every holding cost, fees inside; absent with `navBase`. */
+  readonly investedBase?: number
+  /** What the holdings are worth above `investedBase`, unpriced ones counted at cost; absent with
+   *  `navBase`. */
+  readonly unrealizedPnlBase?: number
 }

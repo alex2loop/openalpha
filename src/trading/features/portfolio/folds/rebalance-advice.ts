@@ -299,6 +299,7 @@ function cashSegmentAdvice(
     liquidReservePctNav,
     termDepositEligiblePctNav,
     posture: termDepositEligiblePctNav > 0 ? 'term-deposit-eligible' : 'fully-liquid',
+    foreignCashAtCost: (input.valued.currencyCashGainBase ?? 0) !== 0,
     // A reserve shortfall is already the `reserve-below-target` finding; one condition, one owner.
     caveats: [],
   }

@@ -9,6 +9,8 @@
   "dividendsBase": 1500000,
   "totalPnlBase": 10000000,
   "feesBase": 160000,
+  "investedBase": 56000000,
+  "unrealizedPnlBase": 1800000,
   "positions": [
     {
       "instrument": {

@@ -64,6 +64,8 @@ export interface ExitReconcileDeps {
   readonly trailRetryAt: LruMap<string, number>
   /** See `ExitPlanDeps`. */
   readonly replannedOn: LruMap<string, TradingDay>
+  /** See `ExitPlanDeps`. */
+  readonly replanWarnedOn: LruMap<string, TradingDay>
   tradeableHoldingsAt(options: PortfolioAtOptions): Promise<readonly Holding[]>
   /** Whether a stop rests at the exchange behind each held name. See `ExitPlanDeps`. */
   restingStops?(options: PortfolioAtOptions): Promise<ReadonlyMap<string, StopCover>>

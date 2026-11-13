@@ -5908,6 +5908,7 @@
     "render.rebalance.listedOnly": "This run sized only the names you listed plus what you hold, ignoring your watchlist · /watchlist add",
     "render.rebalance.cash": "Of that, {liquid} of your portfolio is the reserve worth keeping on hand, and {term} can go into a term deposit.",
     "render.rebalance.cashSettled": "Settled cash is {settled} of your portfolio; keep {liquid} as reserve, {term} can go into a term deposit.",
+    "render.rebalance.cashAtCostNote": "Foreign cash counts here at what you paid for it, while the table above marks it at today's rate, so the two differ a little.",
     "render.reconcile.title": "Ledger against exchanges",
     "render.reconcile.matched": "Your ledger matches every exchange that answered.",
     "render.reconcile.unreachable": "{venue} could not be reached, so nothing was checked there.",

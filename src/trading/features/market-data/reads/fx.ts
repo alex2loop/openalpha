@@ -1,6 +1,7 @@
 import type { Logger } from '@/core/logging/logger'
 import type { FxRateStore } from '@/trading/features/market-data/store/fx-rate'
 import type { Caveat } from '@/trading/kernel/caveat'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { FxConvertOptions, FxRates } from '@/trading/kernel/market/fx-rates'
 import type { FxConversion } from '@/trading/kernel/market/market-capability'
 import type { FxQuote } from '@/trading/kernel/market/market-data'
@@ -11,7 +12,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { dedupeCaveats, sourcedCaveat } from '@/trading/kernel/caveat'
 import { currencyCode, fxPair, isFiatCurrency } from '@/trading/kernel/instrument'
 import { sourceId } from '@/trading/kernel/source/source-id'
-import { available } from '@/trading/kernel/source/source-result'
+import { available, unavailable } from '@/trading/kernel/source/source-result'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 
 /** A same-currency rate is arithmetic, not a provider answer; it still needs a stamp so callers
@@ -131,15 +132,40 @@ async function directRate(
 
   if (live.kind === 'available') {
     return options.onDay === true && live.value.asOf > options.asOf
-      ? ((await datedRate(deps, options)) ?? live)
+      ? await rateOnDay(deps, options, live)
       : live
   }
 
   return (await storedRate(deps, options, live)) ?? live
 }
 
-/** The pair's own close on or before the day. A pair no provider carries history for keeps the live
- *  quote, which states its own later day. */
+type AvailableRate = Extract<SourceResult<FxQuote>, { readonly kind: 'available' }>
+
+/** A request for the rate a day itself closed at, answered by a live reading dated after it: the
+ *  pair's own close when a provider has history, else the live reading, but only while it sits
+ *  within the rate window after the day. A reading further on would price the day at another
+ *  week's rate, so the refusal stands instead. */
+async function rateOnDay(
+  deps: FxRatesDeps,
+  options: FxConvertOptions,
+  live: AvailableRate
+): Promise<SourceResult<FxQuote>> {
+  const dated = await datedRate(deps, options)
+
+  if (dated !== null) {
+    return dated
+  }
+
+  return isWithinRateWindow(live.value.asOf, options.asOf)
+    ? live
+    : unavailable(
+        'stale',
+        live.provenance.map((source) => source.sourceId),
+        live.caveats
+      )
+}
+
+/** The pair's own close on or before the day. */
 async function datedRate(
   deps: FxRatesDeps,
   options: FxConvertOptions
@@ -209,10 +235,8 @@ async function storedRate(
   live: SourceUnavailable
 ): Promise<SourceResult<FxQuote> | null> {
   const stored = await readStored(deps, options)
-  const oldest = shiftCalendarDay(options.asOf, -RATE_MAXIMUM_AGE_DAYS)
-  const newest = shiftCalendarDay(options.asOf, RATE_MAXIMUM_AGE_DAYS)
 
-  if (stored === null || stored.asOf < oldest || stored.asOf > newest) {
+  if (stored === null || !isWithinRateWindow(stored.asOf, options.asOf)) {
     return null
   }
 
@@ -220,6 +244,13 @@ async function storedRate(
     stored,
     [{ sourceId: stored.sourceId, fetchedAt: stored.fetchedAt, freshness: 'cached' }],
     [...live.caveats, sourcedCaveat('source.stale-cache', [stored.sourceId], { sourceKind: 'fx' })]
+  )
+}
+
+function isWithinRateWindow(day: TradingDay, around: TradingDay): boolean {
+  return (
+    day >= shiftCalendarDay(around, -RATE_MAXIMUM_AGE_DAYS) &&
+    day <= shiftCalendarDay(around, RATE_MAXIMUM_AGE_DAYS)
   )
 }
 
