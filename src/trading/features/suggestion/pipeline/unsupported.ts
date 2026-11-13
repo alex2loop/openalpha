@@ -5,6 +5,8 @@ import { isLevelKind } from '@/trading/kernel/instrument'
 type UnsupportedResult = Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>
 type ResolvedMarket = Extract<MarketResolution, { readonly kind: 'resolved' }>
 
+const TOKENIZED_EQUITY = 'market.tokenized-equity'
+
 /** Why each level kind is refused: the name resolves, but it is a reading and no asset. */
 const LEVEL_KIND_REASONS = {
   index: 'index-untradeable',
@@ -28,7 +30,9 @@ export function unsupported(
     return { ...base, reason: unavailableReasonOf(resolution) }
   }
 
-  return { ...base, reason: 'ticker-not-supported' }
+  const tokenized = resolution.caveats.some((caveat) => caveat.code === TOKENIZED_EQUITY)
+
+  return { ...base, reason: tokenized ? 'tokenized-equity' : 'ticker-not-supported' }
 }
 
 // A market with no stored universe has never been refreshed, and /refresh is the step that helps

@@ -22,6 +22,7 @@ const INCONCLUSIVE_CODES: ReadonlySet<CaveatCode> = new Set([
 const EXPLAINED_MISS_CODES: ReadonlySet<CaveatCode> = new Set([
   'market.ticker-not-active',
   'market.ticker-not-listed',
+  'market.tokenized-equity',
 ])
 const UNIVERSE_EMPTY = 'market-data.universe-empty'
 const BOARD_ONLY: Pick<DetectInstrumentOptions, 'boardOnly'> = Object.freeze({ boardOnly: true })

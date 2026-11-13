@@ -20,8 +20,14 @@ import {
 
 /** The wording a tokenized-equity row carries in its name, matched inside it because the routed
  *  providers spell it differently around the brand: "Tesla xStock", "Tesla tokenized stock (xStock)",
- *  "NVIDIA (bStocks Tokenized Stock)". */
-const TOKENIZED_EQUITY_NAME_MARKERS: readonly string[] = ['xstock', 'tokenized stock']
+ *  "NVIDIA (bStocks Tokenized Stock)", "NVIDIA Tokenized bStocks", "iShares Core S&P 500 Tokenized
+ *  ETF (Ondo)". */
+const TOKENIZED_EQUITY_NAME_MARKERS: readonly string[] = [
+  'xstock',
+  'bstocks',
+  'tokenized stock',
+  'tokenized etf',
+]
 
 /** A row carrying the session change every mover is ranked on. */
 type Moving = MarketCapRecord & { readonly changePct: number }

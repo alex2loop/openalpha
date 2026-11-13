@@ -21,7 +21,6 @@ const BLOCK_SEPARATOR = '\n\n'
 
 const USAGE: 'slash.tradingMarketUsage' = 'slash.tradingMarketUsage'
 const ENABLED: 'slash.tradingMarketEnabled' = 'slash.tradingMarketEnabled'
-const ENABLED_NO_TIMES: 'slash.tradingMarketEnabledNoTimes' = 'slash.tradingMarketEnabledNoTimes'
 const DISABLED: 'slash.tradingMarketDisabled' = 'slash.tradingMarketDisabled'
 const ACTIONS = Object.freeze(['enable', 'disable'] as const)
 
@@ -119,7 +118,7 @@ export async function renderMarketShow(
 }
 
 /** Enabling reports the next fire rather than a bare "done": with an empty `send_times`, "enabled"
- *  alone would promise a message that never arrives, so the reply names the key to set instead. */
+ *  alone would promise a message that never arrives. */
 async function runSetEnabled(
   deps: MarketCommandDeps,
   ctx: SlashContext,
@@ -137,10 +136,6 @@ async function runSetEnabled(
     { markets: deps.markets, config: deps.config },
     deps.config.defaultRegion
   )
-
-  if (plan.sendTimes.length === 0) {
-    return { kind: 'text', text: t(ctx.locale, ENABLED_NO_TIMES) }
-  }
 
   return {
     kind: 'text',
@@ -162,6 +157,10 @@ function nextLine(locale: Locale, options: NextLineOptions): string {
 
   if (!options.enabled) {
     return t(locale, 'trading.intraday.next.off')
+  }
+
+  if (plan.sendTimes.length === 0) {
+    return t(locale, 'trading.intraday.next.noTimes')
   }
 
   const at = nextIntradayFireAt(plan, now)

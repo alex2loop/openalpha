@@ -40,6 +40,7 @@ export const SUGGESTION_UNSUPPORTED_REASONS = Object.freeze([
   'market-data-unavailable',
   'market-data-not-loaded',
   'ticker-not-supported',
+  'tokenized-equity',
   'ambiguous-market',
   'outside-focus',
   'index-untradeable',
