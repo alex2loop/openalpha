@@ -1,5 +1,4 @@
 import type { RunResult } from '@/engine/api'
-import type { JobExecution } from '@/scheduler/job/agent-run'
 import type {
   Job,
   SchedulerDeps,
@@ -10,10 +9,10 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { withLeadParagraph } from '@/core/utils/text'
 import { CRON_AUTO_DISABLE_THRESHOLD, UNCOUNTED_HALT_MESSAGES } from '@/scheduler/job/outcome'
 
-interface JobMessage {
+/** What one delivery carries; `surfaceText` is the execution's own flag, passed through. */
+interface JobText {
   readonly text: string
-  /** A slash command's own text, not a model's prose. */
-  readonly surfaceText: boolean
+  readonly surfaceText?: true | undefined
 }
 
 interface AutoDisableNoticeInput {
@@ -25,21 +24,10 @@ interface AutoDisableNoticeInput {
 
 // A scheduled run has no one watching it stream, so its answer arrives as one proactive notice.
 // Returns the failure message when delivery fails, so the caller can record it on the occurrence.
-export async function deliverResult(
-  job: Job,
-  execution: JobExecution,
-  deps: SchedulerDeps
-): Promise<string | undefined> {
-  return await deliverText(job, deps, {
-    text: execution.result.text,
-    surfaceText: execution.surfaceText === true,
-  })
-}
-
-async function deliverText(
+export async function deliverText(
   job: Job,
   deps: SchedulerDeps,
-  message: JobMessage
+  message: JobText
 ): Promise<string | undefined> {
   try {
     await notify(job, deps, message)
@@ -60,7 +48,7 @@ export async function deliverPartial(
     return
   }
 
-  await deliverText(job, deps, { text: deps.renderPartialNotice(result), surfaceText: false })
+  await deliverText(job, deps, { text: deps.renderPartialNotice(result) })
 }
 
 export async function notifyIfAutoDisabled(input: AutoDisableNoticeInput): Promise<void> {
@@ -93,7 +81,7 @@ export async function notifyIfAutoDisabled(input: AutoDisableNoticeInput): Promi
 }
 
 // A CLI-created job has no chatId, so it falls back to whichever channel declared one.
-async function notify(job: Job, deps: SchedulerDeps, message: JobMessage): Promise<void> {
+async function notify(job: Job, deps: SchedulerDeps, message: JobText): Promise<void> {
   const { text, surfaceText } = message
 
   if (text.trim() === '') {
@@ -112,6 +100,6 @@ async function notify(job: Job, deps: SchedulerDeps, message: JobMessage): Promi
   await deps.notifier.notify(
     target,
     withLeadParagraph(label, text),
-    surfaceText ? { surfaceText } : undefined
+    surfaceText === undefined ? undefined : { surfaceText }
   )
 }

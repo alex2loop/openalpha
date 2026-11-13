@@ -1074,7 +1074,7 @@ tích cộng một lượt đối chiếu, chờ khoảng một nửa) khi bạn
 
 **Mô hình của client được phép thấy gì.** Các công cụ được phục vụ trả về số liệu tương đối - tỷ trọng,
 kết cục đề xuất, `sizePctNav` - cộng đúng **một** con số tuyệt đối: khối lượng lệnh (`units`) trên một đề
-xuất và trên mỗi dòng `portfolio_rebalance`, thứ bạn cần để đặt lệnh. NAV, tiền mặt, chi phí, lãi lỗ và
+xuất và trên mỗi dòng `portfolio_rebalance`, thứ bạn cần để đặt lệnh. NAV, tiền mặt, chi phí, lãi/lỗ và
 số tiền giao dịch không bao giờ được phục vụ:
 
 - cảnh báo bình quân giá xuống và cảnh báo vừa thoát của một đề xuất tới được mô hình mà không mang theo

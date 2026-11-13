@@ -12,6 +12,7 @@ import {
   SCHEDULED_COMMAND_SURFACE,
   scheduledCommandLine,
   scheduledCommandRefusal,
+  writesSurfaceText,
 } from '@/commands/api'
 import { ValidationError } from '@/core/errors'
 import { bindLocale } from '@/i18n'
@@ -64,15 +65,28 @@ export async function runJobCommand(
     },
   })
 
-  return toAnswer(result, language)
+  return toAnswer(result, {
+    language,
+    isSurface: writesSurfaceText(dispatcher.resolve(line)?.command),
+  })
 }
 
-function toAnswer(result: SlashResult | null, language: Locale): JobCommandAnswer {
+interface AnswerReader {
+  readonly language: Locale
+  /** The command is the trading surface's own, so its text is in that surface's markup. */
+  readonly isSurface: boolean
+}
+
+function toAnswer(result: SlashResult | null, reader: AnswerReader): JobCommandAnswer {
   switch (result?.kind) {
     case 'message':
-      return { kind: 'text', text: renderMessages(bindLocale(language), result) }
+      return { kind: 'text', text: renderMessages(bindLocale(reader.language), result) }
     case 'text':
-      return { kind: 'text', text: result.text }
+      return {
+        kind: 'text',
+        text: result.text,
+        ...(reader.isSurface ? { surfaceText: true as const } : {}),
+      }
     case 'agent':
       return {
         kind: 'agent',

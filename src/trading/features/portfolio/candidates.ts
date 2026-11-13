@@ -184,17 +184,18 @@ interface CandidateMark {
   readonly currency: CurrencyCode
 }
 
-/** The book price is authoritative where one price serves both sides. A dealer board's valuation is
- *  the side a sale gets, so a held name there reads the live quote for what a buy pays and keeps the
- *  book's mark for the sale. Otherwise the live quote, converted to the base currency at the booking
- *  day, prices a screened name the operator does not yet hold. A quote that did not resolve yields
- *  no candidate rather than an invented weight. */
 interface MarkRequest {
   readonly options: CandidateOptions
   readonly instrument: InstrumentRef
   readonly market: Market
 }
 
+/** The book price is authoritative where one price serves both sides. A dealer board's valuation is
+ *  the side a sale gets, so a held name there reads the live quote for what a buy pays and keeps the
+ *  book's mark for the sale; if that read fails the book's mark stands for both sides, so the sale is
+ *  still planned. Otherwise the live quote, converted to the base currency at the booking day,
+ *  prices a screened name the operator does not yet hold. A quote that did not resolve yields no
+ *  candidate for such a name rather than an invented weight. */
 async function pricedValue(
   deps: CandidateDeps,
   request: MarkRequest
@@ -210,6 +211,24 @@ async function pricedValue(
     return bookMarkOf(held, market.manifest.currency)
   }
 
+  const live = await liveMarkOf(deps, { options, instrument, held })
+
+  if (live === null && held !== undefined) {
+    return bookMarkOf(held, market.manifest.currency)
+  }
+
+  return live
+}
+
+async function liveMarkOf(
+  deps: CandidateDeps,
+  request: {
+    readonly options: CandidateOptions
+    readonly instrument: InstrumentRef
+    readonly held: Extract<ValuedPosition, { readonly kind: 'priced' }> | undefined
+  }
+): Promise<CandidateMark | null> {
+  const { options, instrument, held } = request
   const view = await deps.marketData.quote({
     ticker: instrument.ticker,
     market: instrument.market,

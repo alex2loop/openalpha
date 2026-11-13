@@ -1,11 +1,12 @@
 import type { SuggestionRunResult } from '@/trading/features/suggestion/types'
+import type { CaveatCode } from '@/trading/kernel/caveat'
 import type { MarketResolution } from '@/trading/markets/types'
 import { isLevelKind } from '@/trading/kernel/instrument'
 
+const TOKENIZED_EQUITY: CaveatCode = 'market.tokenized-equity'
+
 type UnsupportedResult = Extract<SuggestionRunResult, { readonly kind: 'unsupported' }>
 type ResolvedMarket = Extract<MarketResolution, { readonly kind: 'resolved' }>
-
-const TOKENIZED_EQUITY = 'market.tokenized-equity'
 
 /** Why each level kind is refused: the name resolves, but it is a reading and no asset. */
 const LEVEL_KIND_REASONS = {

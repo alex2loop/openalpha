@@ -4332,7 +4332,7 @@
     "caveat.market.ticker-ambiguous": "Mã {ticker} tồn tại ở nhiều thị trường: {markets}. Thêm tên thị trường để chọn một.",
     "caveat.market.ticker-also-listed": "Kết quả này là {readMarket}:{ticker}. {otherMarket}:{ticker} cũng tồn tại; viết đúng như vậy để đọc mã đó.",
     "caveat.market.ticker-not-active": "{ticker} có ở {market} nhưng không giao dịch: {status}.",
-    "caveat.market.tokenized-equity": "{ticker} là {name} - cổ phiếu token hóa, không phải tài sản crypto. Hệ thống không bao phủ cổ phiếu Mỹ.",
+    "caveat.market.tokenized-equity": "{ticker} là {name} - cổ phiếu token hóa, không phải coin. Muốn xem công ty thì hỏi mã cổ phiếu gốc nhé.",
     "caveat.market.not-registered": "Không có thị trường nào tên {market}.",
     "caveat.market.exchange-unknown": "Chưa rõ mã niêm yết ở sàn nào, nên tạm áp quy tắc sàn thông thường.",
     "caveat.market.first-day-band": "Áp dụng biên độ phiên đầu tiên, rộng hơn bình thường.",

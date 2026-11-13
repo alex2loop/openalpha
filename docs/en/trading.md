@@ -747,7 +747,7 @@ Each market publishes only the per-market sections it has data for, so adding a 
 
 - `/suggest` heads with the call (`BUY`, `NO ENTRY today`...), then one price level per line, then the reasoning and what would prove it wrong, then the factors and debate. The evidence day, profile, board scale and index-tier note close the report.
 - `/rebalance` titles itself with the plan in one line (how many names to buy or sell and the money involved); each order keeps its first slice and weight, and NAV and profile close the page.
-- `/portfolio` puts a cash-above-target warning right under the headline, and splits cash on hand from P/L.
+- `/portfolio` puts a cash-above-target warning right under the headline, and splits cash on hand from profit and loss.
 - `/overview` prints a macro driver table once: a second market reading the same composite says so in one line instead of repeating it.
 - Headlines and citations print as their sources publish them; one in a language other than yours is marked, e.g. `(Vietnamese)`.
 
@@ -1100,7 +1100,7 @@ Alerts are named by a six-character id (the end of the long one) in `/alert list
 
 A fired price or exit alert opens with the headline and the next step. For an exit, that is the sale's `/record sell` line for you to fill in, then `/suggest` for a fresh look.
 
-In a chat, `/transactions` shows 10 rows by default. `/portfolio` lists positions right after the warnings, then cash, P/L and allocation, with at most three closed trips on a phone.
+In a chat, `/transactions` shows 10 rows by default. `/portfolio` lists positions right after the warnings, then cash, profit and loss and allocation, with at most three closed trips on a phone.
 
 `/alert create` and `/brief enable` need somewhere to send to, such as Telegram or Zalo.
 
@@ -1113,6 +1113,8 @@ They arrive only while OpenAlpha runs in the background (`openalpha start --back
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
 You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing. A market whose segment you switched off, and where you hold or watch nothing, is not searched for a bare ticker: `BTC` reads as the coin, and the US fund of that name needs `equity-us:BTC`. World gold is never switched off by you, so `XAUUSD` stays readable.
+
+A ticker that is a tokenized stock (a share wrapped as a token) is not read as a crypto asset: `/suggest` answers what it is and asks for the stock's own ticker.
 
 **HTTP** (on this machine only, with a bearer token). `openalpha start` serves a local API by default (`[api] enabled = false` turns it off) (see [`[api]`](configuration.md)).
 
@@ -1284,7 +1286,7 @@ booked as typed. Nothing is held in between.
   E1VFVN30 at VPS is now 1,000 at an average cost of 35.37
 ```
 
-The average cost includes the entry fee, so it matches the figure your broker's app shows, and every valuation and P/L measures against it. A round trip at the same price therefore reads as the small loss it is.
+The average cost includes the entry fee, so it matches the figure your broker's app shows, and every valuation and profit and loss measures against it. A round trip at the same price therefore reads as the small loss it is.
 
 - A stated fee that sits far from the configured rate replaces the rate line with how far off it is, rather than being silently accepted.
 - A market with no configured rate prints neither line: there is nothing to measure against, and a zero would read as agreement.
@@ -1297,7 +1299,7 @@ This is a structural boundary, not a permission flag.
 
 | | Relative view | Absolute view |
 |---|---|---|
-| Shows | weights, percentages, return percentages | money: NAV, cash, cost basis, P/L |
+| Shows | weights, percentages, return percentages | money: NAV, cash, cost basis, profit and loss |
 | Reachable from | agent tools, chat | your authenticated local HTTP API and slash commands |
 
 They are different types with different fields. An agent cannot learn your account size by accident, because no code path hands it a money-valued book.
@@ -1339,7 +1341,7 @@ A row may carry the operator's own rate instead of the market's:
 
 - `fx <rate>` at the end of a `/record` line stores the rate you actually paid, with its source
   recorded as `operator`.
-- `fx auto` takes the day's market rate on purpose.
+- `fx auto` takes the day's market rate on purpose. A rate dated more than 3 days from the day asked is refused, not used in its place.
 - Cash rows may now also be in a currency a venue's markets are quoted in. So
   `/record deposit binance 1000 USDT 2026-08-14 fx 26600` is a valid row.
 - Without `fx`, a row in a foreign currency is previewed and held for `/record confirm`, rather than
@@ -1451,7 +1453,7 @@ an average cost is off; fix it with `/update <id>` rather than adding a row.
   on ETH and the 300 loss, leaves 600 USDT. With the venue's key set, `/reconcile` checks it for you.
 
 If the book doesn't need to remember the old loss, skip it: deposit your current cash plus what your
-holdings cost, and drop the `loss` line. P/L then starts from today.
+holdings cost, and drop the `loss` line. Profit and loss then start from today.
 
 Either way, the history of each name you sold is gone: `/transactions` shows one loss line. `/reflect`
 is unaffected, because it scores the assistant's calls, not your trades.
@@ -1605,6 +1607,10 @@ The deployment ceiling that gets printed is the whole book's, not one segment's.
 
 So a name the plan lists may be one the suggestion declines that day. The plan says so where it lists a buy. It does not run the debate, so it costs nothing in model calls.
 
+On a dealer board (VN gold), a buy is sized at the shop's sell price and a sale at its buy price, the side each one really fills at. If the live board cannot be read, a gold name you hold keeps its book price on both sides, so its sale is still planned.
+
+When you hold foreign cash, the settled-cash line carries a short note: it counts that cash at what you paid for it while the segment table marks it at today's rate, so the two figures differ a little. The note is left out when the difference rounds away.
+
 A gap the plan cannot close in one lot is stated plainly, instead of being left to look as if it is closing, but only while you can act on it. Once the gap is smaller than the sentence can print, the name is at target for every practical purpose. A note saying it sits `0%` off would read as the plan arguing with itself.
 
 There is one verdict the plan does not step around. If a held name's newest stored verdict is a `reduce` on evidence, it gets no increase, however far under target it sits. The plan names it instead of quietly leaving the row out.
@@ -1680,7 +1686,7 @@ Allocation has no surface of its own: `portfolio_rebalance` and `/rebalance` rep
 The Portfolio tab of the [office page](operations.md#the-office-page) writes the same rows as `/record`, `/update` and `/delete`, through the same checks, and never sends an order.
 
 - **Every kind of row.** The record form has three buttons, Buy, Sell and Other, and opens on Buy or Sell; "Other" opens a menu of dividend (the amount received, in the market's currency), distribution (the shares received), split (shares added, negative for a reverse split), rights (with the purchase price; an empty fee is recorded as 0), transfer (between two of your venues; the same venue on both sides is refused before anything is sent), deposit, withdrawal, fee and loss (money lost before you kept the ledger). A share change shows what the holding will be once recorded. History lists every kind, with a filter, and every row can be edited or deleted, with undo. The date opens on your home market's trading day, the same day the CLI and chat propose (the UTC day when the home market trades around the clock).
-- **What the book has made.** Portfolio > Performance lists, in the book's currency, what you put in net of withdrawals, the realized P/L, the dividends inside it, the trading fees still in what you hold, and the total against what you put in, with its percent. The figures are the ones `/portfolio` prints; it does not print the dividends as a line of their own. Realized P/L shows even while a holding has no price, and the fees and the total wait for the total assets.
+- **What the book has made.** Portfolio > Performance lists, in the book's currency, what you put in net of withdrawals, the realized profit or loss, the dividends inside it, the trading fees still in what you hold, and the total against what you put in, with its percent. The figures are the ones `/portfolio` prints; it does not print the dividends as a line of their own. Realized profit or loss shows even while a holding has no price, and the fees and the total wait for the total assets.
 - **The rate you paid.** When a row is in a currency other than the book's and a rate applies, such as a USDT deposit on a VND book or a buy at a venue holding no USDT, a Rate field appears, filled with that day's market rate; change it to the rate you actually paid. It cannot be left empty, so the page never saves such a row at a rate you did not see. A row paid from USDT the venue already holds (a buy, a transfer, a fee) shows no rate field. If the day's rate cannot be read, the form says so, offers Retry and does not save yet. Editing a row keeps its booked rate.
 - **Check against venues.** History > Check against venues reads each venue that has a key, as `/reconcile` does: a match, or how much more or less the venue holds than the ledger, with a button that opens the record form filled with the difference (the price is left for you). A venue with no key names its variables and links to Settings > Exchanges; one that cannot read balances, or does not answer, says so. "Sync fills from <venue>" does what `/record sync` does: it reads the filled orders and books the ones the ledger lacks, and places no order. If the answer is slow, the page reads the ledger again rather than sending the sync twice.
 - **Orders.** Where a venue can place orders and `[api] orders` is on, Portfolio has an *Orders* tab.

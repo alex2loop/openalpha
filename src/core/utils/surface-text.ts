@@ -3,6 +3,7 @@
 export const ROW_INDENT = '  '
 
 const QUOTE_PREFIX = '> '
+const INLINE_CODE_RE = /`([^`\n]+)`/g
 const EMPHASIS_RE = /\*\*([^*\n]+)\*\*/g
 const LINK_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g
 const QUOTE_PREFIX_RE = /^> ?/
@@ -28,7 +29,8 @@ export function toFoldLines(title: string, body: readonly string[]): readonly st
   return [`**${title}**`, ...body.map((line) => `${QUOTE_PREFIX}${line}`)]
 }
 
-/** Exactly what the surface emits, removed for a destination that renders none of it. Deliberately
+/** Exactly what the surface emits, removed for a destination that renders none of it (bold, links,
+ *  quotes, and the backticks around an inline command or key). Deliberately
  *  narrower than the plain channels' markdown stripper: that one also eats a literal `*` out of a
  *  row, and rewrites a link to `label (url)` - which reinstates the redirect target a citation
  *  exists to keep off the page. */
@@ -46,6 +48,7 @@ function stripSurfaceMarkup(text: string): string {
   return lines
     .map((line, index) => plainFoldLine(line, lines[index + 1]))
     .join('\n')
+    .replace(INLINE_CODE_RE, '$1')
     .replace(EMPHASIS_RE, '$1')
     .replace(LINK_RE, '$1')
 }

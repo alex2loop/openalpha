@@ -11,7 +11,7 @@ import type {
 import { withCorrelation } from '@/core/logging/correlation'
 import { formatErrForLog } from '@/core/security/credentials'
 import { type JobExecution, runAgent } from '@/scheduler/job/agent-run'
-import { deliverPartial, deliverResult, notifyIfAutoDisabled } from '@/scheduler/job/delivery'
+import { deliverPartial, deliverText, notifyIfAutoDisabled } from '@/scheduler/job/delivery'
 import { finalizeOccurrence } from '@/scheduler/job/finalize'
 import { isMissedSlot, skipMissedSlot } from '@/scheduler/job/missed-slot'
 import {
@@ -316,7 +316,10 @@ async function finishScheduledExecution(options: FinishScheduledExecutionOptions
   }
 
   if (outcome.status === 'success') {
-    const deliveryError = await deliverResult(job, execution, deps)
+    const deliveryError = await deliverText(job, deps, {
+      text: execution.result.text,
+      surfaceText: execution.surfaceText,
+    })
 
     if (deliveryError !== undefined && finalized) {
       await deps.occurrences.recordDeliveryError(claim.runId, deliveryError)
@@ -373,7 +376,10 @@ async function finishRunNowExecution(options: FinishRunNowExecutionOptions): Pro
   }
 
   if (outcome.status === 'success') {
-    const deliveryError = await deliverResult(job, execution, deps)
+    const deliveryError = await deliverText(job, deps, {
+      text: execution.result.text,
+      surfaceText: execution.surfaceText,
+    })
 
     if (deliveryError !== undefined) {
       await deps.occurrences.recordDeliveryError(runId, deliveryError)

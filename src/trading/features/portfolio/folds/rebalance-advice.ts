@@ -14,6 +14,7 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import { allocationRows, desiredWeights } from '@/trading/features/portfolio/folds/allocation'
 import { isWeakHolding } from '@/trading/features/portfolio/folds/policy'
 import { gapRows, rebalanceRows } from '@/trading/features/portfolio/folds/rebalance'
+import { isReportableGap } from '@/trading/features/portfolio/folds/rebalance-caveat'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { toProfileStamp } from '@/trading/kernel/operator/profile'
 
@@ -299,7 +300,7 @@ function cashSegmentAdvice(
     liquidReservePctNav,
     termDepositEligiblePctNav,
     posture: termDepositEligiblePctNav > 0 ? 'term-deposit-eligible' : 'fully-liquid',
-    foreignCashAtCost: (input.valued.currencyCashGainBase ?? 0) !== 0,
+    foreignCashAtCost: isReportableGap(Math.abs(input.valued.currencyCashGainBase ?? 0) / nav),
     // A reserve shortfall is already the `reserve-below-target` finding; one condition, one owner.
     caveats: [],
   }

@@ -19,7 +19,7 @@ import { runInCommandLane } from '@/channels/delivery/slash-lane'
 import { openSlashNotice, type SlashNotice } from '@/channels/delivery/slash-notice'
 import { joinLines, offeredNext } from '@/channels/delivery/slash-offer'
 import { operatorContextOf } from '@/channels/operator'
-import { parseHelpLine, renderCommandHelp, renderMessages } from '@/commands/api'
+import { parseHelpLine, renderCommandHelp, renderMessages, writesSurfaceText } from '@/commands/api'
 import { BRAND } from '@/core/brand'
 import {
   abortError,
@@ -368,7 +368,7 @@ async function sendTextResult(options: DispatchSlashOptions, reply: TextReply): 
 
   await deps.sendText(msg.chatId, joinLines(body, offered.lines), {
     buttons: offered.buttons,
-    surfaceText: true,
+    surfaceText: writesSurfaceText(resolved?.command),
   })
 }
 

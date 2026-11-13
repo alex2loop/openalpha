@@ -1093,7 +1093,7 @@ claim check, about half the wait) only when you ask for a quick or short analysi
 **What the client's model may see.** The served tools return relative figures - weights, suggestion
 outcomes, `sizePctNav` - plus exactly one absolute figure: the order quantity (`units`) on a
 suggestion and on each `portfolio_rebalance` line, which you need in order to place the order. NAV,
-cash, costs, P/L and transaction amounts are never served:
+cash, costs, profit and loss and transaction amounts are never served:
 
 - a suggestion's averaging-down and recent-exit warnings reach the model without their cost and loss
   figures;
