@@ -31,7 +31,6 @@ export interface PriceFacts {
   readonly board?: DealerBoardWire
 }
 
-// The price with its move, a warning when it is stale, and where it comes from: scale, session, time.
 interface PriceHeadProps {
   readonly market: string
   readonly facts: PriceFacts

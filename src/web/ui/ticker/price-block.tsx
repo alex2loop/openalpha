@@ -144,6 +144,7 @@ interface PriceBodyProps extends PriceCardProps {
 
 function PriceBody({ ticker, market, levels, span, chart, quote }: PriceBodyProps) {
   const facts = resolvePrice({ ticker, market }, quote, chart.bars)
+  const hasPicker = findMarket(market)?.hasBars !== false
 
   if (facts === undefined) {
     return <NoPrice market={market} />
@@ -152,6 +153,7 @@ function PriceBody({ ticker, market, levels, span, chart, quote }: PriceBodyProp
   return (
     <>
       <PriceHead market={market} facts={facts} range={sessionRangeOf(quote, chart.bars)} />
+      {hasPicker && <WindowPicker span={span} />}
       {chart.bars.length > 1 && (
         <ChartSection market={market} facts={facts} levels={levels} span={span} chart={chart} />
       )}
@@ -186,7 +188,6 @@ function ChartSection({ market, facts, levels, span, chart }: ChartSectionProps)
 
   return (
     <>
-      <WindowPicker span={span} />
       <PriceChart
         bars={bars}
         averages={chart.averages}

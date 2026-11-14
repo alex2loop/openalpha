@@ -179,6 +179,10 @@ function AverageLines({ averages, toX, toY }: AverageLinesProps) {
 }
 
 function AverageLegend({ averages }: { readonly averages: readonly DrawnAverage[] }) {
+  if (averages.length === 0) {
+    return null
+  }
+
   return (
     <ul class="chart-legend">
       {averages.map(({ sessions }) => (
