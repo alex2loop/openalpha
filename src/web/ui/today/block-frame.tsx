@@ -33,6 +33,8 @@ interface BlockFrameProps<T> {
   readonly showReadLine?: boolean
   /** A link or button in the head, at the right. */
   readonly action?: ComponentChildren
+  /** Choices for the read, under the head in every state, so a slow or failed read can be changed. */
+  readonly controls?: ComponentChildren
   /** The title as the head shows it, where it is more than its words. */
   readonly titleView?: VNode | undefined
   /** Said under the skeleton while the first read runs, for a read that takes seconds. */
@@ -46,7 +48,7 @@ interface BlockFrameProps<T> {
 /** One Hôm nay block: its title tile, the daemon's cautions, a failed read with "Thử lại" over the
  *  last good figures, or the grey line of a part this daemon does not run. */
 export function BlockFrame<T>(props: BlockFrameProps<T>) {
-  const { title, colour, icon, reading, action, titleView, children } = props
+  const { title, colour, icon, reading, action, controls, titleView, children } = props
 
   return (
     <section class="block">
@@ -56,7 +58,10 @@ export function BlockFrame<T>(props: BlockFrameProps<T>) {
       {reading.state === 'absent' ? (
         <p class="meta">{tr('ui.office.today.absent', { what: title })}</p>
       ) : (
-        <BlockBody {...props}>{children}</BlockBody>
+        <>
+          {controls}
+          <BlockBody {...props}>{children}</BlockBody>
+        </>
       )}
     </section>
   )
