@@ -3,6 +3,7 @@ import type {
   MarketBreadth,
   MarketDataOverview,
   MarketLeader,
+  SectorTurnover,
 } from '@/trading/kernel/market/market-overview'
 import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import { readySection } from '@/trading/markets/brief-section'
@@ -23,6 +24,7 @@ export function rollupSections(overview: MarketDataOverview): readonly BriefSect
   return [
     breadthSection(overview),
     turnoverSection(overview),
+    sectorTurnoverSection(overview),
     foreignFlowSection(overview),
     proprietaryFlowSection(overview),
   ].filter((section) => section !== undefined)
@@ -45,6 +47,12 @@ function turnoverSection(overview: MarketDataOverview): BriefSectionResult | und
   const rows = overview.marketCap === undefined ? turnoverRows(overview) : []
 
   return rows.length === 0 ? undefined : readySection(overview, { kind: 'turnover', rows })
+}
+
+function sectorTurnoverSection(overview: MarketDataOverview): BriefSectionResult | undefined {
+  const rows = sectorTurnoverRows(overview.sectorTurnover)
+
+  return rows.length === 0 ? undefined : readySection(overview, { kind: 'sector-turnover', rows })
 }
 
 /** Only the names where the flow balance is for this session: that block states the foreign total
@@ -118,6 +126,19 @@ export function turnoverRows(overview: MarketDataOverview): readonly BriefSectio
         : { turnoverRatio: overview.turnoverRatio, sessions: overview.turnoverReference.sessions }),
     },
   ]
+}
+
+function sectorTurnoverRows(
+  sectors: readonly SectorTurnover[] | undefined
+): readonly BriefSectionRow[] {
+  return (sectors ?? []).map((entry) => ({
+    sector: entry.sector,
+    turnover: entry.turnover,
+    sharePct: entry.sharePct,
+    ...(entry.turnoverRatio === undefined || entry.turnoverReference === undefined
+      ? {}
+      : { turnoverRatio: entry.turnoverRatio, sessions: entry.turnoverReference.sessions }),
+  }))
 }
 
 /** The market's own net first, then the names that made it: a total says the desks were active, the

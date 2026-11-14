@@ -79,6 +79,7 @@ export type BriefSectionKind =
   | 'tape'
   | 'breadth'
   | 'turnover'
+  | 'sector-turnover'
   | 'range'
   | 'market-cap'
   | 'sector-rotation'

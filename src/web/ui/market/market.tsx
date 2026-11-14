@@ -27,6 +27,7 @@ import { IndexReading } from '@/web/ui/market/index-reading'
 import { MacroFull } from '@/web/ui/market/macro-full'
 import { NewsList } from '@/web/ui/market/news-list'
 import { RefreshButton } from '@/web/ui/market/refresh-button'
+import { SectorTurnover } from '@/web/ui/market/sector-turnover'
 import { Sectors } from '@/web/ui/market/sectors'
 import { Session } from '@/web/ui/market/session'
 import { Themes } from '@/web/ui/market/themes'
@@ -116,6 +117,7 @@ function MarketView({ region }: { readonly region: string }) {
       <FlowBalance region={region} />
       <Flows region={region} />
       <Sectors region={region} />
+      <SectorTurnover region={region} />
       <IndexReading region={region} />
       <Session region={region} />
       <MoreMarkets />

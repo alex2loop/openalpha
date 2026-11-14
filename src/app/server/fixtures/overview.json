@@ -115,6 +115,37 @@
           "Proprietary figures run to 07/10/2026, so this reading is for that session."
         ]
       },
+      "sectorTurnover": [
+        {
+          "sector": "banks",
+          "turnover": 6200000000000,
+          "sharePct": 0.27,
+          "turnoverRatio": 1.12,
+          "sessions": 20
+        },
+        {
+          "sector": "real-estate",
+          "turnover": 4100000000000,
+          "sharePct": 0.18,
+          "turnoverRatio": 1.64,
+          "sessions": 20
+        },
+        {
+          "sector": "financial-services",
+          "turnover": 3300000000000,
+          "sharePct": 0.14,
+          "turnoverRatio": 0.93,
+          "sessions": 20
+        },
+        {
+          "sector": "basic-resources",
+          "turnover": 2400000000000,
+          "sharePct": 0.1,
+          "turnoverRatio": 0.81,
+          "sessions": 20
+        },
+        { "sector": "technology", "turnover": 1900000000000, "sharePct": 0.08 }
+      ],
       "leaders": {
         "window": "session",
         "sessions": 1,

@@ -43,6 +43,7 @@ import type {
   TypedPrice,
 } from '@/trading/api'
 import { toFlowBalanceWire } from '@/app/server/mappers/flow-balance'
+import { toSectorTurnoverWire } from '@/app/server/mappers/sector-turnover'
 import { toCaveatWires, toDealerBoardWire, toInstrumentWire } from '@/app/server/mappers/trading'
 import {
   changeAgainstClose,
@@ -211,6 +212,7 @@ function toOverviewBlockWire(
   const { breadth, foreignNetValue, leaders, movers } = block
   const { sections, sources } = renderOverviewForSurface(locale, block, timezone)
   const flowBalance = toFlowBalanceWire(block, locale)
+  const sectorTurnover = toSectorTurnoverWire(block)
 
   return {
     market: block.market,
@@ -230,6 +232,7 @@ function toOverviewBlockWire(
         }),
     ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
     ...(flowBalance === undefined ? {} : { flowBalance }),
+    ...(sectorTurnover === undefined ? {} : { sectorTurnover }),
     ...(leaders === undefined ? {} : { leaders: toLeadersWire(leaders) }),
     ...(movers === undefined ? {} : { movers: toMoversWire(movers) }),
     ...(sections.length === 0 ? {} : { sections }),

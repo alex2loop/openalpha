@@ -149,6 +149,8 @@ interface NameFlowReads {
  *  hand: no later reader can rebuild them once those are dropped. */
 export interface MarketDayTotals {
   readonly turnover: ReadonlyMap<TradingDay, number>
+  /** The same sum per sector slug: a name with no sector adds to the market's but to none of these. */
+  readonly sectorTurnover: ReadonlyMap<string, ReadonlyMap<TradingDay, number>>
   /** Each entry carries the instrument of the first name that reported its day, not the market's:
    *  a reader stamps the market's when it turns the map into snapshots. */
   readonly flows: ReadonlyMap<TradingDay, FlowSnapshot>

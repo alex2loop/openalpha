@@ -13,6 +13,7 @@ import type {
   MarketMover,
   MarketMovers,
   MarketRange,
+  SectorTurnover,
   SessionMean,
 } from '@/trading/kernel/market/market-overview'
 import type { AgentWriter, PriceWriter } from '@/trading/kernel/surface/agent-json'
@@ -34,7 +35,7 @@ export function createMarketOverviewTool(
   return createTool({
     name: 'market_overview',
     description:
-      'Every registered market\'s headline levels in one call - the first-party answer to "how is the market today", which must never come from the web. Each entry names its own market and carries that market\'s levels, plus the breadth, turnover, flow, sentiment and the session\'s biggest movers it publishes - this is where "which ticker rose or fell most today" is answered. Freshness is in the shape and you must carry it into your answer: everything under `settledSession` describes the completed session named by `settledSession.day` - never call any of it "today" or "this morning" unless that day is today - while a row\'s `live` block is the current price at its `observedTime`. Read that price against `live.session`, which carries the high, low and volume the intraday series has recorded since `session.fromTime` - a level alone does not say whether a market is being led or given back. Those are the series\' extremes from that time onward, not the session\'s: an opening auction before `fromTime` is not in them, so call them the high and low since `fromTime` and never "the day\'s high" or "the open". `sessionState` is the market\'s state as you read this, so an open market beside an earlier `settledSession.day` means today\'s session has not settled yet and only `live` describes it. State which session each number you quote came from, and never combine a live price with a settled breadth or flow figure in one claim about "today". Money amounts arrive already written for the operator\'s locale - quote them exactly as given and never rescale or re-derive one. Turnover is order-matched value only, excluding negotiated put-through blocks, so it reads below a press total that includes them - say which you quoted. `settledSession.universe` names the boards every total under it was measured over: quote that name, and never call those totals the whole market - a measured universe is never all of one. A market listing on more than one exchange also carries `boards`, the same session split per board: quote a board\'s own row when the operator names one, the totals otherwise, and say which you used - a blended count matches no exchange\'s published summary. A `market-data.board-flow-diverges` caveat means the boards ran opposite ways on foreign flow, so the market total is arithmetic no exchange published and the board rows are the answer. `breadth.measured` is the denominator its counts are out of, and `aboveMa50Ratio` is a share of `components.above50` plus `components.below50`: quote a breadth number with the base it came from. `turnoverRatio` reads only beside `turnoverReference`, which carries the sessions in its mean and the mean itself - quote both or neither, because every window yields a different multiple. Each entry in `leaders` carries the `changePct` that name settled at: use it, and never derive a percentage of your own from prices elsewhere in this payload. `leaders.mostTraded` ranks money and `movers.gainers` ranks price - a name in the first is not a gainer, and merging the two lists drops whatever actually rose most. When `leaders.proprietaryDay` is present the proprietary lists come from that earlier session, because the desk publishes after the foreign one: date them by it, never by `settledSession.day`. `settledSession.flowBalance` splits the session\'s net buying between foreign investors, proprietary desks and everyone else (mostly individuals) on its own `session`, which is earlier than `settledSession.day` when the desk has not published yet: quote its `reading` sentences as given and date them by that `session`. Takes no arguments: the whole picture is the answer, and reporting only the part the operator asked about is your job, not this tool\'s. Use market_price for one named instrument instead.',
+      "Every registered market's headline levels in one call - the first-party answer to \"how is the market today\", which must never come from the web. Each entry names its own market and carries that market's levels, plus the breadth, turnover, flow, sentiment and the session's biggest movers it publishes - this is where \"which ticker rose or fell most today\" is answered. Freshness is in the shape and you must carry it into your answer: everything under `settledSession` describes the completed session named by `settledSession.day` - never call any of it \"today\" or \"this morning\" unless that day is today - while a row's `live` block is the current price at its `observedTime`. Read that price against `live.session`, which carries the high, low and volume the intraday series has recorded since `session.fromTime` - a level alone does not say whether a market is being led or given back. Those are the series' extremes from that time onward, not the session's: an opening auction before `fromTime` is not in them, so call them the high and low since `fromTime` and never \"the day's high\" or \"the open\". `sessionState` is the market's state as you read this, so an open market beside an earlier `settledSession.day` means today's session has not settled yet and only `live` describes it. State which session each number you quote came from, and never combine a live price with a settled breadth or flow figure in one claim about \"today\". Money amounts arrive already written for the operator's locale - quote them exactly as given and never rescale or re-derive one. Turnover is order-matched value only, excluding negotiated put-through blocks, so it reads below a press total that includes them - say which you quoted. `settledSession.universe` names the boards every total under it was measured over: quote that name, and never call those totals the whole market - a measured universe is never all of one. A market listing on more than one exchange also carries `boards`, the same session split per board: quote a board's own row when the operator names one, the totals otherwise, and say which you used - a blended count matches no exchange's published summary. A `market-data.board-flow-diverges` caveat means the boards ran opposite ways on foreign flow, so the market total is arithmetic no exchange published and the board rows are the answer. `breadth.measured` is the denominator its counts are out of, and `aboveMa50Ratio` is a share of `components.above50` plus `components.below50`: quote a breadth number with the base it came from. `turnoverRatio` reads only beside `turnoverReference`, which carries the sessions in its mean and the mean itself - quote both or neither, because every window yields a different multiple. `settledSession.sectorTurnover` lists the sectors that traded the most value that session, largest first: `sharePct` is a share of the market's total traded value, so the listed sectors add up to less than the whole, and each sector's `turnoverRatio` reads only beside its own `turnoverReference`. Each entry in `leaders` carries the `changePct` that name settled at: use it, and never derive a percentage of your own from prices elsewhere in this payload. `leaders.mostTraded` ranks money and `movers.gainers` ranks price - a name in the first is not a gainer, and merging the two lists drops whatever actually rose most. When `leaders.proprietaryDay` is present the proprietary lists come from that earlier session, because the desk publishes after the foreign one: date them by it, never by `settledSession.day`. `settledSession.flowBalance` splits the session's net buying between foreign investors, proprietary desks and everyone else (mostly individuals) on its own `session`, which is earlier than `settledSession.day` when the desk has not published yet: quote its `reading` sentences as given and date them by that `session`. Takes no arguments: the whole picture is the answer, and reporting only the part the operator asked about is your job, not this tool's. Use market_price for one named instrument instead.",
     inputSchema: noInput,
     capability: 'net',
     // Eager because the fallback is silent: a model that cannot see this asks the web "how is the
@@ -101,6 +102,7 @@ function toPayload(
     foreignNetValue,
     proprietaryNetValue,
     flowBalance,
+    sectorTurnover,
     leaders,
     movers,
     boards,
@@ -159,7 +161,8 @@ function toWrittenFigures(overview: MarketDataOverview, locale: Locale): Record<
  *  carries the label the prose could only ask for. */
 function toSettledSession(overview: MarketDataOverview, locale: Locale): Record<string, unknown> {
   const { asOf, universe, breadth, turnover, turnoverRatio, turnoverReference } = overview
-  const { foreignNetValue, proprietaryNetValue, flowBalance, leaders, movers, boards } = overview
+  const { foreignNetValue, proprietaryNetValue, flowBalance, sectorTurnover } = overview
+  const { leaders, movers, boards } = overview
 
   return {
     day: asOf,
@@ -184,6 +187,9 @@ function toSettledSession(overview: MarketDataOverview, locale: Locale): Record<
     ...(flowBalance === undefined
       ? {}
       : { flowBalance: toFlowBalance(overview, flowBalance, locale) }),
+    ...(sectorTurnover === undefined
+      ? {}
+      : { sectorTurnover: sectorTurnover.map((entry) => toSectorTurnover(entry, locale)) }),
     ...(leaders === undefined ? {} : { leaders: toLeaders(leaders, locale) }),
     ...(movers === undefined ? {} : { movers: toMovers(movers, locale) }),
     ...(boards === undefined ? {} : { boards: boards.map((board) => toBoard(board, locale)) }),
@@ -216,6 +222,27 @@ function toFlowBalance(
       asOf: overview.asOf,
       currency: overview.currency,
     }),
+  }
+}
+
+/** The sectors that moved the most money, each written as a reader sees it: the share is percent
+ *  points like every other `Pct` here, and the ratio travels only beside the average it divides by. */
+function toSectorTurnover(entry: SectorTurnover, locale: Locale): Record<string, unknown> {
+  const { turnoverReference } = entry
+
+  return {
+    sector: entry.sector,
+    turnover: formatFlow(locale, entry.turnover),
+    sharePct: fractionToPct(entry.sharePct),
+    ...(entry.turnoverRatio === undefined ? {} : { turnoverRatio: entry.turnoverRatio }),
+    ...(turnoverReference === undefined
+      ? {}
+      : {
+          turnoverReference: {
+            sessions: turnoverReference.sessions,
+            value: formatFlow(locale, turnoverReference.value),
+          },
+        }),
   }
 }
 

@@ -110,6 +110,17 @@ export interface OverviewFlowBalanceWire {
   readonly reading: readonly string[]
 }
 
+/** One sector's traded value on the market's session. The slug only: the page names it in its own
+ *  language. `sharePct` is a fraction of the market's traded value that session, and
+ *  `turnoverRatio` is against the mean of the `sessions` earlier sessions the sector reported. */
+export interface OverviewSectorTurnoverWire {
+  readonly sector: string
+  readonly turnover: number
+  readonly sharePct: number
+  readonly turnoverRatio?: number
+  readonly sessions?: number
+}
+
 /** GET /v1/overview — one block per registered market. */
 export interface OverviewResponse {
   readonly markets: readonly {
@@ -128,6 +139,8 @@ export interface OverviewResponse {
     /** Foreign investors' net buying in the market's currency; negative is net selling. */
     readonly foreignNetValue?: number
     readonly flowBalance?: OverviewFlowBalanceWire
+    /** The sectors that traded the most value on `asOf`, largest first. */
+    readonly sectorTurnover?: readonly OverviewSectorTurnoverWire[]
     readonly leaders?: OverviewLeadersWire
     readonly movers?: OverviewMoversWire
     /** The readings the CLI prints under the rows, in its order; absent where the market has none. */

@@ -38,6 +38,7 @@ import { vnIntradayBreadth } from '@/trading/markets/equity-vn/tape/intraday-bre
 import { toLeaders } from '@/trading/markets/equity-vn/tape/leaders'
 import { overviewCaveats } from '@/trading/markets/equity-vn/tape/overview-caveats'
 import { headlineLevel, vnLiveIndexReading } from '@/trading/markets/equity-vn/tape/quote'
+import { toSectorTurnover } from '@/trading/markets/equity-vn/tape/sector-turnover'
 import {
   sessionChangePct,
   sessionForeignNet,
@@ -126,10 +127,11 @@ type SessionTotals = Pick<
   | 'foreignNetValue'
   | 'proprietaryNetValue'
   | 'flowBalance'
+  | 'sectorTurnover'
 >
 
-/** The session's traded value and who bought and who sold, each left out where the tape did not
- *  publish it. */
+/** The session's traded value, where it went by sector, and who bought and who sold, each left out
+ *  where the tape did not publish it. */
 function toSessionTotals(cross: CrossSection, session: TradingDay): SessionTotals {
   const turnover = sessionTotal(cross.names, session, sessionTurnover)
   const turnoverReference = toSessionMean(
@@ -141,6 +143,7 @@ function toSessionTotals(cross: CrossSection, session: TradingDay): SessionTotal
   const foreignNetValue = sessionTotal(cross.names, session, sessionForeignNet)
   const proprietaryNetValue = sessionTotal(cross.names, session, sessionProprietaryNet)
   const flowBalance = toFlowBalance(cross.dayTotals.flows, session)
+  const sectorTurnover = toSectorTurnover(cross.dayTotals, session)
 
   return {
     ...(turnover === undefined ? {} : { turnover }),
@@ -149,6 +152,7 @@ function toSessionTotals(cross: CrossSection, session: TradingDay): SessionTotal
     ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
     ...(proprietaryNetValue === undefined ? {} : { proprietaryNetValue }),
     ...(flowBalance === undefined ? {} : { flowBalance }),
+    ...(sectorTurnover.length === 0 ? {} : { sectorTurnover }),
   }
 }
 

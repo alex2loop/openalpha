@@ -97,6 +97,16 @@ export function formatFixedFraction(fraction: number | undefined): string {
   return printed(sharedFormatter('percentFixed'), fraction)
 }
 
+/** A share of the whole, given as a fraction (`0.1425`), without trailing zeros: `14,25%`, as the
+ *  CLI prints a `sharePct`; a missing one prints `ABSENT_CELL`. */
+export function formatFraction(fraction: number | undefined): string {
+  if (fraction === undefined || !Number.isFinite(fraction)) {
+    return ABSENT_CELL
+  }
+
+  return printed(sharedFormatter('percent'), fraction)
+}
+
 /** A share given as a fraction at whole percent, for a fold over weights that never had a second
  *  decimal: `14%`. */
 export function formatWholeFraction(fraction: number | undefined): string {

@@ -165,6 +165,18 @@ export interface MarketBoard {
   readonly foreignNetValue?: number
 }
 
+/** One sector's traded value on the session, with how much of the market's it was and how busy it
+ *  was against its own recent sessions. A sector with no market total to divide by is absent, and a
+ *  sector with no earlier sessions has no ratio, never a ratio of one. */
+export interface SectorTurnover {
+  readonly sector: string
+  readonly turnover: number
+  /** A fraction of the market's traded value that session. */
+  readonly sharePct: number
+  readonly turnoverRatio?: number
+  readonly turnoverReference?: SessionMean
+}
+
 /** One name's move this session, and the money it moved on. Separate from `MarketLeaders`, whose
  *  lists sum a declared window: a mover is always exactly one session, the overview's own. */
 export interface MarketMover {
@@ -379,6 +391,9 @@ export interface MarketDataOverview {
   /** The same session, per board, where the market lists on more than one. The totals above stay
    *  the market's answer; these are what a reader checks against one exchange's own summary. */
   readonly boards?: readonly MarketBoard[]
+  /** Where the session's traded value went, by sector, largest first and bounded by the market's own
+   *  limit. Absent where no name carries a sector. */
+  readonly sectorTurnover?: readonly SectorTurnover[]
   readonly provenance: readonly SourceProvenance[]
   readonly caveats: readonly Caveat[]
 }
