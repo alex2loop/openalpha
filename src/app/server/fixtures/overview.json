@@ -84,7 +84,7 @@
         "foreignMean": { "sessions": 5, "value": -463000000000 },
         "proprietaryMean": { "sessions": 5, "value": 85000000000 },
         "normal": { "sessions": 20, "value": 530000000000 },
-        "foreignStreak": { "side": "sell", "sessions": 4 },
+        "foreignStreak": { "side": "sell", "sessions": 3 },
         "days": [
           { "at": "2026-09-10", "foreignNet": 212000000000, "proprietaryNet": -95000000000 },
           { "at": "2026-09-11", "foreignNet": -135000000000, "proprietaryNet": 60000000000 },
@@ -111,7 +111,7 @@
         "reading": [
           "Foreign investors sold 980 billion VND, proprietary desks bought 410 billion VND; everyone else bought the difference, about 570 billion VND.",
           "About 1.08× a normal session of the last 20.",
-          "Foreign investors have sold for 4 sessions in a row.",
+          "Foreign investors have sold for 3 sessions in a row.",
           "Proprietary figures run to 07/10/2026, so this reading is for that session."
         ]
       },
