@@ -83,8 +83,6 @@
         "othersNet": 570000000000,
         "foreignMean": { "sessions": 5, "value": -463000000000 },
         "proprietaryMean": { "sessions": 5, "value": 85000000000 },
-        "normal": { "sessions": 19, "value": 165052631579 },
-        "foreignStreak": { "side": "sell", "sessions": 3 },
         "days": [
           { "at": "2026-09-09", "foreignNet": -88000000000, "proprietaryNet": null },
           { "at": "2026-09-10", "foreignNet": 212000000000, "proprietaryNet": -95000000000 },

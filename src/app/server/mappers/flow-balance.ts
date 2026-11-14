@@ -14,7 +14,7 @@ export function toFlowBalanceWire(
     return undefined
   }
 
-  const { foreignMean, proprietaryMean, normal, foreignStreak } = flowBalance
+  const { foreignMean, proprietaryMean } = flowBalance
   const view = { balance: flowBalance, asOf: overview.asOf, currency: overview.currency }
 
   return {
@@ -24,10 +24,6 @@ export function toFlowBalanceWire(
     othersNet: flowBalance.othersNet,
     ...(foreignMean === undefined ? {} : { foreignMean }),
     ...(proprietaryMean === undefined ? {} : { proprietaryMean }),
-    ...(normal === undefined ? {} : { normal }),
-    ...(foreignStreak === undefined
-      ? {}
-      : { foreignStreak: { side: foreignStreak.side, sessions: foreignStreak.sessions } }),
     days: flowBalance.days.map((day) => ({
       at: day.at,
       foreignNet: day.foreignNet,

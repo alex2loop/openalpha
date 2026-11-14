@@ -95,10 +95,6 @@ export interface OverviewFlowBalanceWire {
   /** Mean net per session over the latest sessions up to `session`; absent without any. */
   readonly foreignMean?: SessionMeanWire
   readonly proprietaryMean?: SessionMeanWire
-  /** The mean gap the two groups usually leave for everyone else, on earlier sessions. */
-  readonly normal?: SessionMeanWire
-  /** Foreign investors' run of sessions on one side, counted back from `session`. */
-  readonly foreignStreak?: { readonly side: 'buy' | 'sell'; readonly sessions: number }
   /** The charted sessions, the newest 21 ending on `session`, oldest first; `proprietaryNet` is null
    *  where that desk never published. */
   readonly days: readonly {
