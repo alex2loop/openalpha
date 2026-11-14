@@ -5832,6 +5832,8 @@
     "flow.reading.both-selling": "Foreign investors and proprietary desks both sold; everyone else, mostly individuals, absorbed about {others}.",
     "flow.reading.both-buying": "Foreign investors and proprietary desks both bought; everyone else, mostly individuals, sold them about {others}.",
     "flow.reading.split": "Foreign investors {foreignAction} {foreign}, proprietary desks {proprietaryAction} {proprietary}; everyone else {othersAction} the difference, about {others}.",
+    "flow.reading.foreign-only": "Foreign investors {foreignAction} {foreign} while proprietary desks were flat; everyone else {othersAction} the difference, about {others}.",
+    "flow.reading.proprietary-only": "Proprietary desks {proprietaryAction} {proprietary} while foreign investors were flat; everyone else {othersAction} the difference, about {others}.",
     "flow.reading.even": "The two institutional groups cancelled each other out on that session.",
     "flow.size.heavy": "That is a big gap: {multiple} a normal session of the last {sessions}.",
     "flow.size.usual": "About {multiple} a normal session of the last {sessions}.",

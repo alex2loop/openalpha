@@ -44,7 +44,7 @@ export function toFlowBalance(
   const foreignMean = toLegMean(days, (day) => day.foreignNet)
   const proprietaryMean = toLegMean(days, (day) => day.proprietaryNet)
   const normal = toNormalGap(flows, anchor.at)
-  const foreignStreak = toForeignStreak(days)
+  const foreignStreak = toForeignStreak(flows, anchor.at)
 
   return {
     session: anchor.at,
@@ -135,17 +135,25 @@ function toNormalGap(
     : normal
 }
 
-/** Counted back from the anchor session over days on its side; a net of exactly zero is on neither,
- *  so it ends the run. */
-function toForeignStreak(days: readonly MarketFlowDay[]): MarketFlowBalance['foreignStreak'] {
-  const newest = days.at(-1)
+/** Counted back from the anchor session over every day the pass holds, not only the charted ones,
+ *  on its side; a net of exactly zero is on neither, so it ends the run. */
+function toForeignStreak(
+  flows: ReadonlyMap<TradingDay, FlowSnapshot>,
+  anchor: TradingDay
+): MarketFlowBalance['foreignStreak'] {
+  const nets = [...flows.values()]
+    .filter((flow) => flow.at <= anchor)
+    .sort((left, right) => right.at.localeCompare(left.at))
+    .map((flow) => flow.foreignNetValue)
+  const newest = nets[0]
 
-  if (newest === undefined || newest.foreignNet === 0) {
+  if (newest === undefined || newest === 0) {
     return undefined
   }
 
-  const sign = Math.sign(newest.foreignNet)
-  const sessions = days.length - 1 - days.findLastIndex((day) => Math.sign(day.foreignNet) !== sign)
+  const sign = Math.sign(newest)
+  const end = nets.findIndex((net) => Math.sign(net) !== sign)
+  const sessions = end === -1 ? nets.length : end
 
   return sessions < VN_FLOW_STREAK_MINIMUM_SESSIONS
     ? undefined

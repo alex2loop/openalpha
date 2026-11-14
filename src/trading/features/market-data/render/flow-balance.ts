@@ -103,11 +103,20 @@ function renderWho(locale: Locale, view: FlowBalanceView): string {
   })
 }
 
+/** A group that netted exactly zero took no side, so the reading names the other one alone. */
 function readingOf(balance: MarketFlowBalance): FlowReading {
   const { foreignNet, proprietaryNet } = balance
 
   if (foreignNet + proprietaryNet === 0) {
     return 'even'
+  }
+
+  if (proprietaryNet === 0) {
+    return 'foreign-only'
+  }
+
+  if (foreignNet === 0) {
+    return 'proprietary-only'
   }
 
   if (foreignNet < 0 && proprietaryNet < 0) {

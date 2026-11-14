@@ -273,7 +273,14 @@ export type FlowSize = (typeof FLOW_SIZES)[number]
 export const FLOW_PARTIES = ['foreign', 'proprietary', 'others'] as const
 export type FlowParty = (typeof FLOW_PARTIES)[number]
 
-export const FLOW_READINGS = ['both-selling', 'both-buying', 'split', 'even'] as const
+export const FLOW_READINGS = [
+  'both-selling',
+  'both-buying',
+  'split',
+  'foreign-only',
+  'proprietary-only',
+  'even',
+] as const
 export type FlowReading = (typeof FLOW_READINGS)[number]
 
 /** One session's net buying by the two institutional groups; a desk not yet published is absent,

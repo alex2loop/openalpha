@@ -5832,6 +5832,8 @@
     "flow.reading.both-selling": "Khối ngoại và tự doanh cùng bán ròng; phía còn lại, chủ yếu là nhà đầu tư cá nhân, mua đỡ khoảng {others}.",
     "flow.reading.both-buying": "Khối ngoại và tự doanh cùng mua ròng; phía còn lại, chủ yếu là nhà đầu tư cá nhân, bán ra khoảng {others}.",
     "flow.reading.split": "Khối ngoại {foreignAction} {foreign}, tự doanh {proprietaryAction} {proprietary}; phía còn lại {othersAction} phần chênh, khoảng {others}.",
+    "flow.reading.foreign-only": "Khối ngoại {foreignAction} {foreign}, tự doanh đứng ngoài; phía còn lại {othersAction} phần chênh, khoảng {others}.",
+    "flow.reading.proprietary-only": "Tự doanh {proprietaryAction} {proprietary}, khối ngoại đứng ngoài; phía còn lại {othersAction} phần chênh, khoảng {others}.",
     "flow.reading.even": "Hai nhóm tổ chức tự cân nhau trong phiên này.",
     "flow.size.heavy": "Phần chênh này lớn, bằng {multiple} một phiên bình thường trong {sessions} phiên gần đây.",
     "flow.size.usual": "Cỡ {multiple} một phiên bình thường trong {sessions} phiên gần đây.",
