@@ -17,6 +17,7 @@ export function toPriceChartWire(
   locale: Locale
 ): TradingPriceChartResponse {
   const { chart } = input
+  const relative = chart.relativeVolume
 
   return {
     market: input.market,
@@ -28,7 +29,16 @@ export function toPriceChartWire(
       sessions: average.sessions,
       values: average.values.map((value) => value ?? null),
     })),
-    ...(chart.relativeVolume === undefined ? {} : { relativeVolume: chart.relativeVolume }),
+    ...(relative === undefined
+      ? {}
+      : {
+          relativeVolume: {
+            day: relative.day,
+            volume: relative.volume,
+            sessions: relative.sessions,
+            ratio: relative.ratio,
+          },
+        }),
     provenance: toProvenanceWires(input.provenance),
     caveats: toCaveatWires(input.caveats, locale),
   }

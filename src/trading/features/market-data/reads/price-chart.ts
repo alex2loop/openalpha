@@ -82,6 +82,23 @@ function toPriceAverage(
   return values.some((value) => value !== undefined) ? { sessions, values } : undefined
 }
 
+export async function runRelativeVolume(
+  deps: MarketDataRunDeps,
+  options: MarketDataInstrumentRequest
+): Promise<SourceResult<RelativeVolumeReading>> {
+  const result = await readSettledBars(deps, options, NAME_VOLUME_SESSIONS + 1)
+
+  if (result.kind === 'unavailable') {
+    return result
+  }
+
+  const reading = toRelativeVolume(result.value)
+
+  return reading === undefined
+    ? unsupportedCapability([{ code: 'market-data.insufficient-history' }])
+    : available(reading, result.provenance, result.caveats)
+}
+
 /** Absent for a halted name, whose last candle carries the previous close and no trade, and where
  *  the series is too short to hold the baseline. */
 function toRelativeVolume(candles: readonly Candle[]): RelativeVolumeReading | undefined {
@@ -99,23 +116,6 @@ function toRelativeVolume(candles: readonly Candle[]): RelativeVolumeReading | u
   return ratio === undefined
     ? undefined
     : { day: last.at, volume: last.volume, sessions: NAME_VOLUME_SESSIONS, ratio }
-}
-
-export async function runRelativeVolume(
-  deps: MarketDataRunDeps,
-  options: MarketDataInstrumentRequest
-): Promise<SourceResult<RelativeVolumeReading>> {
-  const result = await readSettledBars(deps, options, NAME_VOLUME_SESSIONS + 1)
-
-  if (result.kind === 'unavailable') {
-    return result
-  }
-
-  const reading = toRelativeVolume(result.value)
-
-  return reading === undefined
-    ? unsupportedCapability([{ code: 'market-data.insufficient-history' }])
-    : available(reading, result.provenance, result.caveats)
 }
 
 /** A market with no bars of its own answers unsupported: VN gold's series is world gold in USD, and
