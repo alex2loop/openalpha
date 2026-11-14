@@ -30,12 +30,14 @@ export async function runUsSectors(
     (fund) => fund.record.instrument.ticker === US_BENCHMARK_TICKER
   )
 
+  const session = newestSession(members) ?? request.asOf
+
   return {
-    asOf: request.asOf,
+    asOf: session,
     sectors: sectorStrength({
       members,
       benchmark: (benchmark?.bars ?? []).map((bar) => bar.candle),
-      session: newestSession(members) ?? request.asOf,
+      session,
       policy: US_SECTOR_POLICY,
     }),
     provenance: dedupeProvenance(board.names.flatMap((name) => usBarProvenance(name.bars))),
