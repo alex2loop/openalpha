@@ -21,6 +21,7 @@ import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { FlowBalance } from '@/web/ui/market/flow-balance'
 import { Flows } from '@/web/ui/market/flows'
 import { IndexReading } from '@/web/ui/market/index-reading'
 import { MacroFull } from '@/web/ui/market/macro-full'
@@ -112,6 +113,7 @@ function MarketView({ region }: { readonly region: string }) {
       <DataStatus />
       <MacroFull region={region} />
       <RegionPrices region={region} />
+      <FlowBalance region={region} />
       <Flows region={region} />
       <Sectors region={region} />
       <IndexReading region={region} />

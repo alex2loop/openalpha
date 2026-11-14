@@ -1779,6 +1779,7 @@
     "office.market.mostTraded": "Thanh khoản dẫn đầu",
     "office.market.windowSessions": "{count} phiên gần nhất",
     "office.market.amountsIn": "giá trị tính bằng {currency}",
+    "office.market.flowBarsLabel": "{label}, {count} phiên gần nhất",
     "office.market.proprietaryDay": "phiên {day}",
     "office.market.sectors": "Sức mạnh ngành",
     "office.market.sectorsRanked": "Từ mạnh đến yếu",

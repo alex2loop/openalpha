@@ -1,0 +1,23 @@
+.flow-bars svg {
+  display: block;
+  max-width: 100%;
+}
+
+.flow-bars rect.is-up {
+  fill: var(--up);
+  fill-opacity: 0.55;
+}
+
+.flow-bars rect.is-down {
+  fill: var(--down);
+  fill-opacity: 0.55;
+}
+
+.flow-bars .flow-bars-gap {
+  fill: var(--sunken);
+}
+
+.flow-bars .flow-bars-zero {
+  stroke: var(--border);
+  stroke-width: 1;
+}

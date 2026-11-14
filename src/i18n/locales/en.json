@@ -1779,6 +1779,7 @@
     "office.market.mostTraded": "Most traded",
     "office.market.windowSessions": "last {count} sessions",
     "office.market.amountsIn": "values in {currency}",
+    "office.market.flowBarsLabel": "{label}, last {count} sessions",
     "office.market.proprietaryDay": "{day} session",
     "office.market.sectors": "Sector strength",
     "office.market.sectorsRanked": "Strongest to weakest",
