@@ -806,7 +806,7 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   - Mỗi dòng hiện số ròng có dấu và, bên cạnh, trung bình 5 phiên gần nhất. Các cột bên dưới vẽ 21 phiên gần nhất của khối ngoại và tự doanh, lên là mua ròng, xuống là bán ròng.
   - Vài dòng chữ đi kèm: ai mua và ai bán, chênh lệch lớn cỡ nào so với một phiên bình thường trong 20 phiên gần đây, và từ 3 phiên liên tiếp trở lên thì có chuỗi khối ngoại mua hoặc bán ròng.
   - Nhà cung cấp công bố số tự doanh trễ khoảng một phiên. Khi chưa có, khối này tính theo phiên trước đó đã có số: ngày ở tiêu đề cho biết phiên nào, một dòng nói rõ điều đó, và chuỗi khối ngoại đếm lùi từ phiên ấy, các cột cũng kết thúc ở phiên ấy. Ngày nào trong các cột mà tự doanh không công bố thì cột tự doanh để một ô trống, không bao giờ là số không.
-  - Khối này nằm trên Dòng tiền theo mã.
+  - Trên trang Thị trường khối này nằm dưới Dòng tiền theo mã, đúng thứ tự `/overview` in: sau các danh sách theo mã và các mã biến động mạnh nhất.
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ
   khoảng thời gian đo khi không phải một phiên. Nhà cung cấp công bố số tự doanh trễ khoảng một phiên,

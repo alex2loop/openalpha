@@ -114,8 +114,8 @@ function MarketView({ region }: { readonly region: string }) {
       <DataStatus />
       <MacroFull region={region} />
       <RegionPrices region={region} />
-      <FlowBalance region={region} />
       <Flows region={region} />
+      <FlowBalance region={region} />
       <Sectors region={region} />
       <SectorTurnover region={region} />
       <IndexReading region={region} />

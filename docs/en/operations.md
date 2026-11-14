@@ -818,7 +818,7 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   - Each row shows the signed net amount and, beside it, the average of the last 5 sessions. Bars underneath chart the last 21 sessions for the foreign and the proprietary desks, up for net buying and down for net selling.
   - Short lines in words follow: who bought and who sold, how big the gap is against a normal session of the last 20, and, from 3 sessions in a row, a foreign buying or selling streak.
   - The provider publishes the proprietary-desk figures about a session late. Until they arrive the block is for the earlier session that has them: the date in its title says which, a line says so, and the foreign streak counts back from that session, and the bars end on it too. A day inside the bars that the desks never published draws an empty slot in the proprietary bars, never a zero.
-  - It sits above Money flow by name.
+  - On the Market page it sits below Money flow by name, as `/overview` prints it: after the by-name lists and the biggest movers.
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
   proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
   76.5B), with the span measured when it is not one session. The provider publishes the
