@@ -720,7 +720,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
   - Click a ticker anywhere and its card opens: the ticker with its sector beside it where the market files one, price (with "Refresh price", which reads that one name
     live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
     session's low, high and volume (the live session's when the price is live, else the last
-    settled session's, dated), the last sessions charted on price and date axes with the plan levels, your holding, "Key figures"
+    settled session's, dated), a price chart over the period you pick, with volume bars, moving averages and the plan levels, a line saying whether the last session traded more or less than usual, your holding, "Key figures"
     (P/E, liquidity, flows and where the name sits on the board, laid out exactly as its Screen row;
     a name that did not make the screen gets one line saying why there are none; an index or a
     futures contract has no such block), "Why?" for the
@@ -728,6 +728,12 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     levels sit "What it is waiting for" (what the trader still waits on before the entry, when it
     does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas
     shows both too.
+  - The ticker card's chart shows where a name has been and whether the move had trading behind it.
+    - **Period.** The picker offers 1 month, 3 months, 6 months and 1 year. The card opens on 3 months, and the last pick is kept in this browser and shared by every ticker. There is no 5-year range: the app keeps about a year and a quarter of daily history for a name, so a longer span would have to be fetched from the source on every look.
+    - **Volume bars.** They sit under the price line, one per session, coloured like that day's move.
+    - **MA50 and MA200.** The two thin lines are moving averages: the average close of the last 50 and of the last 200 sessions. They smooth the daily noise so the trend shows. A line starts only where that many sessions stand behind it, so a recently listed name has no 200-session line.
+    - **The volume line.** Under the chart, "Volume on 13/11/2026: 14.4 million, 1.61× its usual 20-session pace" compares the last settled session with the average of the 20 sessions before it (2× is twice the usual volume). It is left out for a halted name or one with too little history.
+    - **No daily series.** A market that keeps none of its own (VN gold, a dealer's board) shows no chart, no picker and no volume line.
   - A call card, the plan on a ticker's card, its "Why?" dialog, your agents' opinions, your themes, the
     brief and a research report each open with one line saying it is AI-generated and is not investment
     advice. A brief from a daemon that predates the
@@ -808,16 +814,21 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   its own history; crypto states funding, open interest and how it compares with recent sessions, the
   accounts leaning up against those leaning down, the share bought at the asking price, and the fear and greed index with the
   source that publishes it. A source the browser cannot read leaves its line out, with no error.
+- **Who bought, who sold** (Vietnam only): the net buying and selling of one session across the HOSE and HNX boards, split three ways: foreign investors, the securities firms' own proprietary desks, and everyone else. "Net" is bought minus sold. Everyone else is the exact opposite of foreign plus proprietary, because every trade has a buyer and a seller. It is mostly individual investors, and the block says so.
+  - Each row shows the signed net amount and, beside it, the average of the last 5 sessions. Bars underneath chart the last 21 sessions for the foreign and the proprietary desks, up for net buying and down for net selling.
+  - Short lines in words follow: who bought and who sold, how big the gap is against a normal session of the last 20, and, from 3 sessions in a row, a foreign buying or selling streak.
+  - The provider publishes the proprietary-desk figures about a session late. Until they arrive the block is for the earlier session that has them: the date in its title says which, a line says so, and the foreign streak counts back from that session. A day the desks have not published draws an empty slot in the proprietary bars, never a zero.
+  - It sits above Money flow by name.
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
   proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
   76.5B), with the span measured when it is not one session. The provider publishes the
   proprietary-desk figures about a session late, so until then the list is the latest session that
   has them, with its date beside the title.
-- **Sector strength** ranks the sectors from strongest to weakest with today's move. It shows the five
-  strongest and the five weakest, with the rest behind "Show all" when a market files more than ten
-  (only for a market that files sectors). The web edition ranks nothing: it lists the sectors by name,
+- **Sector strength** ranks every sector from strongest to weakest, each with today's move (only for a
+  market that files sectors). The web edition ranks nothing: it lists the sectors by name,
   each with today's move and its gap to the index over 20 and 60 sessions. These blocks read again
   together with the rest, never on a timer of their own.
+- **Where the money traded, by sector** (Vietnam only): the five sectors with the most trading value in the session. Each row gives its value, its share of everything traded that session, and how it compares with its own average over up to 20 earlier sessions (0.73× is about three quarters of its usual; left out while no earlier session exists). The shares add up to less than 100%: only five sectors are listed, and names that file no sector are in the market's total but in no sector. It sits under Sector strength and is left out when the market's names carry no sector.
 - **For Vietnam, an index picker** for VN-Index, VN30 or HNX:
   - the five names that lifted and the five that weighed on that index this session, each with its
     price and the points it added, signed, then a line with what the listed names added up to (not

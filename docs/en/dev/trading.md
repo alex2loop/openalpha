@@ -75,7 +75,9 @@ The trail's per-session memo (`trailedThrough`) is set only once the raise has s
 
 ## Brief sections
 
-Some per-market sections (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) come from each market's overview converter, off one shared per-market template, not from a brief builder. A market adds a block, never a section kind. The two story kinds, `thesis-review` and `story`, belong to no block: the market's `tryReadStories` reads the settled session into candidates, `planStory` (`features/brief/story/plan.ts`) scores the previous snapshot's stories and picks today's, and both lead the brief above every block.
+Some per-market sections (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `sector-turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) come from each market's overview converter, off one shared per-market template, not from a brief builder. A market adds a block, never a section kind. The two story kinds, `thesis-review` and `story`, belong to no block: the market's `tryReadStories` reads the settled session into candidates, `planStory` (`features/brief/story/plan.ts`) scores the previous snapshot's stories and picks today's, and both lead the brief above every block.
+
+`sector-turnover` is overview-only: it is not in `MARKET_SHOWN_KINDS`, and the wire carries it only as `sectorTurnover` on the market block, never in `sections`. The VN flow balance is no section kind: it is `flowBalance` on the overview and the market block, printed by the overview's own renderer. On `/overview`, while it exists, the rollups skip the `proprietary-flow` section, and skip the foreign total row of `foreign-desk-flow` only when the balance's session is the overview's own.
 
 The brief prints only the kinds in `MARKET_SHOWN_KINDS` (`features/brief/render.ts`); the rest of a market's sections stay on `/overview <market>`. `BRIEF_FIELD_SUBSETS` (beside it) narrows a kind's rows to the fields the brief reads, as `derivatives` keeps `funding` and `longShortRatio`: `readSections` maps its renderable sections through `toBriefShape`, which drops a row left with no listed field and leaves non-ready sections and other kinds as they are.
 
@@ -132,6 +134,7 @@ The routes the trading feature adds, served when `[api] enabled = true`. The res
 |---|---|
 | `GET /v1/quotes` | `quotes` |
 | `GET /v1/ohlcv` | `ohlcv` |
+| `GET /v1/price-chart` | `ohlcv` |
 | `GET /v1/events` | `ohlcv` |
 | `GET /v1/news` | - |
 | `GET /v1/profile`, `POST /v1/profile` | - |
