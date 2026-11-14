@@ -152,7 +152,6 @@ function PriceBody({ ticker, market, levels, span, chart, quote }: PriceBodyProp
   return (
     <>
       <PriceHead market={market} facts={facts} range={sessionRangeOf(quote, chart.bars)} />
-      {findMarket(market)?.hasBars !== false && <WindowPicker span={span} />}
       {chart.bars.length > 1 && (
         <ChartSection market={market} facts={facts} levels={levels} span={span} chart={chart} />
       )}
@@ -187,6 +186,7 @@ function ChartSection({ market, facts, levels, span, chart }: ChartSectionProps)
 
   return (
     <>
+      <WindowPicker span={span} />
       <PriceChart
         bars={bars}
         averages={chart.averages}
