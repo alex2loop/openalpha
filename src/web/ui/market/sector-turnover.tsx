@@ -1,12 +1,12 @@
 import type { OverviewResponse, OverviewSectorTurnoverWire } from '@/app/server/wire/overview'
-import { findMarket, selectRegionOverview } from '@/web/state/market'
+import { findMarket, overviewBlock, selectRegionOverview } from '@/web/state/market'
 import { formatCompactAmount, formatFraction, formatMultiple } from '@/web/text/figures'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 import { CoinIcon } from '@/web/ui/kit/icons'
 import { MarketName } from '@/web/ui/market/market-name'
 import { RankedList, type RankedRow } from '@/web/ui/market/ranked-list'
-import { BlockHead } from '@/web/ui/today/block-frame'
+import { BlockHead, ReadLine } from '@/web/ui/today/block-frame'
 
 type OverviewBlock = OverviewResponse['markets'][number]
 
@@ -20,6 +20,8 @@ export function SectorTurnover({ region }: { readonly region: string }) {
     return null
   }
 
+  const days = new Set(blocks.map((block) => block.asOf))
+
   return (
     <section class="block">
       <BlockHead
@@ -28,6 +30,10 @@ export function SectorTurnover({ region }: { readonly region: string }) {
         icon={<CoinIcon />}
       />
       <div class="flow">
+        <ReadLine
+          readAt={overviewBlock.view.value.readAt}
+          dataTo={days.size === 1 ? blocks[0]?.asOf : undefined}
+        />
         {blocks.map((block) => (
           <MarketSectorTurnover key={block.market} block={block} />
         ))}
@@ -38,11 +44,15 @@ export function SectorTurnover({ region }: { readonly region: string }) {
 
 function MarketSectorTurnover({ block }: { readonly block: OverviewBlock }) {
   return (
-    <RankedList
-      title={<MarketName market={block.market} label={findMarket(block.market)?.label} />}
-      note={tr('ui.office.market.amountsIn', { currency: block.currency })}
-      rows={(block.sectorTurnover ?? []).map(toRow)}
-    />
+    <div class="flow">
+      <h3 class="sub-head">
+        <MarketName market={block.market} label={findMarket(block.market)?.label} />
+      </h3>
+      <RankedList
+        title={tr('ui.office.market.amountsIn', { currency: block.currency })}
+        rows={(block.sectorTurnover ?? []).map(toRow)}
+      />
+    </div>
   )
 }
 

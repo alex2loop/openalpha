@@ -189,7 +189,7 @@ function toSettledSession(overview: MarketDataOverview, locale: Locale): Record<
       : { flowBalance: toFlowBalance(overview, flowBalance, locale) }),
     ...(sectorTurnover === undefined
       ? {}
-      : { sectorTurnover: sectorTurnover.map((entry) => toSectorTurnover(entry, locale)) }),
+      : { sectorTurnover: sectorTurnover.map((entry) => agentSectorTurnover(entry, locale)) }),
     ...(leaders === undefined ? {} : { leaders: toLeaders(leaders, locale) }),
     ...(movers === undefined ? {} : { movers: toMovers(movers, locale) }),
     ...(boards === undefined ? {} : { boards: boards.map((board) => toBoard(board, locale)) }),
@@ -227,7 +227,7 @@ function toFlowBalance(
 
 /** The sectors that moved the most money, each written as a reader sees it: the share is percent
  *  points like every other `Pct` here, and the ratio travels only beside the average it divides by. */
-function toSectorTurnover(entry: SectorTurnover, locale: Locale): Record<string, unknown> {
+function agentSectorTurnover(entry: SectorTurnover, locale: Locale): Record<string, unknown> {
   const { turnoverReference } = entry
 
   return {

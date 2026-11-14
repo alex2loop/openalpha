@@ -169,10 +169,14 @@ function addReadsTo(totals: PassTotals, reads: NameReads): void {
   addTurnoverTo(totals.turnover, bars)
 
   if (sector !== undefined) {
-    const byDay = totals.sectorTurnover.get(sector) ?? new Map<TradingDay, number>()
+    let byDay = totals.sectorTurnover.get(sector)
+
+    if (byDay === undefined) {
+      byDay = new Map()
+      totals.sectorTurnover.set(sector, byDay)
+    }
 
     addTurnoverTo(byDay, bars)
-    totals.sectorTurnover.set(sector, byDay)
   }
 
   for (const flow of flows) {

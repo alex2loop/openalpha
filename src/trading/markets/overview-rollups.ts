@@ -4,6 +4,7 @@ import type {
   MarketDataOverview,
   MarketLeader,
   SectorTurnover,
+  SessionMean,
 } from '@/trading/kernel/market/market-overview'
 import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import { readySection } from '@/trading/markets/brief-section'
@@ -121,11 +122,19 @@ export function turnoverRows(overview: MarketDataOverview): readonly BriefSectio
   return [
     {
       turnover: overview.turnover,
-      ...(overview.turnoverRatio === undefined || overview.turnoverReference === undefined
-        ? {}
-        : { turnoverRatio: overview.turnoverRatio, sessions: overview.turnoverReference.sessions }),
+      ...ratioFields(overview.turnoverRatio, overview.turnoverReference),
     },
   ]
+}
+
+/** A ratio only beside the sessions its mean covers: every window yields a different multiple. */
+function ratioFields(
+  turnoverRatio: number | undefined,
+  reference: SessionMean | undefined
+): BriefSectionRow {
+  return turnoverRatio === undefined || reference === undefined
+    ? {}
+    : { turnoverRatio, sessions: reference.sessions }
 }
 
 function sectorTurnoverRows(
@@ -135,9 +144,7 @@ function sectorTurnoverRows(
     sector: entry.sector,
     turnover: entry.turnover,
     sharePct: entry.sharePct,
-    ...(entry.turnoverRatio === undefined || entry.turnoverReference === undefined
-      ? {}
-      : { turnoverRatio: entry.turnoverRatio, sessions: entry.turnoverReference.sessions }),
+    ...ratioFields(entry.turnoverRatio, entry.turnoverReference),
   }))
 }
 

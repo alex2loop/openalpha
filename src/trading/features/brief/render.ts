@@ -80,7 +80,8 @@ export const FOLDED_SECTION_KINDS = [
  *  breadth, the support and resistance range, sector rotation, the foreign and proprietary flow,
  *  the derivatives, premium, leaders and movers, sentiment, basis, fx, the index review, the
  *  events and the market's own headlines. A kind left out is a tap away on `/overview <market>`:
- *  the tape, turnover, market cap, taker flow, ETF flows, positioning and the report calendar. */
+ *  the tape, turnover, sector money, market cap, taker flow, ETF flows, positioning and the report
+ *  calendar. */
 const MARKET_SHOWN_KINDS = [
   'market-prices',
   'market-quotes',
