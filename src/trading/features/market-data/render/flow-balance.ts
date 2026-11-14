@@ -121,10 +121,6 @@ function sideOf(net: number): FlowSide {
   return net > 0 ? 'buy' : 'sell'
 }
 
-function renderAction(locale: Locale, side: FlowSide): string {
-  return renderDeclaredValue(locale, `trading.flow.action.${side}`)
-}
-
 /** The market decides `size`; the multiple printed is the same gap over the same normal. */
 function renderSize(locale: Locale, balance: MarketFlowBalance): readonly string[] {
   const { normal, size } = balance
@@ -154,4 +150,8 @@ function renderStreak(locale: Locale, balance: MarketFlowBalance): readonly stri
       sessions: formatCount(locale, foreignStreak.sessions),
     }),
   ]
+}
+
+function renderAction(locale: Locale, side: FlowSide): string {
+  return renderDeclaredValue(locale, `trading.flow.action.${side}`)
 }

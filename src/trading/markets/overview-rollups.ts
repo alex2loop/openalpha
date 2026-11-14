@@ -47,11 +47,14 @@ function turnoverSection(overview: MarketDataOverview): BriefSectionResult | und
   return rows.length === 0 ? undefined : readySection(overview, { kind: 'turnover', rows })
 }
 
-/** Only the names where the market publishes a flow balance: that block states the foreign total
- *  beside the other two groups, and a net said twice reads as two findings. */
+/** Only the names where the flow balance is for this session: that block states the foreign total
+ *  beside the other two groups, and a net said twice reads as two findings. While the desks lag, the
+ *  block is for an earlier session, so this section keeps today's total. */
 function foreignFlowSection(overview: MarketDataOverview): BriefSectionResult | undefined {
   const rows =
-    overview.flowBalance === undefined ? foreignRows(overview) : foreignNameRows(overview)
+    overview.flowBalance?.session === overview.asOf
+      ? foreignNameRows(overview)
+      : foreignRows(overview)
 
   return rows.length === 0
     ? undefined

@@ -3,9 +3,6 @@ import type { Locale } from '@/core/types/locale'
 import type { MarketDataOverview } from '@/trading/api'
 import { renderFlowBalanceReading } from '@/trading/api'
 
-type FlowBalance = NonNullable<MarketDataOverview['flowBalance']>
-type SessionMean = NonNullable<FlowBalance['normal']>
-
 /** The block's flow balance as the page draws it, with the CLI's own sentences as `reading`. */
 export function toFlowBalanceWire(
   overview: MarketDataOverview,
@@ -25,11 +22,9 @@ export function toFlowBalanceWire(
     foreignNet: flowBalance.foreignNet,
     proprietaryNet: flowBalance.proprietaryNet,
     othersNet: flowBalance.othersNet,
-    ...(foreignMean === undefined ? {} : { foreignMean: toSessionMeanWire(foreignMean) }),
-    ...(proprietaryMean === undefined
-      ? {}
-      : { proprietaryMean: toSessionMeanWire(proprietaryMean) }),
-    ...(normal === undefined ? {} : { normal: toSessionMeanWire(normal) }),
+    ...(foreignMean === undefined ? {} : { foreignMean }),
+    ...(proprietaryMean === undefined ? {} : { proprietaryMean }),
+    ...(normal === undefined ? {} : { normal }),
     ...(foreignStreak === undefined
       ? {}
       : { foreignStreak: { side: foreignStreak.side, sessions: foreignStreak.sessions } }),
@@ -40,8 +35,4 @@ export function toFlowBalanceWire(
     })),
     reading: renderFlowBalanceReading(locale, view),
   }
-}
-
-function toSessionMeanWire(mean: SessionMean): { sessions: number; value: number } {
-  return { sessions: mean.sessions, value: mean.value }
 }

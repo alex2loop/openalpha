@@ -43,7 +43,7 @@ export function toFlowBalance(
     session: anchor.at,
     foreignNet: anchor.foreignNet,
     proprietaryNet,
-    othersNet: -institutionsNet,
+    othersNet: 0 - institutionsNet,
     ...(foreignMean === undefined ? {} : { foreignMean }),
     ...(proprietaryMean === undefined ? {} : { proprietaryMean }),
     ...(normal === undefined
@@ -117,14 +117,6 @@ function toNormalGap(
     : normal
 }
 
-function toFlowSize(multiple: number): FlowSize {
-  if (multiple < VN_FLOW_QUIET_MULTIPLE) {
-    return 'quiet'
-  }
-
-  return multiple >= VN_FLOW_HEAVY_MULTIPLE ? 'heavy' : 'usual'
-}
-
 /** Counted back from the anchor session over days on its side; a net of exactly zero is on neither,
  *  so it ends the run. Days after the anchor are left out: the block describes one session. */
 function toForeignStreak(
@@ -144,4 +136,12 @@ function toForeignStreak(
   return sessions < VN_FLOW_STREAK_MINIMUM_SESSIONS
     ? undefined
     : { side: sign > 0 ? 'buy' : 'sell', sessions }
+}
+
+function toFlowSize(multiple: number): FlowSize {
+  if (multiple < VN_FLOW_QUIET_MULTIPLE) {
+    return 'quiet'
+  }
+
+  return multiple >= VN_FLOW_HEAVY_MULTIPLE ? 'heavy' : 'usual'
 }
