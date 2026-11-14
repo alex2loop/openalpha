@@ -69,6 +69,7 @@ import type {
 } from '@/app/server/wire/orders'
 import type { OutboundResponse } from '@/app/server/wire/outbound'
 import type { OverviewResponse } from '@/app/server/wire/overview'
+import type { TradingPriceChartResponse } from '@/app/server/wire/price-chart'
 import type {
   BrowserSessionEndResult,
   BrowserSessionList,
@@ -240,6 +241,7 @@ export const ROUTES = Object.freeze({
       `/v1/themes/${encodeURIComponent(themeId)}/${encodeURIComponent(transition)}`
     ),
   ohlcv: route<TradingOhlcvResponse>('/v1/ohlcv', 'ohlcv'),
+  priceChart: route<TradingPriceChartResponse>('/v1/price-chart', 'ohlcv'),
   events: route<TradingEventsResponse>('/v1/events', 'ohlcv'),
   news: route<TradingNewsResponse>('/v1/news'),
   brief: route<TradingBriefResponse>('/v1/brief'),

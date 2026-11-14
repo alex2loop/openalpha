@@ -24,11 +24,11 @@ export function Performance() {
   return (
     <>
       <Segmented
-        label={tr('ui.office.book.windowPick')}
+        label={tr('ui.office.windowPick')}
         value={picked}
         options={NAV_WINDOWS.map((choice) => ({
           value: choice,
-          label: tr(`ui.office.book.window.${choice}`),
+          label: tr(`ui.office.window.${choice}`),
         }))}
         onChange={pickNavWindow}
       />

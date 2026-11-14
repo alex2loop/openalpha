@@ -240,6 +240,12 @@ export function formatPrice(value: number | undefined, format: PriceFormat | und
   return printed(formatterFor(format.decimals), value / format.divisor)
 }
 
+/** A multiple of a reference figure with its multiplication sign (`1,5×`), as `/price` prints it; a
+ *  missing one prints `ABSENT_CELL`. */
+export function formatMultiple(value: number | undefined): string {
+  return isFigure(value) ? `${printed(sharedFormatter('ratio'), value)}×` : ABSENT_CELL
+}
+
 /** A percent-valued field without its sign: `5,80%`, a distance either way. */
 export function formatPercent(value: number | undefined): string {
   return readPercent(value === undefined ? undefined : Math.abs(value)).text
