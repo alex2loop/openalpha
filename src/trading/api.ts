@@ -67,6 +67,10 @@ export {
 
 // ── Contracts ────────────────────────────────────────────────────────────────
 
+// ── Contracts ────────────────────────────────────────────────────────────────
+
+// ── Contracts ────────────────────────────────────────────────────────────────
+
 export type {
   Alert,
   AlertListPage,
@@ -77,7 +81,12 @@ export type {
 export type { BriefDelivery, BriefService, BriefSnapshot } from '@/trading/features/brief/types'
 export type { LedgerEntry, LedgerWriteResult } from '@/trading/features/ledger/types'
 export type { ScreenCard, ScreenCardRow } from '@/trading/features/market-data/render/screen'
-export type { MarketDataService, ScreenView } from '@/trading/features/market-data/types'
+export type {
+  MarketDataService,
+  PriceChart,
+  PriceWindow,
+  ScreenView,
+} from '@/trading/features/market-data/types'
 export type { OrphanExit, UnguardedPosition } from '@/trading/features/order/exit-coverage'
 export type {
   CapRejection,
@@ -204,6 +213,7 @@ export type {
 } from '@/trading/kernel/source/source-result'
 export type { Page } from '@/trading/kernel/store/page'
 export type { AgentRecordSummary } from '@/trading/wiring/host/view-types'
+export { DEFAULT_PRICE_WINDOW, PRICE_WINDOWS } from '@/trading/features/market-data/types'
 export { DEFAULT_NAV_WINDOW, NAV_WINDOWS } from '@/trading/features/portfolio/nav/types'
 export { NOTICE_KINDS } from '@/trading/kernel/operator/notice'
 export { disabledSegments } from '@/trading/kernel/operator/profile'

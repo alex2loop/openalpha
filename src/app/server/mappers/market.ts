@@ -32,6 +32,7 @@ import type {
   MarketView,
   NavWindow,
   outcomeVerdictOf,
+  PriceWindow,
   RiskLevel,
   SessionPhase,
   SourceFreshness,
@@ -68,6 +69,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   marketEventKind: true,
   navWindow: true,
   outcomeVerdict: true,
+  priceWindow: true,
   riskLevel: true,
   sessionPhase: true,
   sourceFreshness: true,
@@ -83,6 +85,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   marketEventKind: Same<Vocab.MarketEventKind, MarketEventKind>
   navWindow: Same<Vocab.NavWindow, NavWindow>
   outcomeVerdict: Same<Vocab.OutcomeVerdict, OutcomeVerdict>
+  priceWindow: Same<Vocab.PriceWindow, PriceWindow>
   riskLevel: Same<Vocab.RiskLevel, RiskLevel>
   sessionPhase: Same<Vocab.SessionPhase, SessionPhase>
   sourceFreshness: Same<Vocab.SourceFreshness, SourceFreshness>

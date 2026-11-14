@@ -15,6 +15,7 @@ export type MarketMethods = Pick<
   TradingHost,
   | 'getQuotes'
   | 'getOhlcv'
+  | 'getPriceChart'
   | 'getInstrumentSector'
   | 'getEvents'
   | 'getNews'
@@ -32,6 +33,8 @@ export type MarketMethods = Pick<
 >
 
 type SeriesMethods = Pick<MarketMethods, 'getOhlcv' | 'getInstrumentSector' | 'getEvents'>
+
+type ChartMethods = Pick<MarketMethods, 'getPriceChart'>
 
 type ListingMethods = Pick<MarketMethods, 'getSectors' | 'listSources'>
 
@@ -75,6 +78,22 @@ function seriesMethods(deps: TradingHostDeps): SeriesMethods {
           market: request.instrument.market,
           fromDay: request.fromDay,
           toDay: request.toDay,
+          now: scope.now,
+          signal: scope.signal,
+        })
+      ),
+  }
+}
+
+/** One name over a chart window. */
+function chartMethods(deps: TradingHostDeps): ChartMethods {
+  return {
+    getPriceChart: (request) =>
+      scoped(deps, request.signal, (scope) =>
+        deps.services.marketData.priceChart({
+          ticker: request.instrument.ticker,
+          market: request.instrument.market,
+          window: request.window,
           now: scope.now,
           signal: scope.signal,
         })
@@ -267,6 +286,7 @@ function boardMethods(
   MarketMethods,
   | keyof PriceMethods
   | keyof SeriesMethods
+  | keyof ChartMethods
   | keyof ListingMethods
   | keyof IndexMethods
   | keyof SessionMethods
@@ -312,6 +332,7 @@ function boardMethods(
 export function marketMethods(deps: TradingHostDeps): MarketMethods {
   return {
     ...seriesMethods(deps),
+    ...chartMethods(deps),
     ...priceMethods(deps),
     ...listingMethods(deps),
     ...indexMethods(deps),

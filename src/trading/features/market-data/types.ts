@@ -46,6 +46,10 @@ import type { StageReporter } from '@/trading/kernel/surface/tool-progress'
 import type { MarketDay } from '@/trading/markets/calendar'
 import type { QuoteConvention } from '@/trading/render/money'
 
+export const PRICE_WINDOWS = Object.freeze(['1m', '3m', '6m', '1y'] as const)
+export type PriceWindow = (typeof PRICE_WINDOWS)[number]
+export const DEFAULT_PRICE_WINDOW: PriceWindow = '3m'
+
 /** The requests above are the *resolved* form a market capability consumes. The requests below are
  *  the surface-facing form: the ticker may not name its market yet and the day may still be an
  *  instant, because `MarketDataService` is the only holder of the market registry and calendar that
@@ -81,6 +85,10 @@ export interface MarketDataDayRangeRequest extends MarketDataRequest {
 export interface MarketDataBarsRequest extends MarketDataDayRangeRequest {
   readonly ticker: Ticker
   readonly market?: MarketRef
+}
+
+export interface MarketDataPriceChartRequest extends MarketDataInstrumentRequest {
+  readonly window: PriceWindow
 }
 
 /** One registered market as a surface lays it out. */
@@ -189,6 +197,28 @@ export interface ScreenView extends Omit<ScreenResult, 'candidates'> {
   readonly unpriced?: number
 }
 
+/** A moving average of the close, aligned to the chart's candles: `values[i]` is the average ending
+ *  on candle `i`, absent while fewer than `sessions` closes stand behind it. */
+export interface PriceAverage {
+  readonly sessions: number
+  readonly values: readonly (number | undefined)[]
+}
+
+/** The latest session's volume against the average of the `sessions` before it. */
+export interface RelativeVolumeReading {
+  readonly day: TradingDay
+  readonly volume: number
+  readonly sessions: number
+  readonly ratio: number
+}
+
+export interface PriceChart {
+  readonly window: PriceWindow
+  readonly candles: readonly Candle[]
+  readonly averages: readonly PriceAverage[]
+  readonly relativeVolume?: RelativeVolumeReading
+}
+
 export interface MarketDataService {
   listSources(): readonly SourceSummary[]
   /** The registered regions. A region arriving from a wire payload or a command line is a lookup
@@ -232,6 +262,12 @@ export interface MarketDataService {
   quoteBoard(options: QuoteBoardRequest): Promise<QuoteBoard>
   quote(options: MarketDataQuoteRequest): Promise<SourceResult<QuoteView>>
   bars(options: MarketDataBarsRequest): Promise<SourceResult<readonly Candle[]>>
+  /** One name's settled candles over a window with its 50 and 200 session averages; the averages
+   *  read sessions before the window where the series holds them. */
+  priceChart(options: MarketDataPriceChartRequest): Promise<SourceResult<PriceChart>>
+  /** The latest session's volume against the name's usual pace; unavailable where the market keeps
+   *  no price history of its own, or the name has none to compare. */
+  relativeVolume(options: MarketDataInstrumentRequest): Promise<SourceResult<RelativeVolumeReading>>
   overview(options: MarketDataPerMarketRequest): Promise<readonly MarketDataOverview[]>
   events(options: MarketDataEventsRequest): Promise<SourceResult<readonly MarketEvent[]>>
   news(options: MarketDataNewsRequest): Promise<SourceResult<readonly NewsItem[]>>

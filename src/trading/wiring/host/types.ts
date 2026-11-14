@@ -8,6 +8,7 @@ import type {
   LedgerEntry,
   LedgerWriteResult,
 } from '@/trading/features/ledger/types'
+import type { PriceChart } from '@/trading/features/market-data/types'
 import type {
   ConfirmOutcome,
   ExitLevels,
@@ -69,6 +70,7 @@ import type { TradingServices } from '@/trading/wiring/composition/service-aggre
 import type {
   SourceStatus,
   TradingIndexRequest,
+  TradingPriceChartRequest,
   TradingSectorsRequest,
   TradingSectorsView,
 } from '@/trading/wiring/host/market-types'
@@ -299,6 +301,9 @@ export interface TradingHost {
   /** The watchlist's board; with `instrument`, that one name's board row, read live. */
   getQuotes(signal: AbortSignal, instrument?: InstrumentRef): Promise<QuoteBoard>
   getOhlcv(request: TradingInstrumentRangeRequest): Promise<SourceResult<readonly Candle[]>>
+  /** The settled candles over a window with the 50 and 200 session averages and the latest
+   *  volume against its usual pace; a market with no price history of its own answers unavailable. */
+  getPriceChart(request: TradingPriceChartRequest): Promise<SourceResult<PriceChart>>
   /** The sector the market files the name under, from its stored listing; absent where it files
    *  none. */
   getInstrumentSector(request: TradingInstrumentRequest): Promise<string | undefined>

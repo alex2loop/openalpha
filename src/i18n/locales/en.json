@@ -5606,6 +5606,7 @@
     "render.quote.unavailableBelow": "No price available:",
     "render.quote.session": "High/low on {day}: {low} - {high}",
     "render.quote.sessionVolume": "High/low on {day}: {low} - {high} · volume {volume}",
+    "render.quote.relativeVolume": "Volume on {day}: {volume}, {ratio} its usual {sessions}-session pace",
     "render.quote.upcoming": "Coming up: {event} on {day}",
     "render.portfolio.nav": "Total assets: {nav} (~{compact})",
     "render.portfolio.navEmpty": "Total assets: {nav}",

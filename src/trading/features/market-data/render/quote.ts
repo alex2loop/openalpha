@@ -1,11 +1,18 @@
 import type { Locale } from '@/core/types/locale'
+import type { RelativeVolumeReading } from '@/trading/features/market-data/types'
 import type { QuoteView } from '@/trading/kernel/market/market-capability'
 import type { MarketEvent } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { formatDay, t } from '@/i18n'
 import { renderCaveatLines } from '@/trading/render/caveat'
-import { renderDeclaredValue, renderProvidedValue, SECTION_ICONS } from '@/trading/render/format'
+import {
+  formatFlow,
+  formatMultiple,
+  renderDeclaredValue,
+  renderProvidedValue,
+  SECTION_ICONS,
+} from '@/trading/render/format'
 import {
   INDENT,
   INLINE_SEPARATOR,
@@ -17,11 +24,13 @@ import { isBoardScaled, renderBoardScale } from '@/trading/render/money'
 import { renderPricePair, renderSessionRange } from '@/trading/render/price-pair'
 import { renderLabelledRow } from '@/trading/render/section'
 
-/** Both are enrichments the command may not have been able to read: the price is the answer, and a
- *  provider that served no intraday series or no calendar must not take the answer down with it. */
+/** Each is an enrichment the command may not have been able to read: the price is the answer, and a
+ *  provider that served no intraday series, no calendar or no volume history must not take the
+ *  answer down with it. */
 interface QuoteRenderOptions {
   readonly context: RenderContext
   readonly events?: readonly MarketEvent[]
+  readonly relativeVolume?: RelativeVolumeReading
 }
 
 export function renderQuoteText(
@@ -61,6 +70,7 @@ export function renderQuoteText(
       ),
       ...priceLines(locale, result.value, options),
       ...(range === undefined ? [] : [`${INDENT[1]}${range}`]),
+      ...renderRelativeVolumeLines(locale, options.relativeVolume),
       ...renderUpcomingLines(locale, options.events ?? []),
       ...renderProvenanceLine(locale, result.provenance, options.context.timezone),
     ],
@@ -133,6 +143,24 @@ function unitParts(locale: Locale, view: QuoteView): readonly string[] {
   }
 
   return [renderBoardScale(locale, display, currency)]
+}
+
+function renderRelativeVolumeLines(
+  locale: Locale,
+  reading: RelativeVolumeReading | undefined
+): readonly string[] {
+  if (reading === undefined) {
+    return []
+  }
+
+  return [
+    `${INDENT[1]}${t(locale, 'trading.render.quote.relativeVolume', {
+      day: formatDay(locale, reading.day),
+      volume: formatFlow(locale, reading.volume),
+      ratio: formatMultiple(locale, reading.ratio),
+      sessions: reading.sessions,
+    })}`,
+  ]
 }
 
 function renderUpcomingLines(locale: Locale, events: readonly MarketEvent[]): readonly string[] {

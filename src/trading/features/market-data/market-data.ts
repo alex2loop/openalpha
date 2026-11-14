@@ -48,6 +48,7 @@ import { describeMarket } from '@/trading/features/market-data/reads/describe'
 import { freshnessOf, settledEvidenceCaveats } from '@/trading/features/market-data/reads/freshness'
 import { indexReads } from '@/trading/features/market-data/reads/index-reading'
 import { runOverviews } from '@/trading/features/market-data/reads/overview'
+import { runPriceChart, runRelativeVolume } from '@/trading/features/market-data/reads/price-chart'
 import { buildQuoteBoard } from '@/trading/features/market-data/reads/quote-board'
 import {
   instrumentReads,
@@ -111,6 +112,8 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
       buildQuoteBoard({ markets: deps.markets, timezone: deps.config.displayTimezone }, options),
     quote: (options) => runQuote(run, options),
     bars: (options) => runBars(run, options),
+    priceChart: (options) => runPriceChart(run, options),
+    relativeVolume: (options) => runRelativeVolume(run, options),
     events: (options) => runEvents(run, options),
     funding: (options) => runFunding(run, options),
     recommendations: (options) => runRecommendations(run, options),

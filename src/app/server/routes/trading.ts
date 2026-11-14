@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 import type { AnalysesResponse } from '@/app/server/wire/analysis'
-import type { ApiErrorCode } from '@/app/server/wire/errors'
 import type { BriefScheduleWire } from '@/app/server/wire/system'
 import type {
   SuggestionCardResponse,
@@ -12,7 +11,6 @@ import type {
   TradingSuggestionsResponse,
 } from '@/app/server/wire/trading'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
-import type { SourceResult } from '@/trading/api'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { toAnalysisWire } from '@/app/server/mappers/analysis'
 import {
@@ -45,7 +43,7 @@ import {
   parsePathId,
   readJsonBody,
 } from '@/app/server/routes/params'
-import { bindLocale } from '@/i18n'
+import { sourceError } from '@/app/server/routes/source-error'
 import {
   analysisId,
   DEFAULT_NAV_WINDOW,
@@ -57,7 +55,6 @@ import {
   tradingDay,
 } from '@/trading/api'
 
-const AMBIGUOUS_SYMBOL = 'source.ambiguous-symbol'
 const EMPTY_WINDOW = 'source.empty-window'
 // What leaves an events read with nothing to list rather than failed: a market no event source
 // covers, or a window every source answered with nothing.
@@ -168,36 +165,6 @@ async function handleTradingNews(req: Request, ctx: ApiRouteContext): Promise<Re
     provenance: toProvenanceWires(result.provenance),
     caveats: toCaveatWires(result.caveats, localeOf(ctx)),
   } satisfies TradingNewsResponse)
-}
-
-type UnavailableResult = Extract<SourceResult<unknown>, { readonly kind: 'unavailable' }>
-
-/** An ambiguous symbol is a 409 that says so: without its sentence the app could only guess. */
-function sourceError(ctx: ApiRouteContext, result: UnavailableResult, symbol?: string): Response {
-  const ambiguous = result.caveats.find((caveat) => caveat.code === AMBIGUOUS_SYMBOL)
-
-  if (ambiguous === undefined || symbol === undefined) {
-    return apiError(sourceErrorCode(result))
-  }
-
-  const message = bindLocale(localeOf(ctx)).translate(`trading.caveat.${AMBIGUOUS_SYMBOL}`, {
-    ...ambiguous.detail,
-    ticker: symbol,
-  })
-
-  return apiError('conflict', message)
-}
-
-function sourceErrorCode(result: UnavailableResult): ApiErrorCode {
-  if (result.caveats.some((caveat) => caveat.code === AMBIGUOUS_SYMBOL)) {
-    return 'conflict'
-  }
-
-  if (result.reason === 'unsupported') {
-    return 'not_found'
-  }
-
-  return result.reason === 'failed' ? 'upstream_failed' : 'unavailable'
 }
 
 async function handleTradingProfileGet(req: Request, ctx: ApiRouteContext): Promise<Response> {

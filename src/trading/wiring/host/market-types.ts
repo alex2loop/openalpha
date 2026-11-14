@@ -1,5 +1,6 @@
+import type { PriceWindow } from '@/trading/features/market-data/types'
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { MarketRef, TradingDay } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { IndexCode } from '@/trading/kernel/market/index-reading'
 import type { SectorStrength } from '@/trading/kernel/market/market-capability'
 import type { SourceSummary } from '@/trading/kernel/source/source-result'
@@ -12,6 +13,12 @@ export interface TradingSectorsRequest {
 export interface TradingIndexRequest {
   readonly market: MarketRef
   readonly index: IndexCode
+  readonly signal: AbortSignal
+}
+
+export interface TradingPriceChartRequest {
+  readonly instrument: InstrumentRef
+  readonly window: PriceWindow
   readonly signal: AbortSignal
 }
 

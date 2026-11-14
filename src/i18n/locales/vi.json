@@ -5606,6 +5606,7 @@
     "render.quote.unavailableBelow": "Không lấy được giá:",
     "render.quote.session": "Cao/thấp phiên {day}: {low} - {high}",
     "render.quote.sessionVolume": "Cao/thấp phiên {day}: {low} - {high} · khối lượng {volume}",
+    "render.quote.relativeVolume": "Khối lượng phiên {day}: {volume}, bằng {ratio} nhịp trung bình {sessions} phiên",
     "render.quote.upcoming": "Sắp tới: {event} ngày {day}",
     "render.portfolio.nav": "Tổng tài sản: {nav} (~{compact})",
     "render.portfolio.navEmpty": "Tổng tài sản: {nav}",
