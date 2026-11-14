@@ -86,6 +86,7 @@
         "normal": { "sessions": 19, "value": 165052631579 },
         "foreignStreak": { "side": "sell", "sessions": 3 },
         "days": [
+          { "at": "2026-09-09", "foreignNet": -88000000000, "proprietaryNet": null },
           { "at": "2026-09-10", "foreignNet": 212000000000, "proprietaryNet": -95000000000 },
           { "at": "2026-09-11", "foreignNet": -135000000000, "proprietaryNet": 60000000000 },
           { "at": "2026-09-14", "foreignNet": 48000000000, "proprietaryNet": -150000000000 },
@@ -105,8 +106,7 @@
           { "at": "2026-10-02", "foreignNet": 140000000000, "proprietaryNet": 85000000000 },
           { "at": "2026-10-05", "foreignNet": -405000000000, "proprietaryNet": -130000000000 },
           { "at": "2026-10-06", "foreignNet": -760000000000, "proprietaryNet": 265000000000 },
-          { "at": "2026-10-07", "foreignNet": -980000000000, "proprietaryNet": 410000000000 },
-          { "at": "2026-10-08", "foreignNet": -1250000000000, "proprietaryNet": null }
+          { "at": "2026-10-07", "foreignNet": -980000000000, "proprietaryNet": 410000000000 }
         ],
         "reading": [
           "Foreign investors sold 980 billion VND, proprietary desks bought 410 billion VND; everyone else bought the difference, about 570 billion VND.",

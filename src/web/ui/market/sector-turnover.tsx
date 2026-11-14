@@ -51,6 +51,7 @@ function MarketSectorTurnover({ block }: { readonly block: OverviewBlock }) {
       <RankedList
         title={tr('ui.office.market.amountsIn', { currency: block.currency })}
         rows={(block.sectorTurnover ?? []).map(toRow)}
+        figureBelow
       />
     </div>
   )

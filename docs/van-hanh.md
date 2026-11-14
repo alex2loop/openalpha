@@ -805,7 +805,7 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
 - **Ai mua, ai bán** (chỉ có cho Việt Nam): mua ròng và bán ròng của một phiên trên cả sàn HOSE và HNX, chia làm ba bên: khối ngoại, tự doanh của các công ty chứng khoán, và phía còn lại. "Ròng" là mua trừ bán. Phía còn lại đúng bằng số đối nghịch của khối ngoại cộng tự doanh, vì mỗi lệnh khớp có một bên mua và một bên bán. Đó chủ yếu là nhà đầu tư cá nhân, và khối này ghi rõ như vậy.
   - Mỗi dòng hiện số ròng có dấu và, bên cạnh, trung bình 5 phiên gần nhất. Các cột bên dưới vẽ 21 phiên gần nhất của khối ngoại và tự doanh, lên là mua ròng, xuống là bán ròng.
   - Vài dòng chữ đi kèm: ai mua và ai bán, chênh lệch lớn cỡ nào so với một phiên bình thường trong 20 phiên gần đây, và từ 3 phiên liên tiếp trở lên thì có chuỗi khối ngoại mua hoặc bán ròng.
-  - Nhà cung cấp công bố số tự doanh trễ khoảng một phiên. Khi chưa có, khối này tính theo phiên trước đó đã có số: ngày ở tiêu đề cho biết phiên nào, một dòng nói rõ điều đó, và chuỗi khối ngoại đếm lùi từ phiên ấy. Ngày nào tự doanh chưa công bố thì cột tự doanh để một ô trống, không bao giờ là số không.
+  - Nhà cung cấp công bố số tự doanh trễ khoảng một phiên. Khi chưa có, khối này tính theo phiên trước đó đã có số: ngày ở tiêu đề cho biết phiên nào, một dòng nói rõ điều đó, và chuỗi khối ngoại đếm lùi từ phiên ấy, các cột cũng kết thúc ở phiên ấy. Ngày nào trong các cột mà tự doanh không công bố thì cột tự doanh để một ô trống, không bao giờ là số không.
   - Khối này nằm trên Dòng tiền theo mã.
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ

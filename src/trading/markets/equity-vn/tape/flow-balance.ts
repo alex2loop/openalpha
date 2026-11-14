@@ -20,13 +20,20 @@ import { toSessionMean } from '@/trading/markets/equity-vn/tape/session-totals'
 /** Who bought and who sold, anchored on the newest session the proprietary desks have figures for:
  *  they publish after the foreign desk, and a reading that paired today's foreign net with a desk
  *  that has not landed would hand the whole difference to individuals. Without any proprietary
- *  figure there is nothing to balance, so the block does not show. */
+ *  figure there is nothing to balance, so the block does not show. Everything in it, the charted days
+ *  included, ends on that session. */
 export function toFlowBalance(
   flows: ReadonlyMap<TradingDay, FlowSnapshot>,
   session: TradingDay
 ): MarketFlowBalance | undefined {
-  const days = toFlowDays(flows, session)
-  const anchor = days.findLast((day) => day.proprietaryNet !== undefined)
+  const anchorDay = toAnchorDay(flows, session)
+
+  if (anchorDay === undefined) {
+    return undefined
+  }
+
+  const days = toFlowDays(flows, anchorDay)
+  const anchor = days.at(-1)
   const proprietaryNet = anchor?.proprietaryNet
 
   if (anchor === undefined || proprietaryNet === undefined) {
@@ -54,12 +61,25 @@ export function toFlowBalance(
   }
 }
 
-function toFlowDays(
+// The newest session up to `session` the proprietary desks have a figure for.
+function toAnchorDay(
   flows: ReadonlyMap<TradingDay, FlowSnapshot>,
   session: TradingDay
+): TradingDay | undefined {
+  return [...flows.values()]
+    .filter((flow) => flow.at <= session && flow.proprietaryNetValue !== undefined)
+    .map((flow) => flow.at)
+    .sort()
+    .at(-1)
+}
+
+// The newest sessions ending on `anchor`, oldest first.
+function toFlowDays(
+  flows: ReadonlyMap<TradingDay, FlowSnapshot>,
+  anchor: TradingDay
 ): readonly MarketFlowDay[] {
   return [...flows.values()]
-    .filter((flow) => flow.at <= session)
+    .filter((flow) => flow.at <= anchor)
     .sort((left, right) => left.at.localeCompare(right.at))
     .slice(-VN_FLOW_BALANCE_SESSIONS)
     .map((flow) => ({

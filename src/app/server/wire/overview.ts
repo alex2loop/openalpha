@@ -99,7 +99,8 @@ export interface OverviewFlowBalanceWire {
   readonly normal?: SessionMeanWire
   /** Foreign investors' run of sessions on one side, counted back from `session`. */
   readonly foreignStreak?: { readonly side: 'buy' | 'sell'; readonly sessions: number }
-  /** The charted sessions, oldest first; `proprietaryNet` is null where that desk has not published. */
+  /** The charted sessions, the newest 21 ending on `session`, oldest first; `proprietaryNet` is null
+   *  where that desk never published. */
   readonly days: readonly {
     readonly at: string
     readonly foreignNet: number

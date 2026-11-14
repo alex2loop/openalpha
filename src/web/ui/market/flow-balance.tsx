@@ -1,12 +1,12 @@
 import type { OverviewFlowBalanceWire, OverviewResponse } from '@/app/server/wire/overview'
 import { formatDay } from '@/i18n'
-import { selectRegionOverview } from '@/web/state/market'
+import { overviewBlock, selectRegionOverview } from '@/web/state/market'
 import { locale } from '@/web/state/session'
 import { formatCount, formatSignedCompactAmount } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
 import { CoinIcon } from '@/web/ui/kit/icons'
 import { FlowBars } from '@/web/ui/market/flow-bars'
-import { BlockHead } from '@/web/ui/today/block-frame'
+import { BlockHead, ReadLine } from '@/web/ui/today/block-frame'
 
 type FlowParty = 'foreign' | 'proprietary' | 'others'
 type OverviewBlock = OverviewResponse['markets'][number]
@@ -42,6 +42,7 @@ function MarketFlowBalance({ block, balance }: MarketFlowBalanceProps) {
         icon={<CoinIcon />}
       />
       <div class="flow">
+        <ReadLine readAt={overviewBlock.view.value.readAt} dataTo={balance.session} />
         <div class="row-list">
           {toPartyRows(balance).map((row) => (
             <div key={row.party} class="row">
