@@ -802,11 +802,6 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   crypto nêu phí funding, hợp đồng mở và so với các phiên gần đây, tài khoản nghiêng tăng so với giảm, phần mua chủ động,
   và chỉ số sợ hãi - tham lam kèm nguồn công bố nó. Nguồn nào trình duyệt không đọc được thì
   dòng đó không hiện, không báo lỗi.
-- **Ai mua, ai bán** (chỉ có cho Việt Nam): mua ròng và bán ròng của một phiên trên cả sàn HOSE và HNX, chia làm ba bên: khối ngoại, tự doanh của các công ty chứng khoán, và phía còn lại. "Ròng" là mua trừ bán. Phía còn lại đúng bằng số đối nghịch của khối ngoại cộng tự doanh, vì mỗi lệnh khớp có một bên mua và một bên bán. Đó chủ yếu là nhà đầu tư cá nhân, và khối này ghi rõ như vậy.
-  - Mỗi dòng hiện số ròng có dấu và, bên cạnh, trung bình 5 phiên gần nhất. Các cột bên dưới vẽ 21 phiên gần nhất của khối ngoại và tự doanh, lên là mua ròng, xuống là bán ròng.
-  - Vài dòng chữ đi kèm: ai mua và ai bán, chênh lệch lớn cỡ nào so với một phiên bình thường trong 20 phiên gần đây, và từ 3 phiên liên tiếp trở lên thì có chuỗi khối ngoại mua hoặc bán ròng.
-  - Nhà cung cấp công bố số tự doanh trễ khoảng một phiên. Khi chưa có, khối này tính theo phiên trước đó đã có số: ngày ở tiêu đề cho biết phiên nào, một dòng nói rõ điều đó, và chuỗi khối ngoại đếm lùi từ phiên ấy, các cột cũng kết thúc ở phiên ấy. Ngày nào trong các cột mà tự doanh không công bố thì cột tự doanh để một ô trống, không bao giờ là số không.
-  - Trên trang Thị trường khối này nằm dưới Dòng tiền theo mã, đúng thứ tự `/overview` in: sau các danh sách theo mã và các mã biến động mạnh nhất.
 - **Dòng tiền theo mã**: năm mã khối ngoại mua ròng và bán ròng nhiều nhất; năm mã tự doanh mua ròng
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ
   khoảng thời gian đo khi không phải một phiên. Nhà cung cấp công bố số tự doanh trễ khoảng một phiên,
@@ -816,6 +811,11 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   biến động hôm nay và mức chênh so với chỉ số sau 20 và 60 phiên. Các khối này đọc lại cùng lúc với
   phần còn lại, không theo chu kỳ riêng.
 - **Tiền giao dịch tập trung ở ngành nào** (chỉ có cho Việt Nam): năm ngành có giá trị giao dịch lớn nhất trong phiên. Mỗi dòng nêu giá trị của ngành, tỷ trọng của nó trong toàn bộ giá trị giao dịch của phiên, và so với trung bình của chính ngành đó qua tối đa 20 phiên trước (0,73× là khoảng ba phần tư mức thường lệ; bỏ đi khi chưa có phiên nào trước đó). Tỷ trọng cộng lại nhỏ hơn 100%: chỉ liệt kê năm ngành, và những mã không khai ngành nằm trong tổng của thị trường nhưng không thuộc ngành nào. Khối này đứng dưới Sức mạnh ngành và bị bỏ khi các mã của thị trường không có ngành.
+- **Ai mua, ai bán** (chỉ có cho Việt Nam): mua ròng và bán ròng của một phiên trên cả sàn HOSE và HNX, chia làm ba bên: khối ngoại, tự doanh của các công ty chứng khoán, và phía còn lại. "Ròng" là mua trừ bán. Phía còn lại đúng bằng số đối nghịch của khối ngoại cộng tự doanh, vì mỗi lệnh khớp có một bên mua và một bên bán. Đó chủ yếu là nhà đầu tư cá nhân, và khối này ghi rõ như vậy.
+  - Mỗi dòng hiện số ròng có dấu và, bên cạnh, trung bình 5 phiên gần nhất. Các cột bên dưới vẽ 21 phiên gần nhất của khối ngoại và tự doanh, lên là mua ròng, xuống là bán ròng.
+  - Vài dòng chữ đi kèm: ai mua và ai bán, chênh lệch lớn cỡ nào so với một phiên bình thường trong 20 phiên gần đây, và từ 3 phiên liên tiếp trở lên thì có chuỗi khối ngoại mua hoặc bán ròng.
+  - Nhà cung cấp công bố số tự doanh trễ khoảng một phiên. Khi chưa có, khối này tính theo phiên trước đó đã có số: ngày ở tiêu đề cho biết phiên nào, một dòng nói rõ điều đó, và chuỗi khối ngoại đếm lùi từ phiên ấy, các cột cũng kết thúc ở phiên ấy. Ngày nào trong các cột mà tự doanh không công bố thì cột tự doanh để một ô trống, không bao giờ là số không.
+  - Trên trang Thị trường khối này đứng cuối các khối về dòng tiền, sau Dòng tiền theo mã và Tiền giao dịch tập trung ở ngành nào, đúng thứ tự `/overview` in.
 - **Với Việt Nam, một ô chọn chỉ số** VN-Index, VN30 hoặc HNX:
   - năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên, mỗi mã kèm giá và số điểm nó góp, có
     dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp (không phải toàn bộ biến động của chỉ

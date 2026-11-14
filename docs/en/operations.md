@@ -814,11 +814,6 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   its own history; crypto states funding, open interest and how it compares with recent sessions, the
   accounts leaning up against those leaning down, the share bought at the asking price, and the fear and greed index with the
   source that publishes it. A source the browser cannot read leaves its line out, with no error.
-- **Who bought, who sold** (Vietnam only): the net buying and selling of one session across the HOSE and HNX boards, split three ways: foreign investors, the securities firms' own proprietary desks, and everyone else. "Net" is bought minus sold. Everyone else is the exact opposite of foreign plus proprietary, because every trade has a buyer and a seller. It is mostly individual investors, and the block says so.
-  - Each row shows the signed net amount and, beside it, the average of the last 5 sessions. Bars underneath chart the last 21 sessions for the foreign and the proprietary desks, up for net buying and down for net selling.
-  - Short lines in words follow: who bought and who sold, how big the gap is against a normal session of the last 20, and, from 3 sessions in a row, a foreign buying or selling streak.
-  - The provider publishes the proprietary-desk figures about a session late. Until they arrive the block is for the earlier session that has them: the date in its title says which, a line says so, and the foreign streak counts back from that session, and the bars end on it too. A day inside the bars that the desks never published draws an empty slot in the proprietary bars, never a zero.
-  - On the Market page it sits below Money flow by name, as `/overview` prints it: after the by-name lists and the biggest movers.
 - **Money flow by name**: the five names foreigners bought and sold most on net; the five the
   proprietary desks bought and sold most on net; and the five most traded. Amounts are compact (like
   76.5B), with the span measured when it is not one session. The provider publishes the
@@ -829,6 +824,11 @@ Then, for the region you pick (the home one first, kept in this browser), the ta
   each with today's move and its gap to the index over 20 and 60 sessions. These blocks read again
   together with the rest, never on a timer of their own.
 - **Where the money traded, by sector** (Vietnam only): the five sectors with the most trading value in the session. Each row gives its value, its share of everything traded that session, and how it compares with its own average over up to 20 earlier sessions (0.73× is about three quarters of its usual; left out while no earlier session exists). The shares add up to less than 100%: only five sectors are listed, and names that file no sector are in the market's total but in no sector. It sits under Sector strength and is left out when the market's names carry no sector.
+- **Who bought, who sold** (Vietnam only): the net buying and selling of one session across the HOSE and HNX boards, split three ways: foreign investors, the securities firms' own proprietary desks, and everyone else. "Net" is bought minus sold. Everyone else is the exact opposite of foreign plus proprietary, because every trade has a buyer and a seller. It is mostly individual investors, and the block says so.
+  - Each row shows the signed net amount and, beside it, the average of the last 5 sessions. Bars underneath chart the last 21 sessions for the foreign and the proprietary desks, up for net buying and down for net selling.
+  - Short lines in words follow: who bought and who sold, how big the gap is against a normal session of the last 20, and, from 3 sessions in a row, a foreign buying or selling streak.
+  - The provider publishes the proprietary-desk figures about a session late. Until they arrive the block is for the earlier session that has them: the date in its title says which, a line says so, and the foreign streak counts back from that session, and the bars end on it too. A day inside the bars that the desks never published draws an empty slot in the proprietary bars, never a zero.
+  - On the Market page it sits last of the money blocks, after Money flow by name and Where the money traded, by sector, as `/overview` prints it.
 - **For Vietnam, an index picker** for VN-Index, VN30 or HNX:
   - the five names that lifted and the five that weighed on that index this session, each with its
     price and the points it added, signed, then a line with what the listed names added up to (not
