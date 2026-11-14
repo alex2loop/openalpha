@@ -279,6 +279,16 @@ export const FOREIGN_FLIP_Z = 2
 export const VN_FLOW_SESSIONS = FLOW_DEVIATION_SESSIONS + 20
 /** Refetched behind the newest stored flow so a late correction to a settled session is picked up. */
 export const VN_FLOW_TAIL_SESSIONS = 10
+/** Sessions the who-bought-who-sold block charts. */
+export const VN_FLOW_BALANCE_SESSIONS = 21
+/** The window each group's average net is read over: a trading week. */
+export const VN_FLOW_MEAN_SESSIONS = 5
+/** Foreign investors on one side this many sessions running is worth saying; fewer is a coin toss. */
+export const VN_FLOW_STREAK_MINIMUM_SESSIONS = 3
+/** The gap left for everyone else, against a normal session's: under half reads as balanced, at or
+ *  above one and a half as a big gap. */
+export const VN_FLOW_QUIET_MULTIPLE = 0.5
+export const VN_FLOW_HEAVY_MULTIPLE = 1.5
 /** How far back a sell-side rating still counts as current coverage. Roughly two reporting
  *  quarters: long enough that a thinly-covered name has any consensus at all, short enough that a
  *  rating written against different earnings is not summed into today's. */

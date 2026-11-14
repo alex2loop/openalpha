@@ -244,10 +244,51 @@ export interface MarketDerivatives {
   readonly longShortRatio?: number
 }
 
-/** The mean session turnover a `turnoverRatio` is measured against. */
-export interface MarketTurnoverReference {
+/** A mean over the sessions that reported, with how many that was: a turnover ratio divides by one,
+ *  and a flow reading states its window with one, because every window yields a different figure. */
+export interface SessionMean {
   readonly sessions: number
   readonly value: number
+}
+
+export const FLOW_SIDES = ['buy', 'sell'] as const
+export type FlowSide = (typeof FLOW_SIDES)[number]
+
+/** How the gap two institutional groups leave for everyone else compares with a normal session. */
+export const FLOW_SIZES = ['quiet', 'usual', 'heavy'] as const
+export type FlowSize = (typeof FLOW_SIZES)[number]
+
+export const FLOW_PARTIES = ['foreign', 'proprietary', 'others'] as const
+export type FlowParty = (typeof FLOW_PARTIES)[number]
+
+export const FLOW_READINGS = ['both-selling', 'both-buying', 'split', 'even'] as const
+export type FlowReading = (typeof FLOW_READINGS)[number]
+
+/** One session's net buying by the two institutional groups; a desk not yet published is absent,
+ *  never zero. */
+export interface MarketFlowDay {
+  readonly at: TradingDay
+  readonly foreignNet: number
+  readonly proprietaryNet?: number
+}
+
+/** Who bought and who sold on one session, in the market's currency. The three nets sum to zero:
+ *  every buyer meets a seller, so everyone else is whatever the two groups left. A desk that lands
+ *  a session after the foreign one anchors the whole reading on the session it has figures for. */
+export interface MarketFlowBalance {
+  readonly session: TradingDay
+  readonly foreignNet: number
+  readonly proprietaryNet: number
+  readonly othersNet: number
+  /** Mean net per session over the newest sessions ending on `session` that carry the leg. */
+  readonly foreignMean?: SessionMean
+  readonly proprietaryMean?: SessionMean
+  /** The mean absolute gap the two groups left on earlier sessions; absent without enough of them. */
+  readonly normal?: SessionMean
+  /** The session's gap against `normal`: present exactly when `normal` is. */
+  readonly size?: FlowSize
+  readonly foreignStreak?: { readonly side: FlowSide; readonly sessions: number }
+  readonly days: readonly MarketFlowDay[]
 }
 
 /** The session's roll-ups across the market, in its currency. Every field is optional because each
@@ -298,9 +339,11 @@ export interface MarketDataOverview {
    *  against a normal session. */
   readonly turnoverRatio?: number
   /** What that ratio divides by: every window yields a different multiple. */
-  readonly turnoverReference?: MarketTurnoverReference
+  readonly turnoverReference?: SessionMean
   readonly foreignNetValue?: number
   readonly proprietaryNetValue?: number
+  /** Who bought and who sold, anchored on the newest session with a proprietary figure. */
+  readonly flowBalance?: MarketFlowBalance
   /** Capitalization of the market's whole universe. */
   readonly marketCap?: number
   /** The largest constituent's share of `marketCap`, as a percentage — how concentrated the market

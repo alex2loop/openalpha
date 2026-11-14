@@ -214,6 +214,8 @@ export { disabledSegments } from '@/trading/kernel/operator/profile'
 
 // ── Values ───────────────────────────────────────────────────────────────────
 
+// ── Values ───────────────────────────────────────────────────────────────────
+
 export { renderAlertNotice } from '@/trading/features/alerts/render'
 export { parseExitLevel } from '@/trading/features/alerts/types'
 export { renderBriefText } from '@/trading/features/brief/render'
@@ -221,6 +223,7 @@ export {
   renderHeldNewsNotice,
   renderIndexDropNotice,
 } from '@/trading/features/market-data/ops/held-watch-notice'
+export { renderFlowBalanceReading } from '@/trading/features/market-data/render/flow-balance'
 export { renderIntradayText } from '@/trading/features/market-data/render/intraday'
 export { roundedDrivers } from '@/trading/features/market-data/render/macro'
 export { renderOverviewForSurface } from '@/trading/features/market-data/render/overview'

@@ -17,6 +17,7 @@ import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/proven
 import { latestNameSession } from '@/trading/markets/equity-vn/factors/factors'
 import {
   FLOW_DEVIATION_SESSIONS,
+  VN_TURNOVER_REFERENCE_SESSIONS,
   VN30_INDEX_TICKER,
   VN100_INDEX_TICKER,
 } from '@/trading/markets/equity-vn/policy'
@@ -25,8 +26,8 @@ import {
   sessionForeignNet,
   sessionTotal,
   sessionTurnoverTotal,
+  toSessionMean,
   toTurnoverRatio,
-  toTurnoverReference,
 } from '@/trading/markets/equity-vn/tape/session-totals'
 import { rangeFromCloses } from '@/trading/markets/overview'
 import { rowMoveIn } from '@/trading/markets/overview-sections'
@@ -179,7 +180,7 @@ function turnoverInputs(
   cross: CrossSection,
   session: TradingDay
 ): Pick<StoryInputs, 'turnoverRatio' | 'turnoverSessions' | 'windowTurnover'> {
-  const reference = toTurnoverReference(cross.dayTotals, session)
+  const reference = toSessionMean(cross.dayTotals.turnover, session, VN_TURNOVER_REFERENCE_SESSIONS)
   const turnoverRatio = toTurnoverRatio(sessionTurnoverTotal(cross.names, session), reference)
 
   return {
