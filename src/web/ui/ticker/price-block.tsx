@@ -11,7 +11,7 @@ import { findMarket, findQuote, keyOf, quotesBlock, stopsBlock } from '@/web/sta
 import { PRICE_WINDOWS, pickPriceWindow, priceWindow } from '@/web/state/price-window'
 import { isRefreshable, useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
-import { formatCompactAmount, formatMultiple } from '@/web/text/figures'
+import { formatCompactAmount, formatCount, formatMultiple } from '@/web/text/figures'
 import { INLINE_SEPARATOR, joinInline } from '@/web/text/glyphs'
 import { toTickFormatter } from '@/web/text/market-price'
 import { sectorName } from '@/web/text/segment'
@@ -212,7 +212,7 @@ function formatRelativeVolume(reading: NonNullable<ChartRead['relativeVolume']>)
     day: formatDay(locale.value, reading.day),
     volume: formatCompactAmount(reading.volume),
     ratio: formatMultiple(reading.ratio),
-    sessions: reading.sessions,
+    sessions: formatCount(reading.sessions),
   })
 }
 

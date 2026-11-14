@@ -25,7 +25,7 @@ import {
 } from '@/trading/features/market-data/tools/macro-risk'
 import { fractionToPct, toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { noInput } from '@/trading/kernel/surface/surface'
-import { formatFlow, formatSignedFlow } from '@/trading/render/format'
+import { formatFlow, formatSignedFlow, renderProvidedValue } from '@/trading/render/format'
 import { formatPrice, formatScaledPrice } from '@/trading/render/money'
 
 export function createMarketOverviewTool(
@@ -231,7 +231,7 @@ function agentSectorTurnover(entry: SectorTurnover, locale: Locale): Record<stri
   const { turnoverReference } = entry
 
   return {
-    sector: entry.sector,
+    sector: renderProvidedValue(locale, `trading.sector.${entry.sector}`, entry.sector),
     turnover: formatFlow(locale, entry.turnover),
     sharePct: fractionToPct(entry.sharePct),
     ...(entry.turnoverRatio === undefined ? {} : { turnoverRatio: entry.turnoverRatio }),

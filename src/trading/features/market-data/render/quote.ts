@@ -7,6 +7,7 @@ import type { RenderContext } from '@/trading/render/format'
 import { formatDay, t } from '@/i18n'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
+  formatCount,
   formatFlow,
   formatMultiple,
   renderDeclaredValue,
@@ -158,7 +159,7 @@ function renderRelativeVolumeLines(
       day: formatDay(locale, reading.day),
       volume: formatFlow(locale, reading.volume),
       ratio: formatMultiple(locale, reading.ratio),
-      sessions: reading.sessions,
+      sessions: formatCount(locale, reading.sessions),
     })}`,
   ]
 }

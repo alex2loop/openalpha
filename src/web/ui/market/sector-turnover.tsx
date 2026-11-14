@@ -1,6 +1,7 @@
 import type { OverviewResponse, OverviewSectorTurnoverWire } from '@/app/server/wire/overview'
 import { findMarket, overviewBlock, selectRegionOverview } from '@/web/state/market'
 import { formatCompactAmount, formatFraction, formatMultiple } from '@/web/text/figures'
+import { joinInline } from '@/web/text/glyphs'
 import { sectorName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
 import { CoinIcon } from '@/web/ui/kit/icons'
@@ -58,21 +59,19 @@ function MarketSectorTurnover({ block }: { readonly block: OverviewBlock }) {
 }
 
 function toRow(entry: OverviewSectorTurnoverWire): RankedRow {
-  const figures = {
-    turnover: formatCompactAmount(entry.turnover),
-    share: formatFraction(entry.sharePct),
-  }
+  const { turnoverRatio, sessions } = entry
 
   return {
     key: entry.sector,
     label: sectorName(entry.sector),
-    figure:
-      entry.turnoverRatio === undefined || entry.sessions === undefined
-        ? tr('ui.office.market.sectorTurnoverFigureNoRatio', figures)
-        : tr('ui.office.market.sectorTurnoverFigure', {
-            ...figures,
-            ratio: formatMultiple(entry.turnoverRatio),
-            sessions: entry.sessions,
-          }),
+    figure: joinInline([
+      `${tr('trading.brief.field.turnover')} ${formatCompactAmount(entry.turnover)}`,
+      `${tr('trading.brief.field.sharePct')} ${formatFraction(entry.sharePct)}`,
+      ...(turnoverRatio === undefined || sessions === undefined
+        ? []
+        : [
+            `${tr('trading.brief.field.turnoverRatio', { sessions })} ${formatMultiple(turnoverRatio)}`,
+          ]),
+    ]),
   }
 }

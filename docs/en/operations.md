@@ -729,7 +729,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     does) and "How each factor reads", the same lines `/suggest` prints. A call card under Ideas
     shows both too.
   - The ticker card's chart shows where a name has been and whether the move had trading behind it.
-    - **Period.** The picker offers 1 month, 3 months, 6 months and 1 year. The card opens on 3 months, and the last pick is kept in this browser and shared by every ticker. There is no 5-year range: the app keeps about a year and a quarter of daily history for a name, so a longer span would have to be fetched from the source on every look.
+    - **Period.** The picker offers 1 month, 3 months, 6 months and 1 year. The card opens on 3 months, and the last pick is kept in this browser and shared by every ticker. There is no 5-year range: the app keeps a little over a year of daily history for a name, so a longer span would have to be fetched from the source on every look.
     - **Volume bars.** They sit under the price line, one per session, coloured like that day's move.
     - **MA50 and MA200.** The two thin lines are moving averages: the average close of the last 50 and of the last 200 sessions. They smooth the daily noise so the trend shows. A line starts only where that many sessions stand behind it, so a recently listed name has no 200-session line.
     - **The volume line.** Under the chart, "Volume on 13/11/2026: 14.4 million, 1.61× its usual 20-session pace" compares the last settled session with the average of the 20 sessions before it (2× is twice the usual volume). It is left out for a halted name or one with too little history.

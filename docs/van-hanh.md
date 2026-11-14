@@ -718,7 +718,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục
     Đề xuất cũng có hai phần này.
   - Biểu đồ trên thẻ mã cho thấy mã đã đi qua những mức nào và nhịp đi có khối lượng giao dịch đỡ phía sau hay không.
-    - **Khoảng thời gian.** Ô chọn có 1 tháng, 3 tháng, 6 tháng và 1 năm. Thẻ mở ở mức 3 tháng, lựa chọn gần nhất được giữ trong trình duyệt này và dùng chung cho mọi mã. Không có khoảng 5 năm: ứng dụng chỉ lưu lịch sử ngày của một mã khoảng một năm ba tháng, nên khoảng dài hơn sẽ phải tải từ nguồn mỗi lần xem.
+    - **Khoảng thời gian.** Ô chọn có 1 tháng, 3 tháng, 6 tháng và 1 năm. Thẻ mở ở mức 3 tháng, lựa chọn gần nhất được giữ trong trình duyệt này và dùng chung cho mọi mã. Không có khoảng 5 năm: ứng dụng chỉ lưu hơn một năm dữ liệu ngày của một mã, nên khoảng dài hơn sẽ phải tải từ nguồn mỗi lần xem.
     - **Cột khối lượng.** Nằm dưới đường giá, mỗi phiên một cột, tô màu theo biến động của ngày đó.
     - **MA50 và MA200.** Hai đường mảnh là đường trung bình động: trung bình giá đóng cửa 50 phiên và 200 phiên gần nhất. Chúng làm mượt nhiễu từng ngày để thấy xu hướng. Một đường chỉ bắt đầu từ chỗ đã đủ ngần ấy phiên phía sau, nên mã mới niêm yết chưa có đường 200 phiên.
     - **Dòng khối lượng.** Dưới biểu đồ, "Khối lượng phiên 13/11/2026: 14,4 triệu, bằng 1,61× nhịp trung bình 20 phiên" so phiên đã chốt gần nhất với trung bình 20 phiên trước nó (2× là gấp đôi khối lượng thường lệ). Dòng này bị bỏ với mã đang tạm ngừng giao dịch hoặc mã có quá ít lịch sử.
