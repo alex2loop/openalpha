@@ -31,7 +31,7 @@ const MARKET_SEPARATOR = ':'
 // markets, and each row carries its whole call, so the read stays near two days.
 const DAY_CALLS_READ = 50
 
-/** Màn lọc: the names the daemon ranked best in a market, as it words them. A score is a rank, not
+/** Bảng lọc mã: the names the daemon ranked best in a market, as it words them. A score is a rank, not
  *  advice, and a call is one tap away. */
 export function Opportunities() {
   const markets = boardMarkets.value
