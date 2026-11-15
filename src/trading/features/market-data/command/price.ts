@@ -20,7 +20,7 @@ const UPCOMING_HORIZON_DAYS = 14
 /** Market-agnostic by construction: the command takes a ticker and detection routes it to whichever
  *  market claims it, so a market's own vocabulary never has to be restated here. */
 interface PriceCommandDeps {
-  readonly marketData: Pick<MarketDataService, 'quote' | 'markets' | 'events'>
+  readonly marketData: Pick<MarketDataService, 'quote' | 'markets' | 'events' | 'relativeVolume'>
   /** The operator's own clock, so every rendered instant reads in one zone. */
   readonly timezone: string
 }
@@ -69,16 +69,22 @@ async function run(deps: PriceCommandDeps, ctx: SlashContext): Promise<SlashResu
     }
   }
 
+  const [events, volume] = await Promise.all([
+    upcoming(deps, {
+      instrument: result.value.quote.instrument,
+      fromDay: result.value.observed.day,
+      now,
+      ctx,
+    }),
+    deps.marketData.relativeVolume({ ...request, operatorRead: true, now, signal: ctx.signal }),
+  ])
+
   return {
     kind: 'text',
     text: renderQuoteText(ctx.locale, result, {
       context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
-      events: await upcoming(deps, {
-        instrument: result.value.quote.instrument,
-        fromDay: result.value.observed.day,
-        now,
-        ctx,
-      }),
+      events,
+      ...(volume.kind === 'available' ? { relativeVolume: volume.value } : {}),
     }),
   }
 }

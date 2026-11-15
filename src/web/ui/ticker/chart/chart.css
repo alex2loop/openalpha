@@ -1,0 +1,98 @@
+.price-chart {
+  margin: var(--s1) 0;
+}
+
+.price-chart svg {
+  display: block;
+  max-width: 100%;
+}
+
+.price-chart text {
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-axis line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+text.chart-axis,
+.chart-axis text {
+  fill: var(--ink3);
+  font-size: var(--sizeCaption);
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.chart-level line {
+  stroke: var(--ink2);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.chart-level text {
+  fill: var(--ink2);
+  font-size: var(--sizeCaption);
+}
+
+.chart-level.is-stop line {
+  stroke: var(--down);
+}
+
+.chart-level.is-stop text {
+  fill: var(--down);
+}
+
+.chart-level.is-target line {
+  stroke: var(--up);
+}
+
+.chart-level.is-target text {
+  fill: var(--up);
+}
+
+.chart-average {
+  fill: none;
+  stroke: var(--ink2);
+  stroke-width: 1.2;
+}
+
+.chart-average.is-ma200 {
+  stroke: var(--ink3);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 0 4;
+}
+
+.chart-volume rect {
+  fill-opacity: 0.55;
+}
+
+.chart-volume .is-up {
+  fill: var(--up);
+}
+
+.chart-volume .is-down {
+  fill: var(--down);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink2);
+  font-size: var(--sizeCaption);
+}
+
+.chart-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}

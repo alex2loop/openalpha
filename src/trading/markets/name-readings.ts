@@ -30,7 +30,7 @@ const HIGH_LOW_SESSIONS = 240
 /** About three months of sessions. */
 const MOVE_SESSIONS = 63
 /** The average the day's volume and the median traded value are read over: a trading month. */
-const VOLUME_SESSIONS = 20
+export const NAME_VOLUME_SESSIONS = 20
 /** The window the daily range averages, the same fourteen sessions every market's levels read. */
 const RANGE_SESSIONS = 14
 /** The drivers a market backdrop lists, heaviest first: enough to say where the tape and the price
@@ -152,7 +152,7 @@ function moveAgainstIndex(
 function liquidity(candles: readonly Candle[]): readonly FactorMetric[] {
   const turnover = median(
     candles
-      .slice(-VOLUME_SESSIONS)
+      .slice(-NAME_VOLUME_SESSIONS)
       .map(candleTurnover)
       .filter((value): value is number => value !== undefined)
   )
@@ -160,17 +160,17 @@ function liquidity(candles: readonly Candle[]): readonly FactorMetric[] {
     (candles.at(-1)?.volume ?? 0) > 0
       ? relativeVolume(
           candles.map((candle) => candle.volume),
-          VOLUME_SESSIONS
+          NAME_VOLUME_SESSIONS
         )
       : undefined
 
   return [
     ...(turnover === undefined || turnover <= 0
       ? []
-      : [{ id: 'median-turnover' as const, value: turnover, sessions: VOLUME_SESSIONS }]),
+      : [{ id: 'median-turnover' as const, value: turnover, sessions: NAME_VOLUME_SESSIONS }]),
     ...(relative === undefined
       ? []
-      : [{ id: 'relative-volume' as const, value: relative, sessions: VOLUME_SESSIONS }]),
+      : [{ id: 'relative-volume' as const, value: relative, sessions: NAME_VOLUME_SESSIONS }]),
   ]
 }
 

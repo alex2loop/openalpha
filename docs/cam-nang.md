@@ -858,7 +858,7 @@ làm gì".
 | **Việc của bạn** | đã đổi so với phiên trước, **tổng quan danh mục**, đề xuất đã có kết quả, cảnh báo đã kích hoạt, vị thế chạm mức thoát, vị thế chưa có kế hoạch thoát, vị thế quá hạn mà giá chưa đi đâu, vị thế đang lỗ, nhịp liên thị trường, ai đang chủ động giao dịch, độ lệch danh mục, **bảng điểm tháng** | Từ lần xem trước tới giờ, có gì liên quan trực tiếp tới tiền của mình? |
 | **Bối cảnh vĩ mô** | chuyển trạng thái thị trường, trạng thái vĩ mô, dự phòng tiền mặt (lãi suất tiền gửi), tin vĩ mô, kinh tế thế giới | Nền chung đang thuận hay nghịch? |
 | **Từng thị trường** | đọc nhanh, giá, bảng giá, thanh khoản, độ rộng, vùng giá, quy mô thị trường, luân chuyển ngành, dòng tiền khối ngoại, dòng tiền tự doanh, phái sinh, bên mua chủ động, dòng vốn ETF, vị thế đầu cơ (COT), chênh lệch với thế giới, thanh khoản dẫn đầu, biến động mạnh nhất, tâm lý, chênh lệch phái sinh VN30, tỷ giá | Sàn hôm qua ra sao? Vàng và crypto đang ra sao? |
-| **Quanh danh sách theo dõi** | mã dẫn đầu danh sách theo dõi, mã bị loại khỏi danh sách theo dõi, thay đổi trên Màn lọc | Các mã mình đang nhắm thì sao? |
+| **Quanh danh sách theo dõi** | mã dẫn đầu danh sách theo dõi, mã bị loại khỏi danh sách theo dõi, thay đổi trên Bảng lọc mã | Các mã mình đang nhắm thì sao? |
 | **Sự kiện và tin** | lịch công bố báo cáo, kỳ cơ cấu chỉ số sắp tới, sự kiện doanh nghiệp, tin nổi bật | Có gì sắp hoặc vừa xảy ra? |
 | **Chi phí và việc cần làm** | chi phí nghiên cứu, đề xuất cho mã đang giữ và theo dõi, đề xuất liên thị trường, **việc tiếp theo**, kỷ luật đang áp dụng | Bản tin này tốn bao nhiêu, và giờ mình nên bấm gì? |
 

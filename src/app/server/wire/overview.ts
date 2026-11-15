@@ -77,6 +77,47 @@ interface OverviewSectionWire {
   readonly facts: readonly OverviewFactWire[]
 }
 
+/** A mean over the sessions that reported; `sessions` is how many were averaged. */
+interface SessionMeanWire {
+  readonly sessions: number
+  readonly value: number
+}
+
+/** Who bought and who sold on `session`, in the market's currency; negative is net selling. The
+ *  three nets sum to zero: `othersNet` is whatever foreign investors and proprietary desks left,
+ *  mostly individuals. `session` is the newest one proprietary figures exist for, which can be
+ *  earlier than the block's `asOf` because that desk publishes after the foreign one. */
+export interface OverviewFlowBalanceWire {
+  readonly session: string
+  readonly foreignNet: number
+  readonly proprietaryNet: number
+  readonly othersNet: number
+  /** Mean net per session over the latest sessions up to `session`; absent without any. */
+  readonly foreignMean?: SessionMeanWire
+  readonly proprietaryMean?: SessionMeanWire
+  /** The charted sessions, the newest 21 ending on `session`, oldest first; `proprietaryNet` is null
+   *  where that desk never published. */
+  readonly days: readonly {
+    readonly at: string
+    readonly foreignNet: number
+    readonly proprietaryNet: number | null
+  }[]
+  /** The sentences `/overview` prints under the three nets: who bought and sold, how big the gap is
+   *  against a normal session, the foreign run, and that the session is an earlier one. */
+  readonly reading: readonly string[]
+}
+
+/** One sector's traded value on the market's session. The slug only: the page names it in its own
+ *  language. `sharePct` is a fraction of the market's traded value that session, and
+ *  `turnoverRatio` is against the mean of the `sessions` earlier sessions the sector reported. */
+export interface OverviewSectorTurnoverWire {
+  readonly sector: string
+  readonly turnover: number
+  readonly sharePct: number
+  readonly turnoverRatio?: number
+  readonly sessions?: number
+}
+
 /** GET /v1/overview — one block per registered market. */
 export interface OverviewResponse {
   readonly markets: readonly {
@@ -94,6 +135,9 @@ export interface OverviewResponse {
     }
     /** Foreign investors' net buying in the market's currency; negative is net selling. */
     readonly foreignNetValue?: number
+    readonly flowBalance?: OverviewFlowBalanceWire
+    /** The sectors that traded the most value on `asOf`, largest first. */
+    readonly sectorTurnover?: readonly OverviewSectorTurnoverWire[]
     readonly leaders?: OverviewLeadersWire
     readonly movers?: OverviewMoversWire
     /** The readings the CLI prints under the rows, in its order; absent where the market has none. */

@@ -21,11 +21,13 @@ import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { TrendIcon } from '@/web/ui/kit/icons'
 import { Segmented } from '@/web/ui/kit/segmented'
 import { Skeleton } from '@/web/ui/kit/skeleton'
+import { FlowBalance } from '@/web/ui/market/flow-balance'
 import { Flows } from '@/web/ui/market/flows'
 import { IndexReading } from '@/web/ui/market/index-reading'
 import { MacroFull } from '@/web/ui/market/macro-full'
 import { NewsList } from '@/web/ui/market/news-list'
 import { RefreshButton } from '@/web/ui/market/refresh-button'
+import { SectorTurnover } from '@/web/ui/market/sector-turnover'
 import { Sectors } from '@/web/ui/market/sectors'
 import { Session } from '@/web/ui/market/session'
 import { Themes } from '@/web/ui/market/themes'
@@ -114,6 +116,8 @@ function MarketView({ region }: { readonly region: string }) {
       <RegionPrices region={region} />
       <Flows region={region} />
       <Sectors region={region} />
+      <SectorTurnover region={region} />
+      <FlowBalance region={region} />
       <IndexReading region={region} />
       <Session region={region} />
       <MoreMarkets />

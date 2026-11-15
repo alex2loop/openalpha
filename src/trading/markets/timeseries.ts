@@ -49,7 +49,7 @@ export function alignedCloses(a: readonly Candle[], b: readonly Candle[]): Align
 
 /** Empty below `sessions` closes rather than a partial window: a caller reading the last element
  *  gets `undefined`, not an average over fewer sessions than its name promises. */
-function movingAverage(closes: readonly number[], sessions: number): readonly number[] {
+export function movingAverage(closes: readonly number[], sessions: number): readonly number[] {
   if (sessions <= 0 || closes.length < sessions) {
     return []
   }

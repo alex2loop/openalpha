@@ -279,6 +279,7 @@ export interface SectorStrength {
 }
 
 export interface SectorStrengthResult {
+  /** The session the figures end on, which on a weekend or holiday is earlier than the request's day. */
   readonly asOf: TradingDay
   readonly sectors: readonly SectorStrength[]
   readonly provenance: readonly SourceProvenance[]

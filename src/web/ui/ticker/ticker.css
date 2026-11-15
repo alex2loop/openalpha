@@ -17,63 +17,6 @@
   text-underline-offset: 2px;
 }
 
-.price-chart {
-  margin: var(--s1) 0;
-}
-
-.price-chart svg {
-  display: block;
-  max-width: 100%;
-}
-
-.price-chart text {
-  font-variant-numeric: tabular-nums;
-}
-
-.chart-axis line {
-  stroke: var(--border);
-  stroke-width: 1;
-}
-
-text.chart-axis,
-.chart-axis text {
-  fill: var(--ink3);
-  font-size: var(--sizeCaption);
-}
-
-.chart-line {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 1.6;
-}
-
-.chart-level line {
-  stroke: var(--ink2);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
-
-.chart-level text {
-  fill: var(--ink2);
-  font-size: var(--sizeCaption);
-}
-
-.chart-level.is-stop line {
-  stroke: var(--down);
-}
-
-.chart-level.is-stop text {
-  fill: var(--down);
-}
-
-.chart-level.is-target line {
-  stroke: var(--up);
-}
-
-.chart-level.is-target text {
-  fill: var(--up);
-}
-
 .kv {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

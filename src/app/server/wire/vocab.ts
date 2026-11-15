@@ -17,6 +17,9 @@ export type InvestmentHorizon = 'short' | 'long'
 /** The spans the book's value record is read over. */
 export type NavWindow = '1m' | '3m' | '6m' | '1y' | 'all'
 
+/** The spans a name's price chart is read over. */
+export type PriceWindow = '1m' | '3m' | '6m' | '1y'
+
 /** What a scored call is named: its status, refined by the return it earned. */
 export type OutcomeVerdict = 'target' | 'target-gave-back' | 'stop' | 'stop-in-profit' | 'expired'
 
@@ -76,6 +79,7 @@ export type BriefSectionKind =
   | 'tape'
   | 'breadth'
   | 'turnover'
+  | 'sector-turnover'
   | 'range'
   | 'market-cap'
   | 'sector-rotation'

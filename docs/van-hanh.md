@@ -53,7 +53,7 @@ sau khi khởi động lại mỗi vòng chưa hiện gì cho đến phiên ch�
 `trading.refresh` không chạy theo đồng hồ đều đặn. Nó chạy ở mốc **sớm nhất** trong:
 
 - ngay sau khi phiên của từng thị trường đóng và bảng giá đã chốt;
-- 90 phút trước giờ mở của từng thị trường, để bản tin và Màn lọc đọc dữ liệu đã làm ấm sẵn (bản
+- 90 phút trước giờ mở của từng thị trường, để bản tin và Bảng lọc mã đọc dữ liệu đã làm ấm sẵn (bản
   tin sớm nhất gửi 08:15, trước giờ mở 09:00 hoặc 09:30);
 - chu kỳ đã cấu hình, chỉ là một cái trần.
 
@@ -705,18 +705,24 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     [Giao dịch](giao-dich.md#trên-trang-văn-phòng)).
   - *Thị trường* gồm toàn bộ số đọc vĩ mô, phiên thị trường, tin tức và các chủ đề của bạn (ở
     dưới).
-  - *Đề xuất* gồm các kế hoạch đang mở, Màn lọc, thành tích và kết quả nghiên cứu, kèm số đề
+  - *Đề xuất* gồm các kế hoạch đang mở, Bảng lọc mã, thành tích và kết quả nghiên cứu, kèm số đề
     xuất mới bạn chưa xem.
   - Bấm một mã ở bất cứ đâu thì thẻ của mã đó mở ra: mã kèm ngành bên cạnh khi thị trường có xếp ngành, giá (kèm nút "Lấy giá mới" đọc ngay giá của riêng
     mã đó; bảng giá của đại lý như vàng VN thêm giá mua vào, giá bán ra và chênh lệch), mức thấp nhất,
     cao nhất và khối lượng của phiên (của phiên đang chạy khi giá là giá trực tiếp, nếu không thì của
-    phiên đã chốt gần nhất, có ghi ngày), biểu đồ các phiên gần nhất có trục giá và trục ngày cùng
-    các mức của kế hoạch, mã bạn đang giữ, "Chỉ số chính" (P/E, thanh khoản, dòng tiền và vị trí của
-    mã so với cả bảng, bày giống hệt một dòng ở Màn lọc; mã không lọt vào Màn lọc thì có một dòng nói
+    phiên đã chốt gần nhất, có ghi ngày), biểu đồ giá theo khoảng thời gian bạn chọn, kèm cột khối lượng, đường trung bình động và
+    các mức của kế hoạch, một dòng cho biết phiên gần nhất giao dịch nhiều hay ít hơn thường lệ, mã bạn đang giữ, "Chỉ số chính" (P/E, thanh khoản, dòng tiền và vị trí của
+    mã so với cả bảng, bày giống hệt một dòng ở Bảng lọc mã; mã không lọt vào Bảng lọc mã thì có một dòng nói
     vì sao chưa có chỉ số; chỉ số và hợp đồng tương lai không có khối này), "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
     Dưới các mức của kế hoạch là "Đang chờ điều gì" (điều kiện người giao dịch còn chờ trước khi vào
     lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục
     Đề xuất cũng có hai phần này.
+  - Biểu đồ trên thẻ mã cho thấy mã đã đi qua những mức nào và nhịp đi có khối lượng giao dịch đỡ phía sau hay không.
+    - **Khoảng thời gian.** Ô chọn có 1 tháng, 3 tháng, 6 tháng và 1 năm. Thẻ mở ở mức 3 tháng, lựa chọn gần nhất được giữ trong trình duyệt này và dùng chung cho mọi mã. Không có khoảng 5 năm: ứng dụng chỉ lưu hơn một năm dữ liệu ngày của một mã, nên khoảng dài hơn sẽ phải tải từ nguồn mỗi lần xem.
+    - **Cột khối lượng.** Nằm dưới đường giá, mỗi phiên một cột, tô màu theo biến động của ngày đó.
+    - **MA50 và MA200.** Hai đường mảnh là đường trung bình động: trung bình giá đóng cửa 50 phiên và 200 phiên gần nhất. Chúng làm mượt nhiễu từng ngày để thấy xu hướng. Một đường chỉ bắt đầu từ chỗ đã đủ ngần ấy phiên phía sau, nên mã mới niêm yết chưa có đường 200 phiên.
+    - **Dòng khối lượng.** Dưới biểu đồ, "Khối lượng phiên 13/11/2026: 14,4 triệu, bằng 1,61× nhịp trung bình 20 phiên" so phiên đã chốt gần nhất với trung bình 20 phiên trước nó (2× là gấp đôi khối lượng thường lệ). Dòng này bị bỏ với mã đang tạm ngừng giao dịch hoặc mã có quá ít lịch sử.
+    - **Không có chuỗi ngày.** Thị trường không có chuỗi ngày riêng (vàng VN, bảng giá của đại lý) không có biểu đồ, ô chọn hay dòng khối lượng.
   - Thẻ đề xuất, kế hoạch trên thẻ của một mã, hộp "Vì sao?", ý kiến của các agent bạn, các chủ đề, bản tin
     và báo cáo nghiên cứu đều mở đầu bằng một dòng nói đây là nội dung do AI tạo và không phải khuyến
     nghị đầu tư. Bản tin từ một dịch vụ nền cũ chưa có
@@ -800,11 +806,16 @@ Sau đó, với vùng bạn chọn (vùng nhà đứng đầu, lựa chọn gi�
   và bán ròng nhiều nhất; và năm mã giao dịch nhiều nhất. Giá trị rút gọn (như 76,5 tỷ), và ghi rõ
   khoảng thời gian đo khi không phải một phiên. Nhà cung cấp công bố số tự doanh trễ khoảng một phiên,
   nên khi chưa có thì danh sách lấy từ phiên gần nhất đã có số liệu, kèm ngày bên cạnh tiêu đề.
-- **Sức mạnh ngành** xếp các ngành từ mạnh đến yếu, kèm biến động hôm nay. Khối hiện năm ngành mạnh
-  nhất và năm ngành yếu nhất, phần còn lại nằm sau "Xem tất cả" khi thị trường có hơn mười ngành (chỉ
-  có cho thị trường có phân ngành). Bản web không xếp hạng gì: các ngành xếp theo tên, mỗi ngành kèm
+- **Sức mạnh ngành** xếp mọi ngành từ mạnh đến yếu, mỗi ngành kèm biến động hôm nay (chỉ có cho thị
+  trường có phân ngành). Bản web không xếp hạng gì: các ngành xếp theo tên, mỗi ngành kèm
   biến động hôm nay và mức chênh so với chỉ số sau 20 và 60 phiên. Các khối này đọc lại cùng lúc với
   phần còn lại, không theo chu kỳ riêng.
+- **Tiền giao dịch tập trung ở ngành nào** (chỉ có cho Việt Nam): năm ngành có giá trị giao dịch lớn nhất trong phiên. Mỗi dòng nêu giá trị của ngành, tỷ trọng của nó trong toàn bộ giá trị giao dịch của phiên, và so với trung bình của chính ngành đó qua tối đa 20 phiên trước (0,73× là khoảng ba phần tư mức thường lệ; bỏ đi khi chưa có phiên nào trước đó). Tỷ trọng cộng lại nhỏ hơn 100%: chỉ liệt kê năm ngành, và những mã không khai ngành nằm trong tổng của thị trường nhưng không thuộc ngành nào. Khối này đứng dưới Sức mạnh ngành và bị bỏ khi các mã của thị trường không có ngành.
+- **Ai mua, ai bán** (chỉ có cho Việt Nam): mua ròng và bán ròng của một phiên trên cả sàn HOSE và HNX, chia làm ba bên: khối ngoại, tự doanh của các công ty chứng khoán, và phía còn lại. "Ròng" là mua trừ bán. Phía còn lại đúng bằng số đối nghịch của khối ngoại cộng tự doanh, vì mỗi lệnh khớp có một bên mua và một bên bán. Đó chủ yếu là nhà đầu tư cá nhân, và khối này ghi rõ như vậy.
+  - Mỗi dòng hiện số ròng có dấu và, bên cạnh, trung bình 5 phiên gần nhất. Các cột bên dưới vẽ 21 phiên gần nhất của khối ngoại và tự doanh, lên là mua ròng, xuống là bán ròng.
+  - Vài dòng chữ đi kèm: ai mua và ai bán, chênh lệch lớn cỡ nào so với một phiên bình thường trong 20 phiên gần đây, và từ 3 phiên liên tiếp trở lên thì có chuỗi khối ngoại mua hoặc bán ròng.
+  - Nhà cung cấp công bố số tự doanh trễ khoảng một phiên. Khi chưa có, khối này tính theo phiên trước đó đã có số: ngày ở tiêu đề cho biết phiên nào, một dòng nói rõ điều đó, và chuỗi khối ngoại đếm lùi từ phiên ấy, các cột cũng kết thúc ở phiên ấy. Ngày nào trong các cột mà tự doanh không công bố thì cột tự doanh để một ô trống, không bao giờ là số không.
+  - Trên trang Thị trường khối này đứng cuối các khối về dòng tiền, sau Dòng tiền theo mã và Tiền giao dịch tập trung ở ngành nào, đúng thứ tự `/overview` in.
 - **Với Việt Nam, một ô chọn chỉ số** VN-Index, VN30 hoặc HNX:
   - năm mã kéo lên và năm mã kéo xuống chỉ số đó trong phiên, mỗi mã kèm giá và số điểm nó góp, có
     dấu, rồi một dòng cộng tổng phần các mã trong danh sách góp (không phải toàn bộ biến động của chỉ

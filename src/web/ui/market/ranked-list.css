@@ -25,3 +25,15 @@
   white-space: nowrap;
   text-align: start;
 }
+
+/* The name takes the full line and the figure sits under it, so a long name is not squeezed to a
+   few letters per line. */
+.row.ranked-row.is-figure-below {
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 2px;
+}
+
+.is-figure-below .meta {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}

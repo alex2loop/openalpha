@@ -21,10 +21,12 @@ interface RankedListProps {
   /** What the figures span, said beside the title; a window the title already says is left off. */
   readonly note?: string | undefined
   readonly rows: readonly RankedRow[]
+  /** Each figure on its own line under its name, for a figure too long to sit beside it. */
+  readonly figureBelow?: boolean
 }
 
 /** A short ranked list under its own title: a name, the figure it is ranked by, and its move. */
-export function RankedList({ title, note, rows }: RankedListProps) {
+export function RankedList({ title, note, rows, figureBelow = false }: RankedListProps) {
   if (rows.length === 0) {
     return null
   }
@@ -42,7 +44,10 @@ export function RankedList({ title, note, rows }: RankedListProps) {
       </h4>
       <div class="row-list">
         {rows.map((row) => (
-          <div key={row.key} class="row ranked-row">
+          <div
+            key={row.key}
+            class={figureBelow ? 'row ranked-row is-figure-below' : 'row ranked-row'}
+          >
             <b class="ranked-label">{row.label}</b>
             <span class="meta">{row.figure}</span>
             <RowMove row={row} />

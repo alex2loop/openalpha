@@ -76,6 +76,74 @@
       "currency": "VND",
       "rows": [],
       "foreignNetValue": -1250000000000,
+      "flowBalance": {
+        "session": "2026-10-07",
+        "foreignNet": -980000000000,
+        "proprietaryNet": 410000000000,
+        "othersNet": 570000000000,
+        "foreignMean": { "sessions": 5, "value": -463000000000 },
+        "proprietaryMean": { "sessions": 5, "value": 85000000000 },
+        "days": [
+          { "at": "2026-09-09", "foreignNet": -88000000000, "proprietaryNet": null },
+          { "at": "2026-09-10", "foreignNet": 212000000000, "proprietaryNet": -95000000000 },
+          { "at": "2026-09-11", "foreignNet": -135000000000, "proprietaryNet": 60000000000 },
+          { "at": "2026-09-14", "foreignNet": 48000000000, "proprietaryNet": -150000000000 },
+          { "at": "2026-09-15", "foreignNet": -306000000000, "proprietaryNet": 210000000000 },
+          { "at": "2026-09-16", "foreignNet": 150000000000, "proprietaryNet": -40000000000 },
+          { "at": "2026-09-17", "foreignNet": -72000000000, "proprietaryNet": 120000000000 },
+          { "at": "2026-09-18", "foreignNet": 265000000000, "proprietaryNet": -185000000000 },
+          { "at": "2026-09-21", "foreignNet": -198000000000, "proprietaryNet": 70000000000 },
+          { "at": "2026-09-22", "foreignNet": 90000000000, "proprietaryNet": -30000000000 },
+          { "at": "2026-09-23", "foreignNet": -41000000000, "proprietaryNet": 160000000000 },
+          { "at": "2026-09-24", "foreignNet": 333000000000, "proprietaryNet": -220000000000 },
+          { "at": "2026-09-25", "foreignNet": -117000000000, "proprietaryNet": 35000000000 },
+          { "at": "2026-09-28", "foreignNet": -60000000000, "proprietaryNet": 90000000000 },
+          { "at": "2026-09-29", "foreignNet": 185000000000, "proprietaryNet": -75000000000 },
+          { "at": "2026-09-30", "foreignNet": -224000000000, "proprietaryNet": 128000000000 },
+          { "at": "2026-10-01", "foreignNet": -310000000000, "proprietaryNet": -205000000000 },
+          { "at": "2026-10-02", "foreignNet": 140000000000, "proprietaryNet": 85000000000 },
+          { "at": "2026-10-05", "foreignNet": -405000000000, "proprietaryNet": -130000000000 },
+          { "at": "2026-10-06", "foreignNet": -760000000000, "proprietaryNet": 265000000000 },
+          { "at": "2026-10-07", "foreignNet": -980000000000, "proprietaryNet": 410000000000 }
+        ],
+        "reading": [
+          "Foreign investors sold 980 billion VND, proprietary desks bought 410 billion VND; everyone else bought the difference, about 570 billion VND.",
+          "That is a big gap: 3.45× a normal session of the last 19.",
+          "Foreign investors have sold for 3 sessions in a row.",
+          "Proprietary figures run to 07/10/2026, so this reading is for that session."
+        ]
+      },
+      "sectorTurnover": [
+        {
+          "sector": "banks",
+          "turnover": 6200000000000,
+          "sharePct": 0.27,
+          "turnoverRatio": 1.12,
+          "sessions": 20
+        },
+        {
+          "sector": "real-estate",
+          "turnover": 4100000000000,
+          "sharePct": 0.18,
+          "turnoverRatio": 1.64,
+          "sessions": 20
+        },
+        {
+          "sector": "financial-services",
+          "turnover": 3300000000000,
+          "sharePct": 0.14,
+          "turnoverRatio": 0.93,
+          "sessions": 20
+        },
+        {
+          "sector": "basic-resources",
+          "turnover": 2400000000000,
+          "sharePct": 0.1,
+          "turnoverRatio": 0.81,
+          "sessions": 20
+        },
+        { "sector": "technology", "turnover": 1900000000000, "sharePct": 0.08 }
+      ],
       "leaders": {
         "window": "session",
         "sessions": 1,

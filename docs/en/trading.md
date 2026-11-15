@@ -169,6 +169,8 @@ Some sources publish an intraday series. A quote from one of them brings the ses
 
 A settled read has no range, and neither does a source without an intraday series. Nothing guesses a range from one close.
 
+The **volume line** on `/price` and the ticker card is a settled read, not a live one. It compares the last settled session's volume with the average of the 20 sessions before it, because a live volume is a part-day total and would always read low against full days. A halted name, a short history and a market with no daily series (VN gold) print none.
+
 Crypto headline rows are measured against the settled close from their own daily series, the close `/price` prints. A headline row shows the live price, that move and the time of the reading, not the close itself. They are not measured against a rolling 24-hour window you never see on screen, and a row whose close could not be read shows no move at all.
 
 The summaries beside those rows come from the market-cap board, and every source publishes that board over a rolling 24 hours. So the mover list and the traded-value ranking are titled by that window, not by a session. The taker-buy share is the exception: it belongs to a settled session, and it names that session. The mover list leaves out coins under a market-cap floor of 250 million USD, because a small coin can top a thin day's list without saying anything about the market; the count of names that rose and fell below keeps every liquid name.
@@ -735,9 +737,11 @@ A brief reads in this order:
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Macro backdrop | `regime-shift` `macro` `world-markets` `deposit-rate` `macro-headlines` `economy-headlines` |
 | Per market | `market-prices` `market-quotes` `market-board` `breadth` `range` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `index-review` `events` `recent` `headlines` |
-| Per market, `/overview <market>` only | `reading` `tape` `turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
+| Per market, `/overview <market>` only | `reading` `tape` `turnover` `sector-turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
 | Watchlist | `watchlist-leading` `watchlist-dropped` `screen-delta` |
 | Actions | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
+
+On `/overview equity-vn` the Vietnam block adds two readings the brief does not carry. **Who bought, who sold** splits one session's net buying and selling over the HOSE and HNX boards into foreign investors, proprietary desks and everyone else (the exact opposite of the other two). It anchors on the newest session the proprietary figures cover and says so when that session is earlier than the settled one. **Where the money traded, by sector** (`sector-turnover`) lists the five sectors with the most traded value, each with its share of the session's market total (the shares add up to less than the whole, because some names carry no sector) and its multiple of its own 20-session average once earlier sessions exist.
 
 The two level sections, `fired-alerts` and `position-exits`, print a VN stock's levels in board points, as `/portfolio` and `/alert` do; the scale is stated once at the foot of the brief.
 

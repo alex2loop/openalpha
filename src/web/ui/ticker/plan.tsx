@@ -1,6 +1,6 @@
 import type { SuggestionWire } from '@/app/server/wire/trading'
 import type { BlockReading } from '@/web/state/block'
-import type { ChartLevel, LevelKey } from '@/web/ui/ticker/chart'
+import type { ChartLevel, LevelKey } from '@/web/ui/ticker/chart/price-chart'
 import { formatDay } from '@/i18n'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'

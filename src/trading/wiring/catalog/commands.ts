@@ -95,6 +95,7 @@ interface TradingCommandDeps {
     | 'overview'
     | 'describeMarkets'
     | 'events'
+    | 'relativeVolume'
     | 'listSources'
   >
   readonly suggestions: Pick<

@@ -32,6 +32,7 @@ import type {
   MarketView,
   NavWindow,
   outcomeVerdictOf,
+  PriceWindow,
   RiskLevel,
   SessionPhase,
   SourceFreshness,
@@ -41,6 +42,8 @@ import type {
   TradingSectorsView,
   TypedPrice,
 } from '@/trading/api'
+import { toFlowBalanceWire } from '@/app/server/mappers/flow-balance'
+import { toSectorTurnoverWire } from '@/app/server/mappers/sector-turnover'
 import { toCaveatWires, toDealerBoardWire, toInstrumentWire } from '@/app/server/mappers/trading'
 import {
   changeAgainstClose,
@@ -68,6 +71,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   marketEventKind: true,
   navWindow: true,
   outcomeVerdict: true,
+  priceWindow: true,
   riskLevel: true,
   sessionPhase: true,
   sourceFreshness: true,
@@ -83,6 +87,7 @@ type Same<Wire, Source> = [Wire] extends [Source] ? ([Source] extends [Wire] ? t
   marketEventKind: Same<Vocab.MarketEventKind, MarketEventKind>
   navWindow: Same<Vocab.NavWindow, NavWindow>
   outcomeVerdict: Same<Vocab.OutcomeVerdict, OutcomeVerdict>
+  priceWindow: Same<Vocab.PriceWindow, PriceWindow>
   riskLevel: Same<Vocab.RiskLevel, RiskLevel>
   sessionPhase: Same<Vocab.SessionPhase, SessionPhase>
   sourceFreshness: Same<Vocab.SourceFreshness, SourceFreshness>
@@ -206,6 +211,8 @@ function toOverviewBlockWire(
 ): OverviewBlockWire {
   const { breadth, foreignNetValue, leaders, movers } = block
   const { sections, sources } = renderOverviewForSurface(locale, block, timezone)
+  const flowBalance = toFlowBalanceWire(block, locale)
+  const sectorTurnover = toSectorTurnoverWire(block)
 
   return {
     market: block.market,
@@ -224,6 +231,8 @@ function toOverviewBlockWire(
           },
         }),
     ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
+    ...(flowBalance === undefined ? {} : { flowBalance }),
+    ...(sectorTurnover === undefined ? {} : { sectorTurnover }),
     ...(leaders === undefined ? {} : { leaders: toLeadersWire(leaders) }),
     ...(movers === undefined ? {} : { movers: toMoversWire(movers) }),
     ...(sections.length === 0 ? {} : { sections }),

@@ -1,12 +1,8 @@
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { BarRecord, FlowSnapshot } from '@/trading/kernel/market/market-data'
-import type { MarketTurnoverReference } from '@/trading/kernel/market/market-overview'
-import type {
-  MarketDayTotals,
-  NameEvidence,
-} from '@/trading/markets/equity-vn/factors/name-evidence'
+import type { SessionMean } from '@/trading/kernel/market/market-overview'
+import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import { isTradedOn } from '@/trading/markets/equity-vn/factors/factors'
-import { VN_TURNOVER_REFERENCE_SESSIONS } from '@/trading/markets/equity-vn/policy'
 import { sessionChange } from '@/trading/markets/timeseries'
 import { barTurnover } from '@/trading/markets/turnover'
 
@@ -53,22 +49,24 @@ export function sessionTotal(
   return values.length === 0 ? undefined : values.reduce((sum, value) => sum + value, 0)
 }
 
-/** Days with no reported turnover are absent from the mean, not zeros in it, so `sessions` reports
- *  what was averaged rather than what was asked for. */
-export function toTurnoverReference(
-  totals: MarketDayTotals,
-  session: TradingDay
-): MarketTurnoverReference | undefined {
-  const days = [...totals.turnover.keys()]
+/** The mean over the newest `sessions` days strictly before `session`. Days with no reported value
+ *  are absent from the mean, not zeros in it, so `sessions` reports what was averaged rather than
+ *  what was asked for. */
+export function toSessionMean(
+  byDay: ReadonlyMap<TradingDay, number>,
+  session: TradingDay,
+  sessions: number
+): SessionMean | undefined {
+  const days = [...byDay.keys()]
     .filter((day) => day < session)
     .sort()
-    .slice(-VN_TURNOVER_REFERENCE_SESSIONS)
+    .slice(-sessions)
 
   if (days.length === 0) {
     return undefined
   }
 
-  const value = days.reduce((sum, day) => sum + (totals.turnover.get(day) ?? 0), 0) / days.length
+  const value = days.reduce((sum, day) => sum + (byDay.get(day) ?? 0), 0) / days.length
 
   return value <= 0 ? undefined : { sessions: days.length, value }
 }
@@ -89,7 +87,7 @@ export function addTurnoverTo(byDay: Map<TradingDay, number>, bars: readonly Bar
  *  same number. */
 export function toTurnoverRatio(
   turnover: number | undefined,
-  reference: MarketTurnoverReference | undefined
+  reference: SessionMean | undefined
 ): number | undefined {
   return turnover === undefined || reference === undefined ? undefined : turnover / reference.value
 }

@@ -25,7 +25,7 @@ import { buildVnBrief } from '@/trading/markets/equity-vn/brief/compose'
 import { VN_BRIEF_HOME } from '@/trading/markets/equity-vn/brief/vn-context'
 import { runMacroRisk } from '@/trading/markets/equity-vn/evidence/macro-evidence'
 import { latestBarProvenance } from '@/trading/markets/equity-vn/evidence/provenance'
-import { toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
+import { latestNameSession, toSectorMember } from '@/trading/markets/equity-vn/factors/factors'
 import { nameContext } from '@/trading/markets/equity-vn/factors/name-context'
 import {
   BASIS_SESSIONS,
@@ -179,7 +179,7 @@ async function runSectors(
   }
 
   return {
-    asOf: request.asOf,
+    asOf: latestNameSession(cross.names) ?? request.asOf,
     sectors: cross.sectors,
     provenance: dedupeProvenance(cross.names.flatMap(latestBarProvenance)),
     caveats: [],

@@ -169,6 +169,8 @@ Một số nguồn có công bố dữ liệu trong phiên. Giá lấy từ nh�
 
 Số đọc đã chốt không có biên độ, nguồn không có dữ liệu trong phiên cũng vậy. Không chỗ nào tự đoán biên độ từ một giá đóng duy nhất.
 
+**Dòng khối lượng** trên `/price` và thẻ mã là một số đọc đã chốt, không phải số trực tiếp. Nó so khối lượng của phiên đã chốt gần nhất với trung bình 20 phiên trước nó, vì khối lượng trực tiếp là tổng của nửa ngày và luôn trông thấp so với các ngày trọn vẹn. Mã tạm ngừng giao dịch, mã có ít lịch sử và thị trường không có chuỗi ngày (vàng VN) không in dòng này.
+
 Các dòng tiêu đề crypto được so với giá đóng đã chốt trong chuỗi ngày của chính chúng, đúng giá đóng mà `/price` in ra. Một dòng tiêu đề chỉ hiện giá hiện tại, mức biến động đó và giờ của lần đọc, chứ không in giá đóng. Chúng không được so với một cửa sổ 24 giờ trôi mà bạn không thấy ở đâu trên màn hình, và dòng nào không đọc được giá đóng thì không hiện biến động.
 
 Các bảng tổng hợp cạnh những dòng đó lấy từ bảng vốn hóa thị trường, và mọi nguồn đều công bố bảng này theo cửa sổ 24 giờ trôi. Nên danh sách mã biến động mạnh và bảng xếp hạng giá trị giao dịch đặt tiêu đề theo cửa sổ đó chứ không theo phiên. Tỷ phần taker mua là ngoại lệ: nó thuộc về một phiên đã chốt, và nêu tên phiên đó. Danh sách mã biến động mạnh bỏ các coin có vốn hóa dưới 250 triệu USD, vì một coin nhỏ có thể đứng đầu danh sách trong một ngày giao dịch mỏng mà không nói lên điều gì về thị trường; số mã tăng và giảm bên dưới vẫn tính mọi mã thanh khoản.
@@ -739,9 +741,11 @@ Một bản tin đọc theo thứ tự này:
 | Operator | `session-delta` `book-summary` `resolved-suggestions` `fired-alerts` `position-exits` `unwatched-positions` `stale-positions` `positions-in-loss` `cross-asset-pulse` `trade-sides` `drift-nudge` `monthly-scorecard` |
 | Bối cảnh vĩ mô | `regime-shift` `macro` `world-markets` `deposit-rate` `macro-headlines` `economy-headlines` |
 | Mỗi thị trường | `market-prices` `market-quotes` `market-board` `breadth` `range` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `index-review` `events` `recent` `headlines` |
-| Mỗi thị trường, chỉ có trên `/overview <thị trường>` | `reading` `tape` `turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
+| Mỗi thị trường, chỉ có trên `/overview <thị trường>` | `reading` `tape` `turnover` `sector-turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
 | Danh sách theo dõi | `watchlist-leading` `watchlist-dropped` `screen-delta` |
 | Hành động | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
+
+Ở `/overview equity-vn`, khối Việt Nam thêm hai số đọc mà bản tin không mang. **Ai mua, ai bán** chia mua ròng và bán ròng của một phiên trên cả sàn HOSE và HNX thành khối ngoại, tự doanh và phía còn lại (đúng bằng số đối nghịch của hai bên kia). Nó neo vào phiên mới nhất mà số tự doanh đã phủ tới và nói rõ khi phiên đó sớm hơn phiên đã chốt. **Tiền giao dịch tập trung ở ngành nào** (`sector-turnover`) liệt kê năm ngành có giá trị giao dịch lớn nhất, mỗi ngành kèm tỷ trọng trong tổng giá trị thị trường của phiên (các tỷ trọng cộng lại nhỏ hơn toàn bộ, vì có mã không khai ngành) và bội số so với trung bình 20 phiên của chính nó khi đã có các phiên trước đó.
 
 Hai mục mức giá, `fired-alerts` và `position-exits`, in mức giá cổ phiếu VN theo giá bảng điện như `/portfolio` và `/alert`; thang giá được ghi một lần ở cuối bản tin.
 

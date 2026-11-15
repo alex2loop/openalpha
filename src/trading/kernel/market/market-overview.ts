@@ -165,6 +165,18 @@ export interface MarketBoard {
   readonly foreignNetValue?: number
 }
 
+/** One sector's traded value on the session, with how much of the market's it was and how busy it
+ *  was against its own recent sessions. A sector with no market total to divide by is absent, and a
+ *  sector with no earlier sessions has no ratio, never a ratio of one. */
+export interface SectorTurnover {
+  readonly sector: string
+  readonly turnover: number
+  /** A fraction of the market's traded value that session. */
+  readonly sharePct: number
+  readonly turnoverRatio?: number
+  readonly turnoverReference?: SessionMean
+}
+
 /** One name's move this session, and the money it moved on. Separate from `MarketLeaders`, whose
  *  lists sum a declared window: a mover is always exactly one session, the overview's own. */
 export interface MarketMover {
@@ -244,10 +256,58 @@ export interface MarketDerivatives {
   readonly longShortRatio?: number
 }
 
-/** The mean session turnover a `turnoverRatio` is measured against. */
-export interface MarketTurnoverReference {
+/** A mean over the sessions that reported, with how many that was: a turnover ratio divides by one,
+ *  and a flow reading states its window with one, because every window yields a different figure. */
+export interface SessionMean {
   readonly sessions: number
   readonly value: number
+}
+
+export const FLOW_SIDES = ['buy', 'sell'] as const
+export type FlowSide = (typeof FLOW_SIDES)[number]
+
+/** How the gap two institutional groups leave for everyone else compares with a normal session. */
+export const FLOW_SIZES = ['quiet', 'usual', 'heavy'] as const
+export type FlowSize = (typeof FLOW_SIZES)[number]
+
+export const FLOW_PARTIES = ['foreign', 'proprietary', 'others'] as const
+export type FlowParty = (typeof FLOW_PARTIES)[number]
+
+export const FLOW_READINGS = [
+  'both-selling',
+  'both-buying',
+  'split',
+  'foreign-only',
+  'proprietary-only',
+  'even',
+] as const
+export type FlowReading = (typeof FLOW_READINGS)[number]
+
+/** One session's net buying by the two institutional groups; a desk not yet published is absent,
+ *  never zero. */
+export interface MarketFlowDay {
+  readonly at: TradingDay
+  readonly foreignNet: number
+  readonly proprietaryNet?: number
+}
+
+/** Who bought and who sold on one session, in the market's currency. The three nets sum to zero:
+ *  every buyer meets a seller, so everyone else is whatever the two groups left. A desk that lands
+ *  a session after the foreign one anchors the whole reading on the session it has figures for. */
+export interface MarketFlowBalance {
+  readonly session: TradingDay
+  readonly foreignNet: number
+  readonly proprietaryNet: number
+  readonly othersNet: number
+  /** Mean net per session over the newest sessions ending on `session` that carry the leg. */
+  readonly foreignMean?: SessionMean
+  readonly proprietaryMean?: SessionMean
+  /** The mean absolute gap the two groups left on earlier sessions; absent without enough of them. */
+  readonly normal?: SessionMean
+  /** The session's gap against `normal`: present exactly when `normal` is. */
+  readonly size?: FlowSize
+  readonly foreignStreak?: { readonly side: FlowSide; readonly sessions: number }
+  readonly days: readonly MarketFlowDay[]
 }
 
 /** The session's roll-ups across the market, in its currency. Every field is optional because each
@@ -298,9 +358,11 @@ export interface MarketDataOverview {
    *  against a normal session. */
   readonly turnoverRatio?: number
   /** What that ratio divides by: every window yields a different multiple. */
-  readonly turnoverReference?: MarketTurnoverReference
+  readonly turnoverReference?: SessionMean
   readonly foreignNetValue?: number
   readonly proprietaryNetValue?: number
+  /** Who bought and who sold, anchored on the newest session with a proprietary figure. */
+  readonly flowBalance?: MarketFlowBalance
   /** Capitalization of the market's whole universe. */
   readonly marketCap?: number
   /** The largest constituent's share of `marketCap`, as a percentage — how concentrated the market
@@ -336,6 +398,9 @@ export interface MarketDataOverview {
   /** The same session, per board, where the market lists on more than one. The totals above stay
    *  the market's answer; these are what a reader checks against one exchange's own summary. */
   readonly boards?: readonly MarketBoard[]
+  /** Where the session's traded value went, by sector, largest first and bounded by the market's own
+   *  limit. Absent where no name carries a sector. */
+  readonly sectorTurnover?: readonly SectorTurnover[]
   readonly provenance: readonly SourceProvenance[]
   readonly caveats: readonly Caveat[]
 }

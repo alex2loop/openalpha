@@ -7,6 +7,7 @@ import type { BriefSectionKind } from '@/trading/kernel/operator/brief-section'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { t } from '@/i18n'
+import { renderFlowBalanceBlock } from '@/trading/features/market-data/render/flow-balance'
 import {
   renderMacroHeading,
   renderMacroSections,
@@ -236,8 +237,25 @@ function marketBlock(
     ...wholeMarketSections(overview)
       .filter((section) => view.statesComposite || !LEVEL_SECTION_KINDS.has(section.kind))
       .map((section) => [renderBriefSection(locale, section, context)]),
+    ...flowBalanceEntries(locale, overview, context),
     renderProvenanceLine(locale, overview.provenance, context.timezone),
   ]
+}
+
+function flowBalanceEntries(
+  locale: Locale,
+  overview: MarketDataOverview,
+  context: RenderContext
+): readonly (readonly string[])[] {
+  const { flowBalance } = overview
+
+  if (flowBalance === undefined) {
+    return []
+  }
+
+  const view = { balance: flowBalance, asOf: overview.asOf, currency: overview.currency }
+
+  return [renderFlowBalanceBlock(locale, view, context)]
 }
 
 /** A segment's own drivers where they are not the region's already printed above, as readings. */

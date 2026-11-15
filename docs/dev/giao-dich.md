@@ -75,7 +75,9 @@ Bộ nhớ theo phiên của trail (`trailedThrough`) chỉ được đặt sau 
 
 ## Các mục của bản tin
 
-Một số mục theo từng thị trường (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) đến từ bộ chuyển đổi overview của từng thị trường, trên một khuôn chung theo từng thị trường, không phải từ một builder của bản tin. Một thị trường thêm một khối, không bao giờ thêm một loại mục. Hai loại mục câu chuyện, `thesis-review` và `story`, không thuộc khối nào: `tryReadStories` của thị trường đọc phiên đã chốt thành các ứng viên, `planStory` (`features/brief/story/plan.ts`) chấm các câu chuyện của ảnh chụp trước và chọn câu chuyện hôm nay, và cả hai đứng đầu bản tin, trên mọi khối.
+Một số mục theo từng thị trường (`reading`, `market-prices`, `market-quotes`, `market-board`, `market-cap`, `turnover`, `sector-turnover`, `derivatives`, `taker-flow`, `etf-flows`, `positioning`, `premium`, `range`, `leaders`, `leaders-24h`, `movers-session`, `movers-24h`, `sentiment`) đến từ bộ chuyển đổi overview của từng thị trường, trên một khuôn chung theo từng thị trường, không phải từ một builder của bản tin. Một thị trường thêm một khối, không bao giờ thêm một loại mục. Hai loại mục câu chuyện, `thesis-review` và `story`, không thuộc khối nào: `tryReadStories` của thị trường đọc phiên đã chốt thành các ứng viên, `planStory` (`features/brief/story/plan.ts`) chấm các câu chuyện của ảnh chụp trước và chọn câu chuyện hôm nay, và cả hai đứng đầu bản tin, trên mọi khối.
+
+`sector-turnover` chỉ có ở overview: nó không nằm trong `MARKET_SHOWN_KINDS`, và wire chỉ mang nó dưới tên `sectorTurnover` trên khối thị trường, không bao giờ trong `sections`. Bảng cân đối dòng tiền VN không phải một loại mục: đó là `flowBalance` trên overview và khối thị trường, do bộ render riêng của overview in ra. Ở `/overview`, khi nó có, các phần gộp bỏ mục `proprietary-flow`, và chỉ bỏ dòng tổng khối ngoại của `foreign-desk-flow` khi phiên của bảng cân đối đúng là phiên của overview.
 
 Bản tin chỉ in các loại mục trong `MARKET_SHOWN_KINDS` (`features/brief/render.ts`); phần còn lại của các mục một thị trường ở lại `/overview <thị trường>`. `BRIEF_FIELD_SUBSETS` (ngay cạnh) thu các dòng của một loại mục về những trường bản tin đọc, như `derivatives` giữ `funding` và `longShortRatio`: `readSections` cho các mục có thể in đi qua `toBriefShape`, hàm bỏ dòng không còn trường nào trong danh sách và để nguyên mục chưa sẵn sàng cùng các loại mục khác.
 
@@ -132,6 +134,7 @@ Các route mà tính năng giao dịch thêm vào, được phục vụ khi `[ap
 |---|---|
 | `GET /v1/quotes` | `quotes` |
 | `GET /v1/ohlcv` | `ohlcv` |
+| `GET /v1/price-chart` | `ohlcv` |
 | `GET /v1/events` | `ohlcv` |
 | `GET /v1/news` | - |
 | `GET /v1/profile`, `POST /v1/profile` | - |

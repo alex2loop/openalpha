@@ -11,6 +11,7 @@ import { MCP_ROUTES } from '@/app/server/routes/mcp'
 import { MODEL_ROUTES } from '@/app/server/routes/models'
 import { MONEY_ROUTES } from '@/app/server/routes/money'
 import { NOTICE_ROUTES } from '@/app/server/routes/notices'
+import { PRICE_CHART_ROUTES } from '@/app/server/routes/price-chart'
 import { PROFILE_SEGMENT_ROUTES } from '@/app/server/routes/profile-segment'
 import { RUN_ROUTES } from '@/app/server/routes/runs'
 import { SYSTEM_CORE_ROUTES } from '@/app/server/routes/system'
@@ -47,6 +48,7 @@ export const TRADING_GROUP: ApiRouteGroup = {
   name: 'trading',
   routes: [
     ...TRADING_ROUTES,
+    ...PRICE_CHART_ROUTES,
     ...PROFILE_SEGMENT_ROUTES,
     ...DEBATE_ROUTES,
     ...DIGEST_ROUTES,

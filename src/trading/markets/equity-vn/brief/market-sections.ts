@@ -15,13 +15,14 @@ import {
   VN_FX_PAIR,
   VN_MARKET_REGION,
   VN_SECTOR_POLICY,
+  VN_TURNOVER_REFERENCE_SESSIONS,
 } from '@/trading/markets/equity-vn/policy'
 import { staleIndexCaveats, toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
 import { groupByBoard, toBoards } from '@/trading/markets/equity-vn/tape/overview'
 import {
   sessionTurnoverTotal,
+  toSessionMean,
   toTurnoverRatio,
-  toTurnoverReference,
 } from '@/trading/markets/equity-vn/tape/session-totals'
 import { NEWS_ITEMS_PER_SECTION } from '@/trading/markets/news'
 import { boardRows, breadthRows, MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
@@ -107,7 +108,7 @@ export function buildTape(context: VnBriefContext): Promise<BriefSectionResult> 
     return Promise.resolve(absent('tape', [{ code: 'market-data.no-coverage' }]))
   }
 
-  const reference = toTurnoverReference(board.dayTotals, session)
+  const reference = toSessionMean(board.dayTotals.turnover, session, VN_TURNOVER_REFERENCE_SESSIONS)
   const turnoverRatio = toTurnoverRatio(turnover, reference)
 
   return Promise.resolve(

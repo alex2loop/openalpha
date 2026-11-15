@@ -1,45 +1,38 @@
 import { useEffect } from 'preact/hooks'
 
-import type { DealerBoardWire, SessionRangeWire } from '@/app/server/wire/quote-detail'
+import type { TradingPriceChartResponse } from '@/app/server/wire/price-chart'
 import type { TradingCandleWire, TradingQuoteWire } from '@/app/server/wire/trading'
+import type { PriceWindow } from '@/app/server/wire/vocab'
 import { formatDay, termOfKind, termOfTicker, translateDisplayText } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { useBlockRead } from '@/web/state/block'
 import { findMarket, findQuote, keyOf, quotesBlock, stopsBlock } from '@/web/state/market'
+import { PRICE_WINDOWS, pickPriceWindow, priceWindow } from '@/web/state/price-window'
 import { isRefreshable, useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale, state } from '@/web/state/session'
-import { useRetryWhenKnown } from '@/web/state/use-retry-when-known'
-import { formatCompactAmount, formatSignedPercent, toneOfPercent } from '@/web/text/figures'
+import { formatCompactAmount, formatCount, formatMultiple } from '@/web/text/figures'
 import { INLINE_SEPARATOR, joinInline } from '@/web/text/glyphs'
-import {
-  boardScaleNotes,
-  formatDealerBoard,
-  formatMarketPrice,
-  formatMarketRange,
-  toTickFormatter,
-} from '@/web/text/market-price'
+import { toTickFormatter } from '@/web/text/market-price'
 import { sectorName } from '@/web/text/segment'
-import { buildDayKey, formatWhen } from '@/web/text/time'
-import { shiftDay } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
 import { Term } from '@/web/ui/glossary/term'
 import { Button } from '@/web/ui/kit/button'
 import { TrendIcon } from '@/web/ui/kit/icons'
+import { Segmented } from '@/web/ui/kit/segmented'
 import { RefreshMarketsButton } from '@/web/ui/market/refresh-button'
-import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart'
+import { type ChartLevel, PriceChart } from '@/web/ui/ticker/chart/price-chart'
 import { type LiveQuote, useLiveQuote } from '@/web/ui/ticker/live-quote'
+import { type PriceFacts, PriceHead, sessionRangeOf } from '@/web/ui/ticker/price-head'
 import { BlockFrame } from '@/web/ui/today/block-frame'
 
-// Calendar days read, enough to hold the sessions shown across weekends and holidays.
-const CHART_DAYS = 70
-const CHART_SESSIONS = 30
+const NO_CHART: ChartRead = Object.freeze({ bars: [], averages: [], caveats: [] })
 
-interface BarsRead {
-  readonly bars: readonly TradingCandleWire[]
-  /** The sector slug the market files the name under, where it files one. */
-  readonly sector?: string
-}
+/** What the card draws: a market with no bars of its own answers none. */
+type ChartRead = Pick<
+  TradingPriceChartResponse,
+  'bars' | 'averages' | 'sector' | 'relativeVolume' | 'caveats'
+>
 
 interface PriceBlockProps {
   readonly ticker: string
@@ -47,31 +40,27 @@ interface PriceBlockProps {
   readonly levels: readonly ChartLevel[]
 }
 
-interface PriceFacts {
-  readonly value: number
-  readonly changePct?: number
-  /** The name publishes a level, not a price. */
-  readonly isLevel?: boolean
-  /** Which session the price belongs to, when it is not the one trading now. */
-  readonly session: string
-  /** When the price was read (epoch ms); absent for a close the bars carry, which names its day. */
-  readonly readAt?: number
-  /** When a price too old to be live was read, in a session still trading. */
-  readonly staleAt?: number
-  /** The last settled close, beside a live price so the two are not read as one. */
-  readonly close?: { readonly day: string; readonly value: number }
-  /** A dealer's two sides, where `value` is the sell price. */
-  readonly board?: DealerBoardWire
+interface PriceCardProps extends PriceBlockProps {
+  readonly span: PriceWindow
 }
 
-/** The name, its price with the session it belongs to, and the last 30 sessions with the plan's
- *  levels on them. Without any price it says so and offers to refresh its market; its head button
- *  reads this one name's price live, then the bars again. */
-export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
-  const reading = useBlockRead(readBars(ticker, market), { capability: ROUTES.ohlcv.capability })
+/** The name, its price with the session it belongs to, and its chart over the span picked, with the
+ *  plan's levels on it. Without any price it says so and offers to refresh its market; its head
+ *  button reads this one name's price live, then the chart again. */
+export function PriceBlock(props: PriceBlockProps) {
+  const span = priceWindow.value
+
+  return <PriceCard key={span} span={span} {...props} />
+}
+
+// The read is fixed for the block's life, so each span is its own block.
+function PriceCard(props: PriceCardProps) {
+  const { ticker, market, span } = props
+  const reading = useBlockRead(readChart(ticker, market, span), {
+    capability: ROUTES.priceChart.capability,
+  })
   const live = useLiveQuote(ticker, market, reading.retry)
 
-  useRetryWhenKnown(state.value?.timeZone !== undefined, reading.retry)
   useRereadAfterRefresh(reading.retry)
 
   const board = findQuote(ticker, market)
@@ -97,21 +86,28 @@ export function PriceBlock({ ticker, market, levels }: PriceBlockProps) {
           </span>
         )
       }
-      action={
-        state.value?.capabilities.quotes !== false && (
-          <Button size="small" disabled={live.isBusy} onClick={live.refresh}>
-            {tr('ui.office.ticker.refresh')}
-          </Button>
-        )
-      }
+      action={<RefreshPriceButton live={live} />}
+      controls={findMarket(market)?.hasBars === false ? undefined : <WindowPicker span={span} />}
     >
-      {({ bars }) => (
+      {(chart) => (
         <>
           {live.failure !== undefined && <p class="failure-line">{live.failure}</p>}
-          <PriceBody ticker={ticker} market={market} bars={bars} levels={levels} quote={quote} />
+          <PriceBody {...props} chart={chart} quote={quote} />
         </>
       )}
     </BlockFrame>
+  )
+}
+
+function RefreshPriceButton({ live }: { readonly live: LiveQuote }) {
+  if (state.value?.capabilities.quotes === false) {
+    return null
+  }
+
+  return (
+    <Button size="small" disabled={live.isBusy} onClick={live.refresh}>
+      {tr('ui.office.ticker.refresh')}
+    </Button>
   )
 }
 
@@ -142,13 +138,13 @@ function useLiveWhileTrading(
   }, [ticker, market, isBoardKnown, isOpen, isLiveOnly])
 }
 
-interface PriceBodyProps extends PriceBlockProps {
-  readonly bars: readonly TradingCandleWire[]
+interface PriceBodyProps extends PriceCardProps {
+  readonly chart: ChartRead
   readonly quote: TradingQuoteWire | undefined
 }
 
-function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
-  const facts = resolvePrice({ ticker, market }, quote, bars)
+function PriceBody({ ticker, market, levels, span, chart, quote }: PriceBodyProps) {
+  const facts = resolvePrice({ ticker, market }, quote, chart.bars)
 
   if (facts === undefined) {
     return <NoPrice market={market} />
@@ -156,25 +152,67 @@ function PriceBody({ ticker, market, bars, levels, quote }: PriceBodyProps) {
 
   return (
     <>
-      <PriceHead market={market} facts={facts} range={sessionRangeOf(quote, bars)} />
-      {bars.length > 1 && (
-        <>
-          <PriceChart
-            bars={bars}
-            levels={levels}
-            formatPrice={toTickFormatter(market, facts)}
-            formatDay={(day) => formatDay(locale.value, day)}
-          />
-          <p class="meta">
-            {joinInline([
-              tr('ui.office.ticker.sessions', { count: bars.length }),
-              ...(levels.length > 0 ? [tr('ui.office.ticker.levelsNote')] : []),
-            ])}
-          </p>
-        </>
+      <PriceHead market={market} facts={facts} range={sessionRangeOf(quote, chart.bars)} />
+      {chart.bars.length > 1 && (
+        <ChartSection market={market} facts={facts} levels={levels} span={span} chart={chart} />
       )}
     </>
   )
+}
+
+function WindowPicker({ span }: { readonly span: PriceWindow }) {
+  return (
+    <Segmented
+      label={tr('ui.office.windowPick')}
+      value={span}
+      options={PRICE_WINDOWS.map((choice) => ({
+        value: choice,
+        label: tr(`ui.office.window.${choice}`),
+      }))}
+      onChange={pickPriceWindow}
+    />
+  )
+}
+
+interface ChartSectionProps {
+  readonly market: string
+  readonly facts: PriceFacts
+  readonly levels: readonly ChartLevel[]
+  readonly span: PriceWindow
+  readonly chart: ChartRead
+}
+
+function ChartSection({ market, facts, levels, span, chart }: ChartSectionProps) {
+  const { bars, relativeVolume } = chart
+
+  return (
+    <>
+      <PriceChart
+        bars={bars}
+        averages={chart.averages}
+        levels={levels}
+        span={span}
+        formatPrice={toTickFormatter(market, facts)}
+        formatDay={(day) => formatDay(locale.value, day)}
+      />
+      <p class="meta">
+        {joinInline([
+          tr('ui.office.ticker.sessions', { count: bars.length }),
+          ...(levels.length > 0 ? [tr('ui.office.ticker.levelsNote')] : []),
+        ])}
+      </p>
+      {relativeVolume !== undefined && <p class="meta">{formatRelativeVolume(relativeVolume)}</p>}
+    </>
+  )
+}
+
+function formatRelativeVolume(reading: NonNullable<ChartRead['relativeVolume']>): string {
+  return tr('trading.render.quote.relativeVolume', {
+    day: formatDay(locale.value, reading.day),
+    volume: formatCompactAmount(reading.volume),
+    ratio: formatMultiple(reading.ratio),
+    sessions: formatCount(reading.sessions),
+  })
 }
 
 // Only the name's own market is refreshed: every market for one missing price costs minutes. Where
@@ -194,138 +232,26 @@ function NoPrice({ market }: { readonly market: string }) {
   )
 }
 
-// The price with its move, a warning when it is stale, and where it comes from: scale, session, time.
-interface PriceHeadProps {
-  readonly market: string
-  readonly facts: PriceFacts
-  readonly range: SessionRangeWire | undefined
-}
-
-function PriceHead({ market, facts, range }: PriceHeadProps) {
-  const timeZone = state.value?.timeZone
-  const readText =
-    facts.readAt === undefined || timeZone === undefined
-      ? ''
-      : tr('ui.office.today.readAt', { time: formatWhen(facts.readAt, timeZone) })
-  const scale = facts.isLevel === true ? [] : boardScaleNotes([market])
-  const parts = [...scale, facts.session, readText].filter((part) => part !== '')
-
-  return (
-    <>
-      <p class="meta block-read">{joinInline(parts)}</p>
-      {facts.staleAt !== undefined && timeZone !== undefined && (
-        <p class="strip is-caution">
-          {tr('ui.office.ticker.stale', { time: formatWhen(facts.staleAt, timeZone) })}
-        </p>
-      )}
-      {facts.board === undefined ? (
-        <p class="big-figure">
-          {formatMarketPrice(market, facts.value, facts)}{' '}
-          {facts.changePct !== undefined && (
-            <span class={`pill is-${toneOfPercent(facts.changePct)}`}>
-              {formatSignedPercent(facts.changePct)}
-            </span>
-          )}
-        </p>
-      ) : (
-        <DealerLine market={market} board={facts.board} />
-      )}
-      {range !== undefined && <p class="meta">{formatSessionRange(market, range, facts)}</p>}
-      {facts.close !== undefined && (
-        <p class="meta">
-          {tr('ui.office.ticker.closeRow', {
-            day: formatDay(locale.value, facts.close.day),
-            price: formatMarketPrice(market, facts.close.value, facts),
-          })}
-        </p>
-      )}
-    </>
-  )
-}
-
-function DealerLine({
-  market,
-  board,
-}: {
-  readonly market: string
-  readonly board: DealerBoardWire
-}) {
-  const { sides, spread } = formatDealerBoard(market, board)
-
-  return (
-    <>
-      <p class="lead">{sides}</p>
-      {spread !== undefined && <p class="meta">{spread}</p>}
-    </>
-  )
-}
-
-// A live session's range when the quote carries one, else the last settled bar's, dated either way.
-function sessionRangeOf(
-  quote: TradingQuoteWire | undefined,
-  bars: readonly TradingCandleWire[]
-): SessionRangeWire | undefined {
-  if (quote?.session !== undefined) {
-    return quote.session
-  }
-
-  const last = bars.at(-1)
-
-  if (last === undefined) {
-    return undefined
-  }
-
-  return {
-    day: last.at,
-    low: last.low,
-    high: last.high,
-    ...(last.volume > 0 ? { volume: last.volume } : {}),
-  }
-}
-
-function formatSessionRange(
-  market: string,
-  range: SessionRangeWire,
-  reading: Pick<PriceFacts, 'isLevel'>
-): string {
-  const bounds = {
-    day: formatDay(locale.value, range.day),
-    ...formatMarketRange(market, range, reading),
-  }
-
-  return range.volume === undefined
-    ? tr('trading.render.quote.session', bounds)
-    : tr('trading.render.quote.sessionVolume', {
-        ...bounds,
-        volume: formatCompactAmount(range.volume),
-      })
-}
-
 // A name the daemon cannot find bars for has none to draw, which is an answer: the card says so.
-function readBars(ticker: string, market: string): (abort: AbortSignal) => Promise<BarsRead> {
+function readChart(
+  ticker: string,
+  market: string,
+  span: PriceWindow
+): (abort: AbortSignal) => Promise<ChartRead> {
   return async (abort) => {
-    const timeZone = state.value?.timeZone
-
     // A dealer's board has no series of its own: the bars held for it are world gold in USD.
-    if (timeZone === undefined || findMarket(market)?.hasBars === false) {
-      return { bars: [] }
+    if (findMarket(market)?.hasBars === false) {
+      return NO_CHART
     }
 
-    const toDay = buildDayKey(Date.now(), timeZone)
-
     try {
-      const answer = await getJson(ROUTES.ohlcv, {
-        query: { market, ticker, fromDay: shiftDay(toDay, -CHART_DAYS), toDay },
+      return await getJson(ROUTES.priceChart, {
+        query: { market, ticker, window: span },
         signal: abort,
       })
-
-      return {
-        bars: answer.bars.slice(-CHART_SESSIONS),
-        ...(answer.sector === undefined ? {} : { sector: answer.sector }),
-      }
     } catch (error: unknown) {
       if (error instanceof ApiFailure && error.code === 'not_found') {
-        return { bars: [] }
+        return NO_CHART
       }
 
       throw error

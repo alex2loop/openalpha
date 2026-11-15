@@ -128,6 +128,7 @@ interface NamePass {
 /** The pass's own sums, local to one call so an aborted pass leaves nothing behind. */
 interface PassTotals {
   readonly turnover: Map<TradingDay, number>
+  readonly sectorTurnover: Map<string, Map<TradingDay, number>>
   readonly flows: Map<TradingDay, FlowSnapshot>
   newestFlow?: FlowSnapshot
 }
@@ -140,7 +141,7 @@ async function streamNames(
   pass: NamePass
 ): Promise<{ readonly names: readonly NameEvidence[]; readonly dayTotals: MarketDayTotals }> {
   const { signal } = pass.window
-  const totals: PassTotals = { turnover: new Map(), flows: new Map() }
+  const totals: PassTotals = { turnover: new Map(), sectorTurnover: new Map(), flows: new Map() }
   const names: NameEvidence[] = []
 
   for (const record of pass.universe) {
@@ -163,8 +164,20 @@ async function streamNames(
 
 function addReadsTo(totals: PassTotals, reads: NameReads): void {
   const { bars, flows } = reads
+  const { sector } = reads.record
 
   addTurnoverTo(totals.turnover, bars)
+
+  if (sector !== undefined) {
+    let byDay = totals.sectorTurnover.get(sector)
+
+    if (byDay === undefined) {
+      byDay = new Map()
+      totals.sectorTurnover.set(sector, byDay)
+    }
+
+    addTurnoverTo(byDay, bars)
+  }
 
   for (const flow of flows) {
     addFlowTo(totals.flows, flow)

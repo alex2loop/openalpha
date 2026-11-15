@@ -71,6 +71,12 @@ import {
 } from '@/trading/kernel/market/market-data'
 import { MARKET_EVENT_KINDS } from '@/trading/kernel/market/market-event'
 import {
+  FLOW_PARTIES,
+  FLOW_READINGS,
+  FLOW_SIDES,
+  FLOW_SIZES,
+} from '@/trading/kernel/market/market-overview'
+import {
   REFRESH_ANCHOR_KINDS,
   REFRESH_DATA_KINDS,
   REFRESH_KIND_STATUSES,
@@ -204,6 +210,10 @@ export const TRADING_CODE_GROUPS: readonly CodeGroup[] = Object.freeze([
   { prefix: 'trading.factor.band', members: SCORE_BANDS },
   { prefix: 'trading.intraday.phase', members: SESSION_PHASES },
   { prefix: 'trading.intraday.field', members: INTRADAY_FIELDS },
+  { prefix: 'trading.flow.action', members: FLOW_SIDES },
+  { prefix: 'trading.flow.size', members: FLOW_SIZES },
+  { prefix: 'trading.flow.party', members: FLOW_PARTIES },
+  { prefix: 'trading.flow.reading', members: FLOW_READINGS },
   { prefix: 'trading.themes.status', members: THEME_STATUSES },
   { prefix: 'trading.themes.maturity', members: THEME_MATURITIES },
   { prefix: 'trading.themes.failure', members: THEME_STEP_FAILURES },

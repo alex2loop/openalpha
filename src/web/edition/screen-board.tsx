@@ -46,7 +46,7 @@ const MAX_SCREEN_PAGES = 40
 /** How long a board read during the market's first load waits before it asks again. */
 const FIRST_LOAD_RECHECK_MS = 15_000
 
-/** Màn lọc on the web: every priced name the market read returned, with its price and move, the
+/** Bảng lọc mã on the web: every priced name the market read returned, with its price and move, the
  *  plain values its market states and what each factor read for it and where that sits on the board,
  *  in the order the visitor picks. The page ranks nothing and rates nothing: it prints figures and
  *  the control that orders them. */

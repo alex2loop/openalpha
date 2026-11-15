@@ -13,6 +13,7 @@ import type {
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { CrossSectionCache } from '@/trading/markets/equity-vn/evidence/cross-section-cache'
+import type { CrossSection } from '@/trading/markets/equity-vn/factors/factors'
 import type { NameEvidence } from '@/trading/markets/equity-vn/factors/name-evidence'
 import type { MarketManifest } from '@/trading/markets/types'
 import { dedupeProvenance } from '@/trading/kernel/source/source-result'
@@ -28,21 +29,24 @@ import {
   VN_HEADLINE_INDEX_TICKERS,
   VN_OVERVIEW_LEADERS,
   VN_OVERVIEW_SESSIONS,
+  VN_TURNOVER_REFERENCE_SESSIONS,
 } from '@/trading/markets/equity-vn/policy'
 import { loadUniverse } from '@/trading/markets/equity-vn/refresh/universe'
 import { toBreadth } from '@/trading/markets/equity-vn/tape/breadth'
+import { toFlowBalance } from '@/trading/markets/equity-vn/tape/flow-balance'
 import { vnIntradayBreadth } from '@/trading/markets/equity-vn/tape/intraday-breadth'
 import { toLeaders } from '@/trading/markets/equity-vn/tape/leaders'
 import { overviewCaveats } from '@/trading/markets/equity-vn/tape/overview-caveats'
 import { headlineLevel, vnLiveIndexReading } from '@/trading/markets/equity-vn/tape/quote'
+import { toSectorTurnover } from '@/trading/markets/equity-vn/tape/sector-turnover'
 import {
   sessionChangePct,
   sessionForeignNet,
   sessionProprietaryNet,
   sessionTotal,
   sessionTurnover,
+  toSessionMean,
   toTurnoverRatio,
-  toTurnoverReference,
 } from '@/trading/markets/equity-vn/tape/session-totals'
 import { toVnExchange } from '@/trading/markets/equity-vn/tradeability'
 import { rangeFromCloses } from '@/trading/markets/overview'
@@ -82,11 +86,6 @@ export async function runOverview(load: OverviewLoad): Promise<MarketDataOvervie
   const indexBars = cross.indexBars
   const rows = entries.map((entry) => entry.row)
   const breadth = toBreadth(cross.names, session, indexBars)
-  const turnover = sessionTotal(cross.names, session, sessionTurnover)
-  const turnoverReference = toTurnoverReference(cross.dayTotals, session)
-  const turnoverRatio = toTurnoverRatio(turnover, turnoverReference)
-  const foreignNetValue = sessionTotal(cross.names, session, sessionForeignNet)
-  const proprietaryNetValue = sessionTotal(cross.names, session, sessionProprietaryNet)
   const leaders = toLeaders(cross.names, session)
   const movers = toMovers(cross.names, session)
   const groups = groupByBoard(cross.names)
@@ -109,11 +108,7 @@ export async function runOverview(load: OverviewLoad): Promise<MarketDataOvervie
     ...(breadth === undefined ? {} : { breadth }),
     narrowDeclineBelowPct: MINIMUM_TAPE_PARTICIPATION_FRACTION,
     ...(intraday.breadth === undefined ? {} : { intraday: intraday.breadth }),
-    ...(turnover === undefined ? {} : { turnover }),
-    ...(turnoverRatio === undefined ? {} : { turnoverRatio }),
-    ...(turnoverReference === undefined ? {} : { turnoverReference }),
-    ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
-    ...(proprietaryNetValue === undefined ? {} : { proprietaryNetValue }),
+    ...toSessionTotals(cross, session),
     ...(range === undefined || load.deps.readingsOnly === true ? {} : { range }),
     ...(ratios === undefined ? {} : { ratios }),
     ...(leaders === undefined ? {} : { leaders }),
@@ -121,6 +116,43 @@ export async function runOverview(load: OverviewLoad): Promise<MarketDataOvervie
     ...(boards.length === 0 ? {} : { boards }),
     provenance: dedupeProvenance(entries.map((entry) => entry.provenance)),
     caveats: overviewCaveats({ rows, boards, session, indexBars, intraday: intraday.caveats }),
+  }
+}
+
+type SessionTotals = Pick<
+  MarketDataOverview,
+  | 'turnover'
+  | 'turnoverRatio'
+  | 'turnoverReference'
+  | 'foreignNetValue'
+  | 'proprietaryNetValue'
+  | 'flowBalance'
+  | 'sectorTurnover'
+>
+
+/** The session's traded value, where it went by sector, and who bought and who sold, each left out
+ *  where the tape did not publish it. */
+function toSessionTotals(cross: CrossSection, session: TradingDay): SessionTotals {
+  const turnover = sessionTotal(cross.names, session, sessionTurnover)
+  const turnoverReference = toSessionMean(
+    cross.dayTotals.turnover,
+    session,
+    VN_TURNOVER_REFERENCE_SESSIONS
+  )
+  const turnoverRatio = toTurnoverRatio(turnover, turnoverReference)
+  const foreignNetValue = sessionTotal(cross.names, session, sessionForeignNet)
+  const proprietaryNetValue = sessionTotal(cross.names, session, sessionProprietaryNet)
+  const flowBalance = toFlowBalance(cross.dayTotals.flows, session)
+  const sectorTurnover = toSectorTurnover(cross.dayTotals, session)
+
+  return {
+    ...(turnover === undefined ? {} : { turnover }),
+    ...(turnoverRatio === undefined ? {} : { turnoverRatio }),
+    ...(turnoverReference === undefined ? {} : { turnoverReference }),
+    ...(foreignNetValue === undefined ? {} : { foreignNetValue }),
+    ...(proprietaryNetValue === undefined ? {} : { proprietaryNetValue }),
+    ...(flowBalance === undefined ? {} : { flowBalance }),
+    ...(sectorTurnover.length === 0 ? {} : { sectorTurnover }),
   }
 }
 

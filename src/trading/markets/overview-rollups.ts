@@ -3,6 +3,8 @@ import type {
   MarketBreadth,
   MarketDataOverview,
   MarketLeader,
+  SectorTurnover,
+  SessionMean,
 } from '@/trading/kernel/market/market-overview'
 import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import { readySection } from '@/trading/markets/brief-section'
@@ -23,6 +25,7 @@ export function rollupSections(overview: MarketDataOverview): readonly BriefSect
   return [
     breadthSection(overview),
     turnoverSection(overview),
+    sectorTurnoverSection(overview),
     foreignFlowSection(overview),
     proprietaryFlowSection(overview),
   ].filter((section) => section !== undefined)
@@ -47,8 +50,20 @@ function turnoverSection(overview: MarketDataOverview): BriefSectionResult | und
   return rows.length === 0 ? undefined : readySection(overview, { kind: 'turnover', rows })
 }
 
+function sectorTurnoverSection(overview: MarketDataOverview): BriefSectionResult | undefined {
+  const rows = sectorTurnoverRows(overview.sectorTurnover)
+
+  return rows.length === 0 ? undefined : readySection(overview, { kind: 'sector-turnover', rows })
+}
+
+/** Only the names where the flow balance is for this session: that block states the foreign total
+ *  beside the other two groups, and a net said twice reads as two findings. While the desks lag, the
+ *  block is for an earlier session, so this section keeps today's total. */
 function foreignFlowSection(overview: MarketDataOverview): BriefSectionResult | undefined {
-  const rows = foreignRows(overview)
+  const rows =
+    overview.flowBalance?.session === overview.asOf
+      ? foreignNameRows(overview)
+      : foreignRows(overview)
 
   return rows.length === 0
     ? undefined
@@ -59,8 +74,9 @@ function foreignFlowSection(overview: MarketDataOverview): BriefSectionResult | 
       })
 }
 
+/** Skipped where the market publishes a flow balance, which states the desks' net itself. */
 function proprietaryFlowSection(overview: MarketDataOverview): BriefSectionResult | undefined {
-  const rows = proprietaryRows(overview)
+  const rows = overview.flowBalance === undefined ? proprietaryRows(overview) : []
 
   return rows.length === 0
     ? undefined
@@ -106,18 +122,44 @@ export function turnoverRows(overview: MarketDataOverview): readonly BriefSectio
   return [
     {
       turnover: overview.turnover,
-      ...(overview.turnoverRatio === undefined || overview.turnoverReference === undefined
-        ? {}
-        : { turnoverRatio: overview.turnoverRatio, sessions: overview.turnoverReference.sessions }),
+      ...ratioFields(overview.turnoverRatio, overview.turnoverReference),
     },
   ]
+}
+
+/** A ratio only beside the sessions its mean covers: every window yields a different multiple. */
+function ratioFields(
+  turnoverRatio: number | undefined,
+  reference: SessionMean | undefined
+): BriefSectionRow {
+  return turnoverRatio === undefined || reference === undefined
+    ? {}
+    : { turnoverRatio, sessions: reference.sessions }
+}
+
+function sectorTurnoverRows(
+  sectors: readonly SectorTurnover[] | undefined
+): readonly BriefSectionRow[] {
+  return (sectors ?? []).map((entry) => ({
+    sector: entry.sector,
+    turnover: entry.turnover,
+    sharePct: entry.sharePct,
+    ...ratioFields(entry.turnoverRatio, entry.turnoverReference),
+  }))
 }
 
 /** The market's own net first, then the names that made it: a total says the desks were active, the
  *  names say where. */
 export function foreignRows(overview: MarketDataOverview): readonly BriefSectionRow[] {
+  return [...foreignTotalRows(overview), ...foreignNameRows(overview)]
+}
+
+function foreignTotalRows(overview: MarketDataOverview): readonly BriefSectionRow[] {
+  return overview.foreignNetValue === undefined ? [] : [{ net: overview.foreignNetValue }]
+}
+
+function foreignNameRows(overview: MarketDataOverview): readonly BriefSectionRow[] {
   return [
-    ...(overview.foreignNetValue === undefined ? [] : [{ net: overview.foreignNetValue }]),
     ...nameFlowRows(overview.leaders?.foreignBuys),
     ...nameFlowRows(overview.leaders?.foreignSells),
   ]
