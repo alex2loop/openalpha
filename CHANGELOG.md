@@ -7,6 +7,28 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.7.0] - 2026-11-15
+
+A name's card now draws its price chart over one, three or six months or a year, with volume and the 50- and 200-session averages. `/overview` and the market tab show who bought and who sold on the Vietnam market, and which sectors the money went into. The Screen board has a clearer Vietnamese name.
+> Thẻ mã giờ có biểu đồ giá 1 tháng, 3 tháng, 6 tháng hoặc 1 năm, kèm khối lượng và đường trung bình 50, 200 phiên. `/overview` và thẻ Thị trường cho thấy ai mua, ai bán trên thị trường Việt Nam và tiền đang vào ngành nào. Màn lọc đổi tên thành Bảng lọc mã cho dễ hiểu.
+
+### Added
+
+- Price chart on a name's card: pick 1M, 3M, 6M or 1Y (3M by default; the page remembers your pick), with volume bars, MA50 (solid), MA200 (dotted) and your plan's levels. Markets with no price history of their own, such as SJC gold, show no picker.
+- How a session's volume compares with its 20-session average, on the card and in `/price`.
+- "Who bought, who sold" for the Vietnam market in `/overview`, on the market tab and in the assistant's market overview: foreign investors, proprietary desks and everyone else over the last 21 sessions, their 5-session averages, a plain reading (both selling, both buying, on opposite sides, or only one side trading) and how many sessions in a row foreign investors have bought or sold. It is dated by the newest session the desks have reported, so a late report never mixes two days.
+- "Where the money went": the five sectors with the most traded value against their 20-session average and their share of the market, in `/overview` and on the market tab.
+- `GET /v1/price-chart` for apps (bars, averages and volume against average for one name over `1m`, `3m`, `6m` or `1y`).
+
+### Changed
+
+- In Vietnamese, "Màn lọc" is now "Bảng lọc mã" everywhere.
+- `/overview` no longer prints today's foreign total on its own when the flow block already covers today, and the proprietary desk line now sits inside the flow block.
+
+### Fixed
+
+- Sector strength is dated by the session it was traded, not by a weekend day.
+
 ## [1.6.3] - 2026-11-13
 
 Order caps now count orders that filled at the exchange but never reached your ledger, gold rebalancing prices a buy at what the shop charges, Zalo shows command replies without long links, and the same event reads the same everywhere.
@@ -904,6 +926,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.7.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.7.0
 [1.6.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.3
 [1.6.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.2
 [1.6.1]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.1
