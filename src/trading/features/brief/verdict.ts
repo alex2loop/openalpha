@@ -8,6 +8,7 @@ import type {
 import type { RenderContext } from '@/trading/render/format'
 import { pluralKey, t } from '@/i18n'
 import { sectionNumber, sectionSessions } from '@/trading/kernel/operator/brief-section'
+import { homeMarketOf } from '@/trading/markets/brief-compose'
 import { formatCount, formatFraction, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, toFactLines } from '@/trading/render/layout'
 import { labelledRowFacts, renderBlockRule, renderBriefSection } from '@/trading/render/section'
@@ -68,13 +69,12 @@ export function renderQuotedReading(
   return lines
 }
 
-/** The sections of the market the brief is about: compose leads the market sections with the home
- *  block, so the first one carrying a market names it. A section of another market is never quoted,
- *  or a verdict reads one market's index beside another's breadth. */
+/** The sections of the market the brief is about. A section of another market is never quoted, or
+ *  a verdict reads one market's index beside another's breadth. */
 function homeMarketSections(
   sections: readonly BriefSectionResult[]
 ): readonly BriefSectionResult[] {
-  const home = sections.find((section) => section.market !== undefined)?.market
+  const home = homeMarketOf(sections)
 
   return home === undefined ? [] : sections.filter((section) => section.market === home)
 }

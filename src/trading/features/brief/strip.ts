@@ -9,14 +9,14 @@ import type {
 import type { RenderContext } from '@/trading/render/format'
 import { formatShortDay, t } from '@/i18n'
 import { marketRef } from '@/trading/kernel/instrument'
+import { homeMarketOf } from '@/trading/markets/brief-compose'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { ABSENT_CELL } from '@/trading/render/number'
 import { renderHeadlineCells } from '@/trading/render/price-pair'
 import { priceContextOf, toPricePair } from '@/trading/render/section-price'
 import { renderValue, unitOfSection } from '@/trading/render/section-values'
 
-/** The market whose prices date the session the brief describes. */
-const SESSION_MARKET = marketRef('equity-vn')
+const VN_MARKET = marketRef('equity-vn')
 
 type ReadySection = Extract<BriefSectionResult, { readonly status: 'ready' }>
 
@@ -27,7 +27,7 @@ interface StripSource {
   readonly field?: BriefField
 }
 
-type StripId = 'vn-index' | 'vn30' | 'sjc' | 'world-gold' | 'btc' | 'usd-vnd'
+type StripId = 'vn-index' | 'vn30' | 'nasdaq' | 'sjc' | 'world-gold' | 'btc' | 'usd-vnd'
 
 /** What a figure reads, and the day it settled on when that is not the brief's session. */
 interface StripReading {
@@ -40,16 +40,32 @@ interface StripFigure {
   readonly market: MarketRef
   readonly ticker: string
   readonly sources: readonly StripSource[]
+  /** A market's headline index: it leads the strip when its market is the brief's home. */
+  readonly headline?: true
 }
 
 const MARKET_PRICES: StripSource = Object.freeze({ kind: 'market-prices' })
 
-/** The six figures a reader checks first, in the order they are read: the two indices, the gold
- *  Vietnamese buyers pay for and the world's, the coin, and the dollar. The SJC bar reads off the
- *  dealer board when it is live and off the last settled bar when the dealers have not revised. */
+/** The figures a reader checks first, in the order they are read: the indices, the gold Vietnamese
+ *  buyers pay for and the world's, the coin, and the dollar. The home market's indices move to the
+ *  front. The SJC bar reads off the dealer board when it is live and off the last settled bar when
+ *  the dealers have not revised. */
 const STRIP_FIGURES: readonly StripFigure[] = Object.freeze([
-  { id: 'vn-index', market: SESSION_MARKET, ticker: 'VNINDEX', sources: [MARKET_PRICES] },
-  { id: 'vn30', market: SESSION_MARKET, ticker: 'VN30', sources: [MARKET_PRICES] },
+  {
+    id: 'vn-index',
+    market: VN_MARKET,
+    ticker: 'VNINDEX',
+    sources: [MARKET_PRICES],
+    headline: true,
+  },
+  { id: 'vn30', market: VN_MARKET, ticker: 'VN30', sources: [MARKET_PRICES], headline: true },
+  {
+    id: 'nasdaq',
+    market: marketRef('equity-us'),
+    ticker: 'COMP',
+    sources: [MARKET_PRICES],
+    headline: true,
+  },
   {
     id: 'sjc',
     market: marketRef('gold-vn'),
@@ -60,7 +76,7 @@ const STRIP_FIGURES: readonly StripFigure[] = Object.freeze([
   { id: 'btc', market: marketRef('crypto'), ticker: 'BTC', sources: [MARKET_PRICES] },
   {
     id: 'usd-vnd',
-    market: SESSION_MARKET,
+    market: VN_MARKET,
     ticker: 'USD/VND',
     sources: [{ kind: 'fx', field: 'rate' }],
   },
@@ -76,25 +92,35 @@ export function renderBriefStrip(
   context: RenderContext
 ): readonly string[] {
   const session = briefSessionOf(sections)
+  const home = homeMarketOf(sections)
+  const ordered = [
+    ...STRIP_FIGURES.filter((figure) => leadsStrip(figure, home)),
+    ...STRIP_FIGURES.filter((figure) => !leadsStrip(figure, home)),
+  ]
 
-  return STRIP_FIGURES.filter((figure) =>
-    sections.some((section) => section.market === figure.market)
-  ).map((figure) => {
-    const label = t(locale, `trading.brief.strip.${figure.id}`)
-    const reading = readingOf(locale, sections, { figure, session, context })
+  return ordered
+    .filter((figure) => sections.some((section) => section.market === figure.market))
+    .map((figure) => {
+      const label = t(locale, `trading.brief.strip.${figure.id}`)
+      const reading = readingOf(locale, sections, { figure, session, context })
 
-    return reading === undefined ? `${label} ${ABSENT_CELL}` : toCell(locale, label, reading)
-  })
+      return reading === undefined ? `${label} ${ABSENT_CELL}` : toCell(locale, label, reading)
+    })
 }
 
-/** The session the prices describe: the day the Vietnam index prices are stated for, or the first
- *  market's where the brief has none. */
+/** The session the prices describe: the day the home market's index prices are stated for, or the
+ *  first market's where the brief has none. */
 export function briefSessionOf(sections: readonly BriefSectionResult[]): TradingDay | undefined {
   const prices = sections.filter(
     (section) => section.status === 'ready' && section.kind === 'market-prices'
   )
+  const home = homeMarketOf(sections)
 
-  return (prices.find((section) => section.market === SESSION_MARKET) ?? prices[0])?.asOf
+  return (prices.find((section) => section.market === home) ?? prices[0])?.asOf
+}
+
+function leadsStrip(figure: StripFigure, home: MarketRef | undefined): boolean {
+  return figure.headline === true && figure.market === home
 }
 
 /** The first source that reads. A section that did not come back counts as no reading. */

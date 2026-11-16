@@ -150,6 +150,12 @@ export async function composeBrief<Board>(
   }
 }
 
+/** The market a composed brief is about: `marketSections` leads the market blocks with the home
+ *  one, so the first section carrying a market names it. */
+export function homeMarketOf(sections: readonly BriefSectionResult[]): MarketRef | undefined {
+  return sections.find((section) => section.market !== undefined)?.market
+}
+
 const orderIndex = (kind: BriefSectionKind): number => BRIEF_SECTION_ORDER.indexOf(kind)
 
 function byOrder(sections: readonly BriefSectionResult[]): readonly BriefSectionResult[] {
