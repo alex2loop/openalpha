@@ -286,9 +286,10 @@ function toPurchase(
     (document.relationship === undefined ? undefined : RELATIONSHIP_LABELS[document.relationship])
   const who = role === undefined ? owner : `${owner} (${role})`
   const price = transaction.price === undefined ? '' : ` at $${transaction.price}`
+  const at = tradingDay(transaction.day.slice(0, DAY_LENGTH))
 
   return {
-    at: tradingDay(transaction.day.slice(0, DAY_LENGTH)),
+    at,
     kind: 'insider-purchase',
     title: `${ticker} ${who}`,
     detail: untrustedText(`${transaction.shares} shares${price}`, 'detail').value,
@@ -301,6 +302,8 @@ function toPurchase(
       ...(transaction.price === undefined ? {} : { price: transaction.price }),
       currency: FORM_4_CURRENCY,
     },
-    providerEventId: filing.accession,
+    // One Form 4 lists purchases on several days, each its own event: the accession alone would
+    // fold a later day into the first's row. A day's lines stay one row, which prints no more.
+    providerEventId: `${filing.accession}#${at}`,
   }
 }
