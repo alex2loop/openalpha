@@ -102,7 +102,7 @@ function proprietaryFlowSection(overview: MarketDataOverview): BriefSectionResul
       })
 }
 
-/** Three readings of one session: how many names moved, how many were pinned to the band, and where
+/** The readings of one session: how many names moved, how many were pinned to the band, and where
  *  the universe stands against its own trend. Each answers a different question, so each is a row. */
 export function breadthRows(breadth: MarketBreadth | undefined): readonly BriefSectionRow[] {
   if (breadth === undefined) {
@@ -120,21 +120,28 @@ export function breadthRows(breadth: MarketBreadth | undefined): readonly BriefS
   ]
 }
 
-/** The trend row, then one row per index fund's distribution days. Empty when none was measured. */
+/** One row per moving-average window, each share beside the count it is out of, then the index's
+ *  own trend, then one row per index fund's distribution days. Empty when none was measured. */
 export function breadthTrendRows(trend: BreadthTrend): readonly BriefSectionRow[] {
-  const row: BriefSectionRow = {
-    ...(trend.aboveMa50Ratio === undefined ? {} : { aboveMa50Ratio: trend.aboveMa50Ratio }),
-    ...(trend.ma50Measured === undefined ? {} : { ma50Measured: trend.ma50Measured }),
-    ...(trend.aboveMa200Ratio === undefined ? {} : { aboveMa200Ratio: trend.aboveMa200Ratio }),
-    ...(trend.ma200Measured === undefined ? {} : { ma200Measured: trend.ma200Measured }),
-    ...(trend.indexToMa50Pct === undefined ? {} : { indexToMa50Pct: trend.indexToMa50Pct }),
-    ...(trend.ma50SlopePct === undefined ? {} : { ma50SlopePct: trend.ma50SlopePct }),
-    ...(trend.newHighs === undefined ? {} : { newHighs: trend.newHighs }),
-    ...(trend.newLows === undefined ? {} : { newLows: trend.newLows }),
-  }
+  const rows: readonly BriefSectionRow[] = [
+    {
+      ...(trend.aboveMa50Ratio === undefined ? {} : { aboveMa50Ratio: trend.aboveMa50Ratio }),
+      ...(trend.ma50Measured === undefined ? {} : { ma50Measured: trend.ma50Measured }),
+    },
+    {
+      ...(trend.aboveMa200Ratio === undefined ? {} : { aboveMa200Ratio: trend.aboveMa200Ratio }),
+      ...(trend.ma200Measured === undefined ? {} : { ma200Measured: trend.ma200Measured }),
+    },
+    {
+      ...(trend.indexToMa50Pct === undefined ? {} : { indexToMa50Pct: trend.indexToMa50Pct }),
+      ...(trend.ma50SlopePct === undefined ? {} : { ma50SlopePct: trend.ma50SlopePct }),
+      ...(trend.newHighs === undefined ? {} : { newHighs: trend.newHighs }),
+      ...(trend.newLows === undefined ? {} : { newLows: trend.newLows }),
+    },
+  ]
 
   return [
-    ...(Object.keys(row).length === 0 ? [] : [row]),
+    ...rows.filter((row) => Object.keys(row).length > 0),
     ...(trend.distribution ?? []).map((entry) => ({
       ticker: entry.ticker,
       distributionDays: entry.days,

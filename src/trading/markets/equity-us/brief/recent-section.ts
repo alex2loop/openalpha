@@ -5,7 +5,7 @@ import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/opera
 import type { BriefContext } from '@/trading/markets/brief-context'
 import type { DatedEvent } from '@/trading/markets/brief-events'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
-import { FILED_EVENT_KINDS } from '@/trading/kernel/market/market-event'
+import { FILED_EVENT_KINDS, isFlaggedFiling } from '@/trading/kernel/market/market-event'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 
@@ -37,7 +37,7 @@ export async function buildRecent(context: BriefContext): Promise<BriefSectionRe
     return read.isComplete && filingsOn ? omitted('recent') : absent('recent', caveats)
   }
 
-  const shown = nearestFirst(rows, asOf, context.policy.maximumItemsPerSection)
+  const shown = capped(rows, asOf, context.policy.maximumItemsPerSection)
 
   return ready('recent', shown.map(toRow), {
     caveats,
@@ -75,24 +75,27 @@ function forecastCurrency(rows: readonly DatedEvent[]): { readonly currency?: Cu
   return currency === undefined ? {} : { currency }
 }
 
-/** The cap keeps the dates closest to today, then reads in date order: keeping the oldest would
+/** The cap keeps every flagged filing, which the next action points the operator to, and fills the
+ *  rest of it with the dates closest to today, then reads in date order: keeping the oldest would
  *  drop the newest filings and the nearest ex-dates, which are the news. */
-function nearestFirst(
+function capped(
   rows: readonly DatedEvent[],
   asOf: TradingDay,
   limit: number
 ): readonly DatedEvent[] {
   const asOfMs = Date.parse(asOf)
-
-  return rows
+  const flagged = rows.filter(({ event }) => isFlaggedFiling(event))
+  const nearest = rows
+    .filter(({ event }) => !isFlaggedFiling(event))
     .toSorted(
       (left, right) =>
         Math.abs(Date.parse(left.event.at) - asOfMs) - Math.abs(Date.parse(right.event.at) - asOfMs)
     )
-    .slice(0, limit)
-    .toSorted(
-      (left, right) =>
-        left.event.at.localeCompare(right.event.at) ||
-        left.instrument.ticker.localeCompare(right.instrument.ticker)
-    )
+    .slice(0, Math.max(limit - flagged.length, 0))
+
+  return [...flagged, ...nearest].toSorted(
+    (left, right) =>
+      left.event.at.localeCompare(right.event.at) ||
+      left.instrument.ticker.localeCompare(right.instrument.ticker)
+  )
 }

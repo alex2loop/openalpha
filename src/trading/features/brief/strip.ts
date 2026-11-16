@@ -82,10 +82,11 @@ const STRIP_FIGURES: readonly StripFigure[] = Object.freeze([
   },
 ] as const satisfies readonly StripFigure[])
 
-/** One cell per figure of a market the brief has a block for. A figure whose market has none is
- *  left out, so a brief without gold in Vietnam does not announce its absence; one whose market is
- *  there but gave no reading says so, because a missing price is not a price of zero. A close from
- *  a day other than the session carries its date, so an older bar never reads as this morning's. */
+/** One cell per figure whose market has a section of a kind the figure reads. A figure without one
+ *  is left out, so a brief without gold in Vietnam, or a non-home Vietnam block that builds no fx
+ *  rate, does not announce its absence; one whose section is there but gave no reading says so,
+ *  because a missing price is not a price of zero. A close from a day other than the session
+ *  carries its date, so an older bar never reads as this morning's. */
 export function renderBriefStrip(
   locale: Locale,
   sections: readonly BriefSectionResult[],
@@ -99,7 +100,7 @@ export function renderBriefStrip(
   ]
 
   return ordered
-    .filter((figure) => sections.some((section) => section.market === figure.market))
+    .filter((figure) => hasSourceSection(sections, figure))
     .map((figure) => {
       const label = t(locale, `trading.brief.strip.${figure.id}`)
       const reading = readingOf(locale, sections, { figure, session, context })
@@ -117,6 +118,14 @@ export function briefSessionOf(sections: readonly BriefSectionResult[]): Trading
   const home = homeMarketOf(sections)
 
   return (prices.find((section) => section.market === home) ?? prices[0])?.asOf
+}
+
+function hasSourceSection(sections: readonly BriefSectionResult[], figure: StripFigure): boolean {
+  return sections.some(
+    (section) =>
+      section.market === figure.market &&
+      figure.sources.some((source) => source.kind === section.kind)
+  )
 }
 
 function isHomeHeadline(figure: StripFigure, home: MarketRef | undefined): boolean {
