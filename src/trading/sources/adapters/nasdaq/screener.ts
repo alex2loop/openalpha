@@ -52,12 +52,13 @@ const NON_COMMON_NAME_MARKERS: readonly string[] = [
   'trust preferred',
   'preference share',
   'cumulative',
-  'depositary shares',
-  'depository shares',
 ]
 
-/** A depositary receipt of a foreign company's shares ("American Depositary Shares each representing
- *  two Ordinary Shares") is a share, though its name says "depositary shares" like a preferred's does. */
+/** A bare "depositary shares" name is a preferred's, unless it is a depositary receipt of a foreign
+ *  company's shares ("American Depositary Shares each representing two Ordinary Shares"), which is a
+ *  share. The receipt wording rescues only these markers: a warrant over such receipts stays dropped. */
+const DEPOSITARY_SHARES_NAME_MARKERS: readonly string[] = ['depositary shares', 'depository shares']
+
 const DEPOSITARY_RECEIPT_NAME_MARKERS: readonly string[] = [
   'american depositary',
   'american depository',
@@ -288,7 +289,12 @@ function isNonCommonName(name: string): boolean {
   const lowered = name.toLowerCase()
 
   return (
-    !DEPOSITARY_RECEIPT_NAME_MARKERS.some((marker) => lowered.includes(marker)) &&
-    NON_COMMON_NAME_MARKERS.some((marker) => lowered.includes(marker))
+    includesAny(lowered, NON_COMMON_NAME_MARKERS) ||
+    (includesAny(lowered, DEPOSITARY_SHARES_NAME_MARKERS) &&
+      !includesAny(lowered, DEPOSITARY_RECEIPT_NAME_MARKERS))
   )
+}
+
+function includesAny(text: string, markers: readonly string[]): boolean {
+  return markers.some((marker) => text.includes(marker))
 }
