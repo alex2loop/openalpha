@@ -40,6 +40,8 @@ interface ProfileServiceDeps {
   readonly homeRegion: Region
   /** The markets some venue holds; the rest are read for reference and never sized. */
   readonly heldMarkets: ReadonlySet<MarketRef>
+  /** Called after each write that reached the store, so a surface showing the profile re-reads it. */
+  readonly onSaved: () => void
 }
 
 export function createProfileService(deps: ProfileServiceDeps): ProfileService {
@@ -57,7 +59,8 @@ export function createProfileService(deps: ProfileServiceDeps): ProfileService {
     async reset(options) {
       const current = (await resolve(deps, options)).profile
 
-      return deps.profiles.upsert(
+      return saveProfile(
+        deps,
         resetProfile(current, contextOf(deps), current.riskLevel),
         options.signal
       )
@@ -103,7 +106,7 @@ async function saveSegment(
     contextOf(deps)
   )
 
-  return next === current ? current : deps.profiles.upsert(next, options.signal)
+  return next === current ? current : saveProfile(deps, next, options.signal)
 }
 
 /** Always written, unlike a toggle: the operator named a number, so the profile is theirs from here
@@ -119,7 +122,7 @@ async function saveSegmentPolicy(
     contextOf(deps)
   )
 
-  return deps.profiles.upsert(next, options.signal)
+  return saveProfile(deps, next, options.signal)
 }
 
 async function savePatch(
@@ -137,10 +140,7 @@ async function savePatch(
     })
   }
 
-  return deps.profiles.upsert(
-    updateProfile(current, options.patch, contextOf(deps)),
-    options.signal
-  )
+  return saveProfile(deps, updateProfile(current, options.patch, contextOf(deps)), options.signal)
 }
 
 /** An unresolved name comes back as-is: a list holding a name nobody can price is not one to save. */
@@ -155,12 +155,26 @@ async function saveWatchlist(
     return next
   }
 
-  const saved = await deps.profiles.upsert(
+  const saved = await saveProfile(
+    deps,
     updateProfile(current, { watchlist: next.instruments }, contextOf(deps)),
     options.signal
   )
 
   return { kind: 'watchlist', instruments: saved.watchlist, instrumentKinds: next.instrumentKinds }
+}
+
+/** The one write path: the listener hears only a profile the store took, never a refused or skipped one. */
+async function saveProfile(
+  deps: ProfileServiceDeps,
+  profile: UserProfile,
+  signal: AbortSignal
+): Promise<UserProfile> {
+  const saved = await deps.profiles.upsert(profile, signal)
+
+  deps.onSaved()
+
+  return saved
 }
 
 /** Whether the profile was stored answers a question the profile itself cannot: advice built on a

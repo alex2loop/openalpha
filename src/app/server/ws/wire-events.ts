@@ -29,6 +29,7 @@ type WireTopic =
   | 'command_started'
   | 'command_finished'
   | 'alerts_checked'
+  | 'profile_saved'
   | 'daemon_notice'
   | 'notices_changed'
   | 'preference_saved'
@@ -192,6 +193,12 @@ export const WIRE_NORMALIZERS: { readonly [K in WireTopic]: (e: BusEventMap[K]) 
     weight: 'quiet',
     source: APP_SOURCE,
     checkedAt: e.at,
+  }),
+  profile_saved: () => ({
+    v: 1,
+    kind: 'profile_saved',
+    weight: 'quiet',
+    source: APP_SOURCE,
   }),
   daemon_notice: (e) => ({
     v: 1,

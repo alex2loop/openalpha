@@ -19,6 +19,7 @@ import { followFills } from '@/app/server/feed/fills'
 import { followPreferences } from '@/app/server/feed/memory'
 import { followNotices } from '@/app/server/feed/notices'
 import { createPendingFeed } from '@/app/server/feed/pending'
+import { followProfile } from '@/app/server/feed/profile'
 import { toProgressWire } from '@/app/server/feed/progress'
 import { followRoles } from '@/app/server/feed/roles'
 import { followFocusCalls } from '@/app/server/feed/scored'
@@ -81,6 +82,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
     ...followBudget(deps),
     ...followNotices(deps),
     ...followPreferences(deps),
+    ...followProfile(deps),
     followTasks(deps, deps.tasks),
   ]
 

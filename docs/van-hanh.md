@@ -671,7 +671,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
 ### Trên màn hình có gì
 
 - **Đầu trang.** Chip việc đang chạy (cái gì đang chạy và cái gì tiếp theo: dừng một phiên chạy, hoặc chạy lại một việc theo lịch), công tắc 2D | 3D, công tắc Văn phòng | Tập trung (không hiện trên màn hình hẹp), chip chi phí AI, đồng hồ văn phòng, chuông thông báo, nút "?" liệt kê các phím tắt và Cài đặt.
-- **Dải giá.** Nổi trên phần đầu khung cảnh văn phòng, ngay dưới nút chuyển tầng, chỉ số chuẩn (VN-Index, BTC) của từng thị trường bạn giao dịch và danh sách theo dõi chạy ngang qua. Mã thủng cắt lỗ và đề xuất mua mới được đánh dấu.
+- **Dải giá.** Nổi trên phần đầu khung cảnh văn phòng, ngay dưới nút chuyển tầng, chỉ số chuẩn (VN-Index, BTC) của từng thị trường bạn giao dịch và danh sách theo dõi chạy ngang qua. Mã thủng cắt lỗ và đề xuất mua mới được đánh dấu. Mã thêm vào hay bỏ khỏi danh sách theo dõi ở bất cứ đâu (trang này, một cuộc trò chuyện, Telegram, terminal) hiện ở đây và trong danh sách theo dõi ở tab Danh mục ngay sau đó.
 - **Văn phòng.** Khung cảnh, chiếm cả trang với bảng thông tin nổi phía bên phải; mô tả ở dưới.
 - **Bảng thông tin.** Bốn thẻ, cộng một thẻ riêng cho thứ bạn bấm vào.
   - *Hôm nay* mở đầu bằng một dòng về phiên của thị trường nhà: sàn của nó, như HOSE, đang giao dịch

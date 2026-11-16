@@ -67,6 +67,8 @@ interface TradingRegistrationOptions {
   onAlertFired(app: App): AlertFiredListener
   /** Bound with the app in hand: telling the page an alert pass finished needs the bus. */
   onAlertsChecked(app: App): (at: number) => void
+  /** Bound with the app in hand: telling the page the profile changed needs the bus. */
+  onProfileSaved(app: App): () => void
   /** Bound with the app in hand: the page shows each loop's last and next pass. */
   onTaskPass(app: App): TaskPassListener
   /** Bound with the app in hand: the page shows a scheduled refresh as the `/refresh` run. */
@@ -103,6 +105,7 @@ type BoundOptions = Omit<
   | 'onFilled'
   | 'onAlertFired'
   | 'onAlertsChecked'
+  | 'onProfileSaved'
   | 'onTaskPass'
   | 'runScheduled'
   | 'onRoleOutput'
@@ -113,6 +116,7 @@ type BoundOptions = Omit<
   readonly onFilled: OrderFilledListener
   readonly onAlertFired: AlertFiredListener
   readonly onAlertsChecked: (at: number) => void
+  readonly onProfileSaved: () => void
   readonly onTaskPass: TaskPassListener
   readonly runScheduled: ScheduledRunner
   readonly onRoleOutput: RoleOutputListener
@@ -130,6 +134,7 @@ function bindOptions(app: App, provided: TradingRegistrationOptions): BoundOptio
     onFilled: provided.onFilled(app),
     onAlertFired: provided.onAlertFired(app),
     onAlertsChecked: provided.onAlertsChecked(app),
+    onProfileSaved: provided.onProfileSaved(app),
     onTaskPass: provided.onTaskPass(app),
     runScheduled: provided.runScheduled(app),
     onRoleOutput: provided.onRoleOutput(app),
@@ -332,6 +337,7 @@ function buildServices(
     recipient: options.recipient,
     onFilled: options.onFilled,
     onAlertFired: options.onAlertFired,
+    onProfileSaved: options.onProfileSaved,
     onFocusCallScored: options.onFocusCallScored,
     config: options.tradingConfig,
     // Composed here rather than passed in: the debate reads the closed market registry, which does

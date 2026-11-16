@@ -679,7 +679,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
 ### What is on the screen
 
 - **Header.** The running chip (what is running and what is next: stop a run, or run a scheduled job again), the 2D | 3D switch, the Office | Focus switch (not shown on narrow screens), the AI cost chip, the office clock, the bell, a "?" button that lists the keyboard shortcuts, and Settings.
-- **Tape.** Floating over the top of the office scene, under the floor switch, the benchmark (VN-Index, BTC) of each market you trade and your watchlist scroll past. A name that broke its stop and a fresh buy call are marked.
+- **Tape.** Floating over the top of the office scene, under the floor switch, the benchmark (VN-Index, BTC) of each market you trade and your watchlist scroll past. A name that broke its stop and a fresh buy call are marked. A name added to or removed from your watchlist anywhere (this page, a chat, Telegram, the terminal) shows here and in the Portfolio tab's watchlist within a moment.
 - **The office.** The scene, filling the page with the information panel floating over its right side; described below.
 - **Information panel.** Four tabs, plus a card for whatever you click.
   - *Today* opens with one line on your home market's day: whether its exchange, such as HOSE, is

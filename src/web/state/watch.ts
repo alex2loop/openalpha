@@ -6,7 +6,7 @@ import type { WatchlistUpdateResponse } from '@/app/server/wire/watchlist'
 import { sendJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
 import { type BlockReading, readBlock } from '@/web/state/block'
-import { alertsBlock, profileBlock, quotesBlock } from '@/web/state/market'
+import { alertsBlock, refreshWatch } from '@/web/state/market'
 import { tr } from '@/web/text/tr'
 
 // Alerts fire while the page is open, so a list on screen is read again at this period.
@@ -71,9 +71,4 @@ function describeRefusal(answer: WatchlistUpdateResponse, typed: string): string
   }
 
   return answer.unknown.length > 0 ? tr('ui.office.book.addUnknown', { name: typed }) : undefined
-}
-
-function refreshWatch(): void {
-  profileBlock.retry()
-  quotesBlock.retry()
 }

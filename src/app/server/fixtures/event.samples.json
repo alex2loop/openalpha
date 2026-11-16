@@ -330,6 +330,12 @@
   },
   {
     "v": 1,
+    "kind": "profile_saved",
+    "weight": "quiet",
+    "source": { "channel": "api", "agentId": "" }
+  },
+  {
+    "v": 1,
     "kind": "tasks_changed",
     "weight": "quiet",
     "source": {
