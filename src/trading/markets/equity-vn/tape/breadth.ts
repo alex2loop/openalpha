@@ -21,10 +21,10 @@ import {
   resolveTradeability,
 } from '@/trading/markets/equity-vn/tradeability'
 import {
-  averageSlope,
+  indexTrendReading,
   isAboveMean,
+  seriesThrough,
   sessionChange,
-  trendDistance,
 } from '@/trading/markets/timeseries'
 
 /** The index ratios a basket's names answer for, each with the mean its names are measured against. */
@@ -165,19 +165,6 @@ function truncatedAt(name: NameEvidence, day: TradingDay): NameEvidence {
   }
 }
 
-/** The index series as it stood at `asOf`, or nothing when it does not reach that session. Every
- *  count beside these readings is admitted name by name at `asOf`, so a series that stops short —
- *  the index endpoint withholds the settled bar for hours after the shares have theirs — would put
- *  one session's trend under another's stamp, and one running ahead would do the reverse. */
-function seriesThrough(
-  bars: readonly Candle[] | undefined,
-  asOf: TradingDay
-): readonly Candle[] | undefined {
-  const window = (bars ?? []).filter((bar) => bar.at <= asOf)
-
-  return window[window.length - 1]?.at === asOf ? window : undefined
-}
-
 /** Empty while the index series reaches the counted session. Otherwise the two readings above are
  *  withheld, and this names the session the series actually stops at — an absent reading with no
  *  caveat reads as a market that published nothing. */
@@ -211,13 +198,7 @@ function indexTrend(
     return {}
   }
 
-  const distance = trendDistance(closes, TREND_SESSIONS)
-  const slope = averageSlope(closes, TREND_SESSIONS, TREND_SLOPE_SESSIONS)
-
-  return {
-    ...(distance === undefined ? {} : { indexToMa50Pct: distance }),
-    ...(slope === undefined ? {} : { ma50SlopePct: slope }),
-  }
+  return indexTrendReading(closes, TREND_SESSIONS, TREND_SLOPE_SESSIONS)
 }
 
 /** Where the broad tape sits in its own recent distribution, plus the share of names above each mean.

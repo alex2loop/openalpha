@@ -37,6 +37,20 @@ export const US_TICK: TickSizePolicy = Object.freeze({
 })
 
 export const US_BENCHMARK_TICKER: Ticker = ticker('SPY')
+/** The funds whose distribution days are counted: the broad market and the Nasdaq-100. */
+export const US_DISTRIBUTION_TICKERS: readonly Ticker[] = Object.freeze([
+  ticker('SPY'),
+  ticker('QQQ'),
+])
+/** The IBD definition: a session down at least `declineAtLeast` on more volume than the one before
+ *  counts until `expirySessions` sessions pass or the fund closes `recoveryRise` above that day's
+ *  close. Stored bars are split-adjusted only, so an ex-dividend drop past the threshold on higher
+ *  volume can count as a distribution day. */
+export const US_DISTRIBUTION_DAY_POLICY = Object.freeze({
+  declineAtLeast: 0.002,
+  expirySessions: 25,
+  recoveryRise: 0.05,
+})
 /** The sector board's windows and floors, read against the benchmark fund. Nasdaq files every board
  *  name under a sector, so the coverage floor only trips on a broken listing read. */
 export const US_SECTOR_POLICY: SectorPolicy = Object.freeze({
@@ -185,6 +199,7 @@ export const US_VOLATILITY_SESSIONS = 63
 export const US_LIQUIDITY_SESSIONS = 20
 export const US_TREND_SESSIONS = 50
 export const US_TREND_SLOPE_SESSIONS = 10
+export const US_LONG_TREND_SESSIONS = 200
 export const US_FUND_MOMENTUM_SESSIONS = 126
 export const US_HIGH_PROXIMITY_SESSIONS = YEAR_SESSIONS
 

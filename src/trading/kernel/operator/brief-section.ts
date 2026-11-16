@@ -165,6 +165,7 @@ export type BriefStopBasis = (typeof BRIEF_STOP_BASES)[number]
 /** Split out so the renderer's unit map can be exhaustive over them: a numeric field with no
  *  formatter reaches a reader as a raw float. */
 export const BRIEF_NUMERIC_FIELDS = Object.freeze([
+  'aboveMa200Ratio',
   'aboveMa50Ratio',
   'advanceRatio',
   'advancers',
@@ -183,6 +184,7 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'decliners',
   'deploymentScale',
   'depositRate12m',
+  'distributionDays',
   'entryTranchePct',
   /** Analysts' consensus EPS for a coming report, per share in the section's currency. */
   'epsForecast',
@@ -193,6 +195,7 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'funding',
   'index',
   'indexToMa50Pct',
+  'ma200Measured',
   'ma50Measured',
   'largestSharePct',
   'last',

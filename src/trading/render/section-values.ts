@@ -180,7 +180,9 @@ const DECLARED_PREFIXES: Partial<Record<BriefField, `trading.${string}`>> = Obje
 /** Every numeric field declares its unit. Exhaustive by `satisfies`, because the fallback for a
  *  missing entry is `String(value)` — a raw float in front of a reader. */
 const VALUE_FORMATTERS = Object.freeze({
+  aboveMa200Ratio: formatFraction,
   aboveMa50Ratio: formatFraction,
+  ma200Measured: formatCount,
   ma50Measured: formatCount,
   advanceRatio: formatFraction,
   advancers: formatCount,
@@ -198,6 +200,7 @@ const VALUE_FORMATTERS = Object.freeze({
   decliners: formatCount,
   deploymentScale: formatFraction,
   depositRate12m: formatFraction,
+  distributionDays: formatCount,
   entryTranchePct: formatFixedFraction,
   epsForecast: formatRatio,
   floors: formatCount,

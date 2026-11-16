@@ -17,6 +17,21 @@ export const MAXIMUM_NAMES_PER_LIST = 3
  *  brief's flow sections sum over. */
 const ROLLUP_SESSIONS = 1
 
+/** What a breadth reading says about trend rather than about the session's counts, so a fold that
+ *  measures only these can publish them. */
+export type BreadthTrend = Pick<
+  MarketBreadth,
+  | 'aboveMa50Ratio'
+  | 'ma50Measured'
+  | 'aboveMa200Ratio'
+  | 'ma200Measured'
+  | 'indexToMa50Pct'
+  | 'ma50SlopePct'
+  | 'newHighs'
+  | 'newLows'
+  | 'distribution'
+>
+
 /** What a market settled across its whole measured universe, as opposed to what any one instrument
  *  did. `/overview` is the only surface that renders these from the read: the brief builds its own
  *  over a twenty-session window, and the intraday report has already folded them into its settled
@@ -31,13 +46,13 @@ export function rollupSections(overview: MarketDataOverview): readonly BriefSect
   ].filter((section) => section !== undefined)
 }
 
-/** Skipped where the market publishes a capitalization: the market-size section states the same
- *  counts beside the size they belong to, and a board has one breadth, not two. */
+/** Where the market publishes a capitalization the market-size section already states the counts
+ *  beside the size they belong to, and a board has one breadth, not two: only the trend is added. */
 function breadthSection(overview: MarketDataOverview): BriefSectionResult | undefined {
   const rows =
     overview.marketCap === undefined
       ? [...breadthRows(overview.breadth), ...boardRows(overview.boards)]
-      : []
+      : breadthTrendRows(overview.breadth ?? {})
 
   return rows.length === 0 ? undefined : readySection(overview, { kind: 'breadth', rows })
 }
@@ -94,15 +109,6 @@ export function breadthRows(breadth: MarketBreadth | undefined): readonly BriefS
     return []
   }
 
-  const trend: BriefSectionRow = {
-    ...(breadth.aboveMa50Ratio === undefined ? {} : { aboveMa50Ratio: breadth.aboveMa50Ratio }),
-    ...(breadth.ma50Measured === undefined ? {} : { ma50Measured: breadth.ma50Measured }),
-    ...(breadth.indexToMa50Pct === undefined ? {} : { indexToMa50Pct: breadth.indexToMa50Pct }),
-    ...(breadth.ma50SlopePct === undefined ? {} : { ma50SlopePct: breadth.ma50SlopePct }),
-    ...(breadth.newHighs === undefined ? {} : { newHighs: breadth.newHighs }),
-    ...(breadth.newLows === undefined ? {} : { newLows: breadth.newLows }),
-  }
-
   return [
     { advancers: breadth.advancers, decliners: breadth.decliners, measured: breadth.measured },
     {
@@ -110,7 +116,30 @@ export function breadthRows(breadth: MarketBreadth | undefined): readonly BriefS
       ...(breadth.ceilings === undefined ? {} : { ceilings: breadth.ceilings }),
       ...(breadth.floors === undefined ? {} : { floors: breadth.floors }),
     },
-    ...(Object.keys(trend).length === 0 ? [] : [trend]),
+    ...breadthTrendRows(breadth),
+  ]
+}
+
+/** The trend row, then one row per index fund's distribution days. Empty when none was measured. */
+export function breadthTrendRows(trend: BreadthTrend): readonly BriefSectionRow[] {
+  const row: BriefSectionRow = {
+    ...(trend.aboveMa50Ratio === undefined ? {} : { aboveMa50Ratio: trend.aboveMa50Ratio }),
+    ...(trend.ma50Measured === undefined ? {} : { ma50Measured: trend.ma50Measured }),
+    ...(trend.aboveMa200Ratio === undefined ? {} : { aboveMa200Ratio: trend.aboveMa200Ratio }),
+    ...(trend.ma200Measured === undefined ? {} : { ma200Measured: trend.ma200Measured }),
+    ...(trend.indexToMa50Pct === undefined ? {} : { indexToMa50Pct: trend.indexToMa50Pct }),
+    ...(trend.ma50SlopePct === undefined ? {} : { ma50SlopePct: trend.ma50SlopePct }),
+    ...(trend.newHighs === undefined ? {} : { newHighs: trend.newHighs }),
+    ...(trend.newLows === undefined ? {} : { newLows: trend.newLows }),
+  }
+
+  return [
+    ...(Object.keys(row).length === 0 ? [] : [row]),
+    ...(trend.distribution ?? []).map((entry) => ({
+      ticker: entry.ticker,
+      distributionDays: entry.days,
+      sessions: entry.sessions,
+    })),
   ]
 }
 
