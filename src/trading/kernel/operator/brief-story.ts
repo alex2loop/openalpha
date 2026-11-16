@@ -24,6 +24,7 @@ export const STORY_CODES = Object.freeze([
   'sector-lagging',
   'basis-premium',
   'basis-discount',
+  'distribution-cluster',
 ] as const)
 export type StoryCode = (typeof STORY_CODES)[number]
 

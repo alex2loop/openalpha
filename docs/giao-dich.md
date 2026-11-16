@@ -55,7 +55,7 @@ Hai thị trường dùng chung khu vực `vn`, nên một trong hai phải đ�
 - **Kỳ công bố sắp tới.** Mọi đề xuất về một mã sẽ công bố kết quả kinh doanh trong mười phiên tới, dù là mua, giữ một mã bạn đang nắm hoặc bán, đều mang một lưu ý: giá có thể nhảy mạnh qua đêm khi kết quả ra, vượt qua mọi mức cắt lỗ. Mọi thứ khác giữ nguyên: mức tin cậy, quy mô và quyết định, vì ngày công bố không nói gì về hướng đi và công ty nào cũng có một kỳ mỗi quý. `/price` cũng liệt kê ngày công bố, kèm giờ công bố và EPS dự báo, trong các sự kiện sắp tới. Ngày lấy từ lịch của Nasdaq, được điền trước khoảng năm tuần và chỉ phủ những tuần đã điền; lần đọc lỗi thì nói rõ thay vì để bị hiểu là không có kỳ công bố.
 - **Độ rộng và phiên phân phối.** `/overview equity-us` và bản tin Mỹ cho biết có bao nhiêu mã trên bảng đóng cửa trên trung bình 50 phiên và trung bình 200 phiên của chính nó, mỗi số trên tổng các mã đã có đủ số phiên đó, cùng việc SPY cách trung bình 50 phiên bao xa và trung bình ấy đang đi về đâu. Hai câu lệnh cũng đếm phiên phân phối của SPY và QQQ: trong 25 phiên gần nhất, phiên đóng cửa giảm ít nhất 0,2% với khối lượng nhiều hơn phiên trước, và rơi khỏi số đếm khi quỹ đóng cửa cao hơn giá đóng cửa của phiên đó 5%. Bảng là 500 cổ phiếu lớn nhất, không phải S&P 500, nên tỷ lệ này có thể lệch vài điểm so với biểu đồ độ rộng của S&P 500. Mã có giá mới nhất không phải của phiên đó thì không được tính. Giá đã lưu chỉ điều chỉnh theo chia tách, nên mức giảm vì ngày giao dịch không hưởng cổ tức mà vượt 0,2% với khối lượng nhiều hơn vẫn có thể bị đếm là phiên phân phối. Trong năm giá đã lưu, không phiên nào trong 75 phiên đủ điều kiện của QQQ là ngày giao dịch không hưởng cổ tức; không nguồn nào ở đây có ngày giao dịch không hưởng cổ tức của SPY, nên số đếm của SPY chỉ được chặn trên chứ không kiểm tra theo cách đó (tối đa bốn phiên một năm có thể là như vậy).
 - **Crypto qua Coinbase.** Với người dùng ở Mỹ, `[trading.venues.coinbase] default_for = ["crypto"]` đưa Coinbase lên đầu khi báo giá crypto. Coinbase báo giá bằng đô la còn sổ tính bằng USDT, nên mọi giá được chia cho giá đô la của USDT; ngày 2026-10-20 con số này là 0,99883 và giá BTC sau quy đổi lệch Binance 0,009%. Nếu ký hiệu của một đồng coin trùng với mã niêm yết ở Mỹ (SOL, LINK), `/price` và `/suggest` đọc đồng coin khi bạn chỉ nắm giữ hoặc theo dõi đồng coin, còn lại thì đọc cổ phiếu; cả hai trường hợp đều báo rằng bên kia cũng tồn tại, và `crypto:SOL` hay `equity-us:SOL` đọc đúng bên bạn ghi. `/record` và `/update` không bao giờ đoán: ký hiệu có ở cả hai thị trường thì phải ghi rõ thị trường, hoặc nêu một sàn chỉ giữ một trong hai.
-- **Bản tin sáng.** Bản tin sáng cho thị trường chính ở Mỹ được gửi mặc định lúc 08:15 giờ New York. Bản tin đọc khối thị trường Mỹ (kèm các dòng độ rộng và phiên phân phối), khối crypto, sổ và các đề xuất của bạn, kèm danh sách "Hồ sơ công bố, kết quả kinh doanh và ngày giao dịch không hưởng cổ tức" dưới khối Mỹ: kết quả kinh doanh, giao dịch mua của người nội bộ và các mục 8-K cảnh báo trong năm phiên gần nhất, cùng, trong mười phiên tới, ngày giao dịch không hưởng cổ tức và các kỳ công bố kết quả kinh doanh (trước giờ mở cửa hay sau giờ đóng cửa, kèm EPS dự báo của giới phân tích), của các mã bạn nắm giữ hoặc theo dõi. Mã bạn đang nắm mà nộp một mục 8-K cảnh báo trong khoảng đó còn có một dòng ở phần việc nên làm, nhắc đọc hồ sơ trước phiên kế tiếp. Chưa đặt `SEC_CONTACT_EMAIL` thì phần hồ sơ công bố tắt, và danh sách ghi một dòng nhắc cách bật thay vì lặng lẽ để trống; ngày công bố kết quả kinh doanh thì không cần khóa. Bản tin không có câu chuyện thị trường, vì câu chuyện chỉ đọc bảng giá Việt Nam.
+- **Bản tin sáng.** Bản tin sáng cho thị trường chính ở Mỹ được gửi mặc định lúc 08:15 giờ New York. Bản tin đọc khối thị trường Mỹ (kèm các dòng độ rộng và phiên phân phối), khối crypto, sổ và các đề xuất của bạn, kèm danh sách "Hồ sơ công bố, kết quả kinh doanh và ngày giao dịch không hưởng cổ tức" dưới khối Mỹ: kết quả kinh doanh, giao dịch mua của người nội bộ và các mục 8-K cảnh báo trong năm phiên gần nhất, cùng, trong mười phiên tới, ngày giao dịch không hưởng cổ tức và các kỳ công bố kết quả kinh doanh (trước giờ mở cửa hay sau giờ đóng cửa, kèm EPS dự báo của giới phân tích), của các mã bạn nắm giữ hoặc theo dõi. Mã bạn đang nắm mà nộp một mục 8-K cảnh báo trong khoảng đó còn có một dòng ở phần việc nên làm, nhắc đọc hồ sơ trước phiên kế tiếp. Chưa đặt `SEC_CONTACT_EMAIL` thì phần hồ sơ công bố tắt, và danh sách ghi một dòng nhắc cách bật thay vì lặng lẽ để trống; ngày công bố kết quả kinh doanh thì không cần khóa. Câu chuyện thị trường của bản tin đọc độ rộng của bảng và các phiên phân phối của SPY và QQQ (xem bên dưới).
 
 ### Nguồn dữ liệu
 
@@ -722,12 +722,12 @@ Thị trường nào chưa lấy được giá thì nói điều đó ngay ở t
 
 Khi thị trường chính là Việt Nam, bối cảnh vĩ mô có thêm khối **Thị trường thế giới** sau phần nhìn vĩ mô: S&P 500, lợi suất trái phiếu Mỹ kỳ hạn 10 năm và dầu Brent, mỗi số mang ngày quan sát của chính nó. Số nào không có giá trị thì không thêm dòng. Brent chỉ nêu mức giá, vì nguồn không nói hợp đồng nào, và mức chênh giữa hai hợp đồng sẽ bị đọc thành biến động trong ngày. S&P 500 lấy từ FRED và cần khóa của FRED; dòng đó ghi nguồn bên cạnh (S&P Dow Jones Indices, qua FRED). Dữ liệu vĩ mô hoặc số liệu thế giới cũ hơn mức nguồn thường chậm sẽ được đánh dấu là số liệu cũ bên cạnh ngày, điểm số không đổi.
 
-Khi thị trường chính là Việt Nam, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
+Khi thị trường chính là Việt Nam hoặc Mỹ, bản tin mở đầu bằng một **câu chuyện thị trường**, do code tìm ra, không gọi mô hình và không tốn phí,
 cùng phần nhìn lại các câu chuyện trước.
 
 - **Phần nhìn lại** đối chiếu các điều kiện theo dõi của một câu chuyện đã kể ở phiên trước với số liệu
   hôm nay, và cho biết câu chuyện đó có đúng hướng hay không.
-- **Câu chuyện** nêu một điều bất thường mà thị trường Việt Nam vừa làm. Nó gồm một câu dẫn, các số
+- **Câu chuyện** nêu một điều bất thường mà thị trường chính vừa làm. Nó gồm một câu dẫn, các số
   liệu đứng sau, nhận định được ghi rõ là suy luận, điều có thể khiến nhận định sai và điều cần theo dõi
   tiếp.
 - Mỗi câu chuyện chỉ được kể một lần, vào phiên đầu tiên nó xuất hiện. Khi nó còn tiếp diễn, phần nhìn
@@ -738,8 +738,20 @@ cùng phần nhìn lại các câu chuyện trước.
   các câu chuyện đó.
 
 Câu chuyện chỉ đọc thị trường và phiên đã chốt gần nhất, không bao giờ đọc sổ của bạn hay giá đang
-chạy. Nó không xuất hiện khi bản tin không có khối thị trường Việt Nam: nhóm này đang tắt và bạn không
-giữ hay theo dõi mã Việt Nam nào.
+chạy. Nó không xuất hiện khi bản tin không có khối cho thị trường chính: nhóm này đang tắt và bạn không
+giữ hay theo dõi mã nào ở đó.
+
+Thị trường chính là Mỹ thì kể một trong hai câu chuyện, cả hai đều đọc từ độ rộng của bảng và các nến đã lưu của SPY
+và QQQ. **Độ rộng đổi chiều** là tỷ lệ mã trên bảng nằm trên trung bình 50 phiên của chính nó dịch chuyển từ
+12 điểm trở lên trong 5 phiên. **Phân phối dồn dập** là SPY hoặc QQQ có từ 8 phiên phân phối trở lên trong 25
+phiên gần nhất; chỉ số nằm trên trung bình 50 phiên của chính nó được nêu ra như điều ngược lại. Tiếp theo,
+độ rộng đổi chiều theo dõi tỷ lệ mã trên trung bình 50 phiên đi thêm 6 điểm theo cùng hướng (nhận định vững
+hơn) hoặc quay về mức trước đó (nhận định sai); phân phối dồn dập theo dõi tỷ lệ này giảm 6 điểm (vững hơn)
+hoặc tăng 6 điểm (sai). Mỗi câu chuyện có 5 phiên. Các ngưỡng được đo trên chính bảng Mỹ
+chứ không lấy từ Việt Nam, vì độ rộng của Mỹ biến động mạnh hơn nhiều. Trên lịch sử của bảng, độ rộng đổi chiều
+cho một câu chuyện mới khoảng 3 lần trong 60 phiên, còn phân phối dồn dập bắt đầu khoảng 3 lần trong 60 phiên
+và kéo dài khoảng 14 trong mỗi 60 phiên. Trên độ rộng mười năm của S&P 500, độ rộng đổi chiều sẽ bắt đầu khoảng
+6 lần trong 60 phiên, nên có thể dày hơn khi thị trường biến động mạnh.
 
 Một bản tin đọc theo thứ tự này:
 

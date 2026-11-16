@@ -5,7 +5,7 @@ import type { AdmissionPolicy } from '@/trading/markets/admission'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import type { SectorPolicy } from '@/trading/markets/sector-strength'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { marketRef, region, ticker } from '@/trading/kernel/instrument'
+import { currencyCode, marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
 import { usClosuresOf, usEarlyClosesOf } from '@/trading/markets/equity-us/calendar/closures'
 import { US_MACRO_DRIVERS } from '@/trading/markets/macro-risk'
@@ -13,6 +13,7 @@ import { US_MACRO_DRIVERS } from '@/trading/markets/macro-risk'
 export const US_STRATEGY_VERSION = '1.0.0'
 export const US_MARKET_REF = marketRef('equity-us')
 export const US_MARKET_REGION = region('us')
+export const US_CURRENCY = currencyCode('USD')
 
 /** The regular session only: pre-market, after-hours and overnight trading are out of scope. */
 export const US_CALENDAR: CalendarPolicy = Object.freeze({

@@ -14,14 +14,13 @@ import type { MarketDeps } from '@/trading/markets/deps'
 import type { UsBoard, UsBoardCache, UsBoardName } from '@/trading/markets/equity-us/board'
 import type { BreadthTrend } from '@/trading/markets/overview-rollups'
 import type { MarketManifest } from '@/trading/markets/types'
-import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { usBreadthAt } from '@/trading/markets/equity-us/breadth'
 import {
   US_EVIDENCE_SESSIONS,
   US_INDEX_TICKERS,
   US_MARKET_REF,
 } from '@/trading/markets/equity-us/policy'
-import { usBarProvenance } from '@/trading/markets/equity-us/raws'
+import { usBoardProvenance } from '@/trading/markets/equity-us/raws'
 import { usAdjustedCloses } from '@/trading/markets/equity-us/screen'
 import { OVERVIEW_LEADER_SESSIONS } from '@/trading/markets/overview'
 import { MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
@@ -72,7 +71,7 @@ export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverv
     ...optionalBreadth(sessions, trend),
     ...optionalLeaders(sessions),
     ...optionalMovers(sessions),
-    provenance: dedupeProvenance(board.names.flatMap((name) => usBarProvenance(name.bars))),
+    provenance: usBoardProvenance(board.names),
     caveats: board.names.length === 0 ? [{ code: 'market-data.universe-empty' }] : [],
   }
 }

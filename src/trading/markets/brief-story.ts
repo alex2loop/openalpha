@@ -1,4 +1,3 @@
-import type { MarketBreadth } from '@/trading/kernel/market/market-overview'
 import type { BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import type {
   StoryCandidate,
@@ -8,11 +7,14 @@ import type {
   WatchEffect,
   WatchShape,
 } from '@/trading/kernel/operator/brief-story'
+import type { BreadthTrend } from '@/trading/markets/overview-rollups'
 import { toRunKey } from '@/trading/kernel/operator/brief-story'
 
-interface BreadthShiftInput {
-  readonly breadth: MarketBreadth & { readonly aboveMa50Ratio: number }
-  readonly breadthBefore?: MarketBreadth
+/** What a breadth story reads: the market's trend now, and as it stood `breadthShiftSessions`
+ *  earlier. A full `MarketBreadth` satisfies it, as does a fold that measures only the trend. */
+export interface BreadthStoryInputs {
+  readonly breadth: BreadthTrend & { readonly aboveMa50Ratio: number }
+  readonly breadthBefore?: BreadthTrend
 }
 
 /** The market's story numbers, in the units `VN_STORY_POLICY` documents. */
@@ -32,7 +34,7 @@ export interface WatchSpec {
 }
 
 export function detectBreadthShift(
-  inputs: BreadthShiftInput,
+  inputs: BreadthStoryInputs,
   policy: BreadthShiftPolicy
 ): StoryCandidate | undefined {
   const before = inputs.breadthBefore?.aboveMa50Ratio
@@ -76,7 +78,7 @@ export function detectBreadthShift(
 }
 
 function breadthShiftFacts(
-  breadth: BreadthShiftInput['breadth'],
+  breadth: BreadthStoryInputs['breadth'],
   widening: boolean,
   sessions: number
 ): readonly StoryFact[] {

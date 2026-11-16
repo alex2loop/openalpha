@@ -2,9 +2,8 @@ import type { TradingDay } from '@/trading/kernel/instrument'
 import type { MarketRequest, SectorStrengthResult } from '@/trading/kernel/market/market-capability'
 import type { UsBoardCache, UsBoardName } from '@/trading/markets/equity-us/board'
 import type { SectorMember } from '@/trading/markets/sector-strength'
-import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import { US_BENCHMARK_TICKER, US_SECTOR_POLICY } from '@/trading/markets/equity-us/policy'
-import { usBarProvenance } from '@/trading/markets/equity-us/raws'
+import { usBoardProvenance } from '@/trading/markets/equity-us/raws'
 import { sectorCoveragePct, sectorStrength } from '@/trading/markets/sector-strength'
 
 /** The board's names grouped by Nasdaq's sector, led against the benchmark fund. The US publishes
@@ -40,7 +39,7 @@ export async function runUsSectors(
       session,
       policy: US_SECTOR_POLICY,
     }),
-    provenance: dedupeProvenance(board.names.flatMap((name) => usBarProvenance(name.bars))),
+    provenance: usBoardProvenance(board.names),
     caveats: [],
   }
 }

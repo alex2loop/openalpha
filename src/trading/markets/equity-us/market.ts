@@ -2,7 +2,7 @@ import type { TradingConfig } from '@/trading/kernel/config'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { Market, MarketManifest } from '@/trading/markets/types'
 import { US_EQUITY_FACTOR_IDS, US_ETF_FACTOR_IDS } from '@/trading/kernel/factor'
-import { currencyCode, portfolioSegment, quoteUnit } from '@/trading/kernel/instrument'
+import { portfolioSegment, quoteUnit } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
 import { createTradingCalendar } from '@/trading/markets/calendar'
 import { createUsBoardCache } from '@/trading/markets/equity-us/board'
@@ -15,6 +15,7 @@ import {
   US_BENCHMARK_TICKER,
   US_BOARD_LOT,
   US_CALENDAR,
+  US_CURRENCY,
   US_EVIDENCE_SESSIONS,
   US_LEVEL_POLICY,
   US_MARKET_REF,
@@ -62,7 +63,7 @@ export function usManifest(config: TradingConfig): MarketManifest {
     segment: portfolioSegment('equity-us'),
     segmentCategory: 'stock',
     seedsDefaultTarget: 'home',
-    currency: currencyCode('USD'),
+    currency: US_CURRENCY,
     icon: '🇺🇸',
     quoteUnit: quoteUnit('currency-per-share'),
     defaultCalendar: US_CALENDAR,

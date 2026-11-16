@@ -55,7 +55,7 @@ Moving an existing book's home to the US keeps the profile you saved, so US stoc
 - **Earnings ahead.** Any answer on a name that reports within the next ten sessions, a buy, a hold on a name you own or a sale, carries a caution: the price can gap sharply overnight on the report, past any stop. It changes nothing else: conviction, size and the call stand, because a report date says nothing about direction and every company has one each quarter. `/price` also lists the report date, with its timing and EPS forecast, among the coming events. The dates come from Nasdaq's calendar, which fills about five weeks ahead and covers the weeks it has been filled for; a failed read says so instead of reading as no report.
 - **Breadth and distribution days.** `/overview equity-us` and the US brief state how many of the board's names close above their own 50-session and 200-session average, each out of the names with that many sessions behind them, and how far SPY sits from its 50-session average and which way that average is moving. They also count distribution days on SPY and QQQ: sessions among the last 25 that closed down at least 0.2% on more volume than the session before, each dropping out once the fund closes 5% above that day's close. The board is the 500 largest shares, not the S&P 500, so its share can sit several points off an S&P 500 breadth chart. A name whose newest price is not the session's sits out. Stored prices are adjusted for splits only, so an ex-dividend drop past 0.2% on higher volume can count as a distribution day. Over the year of prices stored, none of the 75 sessions that qualified on QQQ was an ex-dividend day; no source here carries SPY's ex-dividend dates, so its count is bounded rather than checked the same way (at most four sessions a year can be one).
 - **Crypto through Coinbase.** For a US operator, `[trading.venues.coinbase] default_for = ["crypto"]` leads the crypto quote with Coinbase. Coinbase quotes dollars and the book is in USDT, so every price is divided by USDT's own dollar price; on 2026-10-20 that was 0.99883, and the converted BTC price sat 0.009% from Binance's. If a coin's symbol is also a US listing (SOL, LINK), `/price` and `/suggest` read the coin when you hold or watch only the coin, and otherwise the stock; either way they say the other exists, and `crypto:SOL` or `equity-us:SOL` reads the side you name. `/record` and `/update` never guess: a symbol both markets list needs its market or a venue that holds only one of them.
-- **The brief.** The morning brief for a US home is sent at 08:15 New York time by default. It reads the US block (with its breadth and distribution-day lines), the crypto block, your book and your suggestions, plus a "Filings, earnings and ex-dividend dates" list under the US block: the earnings releases, insider purchases and flagged 8-K items of the last five sessions, and in the next ten the ex-dividend dates and the earnings reports (before the open or after the close, with the analysts' EPS forecast), for the names you hold or watch. A name you hold that filed one of the flagged 8-K items in that window also gets a line under next steps, to read the filing before the next session. Without `SEC_CONTACT_EMAIL` the filings part is off, and the list says so in one line, with how to turn it on, instead of staying quietly empty; the earnings dates need no key. It carries no market story, which reads Vietnam's tape only.
+- **The brief.** The morning brief for a US home is sent at 08:15 New York time by default. It reads the US block (with its breadth and distribution-day lines), the crypto block, your book and your suggestions, plus a "Filings, earnings and ex-dividend dates" list under the US block: the earnings releases, insider purchases and flagged 8-K items of the last five sessions, and in the next ten the ex-dividend dates and the earnings reports (before the open or after the close, with the analysts' EPS forecast), for the names you hold or watch. A name you hold that filed one of the flagged 8-K items in that window also gets a line under next steps, to read the filing before the next session. Without `SEC_CONTACT_EMAIL` the filings part is off, and the list says so in one line, with how to turn it on, instead of staying quietly empty; the earnings dates need no key. Its market story reads the board's breadth and the SPY and QQQ distribution days (see below).
 
 ### Data sources
 
@@ -719,12 +719,12 @@ Any market whose prices did not come back says so in its heading ("No fresh pric
 
 With a Vietnam home, the macro backdrop adds a **World markets** block after the macro read: the S&P 500, the US 10-year yield and Brent crude, each dated by its own observation. A figure with no value adds no row. Brent states its level only, because the feed names no contract and a move across a roll would read as a day's move. The S&P 500 comes from FRED and needs its key; the row names its source beside it (S&P Dow Jones Indices, via FRED). A macro input or world figure older than its source normally lags is marked as stale beside its date, with no change to the score.
 
-With a Vietnam home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
+With a Vietnam or US home, the brief opens with one **market story**, found by code with no model call and no cost, and a look
 back at earlier ones.
 
 - **The look back** checks the watch conditions of a story told on an earlier session against today's
   figures, and says whether the story held.
-- **The story** names one thing the Vietnamese market did that is out of the ordinary. It has a hook,
+- **The story** names one thing the home market did that is out of the ordinary. It has a hook,
   the figures behind it, a reading marked as inference, what could make that reading wrong, and what
   to watch next.
 - A story is told once, on the first session it appears. While it keeps going, the look back carries
@@ -734,8 +734,20 @@ back at earlier ones.
   already carries every one of them.
 
 The story reads only the market and the last settled session, never your book and never a live price.
-It is absent when the brief has no Vietnamese market block: the segment is switched off and you hold
-and watch no Vietnamese name.
+It is absent when the brief has no block for its home market: the segment is switched off and you hold
+and watch no name there.
+
+A US home tells one of two stories, both read off the board's breadth and the stored SPY and QQQ bars.
+A **breadth shift** is the share of board names above their 50-session mean moving 12 points or more in
+5 sessions. A **distribution cluster** is SPY or QQQ at 8 or more distribution days in the last 25
+sessions; the index sitting above its own 50-session mean is shown against it. Next, the shift watches
+the share of names above their 50-session mean go 6 points further the same way (the read gets firmer)
+or return to where it stood before (the read was wrong); the cluster watches that share fall 6 points
+(firmer) or rise 6 points (wrong). Each has 5 sessions. The thresholds were
+measured on the US board rather than taken from Vietnam, because US breadth swings far more. On the
+board's own history the shift gives a new story about 3 times in 60 sessions, and a distribution
+cluster begins about 3 times in 60 and holds for about 14 of every 60 sessions. On the S&P 500's own
+ten-year breadth the shift would begin about 6 times in 60, so it can run busier in a stormier market.
 
 A brief reads in this order:
 

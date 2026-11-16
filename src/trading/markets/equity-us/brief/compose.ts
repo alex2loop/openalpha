@@ -1,5 +1,5 @@
 import type { BriefSectionKind, BriefSectionResult } from '@/trading/kernel/operator/brief-section'
-import type { MarketBrief, StoryRead } from '@/trading/kernel/operator/brief-story'
+import type { MarketBrief } from '@/trading/kernel/operator/brief-story'
 import type { BriefComposition, SectionBuilders } from '@/trading/markets/brief-compose'
 import type { BriefContext, BriefHome, LoadContextOptions } from '@/trading/markets/brief-context'
 import type { UsBoard } from '@/trading/markets/equity-us/board'
@@ -11,6 +11,7 @@ import { buildNextActions } from '@/trading/markets/brief-next-actions'
 import { buildUsBreadth } from '@/trading/markets/equity-us/brief/breadth-section'
 import { readUsEvents } from '@/trading/markets/equity-us/brief/events-read'
 import { buildRecent } from '@/trading/markets/equity-us/brief/recent-section'
+import { tryReadUsStories } from '@/trading/markets/equity-us/brief/story-read'
 import {
   US_EQUITY_MACRO_DRIVERS,
   US_LIQUIDITY_SESSIONS,
@@ -28,9 +29,6 @@ const SECTION_BUILDERS: SectionBuilders<UsBoard> = Object.freeze({
   breadth: buildUsBreadth,
   recent: buildRecent,
 })
-
-/** No market story: the story reads VN's tape, and a US one would need its own detectors. */
-const NO_STORY: StoryRead = Object.freeze({ kind: 'unread' })
 
 const US_MARKET_KINDS: ReadonlySet<BriefSectionKind> = new Set(['breadth', 'recent'])
 
@@ -68,5 +66,5 @@ export async function buildUsBrief(options: LoadContextOptions<UsBoard>): Promis
   const context = await loadBriefContext(options)
   const { sections } = await composeBrief(context, US_COMPOSITION)
 
-  return { sections, stories: NO_STORY }
+  return { sections, stories: tryReadUsStories(context) }
 }
