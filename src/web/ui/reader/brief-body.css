@@ -2,17 +2,13 @@
   gap: var(--s0);
 }
 
+/* A cell is sized to its own text and wraps as a unit, so a figure never splits from its change;
+   only a cell wider than the column wraps inside itself. */
 .reader-strip {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--s1) var(--s3);
   font-variant-numeric: tabular-nums;
-}
-
-@media (min-width: 600px) {
-  .reader-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 .reader-figure {
