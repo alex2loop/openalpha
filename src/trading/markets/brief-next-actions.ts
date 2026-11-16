@@ -4,7 +4,7 @@ import type { BriefContext } from '@/trading/markets/brief-context'
 import type { EventsRead } from '@/trading/markets/brief-events'
 import { isAbortError } from '@/core/errors'
 import { FILING_FLAG_KINDS } from '@/trading/kernel/market/market-event'
-import { hasNoBook } from '@/trading/kernel/operator/brief-section'
+import { hasNoBook } from '@/trading/kernel/operator/brief-section-reads'
 import { ready } from '@/trading/markets/brief-sections'
 
 /** The one ordered exception to the builder record, because it reads the completed results of

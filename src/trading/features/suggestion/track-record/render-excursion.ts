@@ -5,12 +5,6 @@ import { t } from '@/i18n'
 import { formatCount, formatRatio } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR } from '@/trading/render/layout'
 
-interface ExcursionFigure {
-  readonly key: MessageKey
-  readonly value: number | undefined
-  readonly count: number
-}
-
 /** How far the price ran against the calls that won and lost, and for the ones the stop closed, as
  *  one line. Each figure is guarded on its own: a short group is left out and the measured ones
  *  stay. */
@@ -43,6 +37,12 @@ export function renderExcursionSection(
   return [
     `${INDENT[1]}${t(locale, 'trading.render.reflect.excursion', { parts: parts.join(INLINE_SEPARATOR) })}`,
   ]
+}
+
+interface ExcursionFigure {
+  readonly key: MessageKey
+  readonly value: number | undefined
+  readonly count: number
 }
 
 function excursionPart(locale: Locale, figure: ExcursionFigure): string | undefined {

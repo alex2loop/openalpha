@@ -7,8 +7,11 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { pluralKey, t } from '@/i18n'
-import { sectionNumber, sectionSessions } from '@/trading/kernel/operator/brief-section'
-import { homeMarketOf } from '@/trading/markets/brief-compose'
+import {
+  homeMarketOf,
+  sectionNumber,
+  sectionSessions,
+} from '@/trading/kernel/operator/brief-section-reads'
 import { formatCount, formatFraction, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, toFactLines } from '@/trading/render/layout'
 import { labelledRowFacts, renderBlockRule, renderBriefSection } from '@/trading/render/section'

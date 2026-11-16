@@ -6,7 +6,7 @@ import type {
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { BriefContext } from '@/trading/markets/brief-context'
-import { sectionNumber, sectionSessions } from '@/trading/kernel/operator/brief-section'
+import { sectionNumber, sectionSessions } from '@/trading/kernel/operator/brief-section-reads'
 import { omitted, ready } from '@/trading/markets/brief-sections'
 
 interface ComparedFact {

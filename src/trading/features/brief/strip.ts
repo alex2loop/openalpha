@@ -9,7 +9,7 @@ import type {
 import type { RenderContext } from '@/trading/render/format'
 import { formatShortDay, t } from '@/i18n'
 import { marketRef } from '@/trading/kernel/instrument'
-import { homeMarketOf } from '@/trading/markets/brief-compose'
+import { homeMarketOf } from '@/trading/kernel/operator/brief-section-reads'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { ABSENT_CELL } from '@/trading/render/number'
 import { renderHeadlineCells } from '@/trading/render/price-pair'
@@ -94,8 +94,8 @@ export function renderBriefStrip(
   const session = briefSessionOf(sections)
   const home = homeMarketOf(sections)
   const ordered = [
-    ...STRIP_FIGURES.filter((figure) => leadsStrip(figure, home)),
-    ...STRIP_FIGURES.filter((figure) => !leadsStrip(figure, home)),
+    ...STRIP_FIGURES.filter((figure) => isHomeHeadline(figure, home)),
+    ...STRIP_FIGURES.filter((figure) => !isHomeHeadline(figure, home)),
   ]
 
   return ordered
@@ -119,7 +119,7 @@ export function briefSessionOf(sections: readonly BriefSectionResult[]): Trading
   return (prices.find((section) => section.market === home) ?? prices[0])?.asOf
 }
 
-function leadsStrip(figure: StripFigure, home: MarketRef | undefined): boolean {
+function isHomeHeadline(figure: StripFigure, home: MarketRef | undefined): boolean {
   return figure.headline === true && figure.market === home
 }
 
