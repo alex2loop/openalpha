@@ -29,6 +29,41 @@ const ETF_PATH = '/api/screener/etf'
 /** Nasdaq lists a class share as `BRK/B`; its quote and bar endpoints answer `BRK.B`. */
 const CLASS_SHARE_RE = /^([A-Z]+)\/([A-Z])$/
 
+/** The wording a security that is not a share of the company carries in its name. The stock list
+ *  also holds a company's warrants, preferred depositary shares, notes, bonds and units under their
+ *  own tickers, each stamped with the parent's market cap, so the symbol cannot tell them apart:
+ *  `OXY.WS` and `TBB` look like names. Matched inside the lowercased name, with the leading space
+ *  where a bare word sits inside a company ("BrightSpring"). */
+const NON_COMMON_NAME_MARKERS: readonly string[] = [
+  'warrant',
+  ' rights',
+  ' notes',
+  'bonds',
+  'debentures',
+  'zones',
+  'strats',
+  'corporate unit',
+  'equity unit',
+  'preferred stock',
+  'preferred unit',
+  'preferred series',
+  'preferred class',
+  'term preferred',
+  'trust preferred',
+  'preference share',
+  'cumulative',
+  'depositary shares',
+  'depository shares',
+]
+
+/** A depositary receipt of a foreign company's shares ("American Depositary Shares each representing
+ *  two Ordinary Shares") is a share, though its name says "depositary shares" like a preferred's does. */
+const DEPOSITARY_RECEIPT_NAME_MARKERS: readonly string[] = [
+  'american depositary',
+  'american depository',
+  'global depositary',
+]
+
 const STOCK_TABLE = z.object({ rows: z.array(z.unknown()) })
 const ETF_TABLE = z.object({ data: z.object({ rows: z.array(z.unknown()) }) })
 
@@ -173,7 +208,7 @@ function toInstrument(raw: unknown, leg: ScreenerLeg, target: RowTarget): Instru
   const row =
     leg.kind === 'etf'
       ? toEtfFields(parseRow(ETF_ROW, raw, 'nasdaq etf'))
-      : toStockFields(parseRow(STOCK_ROW, raw, 'nasdaq stock'))
+      : toStockFields(parseStockRow(raw))
   const sector = row.sector === undefined ? undefined : canonicalSector(row.sector)
 
   return {
@@ -221,7 +256,7 @@ function toFundamentals(
 }
 
 function toSnapshot(raw: unknown, context: SourceContext, target: RowTarget): FundamentalSnapshot {
-  const row = parseRow(STOCK_ROW, raw, 'nasdaq stock')
+  const row = parseStockRow(raw)
 
   if (context.toDay === undefined) {
     throw new ValidationError('fundamentals need a day')
@@ -236,4 +271,24 @@ function toSnapshot(raw: unknown, context: SourceContext, target: RowTarget): Fu
     sourceId: NASDAQ_ID,
     fetchedAt: target.fetchedAt,
   }
+}
+
+/** Dropped, not repaired: a row that is not a share has no share price to rank on the board. */
+function parseStockRow(raw: unknown): z.infer<typeof STOCK_ROW> {
+  const row = parseRow(STOCK_ROW, raw, 'nasdaq stock')
+
+  if (isNonCommonName(row.name)) {
+    throw new ValidationError(`${row.symbol} is not a common security`)
+  }
+
+  return row
+}
+
+function isNonCommonName(name: string): boolean {
+  const lowered = name.toLowerCase()
+
+  return (
+    !DEPOSITARY_RECEIPT_NAME_MARKERS.some((marker) => lowered.includes(marker)) &&
+    NON_COMMON_NAME_MARKERS.some((marker) => lowered.includes(marker))
+  )
 }
