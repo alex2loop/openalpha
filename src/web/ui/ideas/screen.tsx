@@ -15,7 +15,8 @@ import { openTicker } from '@/web/state/known-tickers'
 import { boardMarkets } from '@/web/state/market'
 import { isAdvanced } from '@/web/state/prefs'
 import { formatCount } from '@/web/text/figures'
-import { isInfoLine, joinInline, splitInline, withoutLeadingIcon } from '@/web/text/glyphs'
+import { isInfoLine, withoutLeadingIcon } from '@/web/text/glyphs'
+import { withoutScore } from '@/web/text/score-line'
 import { tr } from '@/web/text/tr'
 import { Button } from '@/web/ui/kit/button'
 import { FactGrid } from '@/web/ui/kit/fact-grid'
@@ -221,13 +222,7 @@ function factsOf(board: ScreenResponse, row: Row): NonNullable<Candidate['facts'
 
 // The score is one segment of the daemon's row line; simple drops it and keeps every other.
 function lineOf(row: Row): string {
-  if (isAdvanced.value) {
-    return row.line
-  }
-
-  const scoreLead = tr('trading.render.screen.score', { score: '' }).trim()
-
-  return joinInline(splitInline(row.line).filter((segment) => !segment.startsWith(scoreLead)))
+  return isAdvanced.value ? row.line : withoutScore(row.line)
 }
 
 function Opportunity({

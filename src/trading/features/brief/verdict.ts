@@ -7,7 +7,11 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import type { RenderContext } from '@/trading/render/format'
 import { pluralKey, t } from '@/i18n'
-import { sectionNumber, sectionSessions } from '@/trading/kernel/operator/brief-section'
+import {
+  homeMarketOf,
+  sectionNumber,
+  sectionSessions,
+} from '@/trading/kernel/operator/brief-section-reads'
 import { formatCount, formatFraction, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, toFactLines } from '@/trading/render/layout'
 import { labelledRowFacts, renderBlockRule, renderBriefSection } from '@/trading/render/section'
@@ -31,10 +35,11 @@ export function renderVerdictBlock(
   sections: readonly BriefSectionResult[],
   context: RenderContext
 ): readonly string[] {
+  const home = homeMarketSections(sections)
   const quoted = [
     ...renderQuotedReading(locale, sections, context),
     ...QUOTED_FIELDS.flatMap((quote) =>
-      toFactLines(renderQuotedFacts(locale, sections, quote), context, 1)
+      toFactLines(renderQuotedFacts(locale, home, quote), context, 1)
     ),
   ]
 
@@ -54,7 +59,9 @@ export function renderQuotedReading(
   sections: readonly BriefSectionResult[],
   context: RenderContext
 ): readonly string[] {
-  const section = sections.find((candidate) => candidate.kind === QUOTED_SECTION)
+  const section = homeMarketSections(sections).find(
+    (candidate) => candidate.kind === QUOTED_SECTION
+  )
 
   if (section === undefined || section.status !== 'ready' || section.rows.length === 0) {
     return []
@@ -63,6 +70,16 @@ export function renderQuotedReading(
   const [, ...lines] = renderBriefSection(locale, section, context).split('\n')
 
   return lines
+}
+
+/** The sections of the market the brief is about. A section of another market is never quoted, or
+ *  a verdict reads one market's index beside another's breadth. */
+function homeMarketSections(
+  sections: readonly BriefSectionResult[]
+): readonly BriefSectionResult[] {
+  const home = homeMarketOf(sections)
+
+  return home === undefined ? [] : sections.filter((section) => section.market === home)
 }
 
 /** One fact per field named for the section, each under the label its own rows already print, for

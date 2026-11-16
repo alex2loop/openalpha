@@ -10,7 +10,7 @@ import type { ProfileService } from '@/trading/features/profile/types'
 import type { TickerRequest } from '@/trading/kernel/instrument'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { renderRebalanceForSurface } from '@/trading/features/portfolio/render/rebalance-surface'
-import { NOTICE_SURFACE, resolveRenderContext } from '@/trading/render/format'
+import { PAGE_SURFACE, resolveRenderContext } from '@/trading/render/format'
 
 export interface RebalanceView {
   readonly plan: AbsoluteRebalancePlan
@@ -56,7 +56,7 @@ function createRebalanceViews(deps: RebalanceViewDeps): RebalanceViews {
         plan,
         form: deps.form ?? 'orders',
         text: renderRebalanceForSurface(request.locale, plan, {
-          context: resolveRenderContext(deps.timezone, NOTICE_SURFACE),
+          context: resolveRenderContext(deps.timezone, PAGE_SURFACE),
           ...(deps.form === undefined ? {} : { form: deps.form }),
           ...(plan.freshness === undefined ? {} : { freshness: plan.freshness }),
           entryTranchePct: profile.entryTranchePct,

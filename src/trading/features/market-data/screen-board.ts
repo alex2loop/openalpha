@@ -75,7 +75,8 @@ export function isQuotedOnScreen(
 }
 
 /** The view in the form the request asks for, kept to the one name a `ticker` asks for once the
- *  board's places are read. */
+ *  board's places are read. A ranked board's name carries its rank; a board lists in ticker order
+ *  and a gate board numbers nothing, so neither has one. */
 export function toRequestedView(
   view: ScreenView,
   request: Pick<MarketDataScreenRequest, 'form' | 'ticker'>
@@ -86,10 +87,19 @@ export function toRequestedView(
     return shaped
   }
 
-  return {
-    ...shaped,
-    candidates: shaped.candidates.filter(({ instrument }) => instrument.ticker === request.ticker),
+  const index = shaped.candidates.findIndex(
+    (candidate) => candidate.instrument.ticker === request.ticker
+  )
+  const named = shaped.candidates[index]
+
+  if (named === undefined) {
+    return { ...shaped, candidates: [] }
   }
+
+  const isRanked = shaped.form !== 'board' && shaped.board !== 'gate'
+  const rank = { place: index + 1, of: shaped.candidates.length }
+
+  return { ...shaped, candidates: [{ ...named, ...(isRanked ? { rank } : {}) }] }
 }
 
 /** The whole priced board as a list to browse: ticker order, which says nothing about merit, and

@@ -70,7 +70,7 @@ export type BriefSectionKind = (typeof BRIEF_SECTION_ORDER)[number]
  *  already gated by their own enums, but a title that gains a placeholder is not, and an older
  *  payload renders it as the literal `{sessions}`. Bump whenever a section title, its params, a
  *  section-level key, or which block a kind is grouped into changes. */
-export const BRIEF_RENDER_VERSION = 23
+export const BRIEF_RENDER_VERSION = 24
 
 /** Kinds a market's overview converter emits, so no brief builder produces them. Compose's builder
  *  record excludes them, which is what keeps that record exhaustive. A kind only the whole-market
@@ -134,6 +134,7 @@ export const BRIEF_ACTION_CODES = Object.freeze([
   'record-book',
   'record-dividend',
   'record-distribution',
+  'review-filing',
 ] as const)
 export type BriefActionCode = (typeof BRIEF_ACTION_CODES)[number]
 
@@ -164,6 +165,7 @@ export type BriefStopBasis = (typeof BRIEF_STOP_BASES)[number]
 /** Split out so the renderer's unit map can be exhaustive over them: a numeric field with no
  *  formatter reaches a reader as a raw float. */
 export const BRIEF_NUMERIC_FIELDS = Object.freeze([
+  'aboveMa200Ratio',
   'aboveMa50Ratio',
   'advanceRatio',
   'advancers',
@@ -182,7 +184,10 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'decliners',
   'deploymentScale',
   'depositRate12m',
+  'distributionDays',
   'entryTranchePct',
+  /** Analysts' consensus EPS for a coming report, per share in the section's currency. */
+  'epsForecast',
   'floors',
   'flowWindowUsd',
   'foreignNetBase',
@@ -190,6 +195,7 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'funding',
   'index',
   'indexToMa50Pct',
+  'ma200Measured',
   'ma50Measured',
   'largestSharePct',
   'last',
@@ -301,6 +307,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'story',
   'thesisStatus',
   'ticker',
+  'timing',
   'title',
   'url',
   'verdict',
@@ -334,49 +341,6 @@ export const BRIEF_FIELDS = Object.freeze([
 export type BriefNumericField = (typeof BRIEF_NUMERIC_FIELDS)[number]
 export type BriefField = (typeof BRIEF_FIELDS)[number]
 export type BriefSectionRow = Readonly<Partial<Record<BriefField, BriefSectionValue>>>
-
-/** The first numeric value a section list carries for a field, whatever row holds it: a total the
- *  first row states, or a board split the later ones do. */
-export function sectionNumber(
-  sections: readonly BriefSectionResult[],
-  kind: BriefSectionKind,
-  field: BriefField
-): number | undefined {
-  const section = sections.find((candidate) => candidate.kind === kind)
-
-  if (section === undefined || section.status !== 'ready') {
-    return undefined
-  }
-
-  for (const row of section.rows) {
-    const value = row[field]
-
-    if (typeof value === 'number') {
-      return value
-    }
-  }
-
-  return undefined
-}
-
-/** An operator who has recorded nothing: the book summary is omitted by policy, which is what a
- *  null book produces. A summary that is unavailable (the read threw) is not "no book", so a failed
- *  read never tells an operator with a real book to start one. */
-export function hasNoBook(sections: readonly BriefSectionResult[]): boolean {
-  return sections.find((section) => section.kind === 'book-summary')?.status === 'omitted-by-policy'
-}
-
-/** The window a section states, for a row rebuilt from its fields: a verdict line and a delta row
- *  both quote a section by field name, and a windowed label on either must name the span that
- *  section printed rather than nothing. */
-export function sectionSessions(
-  sections: readonly BriefSectionResult[],
-  kind: BriefSectionKind
-): { readonly sessions?: number } {
-  const sessions = sectionNumber(sections, kind, 'sessions')
-
-  return sessions === undefined ? {} : { sessions }
-}
 
 export type BriefSectionResult =
   | {

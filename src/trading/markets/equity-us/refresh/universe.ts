@@ -4,16 +4,15 @@ import type { InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { RefreshKindResult } from '@/trading/kernel/market/refresh'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
-import { currencyCode } from '@/trading/kernel/instrument'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import {
+  US_CURRENCY,
   US_INDEX_TICKERS,
   US_MARKET_REF,
   US_MINIMUM_UNIVERSE_SIZE,
   US_UNIVERSE_STALE_MS,
 } from '@/trading/markets/equity-us/policy'
 
-const USD = currencyCode('USD')
 /** Nasdaq publishes both headline indices' levels but lists neither, so they are manifest facts. */
 const INDEX_SOURCE_ID = sourceId('nasdaq')
 
@@ -148,7 +147,7 @@ function indexRecords(fetchedAt: number): readonly InstrumentRecord[] {
     name: code,
     kind: 'index' as const,
     status: 'active' as const,
-    currency: USD,
+    currency: US_CURRENCY,
     sourceId: INDEX_SOURCE_ID,
     fetchedAt,
   }))

@@ -2,10 +2,9 @@ import { z } from 'zod'
 
 import type { Ticker } from '@/trading/kernel/instrument'
 import type { SourceFetchOutcome, SourceHttp } from '@/trading/sources/types'
-import { ttlCache } from '@/core/utils/collections'
 import { ticker } from '@/trading/kernel/instrument'
-import { createSharedFlight, type SharedFlight } from '@/trading/kernel/shared-flight'
 import { SEC_CREDENTIAL, SEC_ID, toPaddedCik } from '@/trading/sources/adapters/sec/client'
+import { createCachedReader } from '@/trading/sources/cached-reader'
 import { dropInvalid, parseRow } from '@/trading/sources/rows/normalization'
 
 /** Ticker to ten-digit company id. SEC writes a class share with a dash (`BRK-B`); the market's
@@ -19,48 +18,15 @@ const TICKER_ROW = z.object({ cik_str: z.number(), ticker: z.string().min(1) })
 
 export type TickerMapReader = (signal: AbortSignal) => Promise<SourceFetchOutcome<SecTickerMap>>
 
-interface CachedMap {
-  readonly value: SecTickerMap
-  readonly fetchedAt: number
-}
-
-/** The map changes when a company lists or renames; one copy serves a day. Callers arriving on a
- *  cold cache share the one download, which an abort of any single caller does not cancel. */
+/** The map changes when a company lists or renames; one copy serves a day. */
 export function createTickerMapReader(http: SourceHttp): TickerMapReader {
-  const cache = ttlCache<string, CachedMap>(SEC_TICKER_MAP_TTL_MS, 1)
-  let pending: SharedFlight<SourceFetchOutcome<SecTickerMap>> | undefined
+  const read = createCachedReader<string, SecTickerMap>({
+    ttlMs: SEC_TICKER_MAP_TTL_MS,
+    maxEntries: 1,
+    load: (_key, signal) => readTickerMap(http, signal),
+  })
 
-  async function load(signal: AbortSignal): Promise<SourceFetchOutcome<SecTickerMap>> {
-    const outcome = await readTickerMap(http, signal)
-
-    if (outcome.kind === 'ok') {
-      cache.set(TICKER_MAP_KEY, { value: outcome.value, fetchedAt: outcome.fetchedAt })
-    }
-
-    return outcome
-  }
-
-  return (signal) => {
-    const held = cache.get(TICKER_MAP_KEY)
-
-    if (held !== undefined) {
-      return Promise.resolve({ kind: 'ok', value: held.value, fetchedAt: held.fetchedAt })
-    }
-
-    if (pending?.live !== true) {
-      const started = createSharedFlight(load)
-      const release = (): void => {
-        if (pending === started) {
-          pending = undefined
-        }
-      }
-
-      pending = started
-      started.work.then(release, release)
-    }
-
-    return pending.attach(signal)
-  }
+  return (signal) => read(TICKER_MAP_KEY, signal)
 }
 
 /** `company_tickers.json` is an object keyed by position, not an array. */

@@ -1,17 +1,49 @@
 import type { Locale } from '@/core/types/locale'
 import type {
+  EarningsSchedule,
+  EarningsTiming,
   InsiderPurchase,
   InsiderRelationship,
   MarketEvent,
+  MarketEventKind,
 } from '@/trading/kernel/market/market-event'
 import { type MessageKey, t } from '@/i18n'
 import { formatQuantity, renderDeclaredValue } from '@/trading/render/format'
-import { formatPriceIn } from '@/trading/render/money'
+import { INLINE_SEPARATOR } from '@/trading/render/layout'
+import { formatMoney, formatPriceIn } from '@/trading/render/money'
+
+/** The title a person reads for each kind of event. */
+export const EVENT_KEYS = Object.freeze({
+  'additional-listing': 'trading.event.additional-listing',
+  agm: 'trading.event.agm',
+  delisting: 'trading.event.delisting',
+  'dividend-ex-date': 'trading.event.dividend-ex-date',
+  'earnings-date': 'trading.event.earnings-date',
+  'earnings-release': 'trading.event.earnings-release',
+  'auditor-change': 'trading.event.auditor-change',
+  'bankruptcy-filing': 'trading.event.bankruptcy-filing',
+  impairment: 'trading.event.impairment',
+  'insider-purchase': 'trading.event.insider-purchase',
+  'last-trading-day': 'trading.event.last-trading-day',
+  'listing-notice': 'trading.event.listing-notice',
+  listing: 'trading.event.listing',
+  'margin-eligible': 'trading.event.margin-eligible',
+  'margin-ineligible': 'trading.event.margin-ineligible',
+  'meeting-ex-date': 'trading.event.meeting-ex-date',
+  'non-reliance': 'trading.event.non-reliance',
+  'rights-issue': 'trading.event.rights-issue',
+  split: 'trading.event.split',
+} as const satisfies Record<MarketEventKind, MessageKey>)
 
 const RELATIONSHIP_KEYS = Object.freeze({
   director: 'trading.insider.relationship.director',
   'ten-percent-owner': 'trading.insider.relationship.ten-percent-owner',
 } as const satisfies Record<InsiderRelationship, MessageKey>)
+
+export const TIMING_KEYS = Object.freeze({
+  'pre-market': 'trading.earnings.timing.pre-market',
+  'after-close': 'trading.earnings.timing.after-close',
+} as const satisfies Record<EarningsTiming, MessageKey>)
 
 interface EventText {
   readonly title: string
@@ -28,10 +60,17 @@ export function describeEvent(locale: Locale, event: MarketEvent): EventText {
   }
 
   const title = renderDeclaredValue(locale, `trading.event.${event.kind}`)
+  const detail = composedDetail(locale, event)
 
-  return event.insider === undefined
-    ? { title }
-    : { title, detail: describeInsiderPurchase(locale, event.insider) }
+  return detail === undefined ? { title } : { title, detail }
+}
+
+function composedDetail(locale: Locale, event: MarketEvent): string | undefined {
+  if (event.insider !== undefined) {
+    return describeInsiderPurchase(locale, event.insider)
+  }
+
+  return event.earnings === undefined ? undefined : describeEarnings(locale, event.earnings)
 }
 
 /** The note closes the last line the event prints, so one note covers the title and the detail. */
@@ -62,4 +101,22 @@ function describeInsiderPurchase(locale: Locale, purchase: InsiderPurchase): str
         ...params,
         price: formatPriceIn(locale, purchase.price, { currency: purchase.currency }),
       })
+}
+
+/** When the company reports and what analysts expect it to earn a share; absent when the calendar
+ *  states neither. */
+export function describeEarnings(locale: Locale, earnings: EarningsSchedule): string | undefined {
+  const { timing, epsForecast, currency } = earnings
+  const parts = [
+    ...(timing === undefined ? [] : [t(locale, TIMING_KEYS[timing])]),
+    ...(epsForecast === undefined
+      ? []
+      : [
+          t(locale, 'trading.earnings.forecast', {
+            eps: formatMoney(locale, epsForecast, currency),
+          }),
+        ]),
+  ]
+
+  return parts.length === 0 ? undefined : parts.join(INLINE_SEPARATOR)
 }

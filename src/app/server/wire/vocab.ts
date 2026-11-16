@@ -49,7 +49,13 @@ export type MarketEventKind =
   | 'margin-eligible'
   | 'margin-ineligible'
   | 'earnings-release'
+  | 'earnings-date'
   | 'insider-purchase'
+  | 'bankruptcy-filing'
+  | 'impairment'
+  | 'listing-notice'
+  | 'auditor-change'
+  | 'non-reliance'
 
 export type BriefSectionKind =
   | 'thesis-review'

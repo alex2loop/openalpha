@@ -5,6 +5,7 @@ import type {
   MarketRef,
   QuoteUnit,
   SessionPhase,
+  Ticker,
   TradingDay,
   TradingSessionState,
 } from '@/trading/kernel/instrument'
@@ -74,6 +75,16 @@ export interface MarketDataOverviewRow {
   readonly live?: LiveIndexReading
 }
 
+/** One index fund's distribution days: sessions inside the window that closed down at least the
+ *  policy's decline on more volume than the session before, and that the fund has not since closed
+ *  back above by the policy's recovery. */
+interface IndexDistribution {
+  readonly ticker: Ticker
+  readonly days: number
+  /** The window the days are counted in. */
+  readonly sessions: number
+}
+
 export interface MarketBreadth {
   readonly advancers: number
   readonly decliners: number
@@ -90,6 +101,10 @@ export interface MarketBreadth {
   /** Names with enough history to place a 50-session mean — the denominator `aboveMa50Ratio` is out
    *  of, which is never `measured`: a name that settled today may still be too young to rank. */
   readonly ma50Measured?: number
+  /** Share of `ma200Measured` trading above its own 200-session mean. */
+  readonly aboveMa200Ratio?: number
+  /** The denominator `aboveMa200Ratio` is out of, as `ma50Measured` is for the 50-session share. */
+  readonly ma200Measured?: number
   /** How far the market's index sits above its own 50-session mean, from the last close. Absent
    *  for a market that publishes no index. */
   readonly indexToMa50Pct?: number
@@ -99,6 +114,8 @@ export interface MarketBreadth {
   readonly newHighs?: number
   /** Names at a 52-week low this session. */
   readonly newLows?: number
+  /** The market's index funds with a measurable window, so a fund with no reading is left out. */
+  readonly distribution?: readonly IndexDistribution[]
   /** How many names trade above each mean, plus where today sits in its own history. The percentile
    *  table is keyed by the same ids the screen publishes, so the two tell one story. */
   readonly components?: MarketBreadthComponents

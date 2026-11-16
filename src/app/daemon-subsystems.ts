@@ -107,12 +107,6 @@ function startDaemonTasks(
   // first pass still shows.
   taskStatus.track(taskNames(app, tradingTasks))
 
-  const onTasks = options.reporting?.onTasks
-
-  if (onTasks !== undefined) {
-    teardown.disposers.push(reportTaskChanges(taskStatus, onTasks))
-  }
-
   // Started last of the delivering subsystems: a job that finishes before delivery is attached has
   // nowhere to send its answer, and a one-shot job is disabled on finalize so it never retries.
   trackDaemonTask({
@@ -133,6 +127,14 @@ function startDaemonTasks(
   startMaintenance(app, teardown.disposers, { logger, onTaskPass })
 
   attachPluginTasks({ app, signal: startupSignal, startup, tasks, state })
+
+  const onTasks = options.reporting?.onTasks
+
+  // After every task has started, so the first report already shows the passes that began with the
+  // start instead of an all-idle board.
+  if (onTasks !== undefined) {
+    teardown.disposers.push(reportTaskChanges(taskStatus, onTasks))
+  }
 }
 
 function toChannelDegraded(skipped: StartChannelsResult['skipped']): readonly DegradedItem[] {

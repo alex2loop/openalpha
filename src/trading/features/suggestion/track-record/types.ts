@@ -97,6 +97,21 @@ export interface ShadowSummary {
   readonly caveats: readonly Caveat[]
 }
 
+/** Medians of how far the price ran against and for the calls before they closed, in risk units.
+ *  Each median is present only once its group has the minimum measured calls; the counts are the
+ *  measured calls per group, which is fewer than the group wherever rows predate the measure. */
+export interface ExcursionSummary {
+  /** Adverse excursion of calls that ended in profit. */
+  readonly winnersAdverse?: number
+  /** Adverse excursion of calls that did not. */
+  readonly losersAdverse?: number
+  /** Favorable excursion of calls the stop closed at a loss. */
+  readonly stoppedFavorable?: number
+  readonly winnersCount: number
+  readonly losersCount: number
+  readonly stoppedCount: number
+}
+
 /** The population the summary was drawn from, unbounded by the report window. Holds are excluded:
  *  the table forbids them an outcome, so they are standing plans rather than calls. */
 export interface TrackRecordCoverage {
@@ -132,6 +147,7 @@ export interface TrackRecordSummary {
   readonly calibration: readonly CalibrationBucket[]
   readonly reviewSplits: readonly ReviewSplit[]
   readonly shadow: ShadowSummary
+  readonly excursions: ExcursionSummary
   readonly coverage: TrackRecordCoverage
   readonly caveats: readonly Caveat[]
 }

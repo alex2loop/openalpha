@@ -41,6 +41,8 @@ interface ScreenReading {
 interface ScreenNameFacts {
   readonly facts: readonly BoardFact[]
   readonly missing: readonly string[]
+  /** A ranked board's name kept to itself: its rank, verdict and composite as `/screen` words them. */
+  readonly standing?: string
 }
 
 /** A screen read with the CLI's own lines for it. A `board` view also names the factors it reads, in

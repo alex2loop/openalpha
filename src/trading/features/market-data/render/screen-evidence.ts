@@ -124,18 +124,56 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
   const { candidate } = row
 
   return [
-    t(locale, row.gated ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
-      rank: formatCount(locale, row.index + 1),
-      ticker: renderNameHead(locale, candidate),
-      rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
-    }),
-    t(locale, 'trading.render.screen.score', {
-      score: formatScoreValue(locale, candidate.composite.score),
-    }),
+    ...verdictFacts(
+      locale,
+      candidate,
+      row.gated ? { kind: 'gate' } : { kind: 'ranked', label: formatCount(locale, row.index + 1) }
+    ),
     ...(candidate.excluded === true ? [t(locale, 'trading.render.screen.excluded')] : []),
     ...(candidate.marginIneligible === true
       ? [t(locale, 'trading.render.screen.margin-ineligible')]
       : []),
+  ]
+}
+
+/** What a name's own view opens with where its board is ranked: its row's rank, verdict and
+ *  composite, the rank read against every name the board ranks (`3/61`). None where the name has no
+ *  rank. */
+export function standingFacts(locale: Locale, candidate: ScreenedCandidate): readonly string[] {
+  const { rank } = candidate
+
+  return rank === undefined
+    ? []
+    : verdictFacts(locale, candidate, {
+        kind: 'ranked',
+        label: t(locale, 'trading.render.screen.rank', {
+          place: formatCount(locale, rank.place),
+          count: formatCount(locale, rank.of),
+        }),
+      })
+}
+
+/** A gate board's row numbers nothing, so it has no label to carry. */
+type RowRank = { readonly kind: 'gate' } | { readonly kind: 'ranked'; readonly label: string }
+
+/** A row's head and its composite. */
+function verdictFacts(
+  locale: Locale,
+  candidate: ScreenedCandidate,
+  rank: RowRank
+): readonly string[] {
+  const name = {
+    ticker: renderNameHead(locale, candidate),
+    rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
+  }
+
+  return [
+    rank.kind === 'gate'
+      ? t(locale, 'trading.render.screen.gateRow', name)
+      : t(locale, 'trading.render.screen.row', { ...name, rank: rank.label }),
+    t(locale, 'trading.render.screen.score', {
+      score: formatScoreValue(locale, candidate.composite.score),
+    }),
   ]
 }
 

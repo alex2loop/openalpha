@@ -16,6 +16,7 @@ import type { FocusKey } from '@/trading/kernel/operator/focus'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
 import { buildRowLockSql, readableRow } from '@/trading/features/suggestion/store/readable-row'
+import { toOutcomePayload } from '@/trading/features/suggestion/store/suggestion-payload'
 import { toResolved } from '@/trading/features/suggestion/store/suggestion-row'
 import { framedDirectionOf, planStopOf } from '@/trading/features/suggestion/types'
 import { UNFILLED_STATUS } from '@/trading/kernel/conviction'
@@ -223,11 +224,7 @@ export async function resolveOutcome(
         outcome.resolvedAt,
         outcome.exitDay,
         outcome.returnPct,
-        JSON.stringify({
-          ...payload,
-          benchmarkReturnPct: outcome.benchmarkReturnPct,
-          outcomeFormulaVersion: outcome.formulaVersion,
-        }),
+        JSON.stringify({ ...payload, ...toOutcomePayload(outcome) }),
         id,
       ]
     )

@@ -82,8 +82,8 @@ empty on every other kind. `venue` is always set: a cash row names where the mon
 naming an instrument.
 
 **NAV.** `nav_snapshots` keeps one row a day of the book's value (NAV, cash, net deposits), written by
-`trading.refresh`. It is durable: `db export` and `db import` carry it and no sweep removes it. It
-grows by one row a day.
+`trading.refresh` (in the web version, by the page's refresh while it is open). `db export` and
+`db import` carry it, and rows older than `history_days` are removed by the retention sweep.
 
 **Bars.** `daily_bars` holds one row per market, ticker and day, and records which provider wrote it.
 A series carrying one session twice would skew every median, ATR and lookback, so the key makes that

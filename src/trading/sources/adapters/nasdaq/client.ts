@@ -13,13 +13,14 @@ import { fromCodeTable, parseRow } from '@/trading/sources/rows/normalization'
 
 export const NASDAQ_DEFAULT_ENDPOINT = 'https://api.nasdaq.com'
 export const NASDAQ_ID = sourceId('nasdaq')
+export const NASDAQ_EARNINGS_ID = sourceId('nasdaq-earnings')
 export const USD = currencyCode('USD')
 /** The clock this feed stamps its rows and its "today" on, a provider fact about the feed. */
 export const NASDAQ_TIMEZONE = 'America/New_York'
 
-const OK_CODE = 200
+export const OK_CODE = 200
 const MISS_CODE = 400
-const HEADERS = Object.freeze({ accept: 'application/json' })
+export const NASDAQ_HEADERS = Object.freeze({ accept: 'application/json' })
 
 const ENVELOPE = z.object({
   data: z.unknown(),
@@ -28,6 +29,7 @@ const ENVELOPE = z.object({
 
 const AMOUNT_NOISE_RE = /[$,%+]/g
 const AMOUNT_RE = /^-?\d+(\.\d+)?$/
+const PARENTHESISED_RE = /^\((.+)\)$/
 const US_DAY_RE = /^(\d{2})\/(\d{2})\/(\d{4})$/
 const EASTERN_INSTANT_RE = /^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})(?: (\d{1,2}):(\d{2}) (AM|PM) ET)?$/
 /** With the market shut the feed stamps the last trade with its day alone; that print is the close. */
@@ -81,7 +83,7 @@ export async function getNasdaqData<T>(
   parse: (data: unknown, fetchedAt: number) => T
 ): Promise<SourceFetchOutcome<T>> {
   const outcome = await http.getJson<T | null>(
-    { ...request, sourceId: NASDAQ_ID, headers: HEADERS },
+    { ...request, sourceId: NASDAQ_ID, headers: NASDAQ_HEADERS },
     (raw, fetchedAt) => {
       const data = unwrapData(raw)
 
@@ -120,6 +122,13 @@ function parseAmount(raw: unknown, label: string): number {
 /** "$214.13" and an index level such as "26,425.50". */
 export function parseUsd(raw: unknown): number {
   return parseAmount(raw, 'price')
+}
+
+/** "$0.52", or "($0.16)" for a loss, which is how the calendar writes a negative figure. */
+export function parseSignedUsd(raw: unknown): number {
+  const loss = typeof raw === 'string' ? PARENTHESISED_RE.exec(raw)?.[1] : undefined
+
+  return loss === undefined ? parseUsd(raw) : -parseUsd(loss)
 }
 
 /** "-0.16%" and "+0.30%", as a percent. */

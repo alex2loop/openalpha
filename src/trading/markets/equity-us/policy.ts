@@ -4,8 +4,8 @@ import type { BoardLotPolicy, Ticker, TickSizePolicy } from '@/trading/kernel/in
 import type { AdmissionPolicy } from '@/trading/markets/admission'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import type { SectorPolicy } from '@/trading/markets/sector-strength'
-import { MS_PER_DAY } from '@/core/utils/time'
-import { marketRef, region, ticker } from '@/trading/kernel/instrument'
+import { MS_PER_DAY, MS_PER_MINUTE } from '@/core/utils/time'
+import { currencyCode, marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
 import { usClosuresOf, usEarlyClosesOf } from '@/trading/markets/equity-us/calendar/closures'
 import { US_MACRO_DRIVERS } from '@/trading/markets/macro-risk'
@@ -13,6 +13,7 @@ import { US_MACRO_DRIVERS } from '@/trading/markets/macro-risk'
 export const US_STRATEGY_VERSION = '1.0.0'
 export const US_MARKET_REF = marketRef('equity-us')
 export const US_MARKET_REGION = region('us')
+export const US_CURRENCY = currencyCode('USD')
 
 /** The regular session only: pre-market, after-hours and overnight trading are out of scope. */
 export const US_CALENDAR: CalendarPolicy = Object.freeze({
@@ -37,6 +38,20 @@ export const US_TICK: TickSizePolicy = Object.freeze({
 })
 
 export const US_BENCHMARK_TICKER: Ticker = ticker('SPY')
+/** The funds whose distribution days are counted: the broad market and the Nasdaq-100. */
+export const US_DISTRIBUTION_TICKERS: readonly Ticker[] = Object.freeze([
+  US_BENCHMARK_TICKER,
+  ticker('QQQ'),
+])
+/** The IBD definition: a session down at least `declineAtLeast` on more volume than the one before
+ *  counts until `expirySessions` sessions pass or the fund closes `recoveryRise` above that day's
+ *  close. Stored bars are split-adjusted only, so an ex-dividend drop past the threshold on higher
+ *  volume can count as a distribution day. */
+export const US_DISTRIBUTION_DAY_POLICY = Object.freeze({
+  declineAtLeast: 0.002,
+  expirySessions: 25,
+  recoveryRise: 0.05,
+})
 /** The sector board's windows and floors, read against the benchmark fund. Nasdaq files every board
  *  name under a sector, so the coverage floor only trips on a broken listing read. */
 export const US_SECTOR_POLICY: SectorPolicy = Object.freeze({
@@ -164,10 +179,11 @@ export const US_MAXIMUM_VOLATILITY = 0.1
 /** How many names a refresh asks the provider for at once; the pacer still enforces the rate. */
 export const US_SOURCE_CONCURRENCY = 5
 
-/** Sessions back a filing still reads as news in the brief, and sessions ahead an ex-date is worth
- *  stating and reminding about. */
+/** Sessions back a filing still reads as news in the brief. */
 export const US_RECENT_FILING_SESSIONS = 5
-export const US_EX_DATE_HORIZON_SESSIONS = 10
+/** Sessions ahead an ex-date or an earnings report is worth stating, reminding about and caveating
+ *  a buy over. */
+export const US_EVENT_HORIZON_SESSIONS = 10
 /** Store reads in flight while the board assembles; the database is local, so wider than a provider. */
 export const US_BOARD_READ_CONCURRENCY = 8
 /** How far a stored close may sit from the same session's refetched close before the series counts
@@ -184,6 +200,7 @@ export const US_VOLATILITY_SESSIONS = 63
 export const US_LIQUIDITY_SESSIONS = 20
 export const US_TREND_SESSIONS = 50
 export const US_TREND_SLOPE_SESSIONS = 10
+export const US_LONG_TREND_SESSIONS = 200
 export const US_FUND_MOMENTUM_SESSIONS = 126
 export const US_HIGH_PROXIMITY_SESSIONS = YEAR_SESSIONS
 
@@ -217,6 +234,11 @@ export const US_EQUITY_MACRO_DRIVERS: MacroDriverPolicy = Object.freeze({
     'us-term-spread': 0.1,
   }),
 })
+
+/** How long a macro composite stored without some drivers waits before a refresh asks for them
+ *  again: the series publish through the day, and a composite stored short reads as the whole
+ *  model until then. */
+export const US_MACRO_REPAIR_COOLDOWN_MS = 15 * MS_PER_MINUTE
 
 /** Sessions a stored regime still anchors the next read's band against. */
 export const US_REGIME_MEMORY_SESSIONS = 5

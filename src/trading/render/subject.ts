@@ -22,6 +22,7 @@ const SUBJECT_PREFIXES: Readonly<Record<string, `trading.${string}`>> = Object.f
   review: 'trading.index-review',
   limit: 'trading.cap',
   kind: 'trading.refresh.kind',
+  filing: 'trading.event',
 })
 
 /** Subject fields whose number is a fraction rather than a magnitude. Membership is what declares

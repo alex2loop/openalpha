@@ -1,4 +1,4 @@
-import type { BarRecord, InstrumentRecord } from '@/trading/kernel/market/market-data'
+import type { BarRecord, Candle, InstrumentRecord } from '@/trading/kernel/market/market-data'
 import type { ScreenGateCode } from '@/trading/kernel/screen-codes'
 import type { ScreenGateVerdict } from '@/trading/markets/screen-partition'
 import {
@@ -38,9 +38,13 @@ const US_SCREEN_GATES: readonly ScreenGate[] = Object.freeze([
 ])
 
 export function usAdjustedCloses(bars: readonly BarRecord[]): readonly number[] {
+  return usAdjustedCandles(bars).map((candle) => candle.close)
+}
+
+export function usAdjustedCandles(bars: readonly BarRecord[]): readonly Candle[] {
   return bars
     .filter((bar) => bar.candle.adjustment === 'adjusted' && bar.candle.close > 0)
-    .map((bar) => bar.candle.close)
+    .map((bar) => bar.candle)
 }
 
 export function screenUsCandidate(input: UsScreenInput): ScreenGateVerdict {

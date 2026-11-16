@@ -74,6 +74,10 @@ interface ScreenCandidateWire {
   readonly facts?: readonly ScreenFactWire[]
   /** The factors that had nothing to read for the name, in the operator's language. */
   readonly missing?: readonly string[]
+  /** On a ranked board asked for this name alone (`ticker`): its rank among the names the board
+   *  ranks, its verdict and its composite, as the `/screen` row words them (`3/61. BTC · Nên mua ·
+   *  điểm tổng hợp +0,18`). Absent on a `list` board, a gate board and any board of many names. */
+  readonly standing?: string
   /** `list` boards only: the factors that fired for the name, in a fixed order. */
   readonly factors?: readonly ScreenFactorWire[]
   /** `list` boards only: the plain values the market states beside the factors (where the name

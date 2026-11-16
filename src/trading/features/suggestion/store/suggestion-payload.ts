@@ -12,6 +12,7 @@ import type {
   PullbackStat,
   RestingEntry,
   SettlementNote,
+  SuggestionOutcome,
   SuggestionQuote,
 } from '@/trading/features/suggestion/types'
 import type { FactorComposite, FactorResult } from '@/trading/kernel/factor'
@@ -48,7 +49,7 @@ import { parseJson } from '@/trading/kernel/store/store-row'
 // the schema is what a stored row is validated against, the mapping is what the domain does with it.
 
 /** What the row's columns carry (identity, action, conviction, outcome) or a later step derives, so
- *  the payload holds the rest of either arm, plus the two figures read off the outcome. */
+ *  the payload holds the rest of either arm, plus the figures read off the outcome. */
 type SuggestionColumnKey =
   | 'instrument'
   | 'at'
@@ -63,6 +64,8 @@ type SuggestionPayloadKey =
   | Exclude<keyof ActionableSuggestion | keyof HoldSuggestion, SuggestionColumnKey>
   | 'benchmarkReturnPct'
   | 'outcomeFormulaVersion'
+  | 'adverseExcursion'
+  | 'favorableExcursion'
 
 export const citationSchema = z.strictObject({
   url: z.string(),
@@ -309,6 +312,8 @@ const payloadSchema = z.strictObject({
     .optional(),
   benchmarkReturnPct: z.number().finite().optional(),
   outcomeFormulaVersion: z.string().optional(),
+  adverseExcursion: z.number().finite().optional(),
+  favorableExcursion: z.number().finite().optional(),
   calculationVersions: z.array(calculationVersionSchema),
   citations: z.array(citationSchema),
   headlinesRead: headlinesReadSchema.optional(),
@@ -329,6 +334,39 @@ export type CitationPayload = z.infer<typeof citationSchema>
 export type FactorResultPayload = z.output<typeof factorScoresSchema>[number]
 export type FactorMetricPayload = z.infer<typeof factorMetricSchema>
 export type StoredDebatePayload = z.infer<typeof storedDebateSchema>
+
+type OutcomePayload = Pick<
+  SuggestionPayload,
+  'benchmarkReturnPct' | 'outcomeFormulaVersion' | 'adverseExcursion' | 'favorableExcursion'
+>
+
+/** The payload fields an outcome writes, which an unmeasured one leaves undefined. */
+export function toOutcomePayload(outcome: SuggestionOutcome | undefined): OutcomePayload {
+  return {
+    benchmarkReturnPct: outcome?.benchmarkReturnPct,
+    outcomeFormulaVersion: outcome?.formulaVersion,
+    adverseExcursion: outcome?.adverseExcursion,
+    favorableExcursion: outcome?.favorableExcursion,
+  }
+}
+
+/** The outcome fields the payload carries, each absent when the row never stored it. */
+export function toOutcomeExtras(
+  payload: SuggestionPayload
+): Pick<
+  SuggestionOutcome,
+  'benchmarkReturnPct' | 'formulaVersion' | 'adverseExcursion' | 'favorableExcursion'
+> {
+  const { benchmarkReturnPct, outcomeFormulaVersion, adverseExcursion, favorableExcursion } =
+    payload
+
+  return {
+    ...(benchmarkReturnPct === undefined ? {} : { benchmarkReturnPct }),
+    ...(outcomeFormulaVersion === undefined ? {} : { formulaVersion: outcomeFormulaVersion }),
+    ...(adverseExcursion === undefined ? {} : { adverseExcursion }),
+    ...(favorableExcursion === undefined ? {} : { favorableExcursion }),
+  }
+}
 
 type PullbackPayload = z.infer<typeof pullbackSchema>
 

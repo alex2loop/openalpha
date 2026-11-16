@@ -132,7 +132,7 @@ export async function composeBrief<Board>(
   const sections = withoutPricedNames(finished, fromOverviews)
   // The delta reads the last brief beside this one, so it runs once its sections exist: a failed
   // read costs the section, never the morning.
-  const delta = await readDelta(context, sections)
+  const delta = await readDelta(context, sections, composition.home)
   const composed = [...sections, delta]
   const nextActions = await composition.buildNextActions(context, composed, fromOverviews)
 
@@ -222,10 +222,11 @@ async function runSection<Board>(
  *  read that throws costs its own sections, never the whole morning. Abort still propagates. */
 async function readDelta(
   context: BriefContext,
-  sections: readonly BriefSectionResult[]
+  sections: readonly BriefSectionResult[],
+  home: MarketRef
 ): Promise<BriefSectionResult> {
   try {
-    return await buildSessionDelta(context, sections)
+    return await buildSessionDelta(context, sections, home)
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err

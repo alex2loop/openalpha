@@ -117,22 +117,23 @@ export interface RenderContext {
   readonly charts: boolean
 }
 
-/** What a pushed message is written for. A notice has no invoking surface - nobody ran a command -
- *  and it is read in a chat client, so it takes the narrow shape. */
-export const NOTICE_SURFACE = 'notice'
+/** What the office page's views are written for: plain lines like a chat's, since the page's font is
+ *  not monospace, but as wide as a terminal's, since the page wraps a line to its own width and a
+ *  fact the CLI keeps on one line must not be cut into several. */
+export const PAGE_SURFACE = 'page'
 
 /** What a tool result is written for: it is relayed into a chat message, never a repl table. */
 export const TOOL_SURFACE = 'tool'
 
-/** Only the REPL is monospace and wide; a chat client renders padded columns as ragged text and
- *  wraps anything past a phone's line. */
+/** Only the REPL lays facts out in padded columns, since only it is monospace; the REPL and the
+ *  page are wide, and a chat client wraps anything past a phone's line. */
 export function resolveRenderContext(timezone: string, surface: string): RenderContext {
   const repl = surface === 'repl'
 
   return {
     timezone,
     layout: repl ? 'table' : 'lines',
-    width: repl ? RENDER_WIDTHS.repl : RENDER_WIDTHS.channel,
+    width: repl || surface === PAGE_SURFACE ? RENDER_WIDTHS.repl : RENDER_WIDTHS.channel,
     charts: surface !== TOOL_SURFACE,
   }
 }
@@ -230,7 +231,8 @@ export function formatWholeFraction(locale: Locale, fraction: number): string {
   return formatNumber(locale, 'percentWhole', fraction)
 }
 
-/** A risk-reward ratio, where the third decimal is noise: 1.56 and 1.559 buy the same trade. */
+/** A fixed two-decimal figure (ratios, per-share amounts), where the third decimal is noise: 1.56
+ *  and 1.559 buy the same trade. */
 export function formatRatio(locale: Locale, ratio: number): string {
   return formatNumber(locale, 'ratio', ratio)
 }

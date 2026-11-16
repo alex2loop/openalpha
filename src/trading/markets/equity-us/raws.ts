@@ -1,6 +1,7 @@
 import type { AnnualAccounts } from '@/trading/kernel/market/annual-accounts'
 import type { BarRecord } from '@/trading/kernel/market/market-data'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
+import { dedupeProvenance } from '@/trading/kernel/source/source-result'
 import {
   US_MOMENTUM_SESSIONS,
   US_MOMENTUM_SKIP_SESSIONS,
@@ -46,4 +47,11 @@ export function usBarProvenance(bars: readonly BarRecord[]): readonly SourceProv
   return newest === undefined
     ? []
     : [{ sourceId: newest.sourceId, fetchedAt: newest.fetchedAt, freshness: 'cached' }]
+}
+
+/** Every name's newest bar, stated once per source. */
+export function usBoardProvenance(
+  names: readonly { readonly bars: readonly BarRecord[] }[]
+): readonly SourceProvenance[] {
+  return dedupeProvenance(names.flatMap((name) => usBarProvenance(name.bars)))
 }

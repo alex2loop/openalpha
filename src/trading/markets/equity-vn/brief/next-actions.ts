@@ -1,6 +1,6 @@
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
-import { sectionNumber } from '@/trading/kernel/operator/brief-section'
+import { sectionNumber } from '@/trading/kernel/operator/brief-section-reads'
 import { buildNextActions } from '@/trading/markets/brief-next-actions'
 import { VN_STORY_POLICY } from '@/trading/markets/equity-vn/brief/story-policy'
 import { VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'

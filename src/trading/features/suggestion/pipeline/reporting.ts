@@ -18,9 +18,11 @@ import type { ConvictionBand, SuggestionAction } from '@/trading/kernel/convicti
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import { isMarked, REVIEW_MARK_IDS } from '@/trading/features/suggestion/pipeline/review-marks'
+import { summarizeExcursions } from '@/trading/features/suggestion/track-record/excursion'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isWinningReturn, outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
+import { median } from '@/trading/markets/timeseries'
 
 /** Below this many independent calls a win rate is noise, so it is reported as absent with a
  *  caveat rather than as a number a reader would trust. */
@@ -72,6 +74,7 @@ export function summarizeTrackRecord(
     calibration: calibrationByBand(rows, minimumSampleSize),
     reviewSplits: splitByReviewMark(rows, minimumSampleSize),
     shadow: shadowSummary(rows),
+    excursions: summarizeExcursions(rows, minimumSampleSize),
     caveats,
   }
 }
@@ -435,21 +438,4 @@ function mean(values: readonly number[]): number | undefined {
   return values.length === 0
     ? undefined
     : values.reduce((sum, value) => sum + value, 0) / values.length
-}
-
-function median(values: readonly number[]): number | undefined {
-  if (values.length === 0) {
-    return undefined
-  }
-
-  const sorted = [...values].sort((left, right) => left - right)
-  const middle = Math.floor(sorted.length / 2)
-  const lower = sorted[middle - 1]
-  const upper = sorted[middle]
-
-  if (upper === undefined) {
-    return undefined
-  }
-
-  return sorted.length % 2 === 1 || lower === undefined ? upper : (lower + upper) / 2
 }

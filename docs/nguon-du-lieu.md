@@ -13,7 +13,7 @@ Tóm tắt: mọi nhà cung cấp đều bật sẵn. Bạn không cần bật g
 | `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không có khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì giới hạn là 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Không mất gì: nó đọc được cả hai cách. Không có khóa, nhà cung cấp cho một số ít lần gọi mỗi phút theo địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì bạn có hạn mức riêng mỗi tháng. |
 | `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường), cùng dòng S&P 500 trong khối Thị trường thế giới của bản tin. Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Bạn nhận khóa bằng cách đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
-| `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh và giao dịch mua của người nội bộ cũng vậy. |
+| `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh, các mục 8-K cảnh báo và giao dịch mua của người nội bộ cũng vậy. |
 
 Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng), rồi khởi động lại dịch vụ nền (daemon). Hoặc đặt biến trong shell hay môi trường. Đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy các biến này và biến nào đã đặt.
 
@@ -53,7 +53,8 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 |---|---|
 | **Cổ phiếu Mỹ** | |
 | Danh sách, vốn hóa, giá trực tiếp, lịch sử ngày, cổ tức | `nasdaq` |
-| Báo cáo năm, công bố kết quả kinh doanh, giao dịch mua của người nội bộ | `sec-data` (đọc bảng mã và hồ sơ Form 4 từ máy chủ thứ hai của SEC, `sec`) |
+| Ngày công bố kết quả kinh doanh sắp tới | `nasdaq-earnings` |
+| Báo cáo năm, công bố kết quả kinh doanh, các mục 8-K cảnh báo, giao dịch mua của người nội bộ | `sec-data` (đọc bảng mã và hồ sơ Form 4 từ máy chủ thứ hai của SEC, `sec`) |
 | **Cổ phiếu VN** | |
 | Giá trực tiếp | `vndirect`, `vietcap-chart`, `entrade` |
 | Lịch sử theo ngày | `vndirect`, `vndirect-index`, `entrade`, `vietcap-chart`, `vps` |
@@ -130,6 +131,7 @@ Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền r�
 ### Nguồn dữ liệu Mỹ
 
 - **nasdaq** cung cấp danh sách niêm yết (khoảng 12.000 mã, mỗi sàn một yêu cầu và một yêu cầu cho quỹ), vốn hóa, báo giá, lịch sử ngày đã điều chỉnh chia tách và cổ tức. Lịch sử này không điều chỉnh theo cổ tức, nên ngày giao dịch không hưởng cổ tức không bị coi là điều chỉnh giá. Ngày cổ tức chỉ có cho mã niêm yết trên Nasdaq: mã NYSE (khoảng hai phần ba bảng) không có ngày không hưởng cổ tức, nên các mức giá không được chỉnh qua ngày đó và bản tin không nhắc bạn ghi cổ tức. Khi nhận cổ tức, hãy tự ghi. Giới hạn 120 yêu cầu mỗi phút là con số đã đo, không phải con số nguồn công bố: đó là tốc độ một lượt quét trọn bảng đã chạy mà không bị từ chối lần nào.
+- **nasdaq-earnings** cung cấp các ngày sắp tới mà công ty Mỹ công bố kết quả kinh doanh, kèm việc công bố trước giờ mở cửa hay sau giờ đóng cửa và EPS dự báo của giới phân tích. Nguồn đọc lịch kết quả kinh doanh của Nasdaq theo từng ngày, từ hôm nay đến ba tuần tới (lịch được điền trước khoảng năm tuần, ngày xa hơn chưa có), bỏ qua cuối tuần và giữ trang của mỗi ngày vài giờ, nên một bản tin qua nhiều mã chỉ đọc mỗi ngày một lần. Một ngày mà lịch không trả lời được làm hỏng cả lần đọc và câu trả lời nói rõ như vậy: ngày thiếu sẽ bị hiểu nhầm là không có công bố. Nguồn không cần khóa, và bản web không đọc nguồn này.
 - **SEC** yêu cầu người đọc để lại liên hệ, gửi qua user agent. Hãy đặt `SEC_CONTACT_EMAIL` (`onboard` sẽ hỏi, hoặc `key set SEC_CONTACT_EMAIL`); không có thì nguồn SEC tắt và giá trị, chất lượng của cổ phiếu Mỹ ghi là thiếu dữ liệu. Báo cáo năm lấy từ các bảng XBRL toàn doanh nghiệp (sáu năm đã báo cáo và năm đang chạy). Bảng cân đối được đọc đúng ngày kết thúc năm tài chính của doanh nghiệp, dù là tháng nào, và số liệu mười hai tháng gần nhất in trong báo cáo quý bị bỏ chứ không bị coi là một năm. Lợi nhuận ròng lùi về con số dành cho cổ đông phổ thông khi doanh nghiệp (PNC, Truist) chỉ ghi con số đó. Doanh nghiệp mà các bảng này bỏ sót hoàn toàn, phần lớn là doanh nghiệp nước ngoài nộp 20-F hoặc 40-F, được đọc từ hồ sơ của chính họ rồi quy ra đô la theo tỷ giá mới nhất: tăng trưởng và các tỷ lệ giữ nguyên, còn số tiền của các năm cũ dịch theo tỷ giá. Hôm nào chưa có tỷ giá thì báo cáo của họ chờ lần làm mới sau.
 - **Đường cong lợi suất.** Bản đọc của Kho bạc nay in thêm chênh lệch lợi suất 10 năm trừ 3 tháng, mà nhóm cổ phiếu cân trong chỉ số vĩ mô.
 - **Coinbase cho crypto.** Coinbase báo giá bằng đô la, còn sổ crypto tính bằng USDT, nên mỗi giá hoặc mỗi thanh nến được chia cho giá đô la của USDT trong cùng ngày.
@@ -197,7 +199,7 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 | 300 | `cafef`, `vndirect` |
 | 200 | `sec`, `sec-data` |
 | 120 | `fred`, `nasdaq`, `vietcap-statements`, `vietcombank` |
-| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
+| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `nasdaq-earnings`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
 | 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |

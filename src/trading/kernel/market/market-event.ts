@@ -14,7 +14,13 @@ export const MARKET_EVENT_KINDS = Object.freeze([
   'margin-eligible',
   'margin-ineligible',
   'earnings-release',
+  'earnings-date',
   'insider-purchase',
+  'bankruptcy-filing',
+  'impairment',
+  'listing-notice',
+  'auditor-change',
+  'non-reliance',
 ] as const)
 export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
 
@@ -49,6 +55,20 @@ export interface InsiderPurchase {
   readonly currency: CurrencyCode
 }
 
+/** When in the session a company reports: before the open, or after the close. A calendar that
+ *  does not say leaves it absent. */
+export const EARNINGS_TIMINGS = Object.freeze(['pre-market', 'after-close'] as const)
+export type EarningsTiming = (typeof EARNINGS_TIMINGS)[number]
+
+/** A report the company has scheduled, as the calendar states it. */
+export interface EarningsSchedule {
+  readonly timing?: EarningsTiming
+  /** The analysts' consensus EPS, per share in `currency`; absent when the calendar states none.
+   *  Negative for an expected loss. */
+  readonly epsForecast?: number
+  readonly currency: CurrencyCode
+}
+
 export interface MarketEvent {
   readonly at: TradingDay
   readonly kind: MarketEventKind
@@ -63,6 +83,7 @@ export interface MarketEvent {
    *  told; set by the adapter from its own source, absent on text it composed. */
   readonly writtenIn?: Locale
   readonly insider?: InsiderPurchase
+  readonly earnings?: EarningsSchedule
   readonly providerEventId?: string
   /** A cash dividend's amount per share, in the market's price unit; absent where not published. */
   readonly cashPerShare?: number
@@ -87,6 +108,45 @@ export function isEventSubject(event: MarketEvent, instrument: InstrumentRef): b
   return (
     event.instrument.market === instrument.market && event.instrument.ticker === instrument.ticker
   )
+}
+
+/** How far back a filing still counts as recent: what the persona's RECENTLY FILED block reads and
+ *  how long a flagged filing stays on a name's answers. */
+export const RECENT_EVENT_LOOKBACK_DAYS = 90
+
+/** 8-K items a holder should read before acting. `listing-notice` is a notice of a missed
+ *  listing rule or a transfer of listing, never `delisting`, which `isTradingEnd` reads as a
+ *  scheduled end. */
+export const FILING_FLAG_KINDS: readonly MarketEventKind[] = Object.freeze([
+  'bankruptcy-filing',
+  'impairment',
+  'listing-notice',
+  'auditor-change',
+  'non-reliance',
+])
+
+/** What a name has filed or reported that already happened: its earnings release, an insider's
+ *  purchase, and the flagged 8-K items. */
+export const FILED_EVENT_KINDS: readonly MarketEventKind[] = Object.freeze([
+  'earnings-release',
+  'insider-purchase',
+  ...FILING_FLAG_KINDS,
+])
+
+/** The flagged filings that hold a buy: insolvency, and the company saying its own accounts cannot
+ *  be relied on. A listing notice stays informational: the item also covers a voluntary transfer
+ *  between exchanges, which is common and benign. */
+const BLOCKING_FILING_KINDS: readonly MarketEventKind[] = Object.freeze([
+  'bankruptcy-filing',
+  'non-reliance',
+])
+
+export function isFlaggedFiling(event: MarketEvent): boolean {
+  return FILING_FLAG_KINDS.includes(event.kind)
+}
+
+export function isBlockingFiling(event: MarketEvent): boolean {
+  return BLOCKING_FILING_KINDS.includes(event.kind)
 }
 
 /** A last trading day or a delisting: past it there is no position to open. */

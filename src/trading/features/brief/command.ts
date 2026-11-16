@@ -9,7 +9,7 @@ import type { Region } from '@/trading/kernel/instrument'
 import { LOCAL_TIME_RE } from '@/core/utils/time'
 import { formatDay, t } from '@/i18n'
 import { renderBriefText } from '@/trading/features/brief/render'
-import { hasNoBook } from '@/trading/kernel/operator/brief-section'
+import { hasNoBook } from '@/trading/kernel/operator/brief-section-reads'
 import { usage } from '@/trading/kernel/surface/surface'
 import { bookAffordances } from '@/trading/render/affordance'
 import { formatInstant } from '@/trading/render/datetime'
@@ -25,9 +25,9 @@ const DISABLE_ARG = 'disable'
 const ACTIONS = Object.freeze([FORCE_ARG, ENABLE_ARG, DISABLE_ARG] as const)
 
 /** The default region arrives resolved from configuration; the handler holds no fallback of its
- *  own and never reads config. There is no region argument: only `equity-vn` publishes a brief
- *  capability, so any other region would name a subscription that never delivers — `enable` refuses
- *  one rather than scheduling it. */
+ *  own and never reads config. There is no region argument: the brief is the home region's, and
+ *  `enable` refuses a region whose market publishes no brief capability rather than scheduling a
+ *  subscription that never delivers. */
 interface BriefCommandDeps {
   /** The operator's own clock, so every rendered instant reads in one zone. */
   readonly timezone: string

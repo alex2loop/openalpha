@@ -5,7 +5,9 @@ import { ROUTES } from '@/web/api/routes'
 import { NameNotes } from '@/web/edition/screen-board'
 import { useBlockRead } from '@/web/state/block'
 import { findMarket } from '@/web/state/market'
+import { isAdvanced } from '@/web/state/prefs'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
+import { withoutScore } from '@/web/text/score-line'
 import { tr } from '@/web/text/tr'
 import { FactGrid } from '@/web/ui/kit/fact-grid'
 import { TrendIcon } from '@/web/ui/kit/icons'
@@ -23,7 +25,8 @@ interface FactsProps {
 }
 
 /** "Chỉ số chính": what the screen read for this name (P/E, liquidity, flows), laid out as the
- *  Screen board lays it; absent for a market with no board. */
+ *  Screen board lays it, under the name's rank, verdict and score where the board ranks; absent for
+ *  a market with no board. */
 export function FactsBlock(props: FactsProps) {
   return findMarket(props.market)?.hasBoard === true ? <Facts {...props} /> : null
 }
@@ -49,6 +52,11 @@ function Facts({ ticker, market }: FactsProps) {
           </p>
         ) : (
           <>
+            {candidate.standing !== undefined && (
+              <p class="fact-standing">
+                {isAdvanced.value ? candidate.standing : withoutScore(candidate.standing)}
+              </p>
+            )}
             <FactGrid facts={candidate.facts ?? []} />
             <NameNotes candidate={candidate} />
           </>

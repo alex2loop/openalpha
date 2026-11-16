@@ -9,18 +9,18 @@ import { isEventSubject } from '@/trading/kernel/market/market-event'
 import { collectEvents } from '@/trading/markets/brief-events'
 import { runUsEvents } from '@/trading/markets/equity-us/events'
 import {
-  US_EX_DATE_HORIZON_SESSIONS,
+  US_EVENT_HORIZON_SESSIONS,
   US_RECENT_FILING_SESSIONS,
   US_SOURCE_CONCURRENCY,
 } from '@/trading/markets/equity-us/policy'
 
-/** The last week's filings and the coming fortnight's ex-dates of held and watched names: what the
- *  recent list prints and what next-actions reminds from. */
+/** The last week's filings and the coming fortnight's ex-dates and earnings reports of held and
+ *  watched names: what the recent list prints and what next-actions reminds from. */
 export function readUsEvents(input: EventsReadInput): Promise<EventsRead> {
   const { asOf } = input.request
   const window: EventWindow = {
     fromDay: input.calendar.addTradingDays(asOf, -US_RECENT_FILING_SESSIONS),
-    toDay: input.calendar.addTradingDays(asOf, US_EX_DATE_HORIZON_SESSIONS),
+    toDay: input.calendar.addTradingDays(asOf, US_EVENT_HORIZON_SESSIONS),
   }
 
   return collectEvents(input, {

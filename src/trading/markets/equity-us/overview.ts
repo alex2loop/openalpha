@@ -12,14 +12,15 @@ import type {
 } from '@/trading/kernel/market/market-overview'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { UsBoard, UsBoardCache, UsBoardName } from '@/trading/markets/equity-us/board'
+import type { BreadthTrend } from '@/trading/markets/overview-rollups'
 import type { MarketManifest } from '@/trading/markets/types'
-import { dedupeProvenance } from '@/trading/kernel/source/source-result'
+import { usBreadthAt } from '@/trading/markets/equity-us/breadth'
 import {
   US_EVIDENCE_SESSIONS,
   US_INDEX_TICKERS,
   US_MARKET_REF,
 } from '@/trading/markets/equity-us/policy'
-import { usBarProvenance } from '@/trading/markets/equity-us/raws'
+import { usBoardProvenance } from '@/trading/markets/equity-us/raws'
 import { usAdjustedCloses } from '@/trading/markets/equity-us/screen'
 import { OVERVIEW_LEADER_SESSIONS } from '@/trading/markets/overview'
 import { MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
@@ -56,6 +57,7 @@ export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverv
     .flatMap(toNameSession)
   const marketCap = board.names.reduce((sum, name) => sum + name.marketCap, 0)
   const turnover = sessions.reduce((sum, entry) => sum + entry.turnover, 0)
+  const trend = day === undefined ? {} : usBreadthAt(board, day)
 
   return {
     market: manifest.id,
@@ -66,10 +68,10 @@ export async function runUsOverview(load: OverviewLoad): Promise<MarketDataOverv
     ...optionalUniverse(board),
     ...(marketCap > 0 ? { marketCap } : {}),
     ...(turnover > 0 ? { turnover } : {}),
-    ...optionalBreadth(sessions),
+    ...optionalBreadth(sessions, trend),
     ...optionalLeaders(sessions),
     ...optionalMovers(sessions),
-    provenance: dedupeProvenance(board.names.flatMap((name) => usBarProvenance(name.bars))),
+    provenance: usBoardProvenance(board.names),
     caveats: board.names.length === 0 ? [{ code: 'market-data.universe-empty' }] : [],
   }
 }
@@ -144,7 +146,7 @@ function toNameSession(name: UsBoardName): NameSession[] {
 
 /** The newest settled session across the board: per-name maxima would let one stale name misdate
  *  the whole. */
-function latestSession(board: UsBoard): TradingDay | undefined {
+export function latestSession(board: UsBoard): TradingDay | undefined {
   let latest: TradingDay | undefined
 
   for (const name of board.names) {
@@ -158,7 +160,10 @@ function latestSession(board: UsBoard): TradingDay | undefined {
   return latest
 }
 
-function optionalBreadth(sessions: readonly NameSession[]): { breadth?: MarketBreadth } {
+function optionalBreadth(
+  sessions: readonly NameSession[],
+  trend: BreadthTrend
+): { breadth?: MarketBreadth } {
   if (sessions.length === 0) {
     return {}
   }
@@ -173,6 +178,7 @@ function optionalBreadth(sessions: readonly NameSession[]): { breadth?: MarketBr
       netAdvancers: advancers - decliners,
       measured: sessions.length,
       ...(advancers + decliners === 0 ? {} : { advanceRatio: advancers / (advancers + decliners) }),
+      ...trend,
     },
   }
 }

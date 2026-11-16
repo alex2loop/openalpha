@@ -10,7 +10,7 @@ import { renderSuggestionCard } from '@/trading/features/suggestion/render/card'
 import { resolveRenderView, suggestionReportDeps } from '@/trading/features/suggestion/report'
 import { isBookCall } from '@/trading/kernel/operator/focus'
 import { renderFocusLabel } from '@/trading/render/focus'
-import { NOTICE_SURFACE } from '@/trading/render/format'
+import { PAGE_SURFACE } from '@/trading/render/format'
 
 export interface SuggestionCards {
   card(request: {
@@ -40,7 +40,7 @@ function createSuggestionCards(
         detail: 'compact',
         locale: request.locale,
         signal: request.signal,
-        surface: NOTICE_SURFACE,
+        surface: PAGE_SURFACE,
         ...(focusLabel === undefined ? {} : { focusLabel }),
       })
 

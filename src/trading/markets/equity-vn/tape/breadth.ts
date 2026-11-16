@@ -20,7 +20,13 @@ import {
   resolveHistoryBandReference,
   resolveTradeability,
 } from '@/trading/markets/equity-vn/tradeability'
-import { averageSlope, sessionChange, trendDistance } from '@/trading/markets/timeseries'
+import {
+  aboveMeanShare,
+  indexTrendReading,
+  isAboveMean,
+  seriesThrough,
+  sessionChange,
+} from '@/trading/markets/timeseries'
 
 /** The index ratios a basket's names answer for, each with the mean its names are measured against. */
 const MEAN_RATIO_WINDOWS = Object.freeze([
@@ -135,9 +141,12 @@ export function aboveMeanRatios(
 
   return Object.fromEntries(
     MEAN_RATIO_WINDOWS.flatMap(([id, window]) => {
-      const readings = settled.flatMap((name) => isAboveMean(name.closes, window) ?? [])
+      const above = aboveMeanShare(
+        settled.map((name) => name.closes),
+        window
+      )
 
-      return readings.length === 0 ? [] : [[id, readings.filter(Boolean).length / readings.length]]
+      return above === undefined ? [] : [[id, above.ratio]]
     })
   )
 }
@@ -158,19 +167,6 @@ function truncatedAt(name: NameEvidence, day: TradingDay): NameEvidence {
       inCloses: inCloses.slice(0, kept),
     },
   }
-}
-
-/** The index series as it stood at `asOf`, or nothing when it does not reach that session. Every
- *  count beside these readings is admitted name by name at `asOf`, so a series that stops short —
- *  the index endpoint withholds the settled bar for hours after the shares have theirs — would put
- *  one session's trend under another's stamp, and one running ahead would do the reverse. */
-function seriesThrough(
-  bars: readonly Candle[] | undefined,
-  asOf: TradingDay
-): readonly Candle[] | undefined {
-  const window = (bars ?? []).filter((bar) => bar.at <= asOf)
-
-  return window[window.length - 1]?.at === asOf ? window : undefined
 }
 
 /** Empty while the index series reaches the counted session. Otherwise the two readings above are
@@ -206,13 +202,7 @@ function indexTrend(
     return {}
   }
 
-  const distance = trendDistance(closes, TREND_SESSIONS)
-  const slope = averageSlope(closes, TREND_SESSIONS, TREND_SLOPE_SESSIONS)
-
-  return {
-    ...(distance === undefined ? {} : { indexToMa50Pct: distance }),
-    ...(slope === undefined ? {} : { ma50SlopePct: slope }),
-  }
+  return indexTrendReading(closes, TREND_SESSIONS, TREND_SLOPE_SESSIONS)
 }
 
 /** Where the broad tape sits in its own recent distribution, plus the share of names above each mean.
@@ -324,20 +314,4 @@ function yearExtreme(
   }
 
   return close <= Math.min(...window) ? 'low' : 'none'
-}
-
-/** True when the latest close exceeds the trailing-window mean — the one definition of "above its
- *  own moving average" that needs no external series. Absent below a full window, never `false`:
- *  a young listing has no measurable mean, and reading it as "below" would count it in the
- *  above/below denominator without ever having been measured. */
-function isAboveMean(closes: readonly number[], window: number): boolean | undefined {
-  if (closes.length < window) {
-    return undefined
-  }
-
-  const slice = closes.slice(closes.length - window)
-  const mean = slice.reduce((sum, value) => sum + value, 0) / slice.length
-  const last = closes[closes.length - 1]
-
-  return last === undefined ? undefined : last > mean
 }

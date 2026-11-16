@@ -6,6 +6,7 @@ import type { Candle } from '@/trading/kernel/market/market-data'
 import type { MarketPriceLimit } from '@/trading/markets/price-limit'
 import type { MarketTrail, TrailBounds } from '@/trading/markets/types'
 import { bankedShareOf, firstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
+import { withExcursion } from '@/trading/features/suggestion/pipeline/outcome-excursion'
 import {
   entryFillFor,
   isExitLocked,
@@ -119,10 +120,12 @@ export function resolveOutcome(input: OutcomeInput): OutcomeResolution {
   }
 
   const entered = enterAt(input, opened, fill)
+  const result =
+    fill.kind === 'unsettled'
+      ? expiredAtLastClose(entered.input, entered.window)
+      : scoreWindow(entered.input, entered.window)
 
-  return fill.kind === 'unsettled'
-    ? expiredAtLastClose(entered.input, entered.window)
-    : scoreWindow(entered.input, entered.window)
+  return withExcursion(result, entered.input.suggestion, entered.window.bars)
 }
 
 function scoreWindow(input: OutcomeInput, window: HoldingWindow): OutcomeResolution {

@@ -19,6 +19,7 @@ import {
   renderVersionLines,
 } from '@/trading/features/suggestion/track-record/render-breakdown'
 import { renderCoverageLine } from '@/trading/features/suggestion/track-record/render-coverage'
+import { renderExcursionSection } from '@/trading/features/suggestion/track-record/render-excursion'
 import { renderFocusLines } from '@/trading/features/suggestion/track-record/render-focus'
 import { renderShadowSection } from '@/trading/features/suggestion/track-record/render-shadow'
 import { outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
@@ -164,6 +165,7 @@ export function renderOverallLines(locale: Locale, summary: TrackRecordSummary):
       losses: formatCount(locale, summary.lossCount),
     })}`,
     ...renderShadowSection(locale, summary.shadow),
+    ...renderExcursionSection(locale, summary.excursions),
   ]
 }
 

@@ -2,6 +2,7 @@ import type { RegisteredSource } from '@/trading/kernel/source/source-result'
 import type { SourceAdapterOptions } from '@/trading/sources/define'
 import { nasdaqBarsSource } from '@/trading/sources/adapters/nasdaq/bars'
 import { nasdaqEventsSource } from '@/trading/sources/adapters/nasdaq/dividends'
+import { nasdaqEarningsSource } from '@/trading/sources/adapters/nasdaq/earnings'
 import { nasdaqQuoteSource } from '@/trading/sources/adapters/nasdaq/quote'
 import {
   nasdaqFundamentalsSource,
@@ -15,5 +16,6 @@ export function createNasdaqSources(options: SourceAdapterOptions): readonly Reg
     nasdaqQuoteSource(options),
     nasdaqBarsSource(options),
     nasdaqEventsSource(options),
+    nasdaqEarningsSource(options),
   ]
 }

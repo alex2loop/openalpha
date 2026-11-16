@@ -87,8 +87,8 @@ trả lời cho hiện tại:
 - `venue` luôn có giá trị. Dòng tiền mặt cho biết nơi giữ tiền, không gắn với công cụ nào.
 
 **NAV.** `nav_snapshots` giữ mỗi ngày một dòng về giá trị danh mục (NAV, tiền mặt, tiền nạp ròng), do
-`trading.refresh` ghi. Đây là bảng bền: `db export` và `db import` mang nó theo, và không lần dọn dẹp nào
-xóa nó. Nó chỉ lớn thêm một dòng mỗi ngày.
+`trading.refresh` ghi (ở bản web, do lần làm mới của trang lúc đang mở ghi). `db export` và `db import`
+mang nó theo, và lần dọn dẹp xóa các dòng cũ hơn `history_days`.
 
 **Nến ngày.** `daily_bars` giữ một dòng cho mỗi thị trường, mã và ngày, và ghi lại nhà cung cấp nào đã ghi
 dòng đó. Nếu một chuỗi có cùng một phiên hai lần, mọi trung vị, ATR và khoảng nhìn lại đều lệch. Khóa này

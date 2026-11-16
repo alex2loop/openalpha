@@ -2,7 +2,6 @@ import type { Locale } from '@/core/types/locale'
 import type { ConvictionBand, SuggestionAction } from '@/trading/kernel/conviction'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { IndexReviewKind, MarketRegime } from '@/trading/kernel/market/market-data'
-import type { MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { AlertCondition } from '@/trading/kernel/operator/alert'
 import type { CashPosture } from '@/trading/kernel/operator/book'
 import type {
@@ -23,6 +22,7 @@ import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, type MessageKey, renderQuoteUnit, t } from '@/i18n'
 import { BRIEF_NUMERIC_FIELDS } from '@/trading/kernel/operator/brief-section'
 import { isTradingDayText } from '@/trading/render/datetime'
+import { EVENT_KEYS, TIMING_KEYS } from '@/trading/render/event'
 import {
   bandedSentiment,
   formatAmount,
@@ -93,25 +93,10 @@ const ACTION_CODE_KEYS = Object.freeze({
   'record-dividend': 'trading.brief.action.record-dividend',
   'record-distribution': 'trading.brief.action.record-distribution',
   'review-alerts': 'trading.brief.action.review-alerts',
+  'review-filing': 'trading.brief.action.review-filing',
   'review-portfolio': 'trading.brief.action.review-portfolio',
   'review-suggestions': 'trading.brief.action.review-suggestions',
 } as const satisfies Record<BriefActionCode, string>)
-
-const EVENT_KEYS = Object.freeze({
-  'additional-listing': 'trading.event.additional-listing',
-  agm: 'trading.event.agm',
-  delisting: 'trading.event.delisting',
-  'dividend-ex-date': 'trading.event.dividend-ex-date',
-  'earnings-release': 'trading.event.earnings-release',
-  'insider-purchase': 'trading.event.insider-purchase',
-  'last-trading-day': 'trading.event.last-trading-day',
-  listing: 'trading.event.listing',
-  'margin-eligible': 'trading.event.margin-eligible',
-  'margin-ineligible': 'trading.event.margin-ineligible',
-  'meeting-ex-date': 'trading.event.meeting-ex-date',
-  'rights-issue': 'trading.event.rights-issue',
-  split: 'trading.event.split',
-} as const satisfies Record<MarketEventKind, MessageKey>)
 
 /** Fields whose value is an enumeration, mapped value by value so every value that reaches a reader
  *  is a checked key. A field absent here holds a proper noun or a number; neither is translated. */
@@ -165,6 +150,7 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
     stopBasis: {
       'volatility-resting': 'trading.brief.stop-basis.volatility-resting',
     } satisfies Record<BriefStopBasis, MessageKey>,
+    timing: TIMING_KEYS,
     verdict: {
       expired: 'trading.outcome.expired',
       stop: 'trading.outcome.stop',
@@ -194,7 +180,9 @@ const DECLARED_PREFIXES: Partial<Record<BriefField, `trading.${string}`>> = Obje
 /** Every numeric field declares its unit. Exhaustive by `satisfies`, because the fallback for a
  *  missing entry is `String(value)` — a raw float in front of a reader. */
 const VALUE_FORMATTERS = Object.freeze({
+  aboveMa200Ratio: formatFraction,
   aboveMa50Ratio: formatFraction,
+  ma200Measured: formatCount,
   ma50Measured: formatCount,
   advanceRatio: formatFraction,
   advancers: formatCount,
@@ -212,7 +200,9 @@ const VALUE_FORMATTERS = Object.freeze({
   decliners: formatCount,
   deploymentScale: formatFraction,
   depositRate12m: formatFraction,
+  distributionDays: formatCount,
   entryTranchePct: formatFixedFraction,
+  epsForecast: formatRatio,
   floors: formatCount,
   flowWindowUsd: formatSignedFlow,
   foreignNetBase: formatSignedFlow,
@@ -299,11 +289,13 @@ function bandedScore(locale: Locale, score: number): string {
   return `${scoreBar(locale, score)} ${formatScore(locale, score)}`
 }
 
-/** Aggregate money, where the magnitude is compacted and nothing else on the row states the unit.
- *  Prices are excluded: a board-scaled quote is not in currency units, and `renderPricePair` already
- *  owns saying so. `netFlowUsd` and `flowWindowUsd` name their unit in the field, and `netLong` and
- *  `weekChange` count contracts rather than money. */
+/** Money, where nothing else on the row states the unit: aggregates compacted, and a per-share
+ *  earnings forecast at two decimals rather than a price's every digit. Prices are excluded: a
+ *  board-scaled quote is not in currency units, and `renderPricePair` already owns saying so.
+ *  `netFlowUsd` and `flowWindowUsd` name their unit in the field, and `netLong` and `weekChange`
+ *  count contracts rather than money. */
 const MONEY_FIELDS: ReadonlySet<BriefField> = new Set([
+  'epsForecast',
   'foreignNetBase',
   'foreignNetWindow',
   'marketCap',

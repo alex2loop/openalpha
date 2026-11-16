@@ -4,6 +4,7 @@
 
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Candle } from '@/trading/kernel/market/market-data'
+import type { MarketBreadth } from '@/trading/kernel/market/market-overview'
 
 const WIN_RATE_CONFIDENCE_Z = 1.96
 // One missing session is the provider gap a comparison tolerates; past it the benchmark measures a
@@ -237,7 +238,7 @@ export function trailingAverage(closes: readonly number[], sessions: number): nu
 
 /** How far the moving average itself has moved over `slopeSessions`. Absent below a full window
  *  plus the slope lookback: a slope measured against a shorter history is a different statistic. */
-export function averageSlope(
+function averageSlope(
   closes: readonly number[],
   sessions: number,
   slopeSessions: number
@@ -263,6 +264,22 @@ export function trendWithSlope(
   return distance === undefined || slope === undefined ? undefined : (distance + slope) / 2
 }
 
+/** The two readings a breadth block states for its market's index, each absent below its own
+ *  window, so a short series publishes what it can measure and never a zero. */
+export function indexTrendReading(
+  closes: readonly number[],
+  sessions: number,
+  slopeSessions: number
+): Pick<MarketBreadth, 'indexToMa50Pct' | 'ma50SlopePct'> {
+  const distance = trendDistance(closes, sessions)
+  const slope = averageSlope(closes, sessions, slopeSessions)
+
+  return {
+    ...(distance === undefined ? {} : { indexToMa50Pct: distance }),
+    ...(slope === undefined ? {} : { ma50SlopePct: slope }),
+  }
+}
+
 const PERCENTILE_MAX = 100
 
 /** Share of `values` at or below `value`, as a 0-100 integer. Undefined over an empty history:
@@ -274,4 +291,51 @@ export function percentileRank(values: readonly number[], value: number): number
 
   const below = values.filter((candidate) => candidate <= value).length
   return Math.round((below / values.length) * PERCENTILE_MAX)
+}
+
+/** True when the latest close exceeds the trailing-window mean — the one definition of "above its
+ *  own moving average" that needs no external series. Absent below a full window, never `false`:
+ *  a young listing has no measurable mean, and reading it as "below" would count it in the
+ *  above/below denominator without ever having been measured. */
+export function isAboveMean(closes: readonly number[], window: number): boolean | undefined {
+  if (closes.length < window) {
+    return undefined
+  }
+
+  const slice = closes.slice(closes.length - window)
+  const mean = slice.reduce((sum, value) => sum + value, 0) / slice.length
+  const last = closes[closes.length - 1]
+
+  return last === undefined ? undefined : last > mean
+}
+
+interface AboveMeanShare {
+  readonly ratio: number
+  readonly measured: number
+}
+
+/** The share of `series` above their own `window`-session mean, among those with a full window
+ *  behind them: a younger listing has no mean to be below, so it is left out of the count and the
+ *  base. Absent when none could be measured, never zero. */
+export function aboveMeanShare(
+  series: readonly (readonly number[])[],
+  window: number
+): AboveMeanShare | undefined {
+  const readings = series.flatMap((closes) => isAboveMean(closes, window) ?? [])
+
+  return readings.length === 0
+    ? undefined
+    : { ratio: readings.filter(Boolean).length / readings.length, measured: readings.length }
+}
+
+/** `bars` as they stood at `asOf`, or nothing when they do not reach that session. A trend read
+ *  beside counts taken name by name at `asOf` would put one session's trend under another's stamp
+ *  if its series stopped short, and one running ahead would do the reverse. */
+export function seriesThrough(
+  bars: readonly Candle[] | undefined,
+  asOf: TradingDay
+): readonly Candle[] | undefined {
+  const window = (bars ?? []).filter((bar) => bar.at <= asOf)
+
+  return window[window.length - 1]?.at === asOf ? window : undefined
 }

@@ -7,11 +7,10 @@ import type {
 } from '@/trading/kernel/operator/brief-story'
 import type { StoryInputs } from '@/trading/markets/equity-vn/brief/story-facts'
 import { toRunKey } from '@/trading/kernel/operator/brief-story'
+import { detectBreadthShift, fact, salienceOf } from '@/trading/markets/brief-story'
 import {
-  buildWatches,
-  fact,
+  buildVnWatches,
   moveFacts,
-  salienceOf,
   turnoverFact,
   vn30Fact,
   vnRows,
@@ -34,7 +33,7 @@ export const VN_STORY_DETECTORS: readonly StoryDetector[] = Object.freeze([
   detectForeignFlow,
   detectTurnoverMove,
   detectLevelTest,
-  detectBreadthShift,
+  (inputs) => detectBreadthShift(inputs, P),
   detectSectorLeadership,
   detectBasis,
 ])
@@ -61,7 +60,7 @@ function detectBreadthSplit(inputs: StoryInputs): StoryCandidate | undefined {
       salienceOf(netShare, P.splitNetShare)
     ),
     facts: splitFacts(inputs),
-    watches: buildWatches([
+    watches: buildVnWatches([
       {
         shape: down ? 'aboveMa50Ratio-above' : 'aboveMa50Ratio-below',
         threshold: now + widens * P.breadthFollowThrough,
@@ -103,7 +102,7 @@ function detectForeignFlow(inputs: StoryInputs): StoryCandidate | undefined {
       ...vn30Fact(inputs),
       ...proprietaryFact(inputs, net),
     ],
-    watches: buildWatches([
+    watches: buildVnWatches([
       {
         shape: selling ? 'indexToMa50Pct-below' : 'indexToMa50Pct-above',
         threshold: trend + (selling ? -1 : 1) * P.indexFollowThrough,
@@ -150,7 +149,7 @@ function detectTurnoverMove(inputs: StoryInputs): StoryCandidate | undefined {
       ...turnoverFact(inputs, 'supports'),
       ...againstMoveFact(inputs),
     ],
-    watches: buildWatches([
+    watches: buildVnWatches([
       {
         shape: lower ? 'indexToMa50Pct-below' : 'indexToMa50Pct-above',
         threshold: trend + (lower ? -1 : 1) * P.indexFollowThrough,
@@ -195,7 +194,7 @@ function detectLevelTest(inputs: StoryInputs): StoryCandidate | undefined {
       fact(support ? { supportPct: distance } : { resistancePct: distance }, 'supports'),
       ...(against ? [fact({ indexToMa50Pct: trend }, 'contradicts')] : []),
     ],
-    watches: buildWatches([
+    watches: buildVnWatches([
       {
         shape: support ? 'supportPct-above' : 'resistancePct-above',
         threshold: P.levelClear,
@@ -204,52 +203,6 @@ function detectLevelTest(inputs: StoryInputs): StoryCandidate | undefined {
       {
         shape: support ? 'supportPct-below' : 'resistancePct-below',
         threshold: 0,
-        effect: 'refutes',
-      },
-    ]),
-  }
-}
-
-function detectBreadthShift(inputs: StoryInputs): StoryCandidate | undefined {
-  const before = inputs.breadthBefore?.aboveMa50Ratio
-  const { breadth } = inputs
-
-  if (before === undefined) {
-    return undefined
-  }
-
-  const now = breadth.aboveMa50Ratio
-  const delta = now - before
-
-  if (Math.abs(delta) < P.breadthShift) {
-    return undefined
-  }
-
-  const widening = delta > 0
-  const trend = breadth.indexToMa50Pct
-  const code = widening ? 'breadth-widening' : 'breadth-narrowing'
-  const against = trend !== undefined && (widening ? trend < 0 : trend > 0)
-
-  return {
-    code,
-    runKey: toRunKey(code),
-    salience: salienceOf(Math.abs(delta), P.breadthShift),
-    facts: [
-      fact({ aboveMa50Ratio: now, sessions: P.breadthShiftSessions }, 'supports'),
-      ...(breadth.newHighs === undefined || breadth.newLows === undefined
-        ? []
-        : [fact({ newHighs: breadth.newHighs, newLows: breadth.newLows }, 'supports')]),
-      ...(against ? [fact({ indexToMa50Pct: trend }, 'contradicts')] : []),
-    ],
-    watches: buildWatches([
-      {
-        shape: widening ? 'aboveMa50Ratio-above' : 'aboveMa50Ratio-below',
-        threshold: now + (widening ? 1 : -1) * P.breadthFollowThrough,
-        effect: 'confirms',
-      },
-      {
-        shape: widening ? 'aboveMa50Ratio-below' : 'aboveMa50Ratio-above',
-        threshold: before,
         effect: 'refutes',
       },
     ]),
@@ -278,7 +231,7 @@ function detectSectorLeadership(inputs: StoryInputs): StoryCandidate | undefined
       ...sectorForeignFact(inputs, top.sector),
       ...(narrowMarket ? [fact({ aboveMa50Ratio: now }, 'contradicts')] : []),
     ],
-    watches: buildWatches([
+    watches: buildVnWatches([
       {
         shape: leading ? 'strength-above' : 'strength-below',
         threshold: (leading ? 1 : -1) * P.sectorStrong,
@@ -316,7 +269,7 @@ function detectBasis(inputs: StoryInputs): StoryCandidate | undefined {
     runKey: toRunKey(code),
     salience: salienceOf(Math.abs(basisPct), P.basisDislocation),
     facts: basisFacts(inputs, basisPct),
-    watches: buildWatches([
+    watches: buildVnWatches([
       {
         shape: premium ? 'indexToMa50Pct-above' : 'indexToMa50Pct-below',
         threshold: trend + (premium ? 1 : -1) * P.indexFollowThrough,

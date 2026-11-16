@@ -67,7 +67,7 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   // only where the primary reply lacks that statement.
   cashFlowToDate: { 'equity-vn': [sourceId('cafef-statements')] },
   events: {
-    'equity-us': [sourceId('nasdaq'), sourceId('sec-data')],
+    'equity-us': [sourceId('nasdaq'), sourceId('nasdaq-earnings'), sourceId('sec-data')],
     'equity-vn': [sourceId('vndirect')],
   },
   flows: { 'equity-vn': [sourceId('vndirect')] },

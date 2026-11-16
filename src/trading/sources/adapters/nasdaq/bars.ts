@@ -27,8 +27,9 @@ const BAR_LIMIT = '9999'
 /** A bad symbol is the only 400 this endpoint answers over a past range. */
 const BUSINESS_MISS_STATUSES = Object.freeze([400])
 
+/** A symbol with no history answers `tradesTable: null`; a range with no sessions answers `rows: null`. */
 const HISTORY = z.object({
-  tradesTable: z.object({ rows: z.array(z.unknown()).nullable() }),
+  tradesTable: z.object({ rows: z.array(z.unknown()).nullable() }).nullable(),
 })
 
 const BAR_ROW = z.object({
@@ -78,7 +79,7 @@ function toBars(
   context: SourceContext,
   toDay: TradingDay
 ): ParsedSource<readonly Candle[]> {
-  const { rows } = parseRow(HISTORY, data, 'nasdaq history').tradesTable
+  const rows = parseRow(HISTORY, data, 'nasdaq history').tradesTable?.rows
   const level = isLevelKind(context.instrumentKind)
   const candles = dropInvalid(rows ?? [], (row) => toBarCandle(row, level)).filter(
     (candle) => candle.at <= toDay

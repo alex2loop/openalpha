@@ -14,6 +14,7 @@ import type {
 } from '@/trading/features/suggestion/debate/types'
 import type { FactorMetric } from '@/trading/kernel/factor-metric'
 import type { InstrumentRef } from '@/trading/kernel/instrument'
+import type { EarningsSchedule } from '@/trading/kernel/market/market-event'
 import type { Page, PageOptions } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, StorageError } from '@/core/errors'
@@ -35,7 +36,7 @@ import {
   tradingDay,
 } from '@/trading/kernel/instrument'
 import { MACRO_SERIES_IDS } from '@/trading/kernel/market/macro-series'
-import { MARKET_EVENT_KINDS } from '@/trading/kernel/market/market-event'
+import { EARNINGS_TIMINGS, MARKET_EVENT_KINDS } from '@/trading/kernel/market/market-event'
 import { caveatsSchema, type StoredShape } from '@/trading/kernel/store/store-payload'
 import { parseJson, toPage } from '@/trading/kernel/store/store-row'
 
@@ -104,6 +105,13 @@ const payloadSchema = z.strictObject({
         detail: z.string().optional(),
         composedText: z.literal(true).optional(),
         writtenIn: z.enum(LOCALES).optional(),
+        earnings: z
+          .strictObject({
+            timing: z.enum(EARNINGS_TIMINGS).optional(),
+            epsForecast: z.number().optional(),
+            currency: z.string(),
+          } satisfies StoredShape<EarningsSchedule>)
+          .optional(),
       } satisfies StoredShape<NonNullable<AnalysisRecord['upcoming']>[number]>)
     )
     .optional()
