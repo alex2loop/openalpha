@@ -121,6 +121,11 @@ export interface RenderContext {
  *  and it is read in a chat client, so it takes the narrow shape. */
 export const NOTICE_SURFACE = 'notice'
 
+/** What the office page's brief is written for: plain lines like a chat's, since the page's font is
+ *  not monospace, but as wide as a terminal's, since the page wraps a line to its own width and a
+ *  fact the CLI keeps on one line must not be cut into several. */
+export const PAGE_SURFACE = 'page'
+
 /** What a tool result is written for: it is relayed into a chat message, never a repl table. */
 export const TOOL_SURFACE = 'tool'
 
@@ -132,7 +137,7 @@ export function resolveRenderContext(timezone: string, surface: string): RenderC
   return {
     timezone,
     layout: repl ? 'table' : 'lines',
-    width: repl ? RENDER_WIDTHS.repl : RENDER_WIDTHS.channel,
+    width: repl || surface === PAGE_SURFACE ? RENDER_WIDTHS.repl : RENDER_WIDTHS.channel,
     charts: surface !== TOOL_SURFACE,
   }
 }

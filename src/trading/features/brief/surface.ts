@@ -13,7 +13,7 @@ import { renderStoryLines, type StoryLine } from '@/trading/features/brief/story
 import { renderBriefStrip } from '@/trading/features/brief/strip'
 import { renderQuotedReading, renderVerdictBlock } from '@/trading/features/brief/verdict'
 import { renderCaveatLines } from '@/trading/render/caveat'
-import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
+import { PAGE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 import { toBriefSectionText } from '@/trading/render/section'
 
@@ -70,7 +70,7 @@ export function renderBriefForSurface(
   }
 ): BriefText {
   const { timezone } = options
-  const context = resolveRenderContext(timezone, NOTICE_SURFACE)
+  const context = resolveRenderContext(timezone, PAGE_SURFACE)
   const { readable, renderable, hasAiCalls, stories, nextActions, blocks } = readSections(
     locale,
     snapshot
