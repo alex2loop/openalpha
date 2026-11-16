@@ -4341,7 +4341,7 @@
     "caveat.market.first-day-band": "First-session price band in effect, wider than normal.",
     "caveat.market.band-edge-blocked": "The last close sat on the daily band edge; on the side this action needs there is a queue, not a price.",
     "caveat.market.ex-date-upcoming": "A dividend or split lands on {day}. The price resets that morning, and that drop is not a loss.",
-    "caveat.market.earnings-upcoming": "Earnings are due {day}. A report can open the price past the stop, so a loss can run larger than planned.",
+    "caveat.market.earnings-upcoming": "Earnings are due {day}. The price can gap sharply overnight on the report, past any stop.",
     "caveat.market.margin-list-removal": "This name leaves the margin list on {day}. Leveraged holders may be forced to sell, so expect pressure.",
     "caveat.market.margin-ineligible": "Off the margin list since {day}: brokers will not lend against it, and its leveraged holders were flushed out.",
     "caveat.market.delisting-scheduled": "This name stops trading on {day}. Do not open new positions.",

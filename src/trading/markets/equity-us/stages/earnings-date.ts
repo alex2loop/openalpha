@@ -6,10 +6,11 @@ import { STAGE_PASS } from '@/trading/markets/stage'
 const EARNINGS_DATE_STAGE_ID = 'equity-us-earnings-date'
 const EARNINGS_DATE_STAGE_ORDER = 50
 
-/** A report inside the event horizon can open the price past the stop, so a buy carries the date.
- *  It never lowers or blocks: the date says nothing about direction, and every company reports each
- *  quarter. A calendar that failed or a name it does not list reads as no caveat; the debate's
- *  evidence already says when the calendar could not be read. */
+/** A report inside the event horizon can gap the price past any stop, so every answer on the name
+ *  carries the date: a buy about to enter, a held name keeping its stop, a sale. It never lowers or
+ *  blocks: the date says nothing about direction, and every company reports each quarter. A
+ *  calendar that failed or a name it does not list reads as no caveat; the debate's evidence
+ *  already says when the calendar could not be read. */
 export function createUsEarningsDateStage(): Stage {
   return {
     id: EARNINGS_DATE_STAGE_ID,
@@ -22,7 +23,7 @@ export function createUsEarningsDateStage(): Stage {
 function evaluate(input: StageInput): StageDecision {
   const { suggestion, market } = input
 
-  if (suggestion.instrument.market !== US_MARKET_REF || suggestion.action !== 'buy') {
+  if (suggestion.instrument.market !== US_MARKET_REF) {
     return STAGE_PASS
   }
 
