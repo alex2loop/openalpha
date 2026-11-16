@@ -33,10 +33,11 @@ interface UpkeepContext {
 }
 
 /** What the daemon's loops do while it runs, done while the tab is open: a refresh of the markets in
- *  use, then the database sweep, now and every few hours. The first refresh of an empty profile is
- *  the history backfill: the market writes the history a window at a time, and the sweep waits for
- *  it. The returned stop ends the schedule and waits out the pass in flight (the app's own signal
- *  cuts a long refresh short first); `runIfDue` is the page's nudge after a sleep. */
+ *  use and, after it, the day's book value point, then the database sweep, now and every few hours.
+ *  The first refresh of an empty profile is the history backfill: the market writes the history a
+ *  window at a time, and the sweep waits for it. The returned stop ends the schedule and waits out
+ *  the pass in flight (the app's own signal cuts a long refresh short first); `runIfDue` is the
+ *  page's nudge after a sleep. */
 export function startBrowserUpkeep(app: App, logger: Logger): PeriodicPass {
   const context: UpkeepContext = { app, logger, storageFull: false }
 
@@ -107,6 +108,7 @@ async function refreshInUse(context: UpkeepContext, listener: TaskPassListener):
         context.logger.warn('browser.refresh_failed', { err: formatErrForLog(err) })
       }
     )
+    await context.app.resolve('tradingServices').navSnapshot(context.app.signal)
   } catch (err: unknown) {
     if (err instanceof StorageFullError) {
       context.storageFull = true

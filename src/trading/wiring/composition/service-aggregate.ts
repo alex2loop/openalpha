@@ -5,7 +5,7 @@ import type { BriefService } from '@/trading/features/brief/types'
 import type { VenueSyncOutcome } from '@/trading/features/ledger/sync-run'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { OrderService } from '@/trading/features/order/types'
-import type { NavService } from '@/trading/features/portfolio/nav/types'
+import type { NavService, NavSnapshotTick } from '@/trading/features/portfolio/nav/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { ProfileSetField } from '@/trading/features/profile/patch'
 import type { ProfileService } from '@/trading/features/profile/types'
@@ -45,6 +45,9 @@ export interface TradingServices {
   readonly appViews: AppViews
   readonly factorLog: FactorLogService
   readonly nav: NavService
+  /** Records today's book value as one `nav` point; total, a book it cannot value is logged and
+   *  skipped. The daemon takes it after each refresh pass, the browser's upkeep after its own. */
+  readonly navSnapshot: NavSnapshotTick
   readonly alerts: AlertService
   readonly briefs: BriefService
   /** Absent when the exchange credentials are not configured: the two order surfaces are not

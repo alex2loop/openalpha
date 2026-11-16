@@ -82,7 +82,7 @@ empty on every other kind. `venue` is always set: a cash row names where the mon
 naming an instrument.
 
 **NAV.** `nav_snapshots` keeps one row a day of the book's value (NAV, cash, net deposits), written by
-`trading.refresh`. It is durable: `db export` and `db import` carry it and no sweep removes it. It
+`trading.refresh` (in the web version, by the page's refresh while it is open). It is durable: `db export` and `db import` carry it and no sweep removes it. It
 grows by one row a day.
 
 **Bars.** `daily_bars` holds one row per market, ticker and day, and records which provider wrote it.

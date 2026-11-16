@@ -79,6 +79,8 @@ export function toAggregate(
   options: AggregateOptions,
   registries: Registries
 ): TradingServices {
+  const navSnapshot = buildNavSnapshot(parts, options)
+
   return Object.freeze({
     ...parts.services,
     refresh: parts.refresh,
@@ -99,7 +101,8 @@ export function toAggregate(
     ),
     profileFields: offeredFields(options.edition?.profile?.fields),
     appViews: buildAppViews(parts.services, options.tradingConfig, options.edition),
-    daemonTasks: buildDaemonTasks(parts, options, registries),
+    navSnapshot,
+    daemonTasks: buildDaemonTasks({ ...parts, navSnapshot }, options, registries),
     syncVenue: buildVenueSync(parts, registries),
     marketSession: buildMarketSession(parts, options.tradingConfig, registries),
   })
@@ -138,8 +141,21 @@ function buildVenueSync(
   return (input) => runVenueSync(deps, input)
 }
 
-function buildDaemonTasks(
+/** The one writer of the day's book value, shared by the daemon's refresh pass and the browser's. */
+function buildNavSnapshot(
   parts: AggregateParts,
+  options: AggregateOptions
+): TradingServices['navSnapshot'] {
+  return createNavSnapshotTick({
+    portfolio: parts.services.portfolio,
+    store: parts.stores.navSnapshot,
+    timezone: options.tradingConfig.displayTimezone,
+    logger: parts.logger,
+  })
+}
+
+function buildDaemonTasks(
+  parts: AggregateParts & Pick<TradingServices, 'navSnapshot'>,
   options: AggregateOptions,
   registries: Registries
 ): TradingServices['daemonTasks'] {
@@ -148,12 +164,7 @@ function buildDaemonTasks(
     alerts: parts.services.alerts,
     suggestions: parts.services.suggestions,
     factorLog: parts.services.factorLog,
-    navSnapshot: createNavSnapshotTick({
-      portfolio: parts.services.portfolio,
-      store: parts.stores.navSnapshot,
-      timezone: options.tradingConfig.displayTimezone,
-      logger: parts.logger,
-    }),
+    navSnapshot: parts.navSnapshot,
     macroExtractTick: parts.macroExtractTick,
     themes: parts.services.themes,
     briefs: parts.services.briefs,
