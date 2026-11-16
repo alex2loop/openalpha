@@ -16,6 +16,11 @@ export const MARKET_EVENT_KINDS = Object.freeze([
   'earnings-release',
   'earnings-date',
   'insider-purchase',
+  'bankruptcy-filing',
+  'impairment',
+  'listing-deficiency',
+  'auditor-change',
+  'non-reliance',
 ] as const)
 export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
 
@@ -103,6 +108,37 @@ export function isEventSubject(event: MarketEvent, instrument: InstrumentRef): b
   return (
     event.instrument.market === instrument.market && event.instrument.ticker === instrument.ticker
   )
+}
+
+/** How far back a filing still counts as recent: what the persona's RECENTLY FILED block reads and
+ *  how long a flagged filing stays on a name's answers. */
+export const RECENT_EVENT_LOOKBACK_DAYS = 90
+
+/** 8-K items a holder should read before acting. `listing-deficiency` is a notice of a missed
+ *  listing rule or a transfer of listing, never `delisting`, which `isTradingEnd` reads as a
+ *  scheduled end. */
+export const FILING_FLAG_KINDS: readonly MarketEventKind[] = Object.freeze([
+  'bankruptcy-filing',
+  'impairment',
+  'listing-deficiency',
+  'auditor-change',
+  'non-reliance',
+])
+
+/** The flagged filings that hold a buy: insolvency, and the company saying its own accounts cannot
+ *  be relied on. A listing notice stays informational: the item also covers a voluntary transfer
+ *  between exchanges, which is common and benign. */
+const BLOCKING_FILING_KINDS: readonly MarketEventKind[] = Object.freeze([
+  'bankruptcy-filing',
+  'non-reliance',
+])
+
+export function isFlaggedFiling(event: MarketEvent): boolean {
+  return FILING_FLAG_KINDS.includes(event.kind)
+}
+
+export function isBlockingFiling(event: MarketEvent): boolean {
+  return BLOCKING_FILING_KINDS.includes(event.kind)
 }
 
 /** A last trading day or a delisting: past it there is no position to open. */

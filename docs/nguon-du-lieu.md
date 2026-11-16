@@ -13,7 +13,7 @@ Tóm tắt: mọi nhà cung cấp đều bật sẵn. Bạn không cần bật g
 | `bls` | `BLS_API_KEY` | Không mất gì: lạm phát Mỹ vẫn đọc được. Không có khóa thì nhà cung cấp cho 25 lượt gọi mỗi ngày trên mỗi địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì giới hạn là 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Không mất gì: nó đọc được cả hai cách. Không có khóa, nhà cung cấp cho một số ít lần gọi mỗi phút theo địa chỉ IP, dùng chung cho mọi chương trình sau địa chỉ đó. Có khóa thì bạn có hạn mức riêng mỗi tháng. |
 | `fred` | `FRED_API_KEY` | Bạn mất hai chuỗi chỉ FRED công bố: chỉ số đô la và VIX (mức lo sợ của thị trường), cùng dòng S&P 500 trong khối Thị trường thế giới của bản tin. Điểm vĩ mô vẫn chấm được nhưng thiếu hai yếu tố này: điểm vĩ mô Mỹ mất khoảng 30% trọng số, bối cảnh vĩ mô cho cổ phiếu VN mất 20%, vàng mất 2 trong 7 yếu tố (đô la, trú ẩn an toàn). Vì vậy những ngày đô la mạnh lên hay thị trường hoảng loạn dễ bị bỏ sót. Lợi suất, lãi suất thực và lạm phát Mỹ vẫn đọc từ `treasury` và `bls`, hai bên không cần khóa. Bạn nhận khóa bằng cách đăng ký tại [trang FRED](https://fred.stlouisfed.org/docs/api/api_key.html). |
-| `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh và giao dịch mua của người nội bộ cũng vậy. |
+| `sec-data` | `SEC_CONTACT_EMAIL` | Không phải khóa: SEC yêu cầu mọi người đọc cho biết ai đang gọi, nên đây là email liên hệ của bạn. Không có thì nguồn SEC tắt. Giá trị và chất lượng của cổ phiếu Mỹ đọc thành không có số liệu, công bố kết quả kinh doanh, các mục 8-K cảnh báo và giao dịch mua của người nội bộ cũng vậy. |
 
 Lưu khóa bằng `openalpha key set <TÊN>` (hoặc ở Cài đặt > Công cụ trên trang văn phòng), rồi khởi động lại dịch vụ nền (daemon). Hoặc đặt biến trong shell hay môi trường. Đừng bao giờ ghi khóa vào tệp cấu hình. `openalpha key list` cho thấy các biến này và biến nào đã đặt.
 
@@ -54,7 +54,7 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 | **Cổ phiếu Mỹ** | |
 | Danh sách, vốn hóa, giá trực tiếp, lịch sử ngày, cổ tức | `nasdaq` |
 | Ngày công bố kết quả kinh doanh sắp tới | `nasdaq-earnings` |
-| Báo cáo năm, công bố kết quả kinh doanh, giao dịch mua của người nội bộ | `sec-data` (đọc bảng mã và hồ sơ Form 4 từ máy chủ thứ hai của SEC, `sec`) |
+| Báo cáo năm, công bố kết quả kinh doanh, các mục 8-K cảnh báo, giao dịch mua của người nội bộ | `sec-data` (đọc bảng mã và hồ sơ Form 4 từ máy chủ thứ hai của SEC, `sec`) |
 | **Cổ phiếu VN** | |
 | Giá trực tiếp | `vndirect`, `vietcap-chart`, `entrade` |
 | Lịch sử theo ngày | `vndirect`, `vndirect-index`, `entrade`, `vietcap-chart`, `vps` |

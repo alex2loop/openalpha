@@ -3,6 +3,7 @@ import type { BriefActionCode, BriefSectionResult } from '@/trading/kernel/opera
 import type { BriefContext } from '@/trading/markets/brief-context'
 import type { EventsRead } from '@/trading/markets/brief-events'
 import { isAbortError } from '@/core/errors'
+import { FILING_FLAG_KINDS } from '@/trading/kernel/market/market-event'
 import { hasNoBook } from '@/trading/kernel/operator/brief-section'
 import { ready } from '@/trading/markets/brief-sections'
 
@@ -52,13 +53,17 @@ export async function buildNextActions(
 
   return ready('next-actions', [
     ...[...codes, ...marketCodes].filter((code) => !omitted?.has(code)).map((code) => ({ code })),
-    ...heldEventTickers(context, events, 'dividend-ex-date').map((ticker) => ({
+    ...heldEventTickers(context, events, ['dividend-ex-date']).map((ticker) => ({
       ticker,
       code: 'record-dividend' as const,
     })),
-    ...heldEventTickers(context, events, 'split').map((ticker) => ({
+    ...heldEventTickers(context, events, ['split']).map((ticker) => ({
       ticker,
       code: 'record-distribution' as const,
+    })),
+    ...heldEventTickers(context, events, FILING_FLAG_KINDS).map((ticker) => ({
+      ticker,
+      code: 'review-filing' as const,
     })),
   ])
 }
@@ -77,17 +82,17 @@ async function readCalendar(context: BriefContext): Promise<EventsRead['rows']> 
   }
 }
 
-/** The held names a cash or share dividend goes ex on inside the calendar window: the price drops by
- *  it on the ex-date while the cash or the shares land weeks later, and only a recorded row puts them
- *  in the book. */
+/** The held names with an event of one of the kinds inside the calendar window. A dividend or split
+ *  goes ex while the cash or the shares land weeks later, and only a recorded row puts them in the
+ *  book; a flagged filing is the company saying something the holder should read. */
 function heldEventTickers(
   context: BriefContext,
   events: EventsRead['rows'],
-  kind: MarketEventKind
+  kinds: readonly MarketEventKind[]
 ): readonly string[] {
   const held = new Set(context.heldNames.map((instrument) => String(instrument.ticker)))
   const tickers = events.flatMap((row) =>
-    row.event.kind === kind && held.has(String(row.instrument.ticker))
+    kinds.includes(row.event.kind) && held.has(String(row.instrument.ticker))
       ? [row.instrument.ticker]
       : []
   )

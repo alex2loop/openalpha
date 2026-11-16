@@ -93,6 +93,7 @@ const ACTION_CODE_KEYS = Object.freeze({
   'record-dividend': 'trading.brief.action.record-dividend',
   'record-distribution': 'trading.brief.action.record-distribution',
   'review-alerts': 'trading.brief.action.review-alerts',
+  'review-filing': 'trading.brief.action.review-filing',
   'review-portfolio': 'trading.brief.action.review-portfolio',
   'review-suggestions': 'trading.brief.action.review-suggestions',
 } as const satisfies Record<BriefActionCode, string>)

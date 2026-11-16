@@ -134,6 +134,7 @@ export const BRIEF_ACTION_CODES = Object.freeze([
   'record-book',
   'record-dividend',
   'record-distribution',
+  'review-filing',
 ] as const)
 export type BriefActionCode = (typeof BRIEF_ACTION_CODES)[number]
 

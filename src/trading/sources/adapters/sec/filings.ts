@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
-import type { InsiderRelationship, MarketEvent } from '@/trading/kernel/market/market-event'
+import type {
+  InsiderRelationship,
+  MarketEvent,
+  MarketEventKind,
+} from '@/trading/kernel/market/market-event'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { OwnershipFiling } from '@/trading/sources/adapters/sec/ownership'
 import type { SecTickerMap, TickerMapReader } from '@/trading/sources/adapters/sec/tickers'
@@ -27,8 +31,17 @@ const INSIDER_LOOKBACK_DAYS = 90
 /** One request each, so the newest few: a name with more has been busy enough to be said so. */
 const INSIDER_MAXIMUM_FILINGS = 10
 const OWNERSHIP_CONCURRENCY = 4
-/** 8-K item 2.02: results of operations, which is an earnings release. */
-const EARNINGS_ITEM = '2.02'
+/** The 8-K items that become events, as SEC numbers them: results of operations (2.02), and the
+ *  ones a holder should read: bankruptcy, material impairment, a listing notice, an auditor change,
+ *  and non-reliance on past financials. */
+const ITEM_EVENT_KINDS: ReadonlyMap<string, MarketEventKind> = new Map<string, MarketEventKind>([
+  ['1.03', 'bankruptcy-filing'],
+  ['2.02', 'earnings-release'],
+  ['2.06', 'impairment'],
+  ['3.01', 'listing-deficiency'],
+  ['4.01', 'auditor-change'],
+  ['4.02', 'non-reliance'],
+])
 /** An open-market purchase, as Form 4 codes it. Awards, exercises and gifts are not a view. */
 const OPEN_MARKET_PURCHASE = 'P'
 const BUSINESS_MISS_STATUSES = Object.freeze([404])
@@ -124,7 +137,7 @@ async function loadEvents(
   return {
     ...listed,
     value: parsedSource([
-      ...earningsEvents({ filings: listed.value, window, ticker, context }),
+      ...itemEvents({ filings: listed.value, window, ticker, context }),
       ...insider,
     ]),
   }
@@ -154,7 +167,7 @@ function toFilings(raw: unknown): readonly Filing[] {
   return dropInvalid(rows, (row) => ({ ...row, day: tradingDay(row.day) }))
 }
 
-function earningsEvents(read: {
+function itemEvents(read: {
   readonly filings: readonly Filing[]
   readonly window: Window
   readonly ticker: Ticker
@@ -163,16 +176,28 @@ function earningsEvents(read: {
   const { filings, window, ticker, context } = read
 
   return filings
-    .filter((filing) => filing.form === '8-K' && filing.items.includes(EARNINGS_ITEM))
-    .filter((filing) => filing.day >= window.fromDay && filing.day <= window.toDay)
-    .map((filing) => ({
-      at: filing.day,
-      kind: 'earnings-release' as const,
-      title: `${ticker} 8-K item ${EARNINGS_ITEM}`,
-      composedText: true as const,
-      ...(context.instrument === undefined ? {} : { instrument: context.instrument }),
-      providerEventId: filing.accession,
-    }))
+    .filter(
+      (filing) =>
+        filing.form === '8-K' && filing.day >= window.fromDay && filing.day <= window.toDay
+    )
+    .flatMap((filing) =>
+      filing.items.flatMap((item) => {
+        const kind = ITEM_EVENT_KINDS.get(item)
+
+        return kind === undefined
+          ? []
+          : [
+              {
+                at: filing.day,
+                kind,
+                title: `${ticker} 8-K item ${item}`,
+                composedText: true as const,
+                ...(context.instrument === undefined ? {} : { instrument: context.instrument }),
+                providerEventId: filing.accession,
+              },
+            ]
+      })
+    )
 }
 
 interface InsiderRead {

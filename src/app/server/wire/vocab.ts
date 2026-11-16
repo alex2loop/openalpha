@@ -51,6 +51,11 @@ export type MarketEventKind =
   | 'earnings-release'
   | 'earnings-date'
   | 'insider-purchase'
+  | 'bankruptcy-filing'
+  | 'impairment'
+  | 'listing-deficiency'
+  | 'auditor-change'
+  | 'non-reliance'
 
 export type BriefSectionKind =
   | 'thesis-review'

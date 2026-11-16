@@ -17,7 +17,12 @@ import { heldPositionOf } from '@/trading/features/suggestion/pipeline/concentra
 import { outcomeWindowSessions } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { lowerBand } from '@/trading/kernel/conviction'
 import { factorComposite } from '@/trading/kernel/factor'
-import { isEventSubject, isTradingEnd } from '@/trading/kernel/market/market-event'
+import {
+  FILING_FLAG_KINDS,
+  isEventSubject,
+  isTradingEnd,
+  RECENT_EVENT_LOOKBACK_DAYS,
+} from '@/trading/kernel/market/market-event'
 import { toProfileStamp } from '@/trading/kernel/operator/profile'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 import { regimeFor } from '@/trading/markets/macro-risk'
@@ -117,14 +122,14 @@ export function instrumentEvents(
     .toSorted((left, right) => left.at.localeCompare(right.at))
 }
 
-/** Filings the market published about the name that already happened: an earnings release or an
- *  insider's purchase is a fact a persona may weigh, but a past one is not a timing the run waits
- *  on, so these are read apart from `upcomingEvents`. */
+/** Filings the market published about the name that already happened: an earnings release, an
+ *  insider's purchase or a flagged 8-K item is a fact a persona may weigh, but a past one is not a
+ *  timing the run waits on, so these are read apart from `upcomingEvents`. */
 const RECENT_EVENT_KINDS: ReadonlySet<MarketEventKind> = new Set([
   'earnings-release',
   'insider-purchase',
+  ...FILING_FLAG_KINDS,
 ])
-const RECENT_EVENT_LOOKBACK_DAYS = 90
 
 /** The rows still ahead of the run. The read reaches back for the margin row in force, and a past
  *  ex-date or listing is history the hold codes and the personas must not act on. */

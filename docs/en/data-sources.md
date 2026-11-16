@@ -13,7 +13,7 @@ You need nothing to get started. A few providers take a key that you can add lat
 | `bls` | `BLS_API_KEY` | Nothing is lost: US inflation reads either way. Without a key the provider allows 25 calls a day per IP address, shared by every program behind that address. With a key the limit is 500. |
 | `coingecko` | `COINGECKO_API_KEY` | Nothing is lost: it reads either way. Without a key the provider allows a small number of calls a minute per IP address, shared by every program behind that address. With a key you get a monthly allowance of your own. |
 | `fred` | `FRED_API_KEY` | You lose the two series only FRED publishes: the dollar index and VIX (the market's fear gauge), plus the S&P 500 line in the brief's World markets block. The macro score still rates, without these two drivers: the US macro score loses about 30% of its weight, the macro backdrop for VN stocks 20%, and gold 2 of its 7 factors (dollar, safe haven). So days when the dollar strengthens or the market panics are easy to miss. US yields, the real rate and inflation still read from `treasury` and `bls`, which need no key. You get a key by signing up on the [FRED site](https://fred.stlouisfed.org/docs/api/api_key.html). |
-| `sec-data` | `SEC_CONTACT_EMAIL` | Not a key: SEC asks every reader to say who is calling, so this is your contact email. Without it the SEC source stays off. US value and quality read as unavailable, and so do US earnings releases and insider purchases. |
+| `sec-data` | `SEC_CONTACT_EMAIL` | Not a key: SEC asks every reader to say who is calling, so this is your contact email. Without it the SEC source stays off. US value and quality read as unavailable, and so do US earnings releases, flagged 8-K items and insider purchases. |
 
 Save the key with `openalpha key set <NAME>` (or under Settings > Tools on the office page), then restart the daemon. Or set the variable in your shell or environment. Never write the key in a config file. `openalpha key list` shows these variables and whether each is set.
 
@@ -54,7 +54,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | **US equities** | |
 | Listings, market caps, live price, daily history, dividends | `nasdaq` |
 | Upcoming earnings dates | `nasdaq-earnings` |
-| Annual accounts, earnings releases, insider purchases | `sec-data` (reads the ticker map and Form 4 filings from SEC's other host, `sec`) |
+| Annual accounts, earnings releases, flagged 8-K items, insider purchases | `sec-data` (reads the ticker map and Form 4 filings from SEC's other host, `sec`) |
 | **VN equities** | |
 | Live price | `vndirect`, `vietcap-chart`, `entrade` |
 | Daily history | `vndirect`, `vndirect-index`, `entrade`, `vietcap-chart`, `vps` |

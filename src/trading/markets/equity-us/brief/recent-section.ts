@@ -5,18 +5,24 @@ import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/opera
 import type { BriefContext } from '@/trading/markets/brief-context'
 import type { DatedEvent } from '@/trading/markets/brief-events'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
+import { FILING_FLAG_KINDS } from '@/trading/kernel/market/market-event'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 
-const FILED_KINDS: readonly MarketEventKind[] = ['earnings-release', 'insider-purchase']
+const FILED_KINDS: readonly MarketEventKind[] = [
+  'earnings-release',
+  'insider-purchase',
+  ...FILING_FLAG_KINDS,
+]
 const UPCOMING_KINDS: readonly MarketEventKind[] = ['dividend-ex-date', 'earnings-date']
 /** The events provider that dates filings: registered only when the SEC contact is set, while
  *  Nasdaq's ex-dates answer without one. */
 const FILINGS_SOURCE = sourceId('sec-data')
 const FILINGS_UNCONFIGURED: Caveat = { code: 'brief.filings-unconfigured' }
 
-/** What a name the operator holds or watches just filed, and the ex-dividend dates and earnings
- *  reports ahead, cut from the calendar the context read once. */
+/** What a name the operator holds or watches just filed (earnings, insider buying, a flagged 8-K),
+ *  and the ex-dividend dates and earnings reports ahead, cut from the calendar the context read
+ *  once. */
 export async function buildRecent(context: BriefContext): Promise<BriefSectionResult> {
   if (context.calendarNames.names.length === 0) {
     return omitted('recent')
