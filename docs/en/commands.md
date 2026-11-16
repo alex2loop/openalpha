@@ -316,9 +316,10 @@ the output path. Market data keeps loading in the background after that.
 A start prints the version it runs, the model, the channels it opens, the API port and a
 line naming `web` when `[api]` is on, and the log file. The log records when the channels open.
 
-It then says which automatic jobs are at work at that moment, such as the market data load every
-start runs, and why any task's last pass failed. In the foreground, each of those prints one "Done"
-line when it finishes; after that the terminal stays quiet.
+It then says which automatic jobs are at work, such as the market data load every start runs, and
+why any task's last pass failed. In the foreground, each job's first pass after the start prints an
+"at work" line when it begins, including one that starts later because it waits for the network, and
+one "Done" line when it finishes; later passes stay quiet.
 
 **Restarting.** When a daemon is running and `[api]` is on, `restart` asks that daemon to restart
 itself in place (same pid, same terminal). It waits until the daemon is ready and prints the result.

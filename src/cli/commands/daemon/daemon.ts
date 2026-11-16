@@ -12,7 +12,7 @@ import {
   printServed,
   printSettledTask,
   printStartSetup,
-  printTasks,
+  printWorkingTasks,
   renderDegraded,
   reportMissingKeys,
 } from '@/cli/commands/daemon/summary'
@@ -73,7 +73,9 @@ interface ReadyRecord {
   boot: readonly DegradedItem[]
   health: readonly DegradedItem[]
   tasks: readonly TaskSnapshot[]
-  /** The tasks working when the daemon got ready, each announced once as it settles. */
+  /** Tasks whose first pass since ready has been announced; later passes stay quiet. */
+  readonly announced: Set<string>
+  /** Announced passes still running, each told once as it settles. */
   readonly awaited: Set<string>
 }
 
@@ -247,7 +249,13 @@ function toStartOptions(
   }
 ): DaemonStartOptions {
   const { keyless, claim, run } = start
-  const record: ReadyRecord = { boot: keyless, health: [], tasks: [], awaited: new Set() }
+  const record: ReadyRecord = {
+    boot: keyless,
+    health: [],
+    tasks: [],
+    announced: new Set(),
+    awaited: new Set(),
+  }
 
   return {
     onReady: (degraded) => {
@@ -264,6 +272,7 @@ function toStartOptions(
 
       if (run.ready) {
         announceSettled(app, record)
+        announceStarted(app, record)
         recordReady(app, record)
       }
     },
@@ -293,16 +302,29 @@ function announceReady(app: CliApp, record: ReadyRecord): void {
     app.err(warn(entry.message))
   }
 
-  printTasks(app, record.tasks)
-
-  for (const task of record.tasks.filter((entry) => entry.working)) {
-    record.awaited.add(task.label)
-  }
-
+  announceStarted(app, record)
   recordReady(app, record)
 }
 
-// Only the work running at start is followed to its end; the terminal stays quiet after that.
+// A task's first pass is announced whenever it starts: one that waits for the network (the first
+// refresh) begins after ready, so an idle line at ready would hide it. Later passes stay quiet.
+function announceStarted(app: CliApp, record: ReadyRecord): void {
+  const started = record.tasks.filter((task) => task.working && !record.announced.has(task.label))
+
+  if (started.length === 0) {
+    return
+  }
+
+  const labels = started.map((task) => task.label)
+
+  printWorkingTasks(app, labels)
+
+  for (const label of labels) {
+    record.announced.add(label)
+    record.awaited.add(label)
+  }
+}
+
 function announceSettled(app: CliApp, record: ReadyRecord): void {
   for (const task of record.tasks) {
     if (!task.working && record.awaited.delete(task.label)) {

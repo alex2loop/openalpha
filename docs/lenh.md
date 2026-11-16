@@ -314,9 +314,10 @@ Dữ liệu thị trường vẫn tiếp tục nạp ở nền sau đó.
 `start` in phiên bản đang chạy, mô hình, các kênh nó mở, cổng API cùng một dòng nhắc tên `web` khi bật
 `[api]`, và tệp nhật ký. Nhật ký ghi lại lúc các kênh mở.
 
-Sau đó nó cho biết việc tự chạy nào đang làm lúc ấy, ví dụ việc nạp dữ liệu thị trường mà lần khởi động
-nào cũng làm, và vì sao phiên chạy gần nhất của một việc bị lỗi nếu có. Ở tiền cảnh, mỗi việc đó in thêm
-một dòng "Xong" khi làm xong; sau đó terminal im lặng.
+Sau đó nó cho biết việc tự chạy nào đang làm, ví dụ việc nạp dữ liệu thị trường mà lần khởi động nào
+cũng làm, và vì sao phiên chạy gần nhất của một việc bị lỗi nếu có. Ở tiền cảnh, lần chạy đầu tiên của
+mỗi việc sau khi khởi động in một dòng "đang làm" khi bắt đầu, kể cả việc bắt đầu muộn hơn vì chờ mạng,
+và một dòng "Xong" khi làm xong; các lần chạy sau thì terminal im lặng.
 
 **Khởi động lại.** Khi đã có dịch vụ nền chạy và `[api]` đang bật, `restart` nhờ chính dịch vụ nền đó
 khởi động lại tại chỗ (cùng pid, cùng cửa sổ terminal). Nó chờ dịch vụ nền sẵn sàng rồi in kết quả.
