@@ -89,6 +89,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `vietcap-statements` | VN financial statements: full years plus discrete quarters (below) | no |
 | `treasury` `bls` `fred` | US macro series, merged rather than failed over | `fred` needs `FRED_API_KEY`; `bls` takes an optional `BLS_API_KEY` |
 | `nasdaq` | US listings, market caps, quotes, split-adjusted daily history and dividends; ex-dividend dates cover Nasdaq-listed names only | no |
+| `nasdaq-earnings` | dates ahead on which a US company reports earnings, with before-the-open or after-the-close timing and the analysts' EPS forecast; three weeks out | no |
 | `sec-data` | US annual accounts, earnings releases and insider purchases; it reads the ticker map and insider filings from SEC's second host, `sec` | `SEC_CONTACT_EMAIL`: not a key but a contact email, which SEC asks every reader to send |
 | `coinpaprika` | the ranked crypto board and seven-day change, keyless, one request; first fallback behind `coinmarketcap`; it measures 24-hour volume lower, so `/screen crypto` says when the ranking came from it or any other fallback | no |
 | `coinmarketcap` `coinlore` | the ranked crypto board the screen picks its universe from, keyless, one request; `coinlore` sits third | no |

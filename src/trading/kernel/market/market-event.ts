@@ -14,6 +14,7 @@ export const MARKET_EVENT_KINDS = Object.freeze([
   'margin-eligible',
   'margin-ineligible',
   'earnings-release',
+  'earnings-date',
   'insider-purchase',
 ] as const)
 export type MarketEventKind = (typeof MARKET_EVENT_KINDS)[number]
@@ -49,6 +50,20 @@ export interface InsiderPurchase {
   readonly currency: CurrencyCode
 }
 
+/** When in the session a company reports: before the open, or after the close. A calendar that
+ *  does not say leaves it absent. */
+export const EARNINGS_TIMINGS = Object.freeze(['pre-market', 'after-close'] as const)
+export type EarningsTiming = (typeof EARNINGS_TIMINGS)[number]
+
+/** A report the company has scheduled, as the calendar states it. */
+export interface EarningsSchedule {
+  readonly timing?: EarningsTiming
+  /** The analysts' consensus EPS, per share in `currency`; absent when the calendar states none.
+   *  Negative for an expected loss. */
+  readonly epsForecast?: number
+  readonly currency: CurrencyCode
+}
+
 export interface MarketEvent {
   readonly at: TradingDay
   readonly kind: MarketEventKind
@@ -63,6 +78,7 @@ export interface MarketEvent {
    *  told; set by the adapter from its own source, absent on text it composed. */
   readonly writtenIn?: Locale
   readonly insider?: InsiderPurchase
+  readonly earnings?: EarningsSchedule
   readonly providerEventId?: string
   /** A cash dividend's amount per share, in the market's price unit; absent where not published. */
   readonly cashPerShare?: number

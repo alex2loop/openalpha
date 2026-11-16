@@ -3,10 +3,11 @@ import { z } from 'zod'
 import type { Caveat } from '@/trading/kernel/caveat'
 import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Candle } from '@/trading/kernel/market/market-data'
+import type { SourceContext } from '@/trading/kernel/source/source-result'
 import { ValidationError } from '@/core/errors'
 import { hasBlockingThreat, scanOutput, toVisibleText } from '@/core/security/sanitize'
 import { MS_PER_DAY, MS_PER_SECOND } from '@/core/utils/time'
-import { tradingDay } from '@/trading/kernel/instrument'
+import { isLevelKind, tradingDay } from '@/trading/kernel/instrument'
 
 /** Rows stay `unknown` so a page is never rejected over one row's contents. */
 const PAGE = z.object({ data: z.array(z.unknown()) })
@@ -415,4 +416,15 @@ function inclusiveDays(page: KlinePage): number | undefined {
   }
 
   return (utcDayStartEpochMs(toDay) - utcDayStartEpochMs(fromDay)) / MS_PER_DAY + 1
+}
+
+/** An events request an issuer-events provider can answer: one named company over a dated window.
+ *  An index and a fund have no issuer, so they are not asked. */
+export function isIssuerEventRequest(context: SourceContext): boolean {
+  return (
+    context.instrument !== undefined &&
+    context.toDay !== undefined &&
+    !isLevelKind(context.instrumentKind) &&
+    context.instrumentKind !== 'etf'
+  )
 }

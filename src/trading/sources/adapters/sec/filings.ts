@@ -9,12 +9,13 @@ import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/defin
 import type { SourceFetchOutcome, SourceHttp } from '@/trading/sources/types'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
 import { MS_PER_DAY } from '@/core/utils/time'
-import { currencyCode, isLevelKind, tradingDay } from '@/trading/kernel/instrument'
+import { currencyCode, tradingDay } from '@/trading/kernel/instrument'
 import { SEC_CREDENTIAL, SEC_DATA_ID, SEC_ID } from '@/trading/sources/adapters/sec/client'
 import { parseOwnershipXml } from '@/trading/sources/adapters/sec/ownership'
 import { createSource, parsedSource } from '@/trading/sources/define'
 import {
   dropInvalid,
+  isIssuerEventRequest,
   parseRow,
   untrustedText,
   utcDayOf,
@@ -73,11 +74,7 @@ export function secEventsSource(
     id: SEC_DATA_ID,
     kind: 'events',
     http: options.http,
-    covers: (context) =>
-      context.instrument !== undefined &&
-      context.toDay !== undefined &&
-      !isLevelKind(context.instrumentKind) &&
-      context.instrumentKind !== 'etf',
+    covers: isIssuerEventRequest,
     load: async (context, signal) => {
       const map = await readTickers(signal)
 

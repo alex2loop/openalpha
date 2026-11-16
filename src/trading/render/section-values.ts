@@ -2,7 +2,6 @@ import type { Locale } from '@/core/types/locale'
 import type { ConvictionBand, SuggestionAction } from '@/trading/kernel/conviction'
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { IndexReviewKind, MarketRegime } from '@/trading/kernel/market/market-data'
-import type { MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { AlertCondition } from '@/trading/kernel/operator/alert'
 import type { CashPosture } from '@/trading/kernel/operator/book'
 import type {
@@ -23,6 +22,7 @@ import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, type MessageKey, renderQuoteUnit, t } from '@/i18n'
 import { BRIEF_NUMERIC_FIELDS } from '@/trading/kernel/operator/brief-section'
 import { isTradingDayText } from '@/trading/render/datetime'
+import { EVENT_KEYS } from '@/trading/render/event'
 import {
   bandedSentiment,
   formatAmount,
@@ -96,22 +96,6 @@ const ACTION_CODE_KEYS = Object.freeze({
   'review-portfolio': 'trading.brief.action.review-portfolio',
   'review-suggestions': 'trading.brief.action.review-suggestions',
 } as const satisfies Record<BriefActionCode, string>)
-
-const EVENT_KEYS = Object.freeze({
-  'additional-listing': 'trading.event.additional-listing',
-  agm: 'trading.event.agm',
-  delisting: 'trading.event.delisting',
-  'dividend-ex-date': 'trading.event.dividend-ex-date',
-  'earnings-release': 'trading.event.earnings-release',
-  'insider-purchase': 'trading.event.insider-purchase',
-  'last-trading-day': 'trading.event.last-trading-day',
-  listing: 'trading.event.listing',
-  'margin-eligible': 'trading.event.margin-eligible',
-  'margin-ineligible': 'trading.event.margin-ineligible',
-  'meeting-ex-date': 'trading.event.meeting-ex-date',
-  'rights-issue': 'trading.event.rights-issue',
-  split: 'trading.event.split',
-} as const satisfies Record<MarketEventKind, MessageKey>)
 
 /** Fields whose value is an enumeration, mapped value by value so every value that reaches a reader
  *  is a checked key. A field absent here holds a proper noun or a number; neither is translated. */

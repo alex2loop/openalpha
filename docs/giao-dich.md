@@ -89,6 +89,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `vietcap-statements` | báo cáo tài chính VN: năm đầy đủ cộng các quý riêng (xem bên dưới) | không |
 | `treasury` `bls` `fred` | các chuỗi vĩ mô Mỹ, trộn lại chứ không dự phòng cho nhau | `fred` cần `FRED_API_KEY`; `bls` nhận `BLS_API_KEY` tùy chọn |
 | `nasdaq` | danh sách niêm yết, vốn hóa, báo giá, lịch sử ngày đã điều chỉnh chia tách và cổ tức của Mỹ; ngày không hưởng cổ tức chỉ có cho mã niêm yết trên Nasdaq | không |
+| `nasdaq-earnings` | các ngày sắp tới công ty Mỹ công bố kết quả kinh doanh, kèm công bố trước giờ mở cửa hay sau giờ đóng cửa và EPS dự báo của giới phân tích; xa nhất ba tuần | không |
 | `sec-data` | báo cáo năm, công bố kết quả kinh doanh và giao dịch mua của người nội bộ ở Mỹ; đọc bảng mã và hồ sơ của người nội bộ từ máy chủ thứ hai của SEC, `sec` | `SEC_CONTACT_EMAIL`: không phải khóa mà là email liên hệ, SEC yêu cầu mọi người đọc gửi kèm |
 | `coinpaprika` | bảng crypto xếp hạng và mức đổi bảy ngày, không khóa, trong một yêu cầu; dự phòng đầu tiên sau `coinmarketcap`; nguồn này đo khối lượng 24 giờ thấp hơn, nên `/screen crypto` báo khi thứ hạng lấy từ nó hoặc từ bất kỳ nguồn dự phòng nào khác | không |
 | `coinmarketcap` `coinlore` | bảng crypto xếp hạng mà khâu sàng lọc chọn tập công cụ từ đó, không khóa, trong một yêu cầu; `coinlore` đứng thứ ba | không |

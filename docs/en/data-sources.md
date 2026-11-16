@@ -53,6 +53,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 |---|---|
 | **US equities** | |
 | Listings, market caps, live price, daily history, dividends | `nasdaq` |
+| Upcoming earnings dates | `nasdaq-earnings` |
 | Annual accounts, earnings releases, insider purchases | `sec-data` (reads the ticker map and Form 4 filings from SEC's other host, `sec`) |
 | **VN equities** | |
 | Live price | `vndirect`, `vietcap-chart`, `entrade` |
@@ -130,6 +131,7 @@ One kind is defined and has no provider: spot-ETF net flows for crypto. The `etf
 ### US sources
 
 - **nasdaq** serves the listing (about 12,000 tickers, one request per exchange and one for funds), market caps, quotes, split-adjusted daily history and dividends. Its history is not dividend-adjusted, so an ex-dividend day restates nothing. Its dividend dates cover Nasdaq listings only: a NYSE name (about two thirds of the board) has no ex-dividend date, so its levels are not adjusted across one and the brief does not remind you to record its dividend. Record it by hand when it is paid. The 120-a-minute limit is measured, not published: it is the rate a full sweep of the board ran at without a single refusal.
+- **nasdaq-earnings** serves the dates ahead on which a US company reports earnings, with whether it reports before the open or after the close and the analysts' EPS forecast. It reads Nasdaq's earnings calendar one day at a time, from today to three weeks out (the calendar fills about five weeks ahead, and a report further out is not listed yet), skips weekends and keeps each day's page for a few hours, so a brief over many names reads each day once. A day the calendar cannot answer fails the whole read and the reply says so: a missing day would otherwise read as no report. It needs no key, and the web edition does not read it.
 - **SEC** asks every reader for a contact, sent as the user agent. Set `SEC_CONTACT_EMAIL` (`onboard` asks, or `key set SEC_CONTACT_EMAIL`); without it the SEC source stays off and US value and quality read as unavailable. Annual accounts come from the company-wide XBRL frames (six reported years and the one in progress). Each balance sheet is read at the filer's own year end, whatever the month, and a trailing twelve months a quarterly filing printed is dropped rather than taken for a year. Net income falls back to the figure available to common holders where a filer (PNC, Truist) tags only that. A company the frames miss altogether, mostly foreign issuers filing a 20-F or 40-F, is read from its own filings instead and converted to dollars at the latest rate, so its growth and ratios hold while older years move with the exchange rate. Without a rate that day its reports wait for the next refresh.
 - **Yield curve.** The Treasury read now also prints the ten-year less three-month spread, which the equity segment weighs in its macro composite.
 - **Coinbase for crypto.** It quotes dollars; the crypto book is in USDT, so a quote or a bar is divided by USDT's own dollar price on the same day.
@@ -198,7 +200,7 @@ Every provider is paced to a requests-per-minute rate. That rate is either its p
 | 200 | `sec`, `sec-data` |
 | 120 | `fred`, `nasdaq`, `vietcap-statements`, `vietcombank` |
 | 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
-| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
+| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `nasdaq-earnings`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |
 

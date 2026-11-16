@@ -53,6 +53,7 @@ Nhà cung cấp có lần gọi gần nhất bị hỏng, hoặc đang tạm d�
 |---|---|
 | **Cổ phiếu Mỹ** | |
 | Danh sách, vốn hóa, giá trực tiếp, lịch sử ngày, cổ tức | `nasdaq` |
+| Ngày công bố kết quả kinh doanh sắp tới | `nasdaq-earnings` |
 | Báo cáo năm, công bố kết quả kinh doanh, giao dịch mua của người nội bộ | `sec-data` (đọc bảng mã và hồ sơ Form 4 từ máy chủ thứ hai của SEC, `sec`) |
 | **Cổ phiếu VN** | |
 | Giá trực tiếp | `vndirect`, `vietcap-chart`, `entrade` |
@@ -130,6 +131,7 @@ Có một loại được khai nhưng chưa có nhà cung cấp: dòng tiền r�
 ### Nguồn dữ liệu Mỹ
 
 - **nasdaq** cung cấp danh sách niêm yết (khoảng 12.000 mã, mỗi sàn một yêu cầu và một yêu cầu cho quỹ), vốn hóa, báo giá, lịch sử ngày đã điều chỉnh chia tách và cổ tức. Lịch sử này không điều chỉnh theo cổ tức, nên ngày giao dịch không hưởng cổ tức không bị coi là điều chỉnh giá. Ngày cổ tức chỉ có cho mã niêm yết trên Nasdaq: mã NYSE (khoảng hai phần ba bảng) không có ngày không hưởng cổ tức, nên các mức giá không được chỉnh qua ngày đó và bản tin không nhắc bạn ghi cổ tức. Khi nhận cổ tức, hãy tự ghi. Giới hạn 120 yêu cầu mỗi phút là con số đã đo, không phải con số nguồn công bố: đó là tốc độ một lượt quét trọn bảng đã chạy mà không bị từ chối lần nào.
+- **nasdaq-earnings** cung cấp các ngày sắp tới mà công ty Mỹ công bố kết quả kinh doanh, kèm việc công bố trước giờ mở cửa hay sau giờ đóng cửa và EPS dự báo của giới phân tích. Nguồn đọc lịch kết quả kinh doanh của Nasdaq theo từng ngày, từ hôm nay đến ba tuần tới (lịch được điền trước khoảng năm tuần, ngày xa hơn chưa có), bỏ qua cuối tuần và giữ trang của mỗi ngày vài giờ, nên một bản tin qua nhiều mã chỉ đọc mỗi ngày một lần. Một ngày mà lịch không trả lời được làm hỏng cả lần đọc và câu trả lời nói rõ như vậy: ngày thiếu sẽ bị hiểu nhầm là không có công bố. Nguồn không cần khóa, và bản web không đọc nguồn này.
 - **SEC** yêu cầu người đọc để lại liên hệ, gửi qua user agent. Hãy đặt `SEC_CONTACT_EMAIL` (`onboard` sẽ hỏi, hoặc `key set SEC_CONTACT_EMAIL`); không có thì nguồn SEC tắt và giá trị, chất lượng của cổ phiếu Mỹ ghi là thiếu dữ liệu. Báo cáo năm lấy từ các bảng XBRL toàn doanh nghiệp (sáu năm đã báo cáo và năm đang chạy). Bảng cân đối được đọc đúng ngày kết thúc năm tài chính của doanh nghiệp, dù là tháng nào, và số liệu mười hai tháng gần nhất in trong báo cáo quý bị bỏ chứ không bị coi là một năm. Lợi nhuận ròng lùi về con số dành cho cổ đông phổ thông khi doanh nghiệp (PNC, Truist) chỉ ghi con số đó. Doanh nghiệp mà các bảng này bỏ sót hoàn toàn, phần lớn là doanh nghiệp nước ngoài nộp 20-F hoặc 40-F, được đọc từ hồ sơ của chính họ rồi quy ra đô la theo tỷ giá mới nhất: tăng trưởng và các tỷ lệ giữ nguyên, còn số tiền của các năm cũ dịch theo tỷ giá. Hôm nào chưa có tỷ giá thì báo cáo của họ chờ lần làm mới sau.
 - **Đường cong lợi suất.** Bản đọc của Kho bạc nay in thêm chênh lệch lợi suất 10 năm trừ 3 tháng, mà nhóm cổ phiếu cân trong chỉ số vĩ mô.
 - **Coinbase cho crypto.** Coinbase báo giá bằng đô la, còn sổ crypto tính bằng USDT, nên mỗi giá hoặc mỗi thanh nến được chia cho giá đô la của USDT trong cùng ngày.
@@ -198,7 +200,7 @@ Mỗi nhà cung cấp được điều nhịp theo một tốc độ yêu cầu 
 | 200 | `sec`, `sec-data` |
 | 120 | `fred`, `nasdaq`, `vietcap-statements`, `vietcombank` |
 | 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
-| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
+| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `nasdaq-earnings`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |
 

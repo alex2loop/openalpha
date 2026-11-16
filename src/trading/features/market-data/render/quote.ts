@@ -6,6 +6,7 @@ import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { RenderContext } from '@/trading/render/format'
 import { formatDay, t } from '@/i18n'
 import { renderCaveatLines } from '@/trading/render/caveat'
+import { describeEarnings } from '@/trading/render/event'
 import {
   formatCount,
   formatFlow,
@@ -165,11 +166,14 @@ function renderRelativeVolumeLines(
 }
 
 function renderUpcomingLines(locale: Locale, events: readonly MarketEvent[]): readonly string[] {
-  return events.map(
-    (event) =>
-      `${INDENT[1]}${t(locale, 'trading.render.quote.upcoming', {
-        event: renderDeclaredValue(locale, `trading.event.${event.kind}`),
-        day: formatDay(locale, event.at),
-      })}`
-  )
+  return events.map((event) => {
+    const line = t(locale, 'trading.render.quote.upcoming', {
+      event: renderDeclaredValue(locale, `trading.event.${event.kind}`),
+      day: formatDay(locale, event.at),
+    })
+    const detail =
+      event.earnings === undefined ? undefined : describeEarnings(locale, event.earnings)
+
+    return `${INDENT[1]}${detail === undefined ? line : `${line}${INLINE_SEPARATOR}${detail}`}`
+  })
 }
