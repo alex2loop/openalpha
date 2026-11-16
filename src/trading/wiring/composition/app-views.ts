@@ -45,7 +45,7 @@ import {
 import { toThemeTransitionMessage } from '@/trading/features/themes/command'
 import { renderThemeReportText } from '@/trading/features/themes/render/report'
 import { CLOSED_THEME_STATUSES } from '@/trading/features/themes/types'
-import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
+import { PAGE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { renderMetricLine } from '@/trading/render/metric'
 
@@ -171,7 +171,7 @@ async function screen(
     locale,
     {
       market,
-      context: resolveRenderContext(deps.timezone, NOTICE_SURFACE),
+      context: resolveRenderContext(deps.timezone, PAGE_SURFACE),
       ...(display === undefined ? {} : { display }),
       ...kindOption,
     },

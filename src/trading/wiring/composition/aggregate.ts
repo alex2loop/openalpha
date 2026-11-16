@@ -28,7 +28,7 @@ import { createHeldWatch } from '@/trading/features/market-data/ops/held-watch'
 import { createNavSnapshotTick } from '@/trading/features/portfolio/nav/snapshot'
 import { offeredFields } from '@/trading/features/profile/patch'
 import { sessionPhase } from '@/trading/markets/calendar'
-import { NOTICE_SURFACE } from '@/trading/render/format'
+import { PAGE_SURFACE } from '@/trading/render/format'
 import { buildAppViews } from '@/trading/wiring/composition/app-views'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 import { toFocusScope } from '@/trading/wiring/composition/focus-scope'
@@ -108,7 +108,7 @@ export function toAggregate(
   })
 }
 
-/** The same text `/market` prints, laid out as a notice is: in lines, at a phone's width. */
+/** The same text `/market` prints, laid out for the page: in lines, at a terminal's width. */
 function buildMarketSession(
   parts: AggregateParts,
   config: TradingConfig,
@@ -121,7 +121,7 @@ function buildMarketSession(
     settings: parts.stores.intradaySettings,
   }
 
-  return (request) => renderMarketShow(deps, { ...request, surface: NOTICE_SURFACE })
+  return (request) => renderMarketShow(deps, { ...request, surface: PAGE_SURFACE })
 }
 
 /** The same function `/record sync` runs, so one fill is booked once whichever surface asks. */

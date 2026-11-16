@@ -117,11 +117,7 @@ export interface RenderContext {
   readonly charts: boolean
 }
 
-/** What a pushed message is written for. A notice has no invoking surface - nobody ran a command -
- *  and it is read in a chat client, so it takes the narrow shape. */
-export const NOTICE_SURFACE = 'notice'
-
-/** What the office page's brief is written for: plain lines like a chat's, since the page's font is
+/** What the office page's views are written for: plain lines like a chat's, since the page's font is
  *  not monospace, but as wide as a terminal's, since the page wraps a line to its own width and a
  *  fact the CLI keeps on one line must not be cut into several. */
 export const PAGE_SURFACE = 'page'
