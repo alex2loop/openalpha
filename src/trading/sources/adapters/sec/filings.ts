@@ -38,7 +38,7 @@ const ITEM_EVENT_KINDS: ReadonlyMap<string, MarketEventKind> = new Map<string, M
   ['1.03', 'bankruptcy-filing'],
   ['2.02', 'earnings-release'],
   ['2.06', 'impairment'],
-  ['3.01', 'listing-deficiency'],
+  ['3.01', 'listing-notice'],
   ['4.01', 'auditor-change'],
   ['4.02', 'non-reliance'],
 ])
@@ -193,7 +193,9 @@ function itemEvents(read: {
                 title: `${ticker} 8-K item ${item}`,
                 composedText: true as const,
                 ...(context.instrument === undefined ? {} : { instrument: context.instrument }),
-                providerEventId: filing.accession,
+                // One filing carries several items, each its own event: the accession alone would
+                // fold a flagged item into the earnings row it was filed with.
+                providerEventId: `${filing.accession}#${item}`,
               },
             ]
       })

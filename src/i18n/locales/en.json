@@ -4887,7 +4887,7 @@
     "event.insider-purchase": "Insider bought shares",
     "event.bankruptcy-filing": "Bankruptcy filing",
     "event.impairment": "Material impairment",
-    "event.listing-deficiency": "Listing notice (rule missed, or transfer of listing)",
+    "event.listing-notice": "Listing notice (rule missed, or transfer of listing)",
     "event.auditor-change": "Change of auditor",
     "event.non-reliance": "Past financials not to be relied on",
     "event.agm": "Shareholder meeting",

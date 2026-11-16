@@ -53,7 +53,7 @@ export type MarketEventKind =
   | 'insider-purchase'
   | 'bankruptcy-filing'
   | 'impairment'
-  | 'listing-deficiency'
+  | 'listing-notice'
   | 'auditor-change'
   | 'non-reliance'
 

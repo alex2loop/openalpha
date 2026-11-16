@@ -25,7 +25,7 @@ export const EVENT_KEYS = Object.freeze({
   impairment: 'trading.event.impairment',
   'insider-purchase': 'trading.event.insider-purchase',
   'last-trading-day': 'trading.event.last-trading-day',
-  'listing-deficiency': 'trading.event.listing-deficiency',
+  'listing-notice': 'trading.event.listing-notice',
   listing: 'trading.event.listing',
   'margin-eligible': 'trading.event.margin-eligible',
   'margin-ineligible': 'trading.event.margin-ineligible',

@@ -10,7 +10,6 @@ import type { FactorResult } from '@/trading/kernel/factor'
 import type { InstrumentRef, PriceDisplay, Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { AccountsHistory } from '@/trading/kernel/market/annual-accounts'
 import type { AnalystRecommendation, NewsItem } from '@/trading/kernel/market/market-data'
-import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Market } from '@/trading/markets/types'
 import { t } from '@/i18n'
@@ -21,6 +20,7 @@ import {
   decisionLine,
   levelSection,
 } from '@/trading/features/suggestion/pipeline/decision-evidence'
+import { eventSections } from '@/trading/features/suggestion/pipeline/event-evidence'
 import { readHeadlines } from '@/trading/features/suggestion/pipeline/headline-reads'
 import {
   type PromptMetricInput,
@@ -30,7 +30,6 @@ import {
   consensusSection,
   headlines,
   MAXIMUM_EVIDENCE_NEWS_ITEMS,
-  MAXIMUM_SUMMARY_CHARS,
   marketNewsSection,
   newsSection,
   withoutStories,
@@ -40,16 +39,8 @@ import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { renderDeclaredValue, renderProvidedValue, renderScoreBand } from '@/trading/render/format'
 
-/** An event that moves no price, told as such: a bare ex-date reads as a reset worth waiting out. */
-const EVENT_NOTES: Partial<Record<MarketEventKind, string>> = Object.freeze({
-  'meeting-ex-date': 'no price adjustment: it carries only the right to attend the meeting',
-})
-
 const MAXIMUM_INSTRUMENT_NAME_CHARS = 120
 const WHITESPACE_RE = /\s+/g
-
-const EVENTS_UNAVAILABLE =
-  'UPCOMING EVENTS: unavailable - the corporate calendar failed this run; never assume nothing is scheduled.'
 
 const FACTORS_HEADING =
   'FACTORS (each band is the verdict for BUYING, not the level of the thing named - a bearish band on a factor whose name is a quantity means that quantity argues against the buy; an abstained factor is not a zero). A price level is printed with how far the current price sits from it; a window in sessions is a span, never a price:'
@@ -285,8 +276,7 @@ function reportSections(
   const consensus = reads.recommendations?.kind === 'available' ? reads.recommendations.value : []
 
   return [
-    eventsSection(subject),
-    recentEventsSection(subject),
+    ...eventSections(subject),
     newsSection(read.own, reads.news, market.manifest.calendar),
     marketNewsSection({
       items: read.market,
@@ -409,43 +399,4 @@ function factorRow(factor: FactorResult, context: FactorRowContext): string {
   return measured === undefined
     ? `- ${label}: ${band}`
     : `- ${label}: ${band} (measured: ${measured})`
-}
-
-/** Dated facts, not forecasts: a persona weighs when the tape resets, it does not guess the size of
- *  the dividend or the market's reaction to it. */
-function eventsSection(subject: CaseSubject): string {
-  const events = subject.upcomingEvents ?? []
-
-  if (events.length === 0) {
-    return subject.calendarFailed === true ? EVENTS_UNAVAILABLE : ''
-  }
-
-  return [
-    'UPCOMING EVENTS (dated facts; weigh timing, do not invent outcomes):',
-    ...events.map(eventRow),
-  ].join('\n')
-}
-
-/** Already public: a persona may weigh that a release landed or an insider bought, and may not
- *  read an outcome into it that the row does not state. */
-function recentEventsSection(subject: CaseSubject): string {
-  const events = subject.recentEvents ?? []
-
-  if (events.length === 0) {
-    return ''
-  }
-
-  return [
-    'RECENTLY FILED (dated facts already public; weigh them, do not invent what they mean):',
-    ...events.map(eventRow),
-  ].join('\n')
-}
-
-/** The provider's note is what tells an extraordinary meeting from the annual one. */
-function eventRow(event: MarketEvent): string {
-  const detail = event.detail?.slice(0, MAXIMUM_SUMMARY_CHARS)
-  const notes = [detail, EVENT_NOTES[event.kind]].filter((note) => note !== undefined)
-  const suffix = notes.length === 0 ? '' : ` (${notes.join('; ')})`
-
-  return `- ${event.at} ${event.kind}: ${event.title}${suffix}`
 }

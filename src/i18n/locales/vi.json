@@ -4887,7 +4887,7 @@
     "event.insider-purchase": "Người nội bộ mua vào",
     "event.bankruptcy-filing": "Nộp đơn phá sản",
     "event.impairment": "Tổn thất tài sản trọng yếu",
-    "event.listing-deficiency": "Thông báo về niêm yết (vi phạm quy định hoặc chuyển sàn)",
+    "event.listing-notice": "Thông báo về niêm yết (vi phạm quy định hoặc chuyển sàn)",
     "event.auditor-change": "Đổi công ty kiểm toán",
     "event.non-reliance": "Báo cáo tài chính cũ không còn đáng tin",
     "event.agm": "Đại hội cổ đông",

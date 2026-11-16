@@ -18,7 +18,7 @@ export const MARKET_EVENT_KINDS = Object.freeze([
   'insider-purchase',
   'bankruptcy-filing',
   'impairment',
-  'listing-deficiency',
+  'listing-notice',
   'auditor-change',
   'non-reliance',
 ] as const)
@@ -114,13 +114,13 @@ export function isEventSubject(event: MarketEvent, instrument: InstrumentRef): b
  *  how long a flagged filing stays on a name's answers. */
 export const RECENT_EVENT_LOOKBACK_DAYS = 90
 
-/** 8-K items a holder should read before acting. `listing-deficiency` is a notice of a missed
+/** 8-K items a holder should read before acting. `listing-notice` is a notice of a missed
  *  listing rule or a transfer of listing, never `delisting`, which `isTradingEnd` reads as a
  *  scheduled end. */
 export const FILING_FLAG_KINDS: readonly MarketEventKind[] = Object.freeze([
   'bankruptcy-filing',
   'impairment',
-  'listing-deficiency',
+  'listing-notice',
   'auditor-change',
   'non-reliance',
 ])
