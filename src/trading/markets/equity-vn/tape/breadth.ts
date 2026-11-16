@@ -20,7 +20,12 @@ import {
   resolveHistoryBandReference,
   resolveTradeability,
 } from '@/trading/markets/equity-vn/tradeability'
-import { averageSlope, sessionChange, trendDistance } from '@/trading/markets/timeseries'
+import {
+  averageSlope,
+  isAboveMean,
+  sessionChange,
+  trendDistance,
+} from '@/trading/markets/timeseries'
 
 /** The index ratios a basket's names answer for, each with the mean its names are measured against. */
 const MEAN_RATIO_WINDOWS = Object.freeze([
@@ -324,20 +329,4 @@ function yearExtreme(
   }
 
   return close <= Math.min(...window) ? 'low' : 'none'
-}
-
-/** True when the latest close exceeds the trailing-window mean — the one definition of "above its
- *  own moving average" that needs no external series. Absent below a full window, never `false`:
- *  a young listing has no measurable mean, and reading it as "below" would count it in the
- *  above/below denominator without ever having been measured. */
-function isAboveMean(closes: readonly number[], window: number): boolean | undefined {
-  if (closes.length < window) {
-    return undefined
-  }
-
-  const slice = closes.slice(closes.length - window)
-  const mean = slice.reduce((sum, value) => sum + value, 0) / slice.length
-  const last = closes[closes.length - 1]
-
-  return last === undefined ? undefined : last > mean
 }

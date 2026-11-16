@@ -275,3 +275,19 @@ export function percentileRank(values: readonly number[], value: number): number
   const below = values.filter((candidate) => candidate <= value).length
   return Math.round((below / values.length) * PERCENTILE_MAX)
 }
+
+/** True when the latest close exceeds the trailing-window mean — the one definition of "above its
+ *  own moving average" that needs no external series. Absent below a full window, never `false`:
+ *  a young listing has no measurable mean, and reading it as "below" would count it in the
+ *  above/below denominator without ever having been measured. */
+export function isAboveMean(closes: readonly number[], window: number): boolean | undefined {
+  if (closes.length < window) {
+    return undefined
+  }
+
+  const slice = closes.slice(closes.length - window)
+  const mean = slice.reduce((sum, value) => sum + value, 0) / slice.length
+  const last = closes[closes.length - 1]
+
+  return last === undefined ? undefined : last > mean
+}

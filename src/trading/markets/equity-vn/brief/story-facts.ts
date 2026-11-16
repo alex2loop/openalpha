@@ -5,13 +5,9 @@ import type {
   BriefSectionResult,
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
-import type {
-  StoryFact,
-  StoryRole,
-  StoryWatch,
-  WatchEffect,
-  WatchShape,
-} from '@/trading/kernel/operator/brief-story'
+import type { StoryFact, StoryRole, StoryWatch } from '@/trading/kernel/operator/brief-story'
+import type { WatchSpec } from '@/trading/markets/brief-story'
+import { buildWatches, fact } from '@/trading/markets/brief-story'
 import { VN_STORY_POLICY } from '@/trading/markets/equity-vn/brief/story-policy'
 import {
   VN_INDEX_TICKER,
@@ -41,31 +37,8 @@ export interface StoryInputs {
   readonly sections: readonly BriefSectionResult[]
 }
 
-interface WatchSpec {
-  readonly shape: WatchShape
-  readonly threshold: number
-  readonly effect: WatchEffect
-  readonly row?: StoryWatch['row']
-  readonly horizonSessions?: number
-}
-
-/** The trigger's distance past its threshold, in thresholds, capped at one. */
-export function salienceOf(value: number, threshold: number): number {
-  return Math.min(1, Math.max(0, (value - threshold) / threshold))
-}
-
-export function fact(row: BriefSectionRow, role: StoryRole): StoryFact {
-  return { row, role }
-}
-
-export function buildWatches(specs: readonly WatchSpec[]): readonly StoryWatch[] {
-  return specs.map((spec) => ({
-    shape: spec.shape,
-    ...(spec.row === undefined ? {} : { row: spec.row }),
-    threshold: spec.threshold,
-    horizonSessions: spec.horizonSessions ?? VN_STORY_POLICY.horizonSessions,
-    effect: spec.effect,
-  }))
+export function buildVnWatches(specs: readonly WatchSpec[]): readonly StoryWatch[] {
+  return buildWatches(specs, VN_STORY_POLICY.horizonSessions)
 }
 
 /** The index's own move, then the two wider indexes that say who carried it. */
