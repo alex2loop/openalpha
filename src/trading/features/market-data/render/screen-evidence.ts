@@ -124,7 +124,11 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
   const { candidate } = row
 
   return [
-    ...verdictFacts(locale, candidate, row.gated ? undefined : formatCount(locale, row.index + 1)),
+    ...verdictFacts(
+      locale,
+      candidate,
+      row.gated ? { kind: 'gate' } : { kind: 'ranked', label: formatCount(locale, row.index + 1) }
+    ),
     ...(candidate.excluded === true ? [t(locale, 'trading.render.screen.excluded')] : []),
     ...(candidate.marginIneligible === true
       ? [t(locale, 'trading.render.screen.margin-ineligible')]
@@ -140,28 +144,33 @@ export function standingFacts(locale: Locale, candidate: ScreenedCandidate): rea
 
   return rank === undefined
     ? []
-    : verdictFacts(
-        locale,
-        candidate,
-        t(locale, 'trading.render.screen.rank', {
+    : verdictFacts(locale, candidate, {
+        kind: 'ranked',
+        label: t(locale, 'trading.render.screen.rank', {
           place: formatCount(locale, rank.place),
           count: formatCount(locale, rank.of),
-        })
-      )
+        }),
+      })
 }
 
-/** A row's head and its composite. No `rank` is a gate board's row, which numbers nothing. */
+/** A gate board's row numbers nothing, so it has no label to carry. */
+type RowRank = { readonly kind: 'gate' } | { readonly kind: 'ranked'; readonly label: string }
+
+/** A row's head and its composite. */
 function verdictFacts(
   locale: Locale,
   candidate: ScreenedCandidate,
-  rank: string | undefined
+  rank: RowRank
 ): readonly string[] {
+  const name = {
+    ticker: renderNameHead(locale, candidate),
+    rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
+  }
+
   return [
-    t(locale, rank === undefined ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
-      rank: rank ?? '',
-      ticker: renderNameHead(locale, candidate),
-      rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
-    }),
+    rank.kind === 'gate'
+      ? t(locale, 'trading.render.screen.gateRow', name)
+      : t(locale, 'trading.render.screen.row', { ...name, rank: rank.label }),
     t(locale, 'trading.render.screen.score', {
       score: formatScoreValue(locale, candidate.composite.score),
     }),

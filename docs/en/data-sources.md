@@ -199,8 +199,8 @@ Every provider is paced to a requests-per-minute rate. That rate is either its p
 | 300 | `cafef`, `vndirect` |
 | 200 | `sec`, `sec-data` |
 | 120 | `fred`, `nasdaq`, `vietcap-statements`, `vietcombank` |
-| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
-| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `nasdaq-earnings`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
+| 60 | `cafef-statements`, `coinbase`, `coinlore`, `coinpaprika`, `entrade`, `google-news`, `hsx`, `kbsec`, `nasdaq-earnings`, `rss`, `ssi`, `treasury`, `vietcap`, `vndirect-index`, `vndirect-mkw`, `yahoo` |
+| 30 | `alternative-me`, `coinmarketcap`, `fred-csv`, `giavang`, `pnj`, `vietcap-board`, `vietcap-chart`, `vps`, `vps-board` |
 | 20 | `bls`, `cftc` |
 | 10 | `coingecko`, `er-api`, `nso`, `sbv` |
 

@@ -173,7 +173,8 @@ function renderUpcomingLines(locale: Locale, events: readonly MarketEvent[]): re
     })
     const detail =
       event.earnings === undefined ? undefined : describeEarnings(locale, event.earnings)
+    const facts = [line, detail].filter((fact) => fact !== undefined)
 
-    return `${INDENT[1]}${detail === undefined ? line : `${line}${INLINE_SEPARATOR}${detail}`}`
+    return `${INDENT[1]}${facts.join(INLINE_SEPARATOR)}`
   })
 }

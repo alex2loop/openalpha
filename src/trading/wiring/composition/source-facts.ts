@@ -210,8 +210,9 @@ export const SOURCE_ENDPOINTS = Object.freeze({
  *  refusal, so that is the rate it is held to.
  *
  *  `nasdaq-earnings` is the same host's calendar, which answers a day in one to three seconds and
- *  ran 15 reads in a row, and eight at once, without a refusal. A cold brief reads at most one page
- *  per weekday of three weeks, so 30 a minute is far above it.
+ *  ran 15 reads in a row, and eight at once, without a refusal. A cold brief reads one page per
+ *  weekday of three weeks, 15 in all, and the bucket's burst is a quarter of the minute, so 60 a
+ *  minute lets that read go out at once.
  *
  *  `sec` and `sec-data` are one limit: SEC allows 10 a second per address across both hosts and
  *  blocks the address for ten minutes past it. Each bucket refills at 200 a minute and holds one
@@ -240,7 +241,7 @@ export const SOURCE_RATE_LIMITS: Readonly<Partial<Record<SourceId, number>>> = O
   [sourceId('kbsec')]: 60,
   [sourceId('mexc')]: 600,
   [sourceId('nasdaq')]: 120,
-  [sourceId('nasdaq-earnings')]: 30,
+  [sourceId('nasdaq-earnings')]: 60,
   [sourceId('nso')]: 10,
   [sourceId('okx')]: 600,
   [sourceId('pnj')]: 30,

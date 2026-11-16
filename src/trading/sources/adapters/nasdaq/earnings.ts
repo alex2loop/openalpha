@@ -7,12 +7,13 @@ import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/defin
 import type { SourceFetchOutcome } from '@/trading/sources/types'
 import { ValidationError } from '@/core/errors'
 import { mapWithConcurrency } from '@/core/utils/concurrency'
-import { daysSinceMonday, MS_PER_HOUR, MS_PER_SECOND } from '@/core/utils/time'
-import { shiftCalendarDay } from '@/trading/markets/calendar'
+import { MS_PER_HOUR, MS_PER_SECOND } from '@/core/utils/time'
+import { shiftCalendarDay, weekdaysBetween } from '@/trading/markets/calendar'
 import {
   NASDAQ_EARNINGS_ID,
   NASDAQ_HEADERS,
   NASDAQ_TIMEZONE,
+  OK_CODE,
   parseSignedUsd,
   USD,
 } from '@/trading/sources/adapters/nasdaq/client'
@@ -32,11 +33,8 @@ const EARNINGS_LOOKAHEAD_DAYS = 21
 /** A day's reports move little once listed; a few hours keeps a brief's many names on one page read. */
 const EARNINGS_PAGE_TTL_MS = 3 * MS_PER_HOUR
 const EARNINGS_PAGE_CONCURRENCY = 4
-const OK_CODE = 200
 /** What the calendar answers, beside a null body, for a day it holds no page for. */
 const NO_RECORD_CODE = 1002
-/** `daysSinceMonday` of Saturday: measured, the calendar lists no report on a weekend. */
-const FIRST_DARK_DAY = 5
 
 const TIMINGS = Object.freeze({
   'time-pre-market': 'pre-market',
@@ -69,6 +67,8 @@ interface EarningsRow {
   readonly timing?: EarningsTiming
   readonly epsForecast?: number
 }
+
+type PageOutcome = SourceFetchOutcome<readonly EarningsRow[]>
 
 /** Upcoming reports come from the calendar's per-day pages: the per-symbol endpoint answers in
  *  prose. One page serves every name asking for that day, so a brief over many names costs one read
@@ -105,30 +105,11 @@ export function nasdaqEarningsSource(options: SourceAdapterOptions): RegisteredS
 
       const now = Date.now()
       const days = reportingDays(context, dayFromEpochSeconds(now / MS_PER_SECOND, NASDAQ_TIMEZONE))
-      const pages = await mapWithConcurrency(days, EARNINGS_PAGE_CONCURRENCY, (day) =>
-        readPage(day, signal)
-      )
+      const pages = await readDays(days, (day) => readPage(day, signal))
 
       return toEarningsEvents(pages, { instrument, now })
     },
   })
-}
-
-/** The days the calendar can answer inside the asked window: today on, never past its reach, and
- *  not the weekend. */
-function reportingDays(context: SourceContext, today: TradingDay): readonly TradingDay[] {
-  const reach = shiftCalendarDay(today, EARNINGS_LOOKAHEAD_DAYS)
-  const first = context.fromDay === undefined || context.fromDay < today ? today : context.fromDay
-  const last = context.toDay === undefined || context.toDay > reach ? reach : context.toDay
-  const days: TradingDay[] = []
-
-  for (let day = first; day <= last; day = shiftCalendarDay(day, 1)) {
-    if (daysSinceMonday(day) < FIRST_DARK_DAY) {
-      days.push(day)
-    }
-  }
-
-  return days
 }
 
 /** A page's rows, or none for a day with nothing listed. A body that is neither is a payload this
@@ -173,13 +154,46 @@ function forecastOf(raw: string): number | undefined {
   }
 }
 
+/** The days the calendar can answer inside the asked window: today on, never past its reach, and
+ *  not the weekend. */
+function reportingDays(context: SourceContext, today: TradingDay): readonly TradingDay[] {
+  const reach = shiftCalendarDay(today, EARNINGS_LOOKAHEAD_DAYS)
+  const first = context.fromDay === undefined || context.fromDay < today ? today : context.fromDay
+  const last = context.toDay === undefined || context.toDay > reach ? reach : context.toDay
+
+  return weekdaysBetween(first, last)
+}
+
+/** One failed page fails the read, so once one has, no further page is worth a request or a breaker
+ *  hit: the days still waiting answer with that failure. */
+function readDays(
+  days: readonly TradingDay[],
+  read: (day: TradingDay) => Promise<PageOutcome>
+): Promise<readonly PageOutcome[]> {
+  let failed: PageOutcome | undefined
+
+  return mapWithConcurrency(days, EARNINGS_PAGE_CONCURRENCY, async (day) => {
+    if (failed !== undefined) {
+      return failed
+    }
+
+    const page = await read(day)
+
+    if (page.kind === 'error') {
+      failed = page
+    }
+
+    return page
+  })
+}
+
 interface EarningsRead {
   readonly instrument: InstrumentRef
   readonly now: number
 }
 
 function toEarningsEvents(
-  pages: readonly SourceFetchOutcome<readonly EarningsRow[]>[],
+  pages: readonly PageOutcome[],
   read: EarningsRead
 ): SourceFetchOutcome<ParsedSource<readonly MarketEvent[]>> {
   const rows: EarningsRow[] = []

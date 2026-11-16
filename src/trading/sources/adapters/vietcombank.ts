@@ -8,9 +8,9 @@ import type { FxRatePoint } from '@/trading/kernel/market/market-data'
 import type { RegisteredSource, SourceContext } from '@/trading/kernel/source/source-result'
 import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/define'
 import type { SourceFetchOutcome, SourceHttp } from '@/trading/sources/types'
-import { daysSinceMonday, MS_PER_DAY } from '@/core/utils/time'
+import { MS_PER_DAY } from '@/core/utils/time'
 import { sourceId } from '@/trading/kernel/source/source-id'
-import { shiftCalendarDay } from '@/trading/markets/calendar'
+import { weekdaysBetween } from '@/trading/markets/calendar'
 import { createSource, parsedSource } from '@/trading/sources/define'
 import {
   dropInvalid,
@@ -24,7 +24,6 @@ export const VIETCOMBANK_DEFAULT_ENDPOINT = 'https://www.vietcombank.com.vn'
 const VIETCOMBANK_ID = sourceId('vietcombank')
 const RATES_PATH = '/api/exchangerates'
 const VND_PAIR_RE = /^([A-Z]{3})VND$/
-const SATURDAY = 5
 
 /** The feed answers one day a request, so a window costs a request per weekday. A month of
  *  sessions (the stress confirmer's window) is about 45 calendar days; anything longer is declined
@@ -124,18 +123,6 @@ function fxWindow(context: SourceContext): FxWindow | null {
   const days = weekdaysBetween(fromDay, toDay)
 
   return days.length === 0 ? null : { currency, days }
-}
-
-function weekdaysBetween(fromDay: TradingDay, toDay: TradingDay): readonly TradingDay[] {
-  const days: TradingDay[] = []
-
-  for (let day = fromDay; day <= toDay; day = shiftCalendarDay(day, 1)) {
-    if (daysSinceMonday(day) < SATURDAY) {
-      days.push(day)
-    }
-  }
-
-  return days
 }
 
 /** A currency the bank has no usable rate for on that day is no point, never a failed day. */

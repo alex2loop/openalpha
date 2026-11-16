@@ -87,20 +87,19 @@ export function toRequestedView(
     return shaped
   }
 
-  const isRanked = shaped.form !== 'board' && shaped.board !== 'gate'
+  const index = shaped.candidates.findIndex(
+    (candidate) => candidate.instrument.ticker === request.ticker
+  )
+  const named = shaped.candidates[index]
 
-  return {
-    ...shaped,
-    candidates: shaped.candidates.flatMap((candidate, index) =>
-      candidate.instrument.ticker === request.ticker
-        ? [
-            isRanked
-              ? { ...candidate, rank: { place: index + 1, of: shaped.candidates.length } }
-              : candidate,
-          ]
-        : []
-    ),
+  if (named === undefined) {
+    return { ...shaped, candidates: [] }
   }
+
+  const isRanked = shaped.form !== 'board' && shaped.board !== 'gate'
+  const rank = { place: index + 1, of: shaped.candidates.length }
+
+  return { ...shaped, candidates: [{ ...named, ...(isRanked ? { rank } : {}) }] }
 }
 
 /** The whole priced board as a list to browse: ticker order, which says nothing about merit, and

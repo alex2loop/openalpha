@@ -3,7 +3,7 @@ import type { SessionPhase, TradingDay, TradingSessionState } from '@/trading/ke
 import type { SessionMinutes } from '@/trading/markets/session-minutes'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
-import { MS_PER_DAY, MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
+import { daysSinceMonday, MS_PER_DAY, MS_PER_MINUTE, MS_PER_SECOND } from '@/core/utils/time'
 import { tradingDay } from '@/trading/kernel/instrument'
 import { createRuleClosures, createRuleEarlyCloses } from '@/trading/markets/rule-closures'
 import { MINUTES_PER_HOUR, minutesOfDay, resolveSession } from '@/trading/markets/session-minutes'
@@ -13,6 +13,8 @@ import { dayFromEpochSeconds } from '@/trading/sources/rows/normalization'
 /** A policy whose weekends swallow more than a decade of calendar days in a row is malformed;
  *  walking it forever would hang the caller instead of naming the bad policy. */
 const MAXIMUM_DAYS_WITHOUT_SESSION = 3_650
+/** `daysSinceMonday` of Saturday, the first day of a weekend. */
+const SATURDAY_SINCE_MONDAY = 5
 /** How long after the bell a board needs to publish its closing auction. The session ends when
  *  trading stops; the day's figures stop changing only once that print lands, and a tape read in
  *  between is missing it while looking complete — HOSE read at the bell gave 18 of its 25 busiest
@@ -260,6 +262,20 @@ export function orderSessionOf(calendar: TradingCalendar, now: number): TradingD
  *  arithmetic is `TradingCalendar.addTradingDays`; these are different questions. */
 export function shiftCalendarDay(day: TradingDay, delta: number): TradingDay {
   return shiftDay(day, delta)
+}
+
+/** Monday to Friday from `fromDay` to `toDay`, both included, for a feed that lists nothing on a
+ *  weekend. */
+export function weekdaysBetween(fromDay: TradingDay, toDay: TradingDay): readonly TradingDay[] {
+  const days: TradingDay[] = []
+
+  for (let day = fromDay; day <= toDay; day = shiftDay(day, 1)) {
+    if (daysSinceMonday(day) < SATURDAY_SINCE_MONDAY) {
+      days.push(day)
+    }
+  }
+
+  return days
 }
 
 function addTradingDays(

@@ -18,7 +18,7 @@ export const USD = currencyCode('USD')
 /** The clock this feed stamps its rows and its "today" on, a provider fact about the feed. */
 export const NASDAQ_TIMEZONE = 'America/New_York'
 
-const OK_CODE = 200
+export const OK_CODE = 200
 const MISS_CODE = 400
 export const NASDAQ_HEADERS = Object.freeze({ accept: 'application/json' })
 
