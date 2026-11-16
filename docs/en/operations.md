@@ -721,7 +721,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     live; a dealer's board, such as VN gold, adds its buying price, selling price and spread), the
     session's low, high and volume (the live session's when the price is live, else the last
     settled session's, dated), a price chart over the period you pick, with volume bars, moving averages and the plan levels, a line saying whether the last session traded more or less than usual, your holding, "Key figures"
-    (P/E, liquidity, flows and where the name sits on the board, laid out exactly as its Screen row;
+    (P/E, liquidity, flows and where the name sits on the board, laid out exactly as its Screen row, opening with the name's place among the ranked names, its verdict and its composite as that row gives them;
     a name that did not make the screen gets one line saying why there are none; an index or a
     futures contract has no such block), "Why?" for the
     reasoning behind a call, earlier calls and what your own agents think. Under the plan's

@@ -184,6 +184,9 @@ export interface ScreenedCandidate extends ScreenCandidate {
    *  below this one's, as a percent. Absent where no factor fired or the answer is `ranked`. */
   readonly percentiles?: Readonly<Partial<Record<FactorId, number>>>
   readonly excluded?: true
+  /** On a ranked answer kept to one name: its place on the whole ranked board and how many names
+   *  that board ranks, which a gate rejection is not. Absent everywhere else. */
+  readonly rank?: { readonly place: number; readonly of: number }
   /** Off the exchange's margin list on the board's day. A broker will not lend against it, and the
    *  list is where every name under exchange supervision lands. */
   readonly marginIneligible?: true

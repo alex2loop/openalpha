@@ -124,18 +124,47 @@ function rowFacts(locale: Locale, row: CandidateRow): readonly string[] {
   const { candidate } = row
 
   return [
-    t(locale, row.gated ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
-      rank: formatCount(locale, row.index + 1),
+    ...verdictFacts(locale, candidate, row.gated ? undefined : formatCount(locale, row.index + 1)),
+    ...(candidate.excluded === true ? [t(locale, 'trading.render.screen.excluded')] : []),
+    ...(candidate.marginIneligible === true
+      ? [t(locale, 'trading.render.screen.margin-ineligible')]
+      : []),
+  ]
+}
+
+/** What a name's own view opens with where its board is ranked: its row's rank, verdict and
+ *  composite, the rank read against every name the board ranks (`3/61`). None where the name has no
+ *  rank. */
+export function standingFacts(locale: Locale, candidate: ScreenedCandidate): readonly string[] {
+  const { rank } = candidate
+
+  return rank === undefined
+    ? []
+    : verdictFacts(
+        locale,
+        candidate,
+        t(locale, 'trading.render.screen.rank', {
+          place: formatCount(locale, rank.place),
+          count: formatCount(locale, rank.of),
+        })
+      )
+}
+
+/** A row's head and its composite. No `rank` is a gate board's row, which numbers nothing. */
+function verdictFacts(
+  locale: Locale,
+  candidate: ScreenedCandidate,
+  rank: string | undefined
+): readonly string[] {
+  return [
+    t(locale, rank === undefined ? 'trading.render.screen.gateRow' : 'trading.render.screen.row', {
+      rank: rank ?? '',
       ticker: renderNameHead(locale, candidate),
       rating: renderDeclaredValue(locale, `trading.rating.${screenRating(candidate)}`),
     }),
     t(locale, 'trading.render.screen.score', {
       score: formatScoreValue(locale, candidate.composite.score),
     }),
-    ...(candidate.excluded === true ? [t(locale, 'trading.render.screen.excluded')] : []),
-    ...(candidate.marginIneligible === true
-      ? [t(locale, 'trading.render.screen.margin-ineligible')]
-      : []),
   ]
 }
 

@@ -17,6 +17,11 @@
   text-underline-offset: 2px;
 }
 
+.fact-standing {
+  margin: 0;
+  font-weight: var(--weightMedium);
+}
+
 .kv {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

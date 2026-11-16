@@ -5781,6 +5781,7 @@
     "render.screen.title": "Đây là {count} mã nổi bật nhất trong tổng số {universe} mã đã sàng lọc ở {market}",
     "render.screen.gateRow": "{ticker} · {rating}",
     "render.screen.row": "{rank}. {ticker} · {rating}",
+    "render.screen.rank": "{place}/{count}",
     "render.screen.score": "điểm tổng hợp {score}",
     "render.screen.missing": "Thiếu số liệu: {factors}",
     "render.screen.monthChange": "Giá đổi 1 tháng",

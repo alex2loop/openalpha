@@ -80,6 +80,7 @@ function toCandidateWire(candidate: ScreenedCandidate, answer: ScreenAnswer): Ca
     ...(quote?.changePct === undefined ? {} : { changePct: quote.changePct }),
     ...(named === undefined || named.facts.length === 0 ? {} : { facts: named.facts }),
     ...(named === undefined || named.missing.length === 0 ? {} : { missing: named.missing }),
+    ...(named?.standing === undefined ? {} : { standing: named.standing }),
   }
 }
 

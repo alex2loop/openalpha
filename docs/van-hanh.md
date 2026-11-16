@@ -712,7 +712,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     cao nhất và khối lượng của phiên (của phiên đang chạy khi giá là giá trực tiếp, nếu không thì của
     phiên đã chốt gần nhất, có ghi ngày), biểu đồ giá theo khoảng thời gian bạn chọn, kèm cột khối lượng, đường trung bình động và
     các mức của kế hoạch, một dòng cho biết phiên gần nhất giao dịch nhiều hay ít hơn thường lệ, mã bạn đang giữ, "Chỉ số chính" (P/E, thanh khoản, dòng tiền và vị trí của
-    mã so với cả bảng, bày giống hệt một dòng ở Bảng lọc mã; mã không lọt vào Bảng lọc mã thì có một dòng nói
+    mã so với cả bảng, bày giống hệt một dòng ở Bảng lọc mã, mở đầu bằng thứ hạng, nhận định và điểm tổng hợp của mã như dòng đó; mã không lọt vào Bảng lọc mã thì có một dòng nói
     vì sao chưa có chỉ số; chỉ số và hợp đồng tương lai không có khối này), "Vì sao?" để xem lý lẽ sau một đề xuất, các đề xuất trước đây và các agent của bạn nghĩ gì.
     Dưới các mức của kế hoạch là "Đang chờ điều gì" (điều kiện người giao dịch còn chờ trước khi vào
     lệnh, nếu có) và "Từng yếu tố chấm ra sao", đúng những dòng `/suggest` in ra. Thẻ đề xuất ở mục

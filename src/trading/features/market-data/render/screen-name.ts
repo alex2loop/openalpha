@@ -7,6 +7,7 @@ import { boardOf, renderPriceUnitLine } from '@/trading/features/market-data/ren
 import {
   renderNameHead,
   renderPriceLine,
+  standingFacts,
 } from '@/trading/features/market-data/render/screen-evidence'
 import {
   boardFacts,
@@ -19,6 +20,7 @@ import {
   renderAsOf,
   renderProvenanceLine,
   renderSectionTitle,
+  toRowLines,
 } from '@/trading/render/layout'
 
 /** Wrapping at width 0 puts each reading on a line of its own: one name has no neighbour to line up
@@ -26,8 +28,8 @@ import {
 const LIST_WIDTH = 0
 
 /** `/screen <ticker>`: that name's row as a board lists it, whichever board was read, so its
- *  figures read as on the Screen board and on its card, never with a rank; or a line saying the
- *  board left it out. */
+ *  figures read as on the Screen board and on its card; on a ranked board it opens with the name's
+ *  verdict, composite and rank, as its row there does. Or a line saying the board left it out. */
 export function renderScreenNameText(
   locale: Locale,
   request: ScreenRenderRequest & { readonly ticker: Ticker },
@@ -63,6 +65,7 @@ export function renderScreenNameText(
   return joinSections([
     [
       `${renderSectionTitle(SECTION_ICONS.screen, title)}${renderAsOf(locale, result.dataThroughDay ?? result.asOf)}`,
+      ...toRowLines(standingFacts(locale, candidate), board.context, 1),
       ...renderPriceLine(locale, candidate, board),
       ...renderPriceUnitLine(locale, request, result),
       ...renderBoardFactLines(locale, facts, { ...board.context, width: LIST_WIDTH }),

@@ -36,7 +36,7 @@ import { type BriefText, renderBriefForSurface } from '@/trading/features/brief/
 import { FIRST_LOAD_PENDING } from '@/trading/features/market-data/ops/ensure'
 import { renderMacroLean } from '@/trading/features/market-data/render/overview'
 import { renderScreenCard } from '@/trading/features/market-data/render/screen'
-import { BOARD_READING } from '@/trading/features/market-data/render/screen-evidence'
+import { BOARD_READING, standingFacts } from '@/trading/features/market-data/render/screen-evidence'
 import { boardFacts, missingFactorLabels } from '@/trading/features/market-data/render/screen-facts'
 import {
   type ReflectText,
@@ -46,6 +46,7 @@ import { toThemeTransitionMessage } from '@/trading/features/themes/command'
 import { renderThemeReportText } from '@/trading/features/themes/render/report'
 import { CLOSED_THEME_STATUSES } from '@/trading/features/themes/types'
 import { NOTICE_SURFACE, renderDeclaredValue, resolveRenderContext } from '@/trading/render/format'
+import { INLINE_SEPARATOR } from '@/trading/render/layout'
 import { renderMetricLine } from '@/trading/render/metric'
 
 /** A kind filter needs at least two kinds to choose between. */
@@ -225,13 +226,18 @@ function nameFacts(
   display: PriceDisplay | undefined
 ): NonNullable<ScreenAnswer['nameFacts']> {
   return Object.fromEntries(
-    view.candidates.map((candidate) => [
-      candidate.instrument.ticker,
-      {
-        facts: boardFacts(locale, candidate, { display }),
-        missing: missingFactorLabels(locale, candidate),
-      },
-    ])
+    view.candidates.map((candidate) => {
+      const standing = standingFacts(locale, candidate)
+
+      return [
+        candidate.instrument.ticker,
+        {
+          facts: boardFacts(locale, candidate, { display }),
+          missing: missingFactorLabels(locale, candidate),
+          ...(standing.length === 0 ? {} : { standing: standing.join(INLINE_SEPARATOR) }),
+        },
+      ]
+    })
   )
 }
 
