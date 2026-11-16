@@ -7,6 +7,36 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.0] - 2026-11-16
+
+US names now show their next earnings date and warn that the price can gap on the report, risky 8-K filings are flagged, and a buy is held after a bankruptcy filing or a warning that past accounts cannot be relied on. `/overview` and the US brief show market breadth and distribution days. `/reflect` shows how far calls ran for and against you before they closed. The brief now opens with your home market.
+> Mã Mỹ giờ hiện ngày báo cáo kết quả kinh doanh sắp tới và cảnh báo giá có thể nhảy vọt khi công bố. Các 8-K rủi ro được gắn cờ, và đề xuất mua bị giữ lại khi công ty nộp đơn phá sản hoặc báo số liệu tài chính cũ không còn tin được. `/overview` và bản tin Mỹ có độ rộng thị trường và số phiên phân phối. `/reflect` cho thấy đề xuất đã chạy bao xa theo hướng có lợi và bất lợi trước khi đóng. Bản tin giờ mở đầu bằng thị trường chính của bạn.
+
+### Added
+
+- The next earnings date of a US name, before the open or after the close, with the EPS forecast, from Nasdaq's calendar: on `/price`, in the analysis and in the brief's "Filings, earnings and ex-dividend dates" list. Every answer on a name that reports within the next few sessions says the price can gap overnight past any stop.
+- Five 8-K items are flagged on US names: bankruptcy filing, material impairment, listing notice, change of auditor, and past financials not to be relied on. An answer on the name says what was filed and when; a bankruptcy filing or a non-reliance notice holds a buy until you have read it, while selling stays open. The brief always keeps a flagged filing in its list and asks you to read it when you hold the name.
+- `/reflect` shows, at the median and in risk units, how far winners went against you and how far losers and stopped-out calls went your way before they closed. A median shows once enough calls back it.
+- US market breadth in `/overview` and the US brief: the share of names above their 200-session average, and distribution days (a major index fund closing down on higher volume) over the recent sessions. The US brief tells the stories "Breadth is widening", "Breadth is narrowing" and "Heavy selling days are piling up".
+- The single-name screen view, for example `/screen crypto BTC`, shows the name's rank, verdict and composite score.
+
+### Changed
+
+- The brief opens with your home market: the header strip leads with its index (Nasdaq Composite for a US home), and the verdict and the change since the last session read that market only. A figure whose section is missing, such as USD/VND on a US home, is left out.
+- The office page lays out the brief and its other views at the page's width instead of a phone's, and the brief's header strip never splits a figure across lines.
+- `openalpha start` and `status` name each background task when its first pass starts and say when it is done or why it failed, instead of reporting all tasks idle while one is still working.
+- Insider purchases filed in one Form 4 are listed one by one.
+
+### Fixed
+
+- Warrants, preferred shares, notes and units, including warrants on American depositary shares, no longer appear on the US board, and a Nasdaq name with no trades no longer stops its price history from loading.
+- A US macro backdrop stored without some drivers (the dollar index and VIX when FRED did not answer) is fetched again by the next refresh after 15 minutes, so the brief no longer reports them missing for the rest of the session.
+- The web edition records your book's value while the page is open, so its value history no longer stays empty.
+
+### Upgrading
+
+- Resolved calls now store how far the price ran for and against them. 1.7.0 cannot read those calls, so going back to 1.7.0 with `openalpha upgrade --rollback` drops them from your track record. Downgrading to 1.7.0 is not supported.
+
 ## [1.7.0] - 2026-11-15
 
 A name's card now draws its price chart over one, three or six months or a year, with volume and the 50- and 200-session averages. `/overview` and the market tab show who bought and who sold on the Vietnam market, and which sectors the money went into. The Screen board has a clearer Vietnamese name.
