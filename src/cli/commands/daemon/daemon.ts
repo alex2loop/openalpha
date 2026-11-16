@@ -307,21 +307,25 @@ function announceReady(app: CliApp, record: ReadyRecord): void {
 }
 
 // A task's first pass is announced whenever it starts: one that waits for the network (the first
-// refresh) begins after ready, so an idle line at ready would hide it. Later passes stay quiet.
+// refresh) begins after ready, so an idle line at ready would hide it. A first pass that failed
+// before it was ever seen working (inside one report gap) still says why. Later passes stay quiet.
 function announceStarted(app: CliApp, record: ReadyRecord): void {
-  const started = record.tasks.filter((task) => task.working && !record.announced.has(task.label))
+  const fresh = record.tasks.filter((task) => !record.announced.has(task.label))
+  const started = fresh.filter((task) => task.working).map((task) => task.label)
+  const failed = fresh.filter((task) => !task.working && task.lastError !== undefined)
 
-  if (started.length === 0) {
-    return
+  if (started.length > 0) {
+    printWorkingTasks(app, started)
   }
 
-  const labels = started.map((task) => task.label)
-
-  printWorkingTasks(app, labels)
-
-  for (const label of labels) {
+  for (const label of started) {
     record.announced.add(label)
     record.awaited.add(label)
+  }
+
+  for (const task of failed) {
+    printSettledTask(app, task)
+    record.announced.add(task.label)
   }
 }
 

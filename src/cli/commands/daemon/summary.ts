@@ -16,7 +16,7 @@ export function printDaemonSummary(
   printModel(app)
   printServed(app, degraded)
   printLogFile(app)
-  printStartedTasks(app, tasks)
+  printTasksAfterStart(app, tasks)
 }
 
 /** A foreground start prints this before boot; the channels and API follow at ready. */
@@ -50,31 +50,22 @@ export function printServed(app: CliApp, degraded: readonly DegradedEntry[]): vo
 
 /** Which background tasks run now, then why any task's last pass failed. */
 export function printTasks(app: CliApp, tasks: readonly TaskSnapshot[]): void {
-  const locale = app.config.locale.language
-  const working = tasks.filter((task) => task.working).map((task) => task.label)
-
-  if (working.length === 0) {
-    app.out(hint(t(locale, 'cli.daemonIdle')))
-  } else {
-    printWorkingTasks(app, working)
+  if (!tasks.some((task) => task.working)) {
+    app.out(hint(t(app.config.locale.language, 'cli.daemonIdle')))
   }
 
-  printFailedTasks(app, tasks)
+  printTasksAfterStart(app, tasks)
 }
 
-/** Just after a start no idle line: a pass that waits for the network (the first refresh) has not
- *  begun yet, and "idle" would read as nothing to come. */
-function printStartedTasks(app: CliApp, tasks: readonly TaskSnapshot[]): void {
+/** No idle line right after a start: a pass that waits for the network has not begun, so idle
+ *  would mislead. */
+function printTasksAfterStart(app: CliApp, tasks: readonly TaskSnapshot[]): void {
   const working = tasks.filter((task) => task.working).map((task) => task.label)
 
   if (working.length > 0) {
     printWorkingTasks(app, working)
   }
 
-  printFailedTasks(app, tasks)
-}
-
-function printFailedTasks(app: CliApp, tasks: readonly TaskSnapshot[]): void {
   for (const task of tasks.filter((entry) => entry.lastError !== undefined)) {
     printSettledTask(app, task)
   }

@@ -839,6 +839,7 @@ A renderer never assumes a width. `resolveRenderContext(timezone, surface)` answ
 | repl | `table` | 90 |
 | channel (telegram, zalo) | `lines` | 45 |
 | office page chat | `lines` | 45 |
+| office page brief | `lines` | 90 |
 
 The page runs the terminal's commands but shows their answers in a proportional font in a narrow
 column, so its slash context sets `readsAs: 'channel'`; commands shape their text through

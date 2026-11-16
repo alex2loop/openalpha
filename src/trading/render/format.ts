@@ -129,8 +129,8 @@ export const PAGE_SURFACE = 'page'
 /** What a tool result is written for: it is relayed into a chat message, never a repl table. */
 export const TOOL_SURFACE = 'tool'
 
-/** Only the REPL is monospace and wide; a chat client renders padded columns as ragged text and
- *  wraps anything past a phone's line. */
+/** Only the REPL lays facts out in padded columns, since only it is monospace; the REPL and the
+ *  page are wide, and a chat client wraps anything past a phone's line. */
 export function resolveRenderContext(timezone: string, surface: string): RenderContext {
   const repl = surface === 'repl'
 

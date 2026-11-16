@@ -120,16 +120,16 @@ export function briefSessionOf(sections: readonly BriefSectionResult[]): Trading
   return (prices.find((section) => section.market === home) ?? prices[0])?.asOf
 }
 
+function isHomeHeadline(figure: StripFigure, home: MarketRef | undefined): boolean {
+  return figure.headline === true && figure.market === home
+}
+
 function hasSourceSection(sections: readonly BriefSectionResult[], figure: StripFigure): boolean {
   return sections.some(
     (section) =>
       section.market === figure.market &&
       figure.sources.some((source) => source.kind === section.kind)
   )
-}
-
-function isHomeHeadline(figure: StripFigure, home: MarketRef | undefined): boolean {
-  return figure.headline === true && figure.market === home
 }
 
 /** The first source that reads. A section that did not come back counts as no reading. */

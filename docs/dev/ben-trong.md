@@ -860,6 +860,7 @@ mỗi đích:
 | repl | `table` | 90 |
 | kênh (telegram, zalo) | `lines` | 45 |
 | khung chat trên trang văn phòng | `lines` | 45 |
+| bản tin trên trang văn phòng | `lines` | 90 |
 
 Trang chạy các lệnh của terminal nhưng hiện câu trả lời bằng font thường trong một cột hẹp, nên ngữ
 cảnh lệnh của nó đặt `readsAs: 'channel'`; lệnh dựng chữ theo `answerSurfaceOf(ctx)`, còn bộ điều phối

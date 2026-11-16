@@ -75,9 +75,9 @@ function forecastCurrency(rows: readonly DatedEvent[]): { readonly currency?: Cu
   return currency === undefined ? {} : { currency }
 }
 
-/** The cap keeps every flagged filing, which the next action points the operator to, and fills the
- *  rest of it with the dates closest to today, then reads in date order: keeping the oldest would
- *  drop the newest filings and the nearest ex-dates, which are the news. */
+/** Every flagged filing is kept, held or watched (a held name's next action points to it), so the
+ *  list can run past the cap; the rest of the cap takes the dates closest to today, read in date
+ *  order: keeping the oldest would drop the newest filings and the nearest ex-dates, the news. */
 function capped(
   rows: readonly DatedEvent[],
   asOf: TradingDay,
