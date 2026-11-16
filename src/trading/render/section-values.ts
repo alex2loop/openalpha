@@ -22,7 +22,7 @@ import { formatSpendUsd } from '@/core/utils/cost'
 import { formatDay, type MessageKey, renderQuoteUnit, t } from '@/i18n'
 import { BRIEF_NUMERIC_FIELDS } from '@/trading/kernel/operator/brief-section'
 import { isTradingDayText } from '@/trading/render/datetime'
-import { EVENT_KEYS } from '@/trading/render/event'
+import { EVENT_KEYS, TIMING_KEYS } from '@/trading/render/event'
 import {
   bandedSentiment,
   formatAmount,
@@ -149,6 +149,7 @@ const VALUE_KEYS: Partial<Record<BriefField, Readonly<Partial<Record<string, Mes
     stopBasis: {
       'volatility-resting': 'trading.brief.stop-basis.volatility-resting',
     } satisfies Record<BriefStopBasis, MessageKey>,
+    timing: TIMING_KEYS,
     verdict: {
       expired: 'trading.outcome.expired',
       stop: 'trading.outcome.stop',
@@ -197,6 +198,7 @@ const VALUE_FORMATTERS = Object.freeze({
   deploymentScale: formatFraction,
   depositRate12m: formatFraction,
   entryTranchePct: formatFixedFraction,
+  epsForecast: formatRatio,
   floors: formatCount,
   flowWindowUsd: formatSignedFlow,
   foreignNetBase: formatSignedFlow,
@@ -283,11 +285,13 @@ function bandedScore(locale: Locale, score: number): string {
   return `${scoreBar(locale, score)} ${formatScore(locale, score)}`
 }
 
-/** Aggregate money, where the magnitude is compacted and nothing else on the row states the unit.
- *  Prices are excluded: a board-scaled quote is not in currency units, and `renderPricePair` already
- *  owns saying so. `netFlowUsd` and `flowWindowUsd` name their unit in the field, and `netLong` and
- *  `weekChange` count contracts rather than money. */
+/** Money, where nothing else on the row states the unit: aggregates compacted, and a per-share
+ *  earnings forecast at two decimals rather than a price's every digit. Prices are excluded: a
+ *  board-scaled quote is not in currency units, and `renderPricePair` already owns saying so.
+ *  `netFlowUsd` and `flowWindowUsd` name their unit in the field, and `netLong` and `weekChange`
+ *  count contracts rather than money. */
 const MONEY_FIELDS: ReadonlySet<BriefField> = new Set([
+  'epsForecast',
   'foreignNetBase',
   'foreignNetWindow',
   'marketCap',

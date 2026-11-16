@@ -24,6 +24,7 @@ import {
   US_STRATEGY_VERSION,
   US_TICK,
 } from '@/trading/markets/equity-us/policy'
+import { createUsEarningsDateStage } from '@/trading/markets/equity-us/stages/earnings-date'
 import { createUsLeveragedFundStage } from '@/trading/markets/equity-us/stages/leveraged-fund'
 import { FACTOR_SCORING_VERSION } from '@/trading/markets/factor-scoring'
 import { strategyVersionOf } from '@/trading/markets/level-settings'
@@ -37,6 +38,7 @@ export function createUsEquityMarket(deps: MarketDeps): Market {
   const board = createUsBoardCache(deps, manifest)
 
   deps.stages.register(createUsLeveragedFundStage(deps))
+  deps.stages.register(createUsEarningsDateStage())
 
   return {
     manifest,

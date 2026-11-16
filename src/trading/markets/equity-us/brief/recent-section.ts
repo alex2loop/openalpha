@@ -1,7 +1,7 @@
 import type { Caveat } from '@/trading/kernel/caveat'
-import type { TradingDay } from '@/trading/kernel/instrument'
+import type { CurrencyCode, TradingDay } from '@/trading/kernel/instrument'
 import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
-import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
+import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import type { BriefContext } from '@/trading/markets/brief-context'
 import type { DatedEvent } from '@/trading/markets/brief-events'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
@@ -9,13 +9,14 @@ import { sourceId } from '@/trading/kernel/source/source-id'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 
 const FILED_KINDS: readonly MarketEventKind[] = ['earnings-release', 'insider-purchase']
+const UPCOMING_KINDS: readonly MarketEventKind[] = ['dividend-ex-date', 'earnings-date']
 /** The events provider that dates filings: registered only when the SEC contact is set, while
  *  Nasdaq's ex-dates answer without one. */
 const FILINGS_SOURCE = sourceId('sec-data')
 const FILINGS_UNCONFIGURED: Caveat = { code: 'brief.filings-unconfigured' }
 
-/** What a name the operator holds or watches just filed, and the ex-dividend dates ahead, cut from
- *  the calendar the context read once. */
+/** What a name the operator holds or watches just filed, and the ex-dividend dates and earnings
+ *  reports ahead, cut from the calendar the context read once. */
 export async function buildRecent(context: BriefContext): Promise<BriefSectionResult> {
   if (context.calendarNames.names.length === 0) {
     return omitted('recent')
@@ -35,22 +36,42 @@ export async function buildRecent(context: BriefContext): Promise<BriefSectionRe
     return read.isComplete && filingsOn ? omitted('recent') : absent('recent', caveats)
   }
 
-  return ready(
-    'recent',
-    nearestFirst(rows, asOf, context.policy.maximumItemsPerSection).map((row) => ({
-      at: row.event.at,
-      ticker: row.instrument.ticker,
-      eventKind: row.event.kind,
-    })),
-    { caveats, provenance: read.provenance }
-  )
+  const shown = nearestFirst(rows, asOf, context.policy.maximumItemsPerSection)
+
+  return ready('recent', shown.map(toRow), {
+    caveats,
+    provenance: read.provenance,
+    ...forecastCurrency(shown),
+  })
 }
 
-/** A filing already out and an ex-date still ahead; a past ex-date is not news. */
+/** A filing already out and an ex-date or a report still ahead; a past one is not news. */
 function isRecent(event: MarketEvent, asOf: TradingDay): boolean {
-  return FILED_KINDS.includes(event.kind)
-    ? event.at <= asOf
-    : event.kind === 'dividend-ex-date' && event.at >= asOf
+  if (FILED_KINDS.includes(event.kind)) {
+    return event.at <= asOf
+  }
+
+  return UPCOMING_KINDS.includes(event.kind) && event.at >= asOf
+}
+
+function toRow({ event, instrument }: DatedEvent): BriefSectionRow {
+  const { earnings } = event
+
+  return {
+    at: event.at,
+    ticker: instrument.ticker,
+    eventKind: event.kind,
+    ...(earnings?.timing === undefined ? {} : { timing: earnings.timing }),
+    ...(earnings?.epsForecast === undefined ? {} : { epsForecast: earnings.epsForecast }),
+  }
+}
+
+/** The forecasts print in the currency the calendar stated them in. */
+function forecastCurrency(rows: readonly DatedEvent[]): { readonly currency?: CurrencyCode } {
+  const stated = rows.find((row) => row.event.earnings?.epsForecast !== undefined)
+  const currency = stated?.event.earnings?.currency
+
+  return currency === undefined ? {} : { currency }
 }
 
 /** The cap keeps the dates closest to today, then reads in date order: keeping the oldest would

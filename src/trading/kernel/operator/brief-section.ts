@@ -70,7 +70,7 @@ export type BriefSectionKind = (typeof BRIEF_SECTION_ORDER)[number]
  *  already gated by their own enums, but a title that gains a placeholder is not, and an older
  *  payload renders it as the literal `{sessions}`. Bump whenever a section title, its params, a
  *  section-level key, or which block a kind is grouped into changes. */
-export const BRIEF_RENDER_VERSION = 23
+export const BRIEF_RENDER_VERSION = 24
 
 /** Kinds a market's overview converter emits, so no brief builder produces them. Compose's builder
  *  record excludes them, which is what keeps that record exhaustive. A kind only the whole-market
@@ -183,6 +183,8 @@ export const BRIEF_NUMERIC_FIELDS = Object.freeze([
   'deploymentScale',
   'depositRate12m',
   'entryTranchePct',
+  /** Analysts' consensus EPS for a coming report, per share in the section's currency. */
+  'epsForecast',
   'floors',
   'flowWindowUsd',
   'foreignNetBase',
@@ -301,6 +303,7 @@ const BRIEF_TEXT_FIELDS = Object.freeze([
   'story',
   'thesisStatus',
   'ticker',
+  'timing',
   'title',
   'url',
   'verdict',

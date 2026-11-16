@@ -54,6 +54,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market.report-overdue', severity: 'warn' },
   { code: 'market.risk-event-headlines', severity: 'warn' },
   { code: 'market.ex-date-upcoming', severity: 'warn' },
+  { code: 'market.earnings-upcoming', severity: 'warn' },
   { code: 'market.margin-list-removal', severity: 'warn' },
   { code: 'market.margin-ineligible', severity: 'warn' },
   { code: 'market.delisting-scheduled', severity: 'warn' },

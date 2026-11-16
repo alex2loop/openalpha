@@ -35,7 +35,7 @@ const RELATIONSHIP_KEYS = Object.freeze({
   'ten-percent-owner': 'trading.insider.relationship.ten-percent-owner',
 } as const satisfies Record<InsiderRelationship, MessageKey>)
 
-const TIMING_KEYS = Object.freeze({
+export const TIMING_KEYS = Object.freeze({
   'pre-market': 'trading.earnings.timing.pre-market',
   'after-close': 'trading.earnings.timing.after-close',
 } as const satisfies Record<EarningsTiming, MessageKey>)

@@ -164,10 +164,11 @@ export const US_MAXIMUM_VOLATILITY = 0.1
 /** How many names a refresh asks the provider for at once; the pacer still enforces the rate. */
 export const US_SOURCE_CONCURRENCY = 5
 
-/** Sessions back a filing still reads as news in the brief, and sessions ahead an ex-date is worth
- *  stating and reminding about. */
+/** Sessions back a filing still reads as news in the brief. */
 export const US_RECENT_FILING_SESSIONS = 5
-export const US_EX_DATE_HORIZON_SESSIONS = 10
+/** Sessions ahead an ex-date or an earnings report is worth stating, reminding about and caveating
+ *  a buy over. */
+export const US_EVENT_HORIZON_SESSIONS = 10
 /** Store reads in flight while the board assembles; the database is local, so wider than a provider. */
 export const US_BOARD_READ_CONCURRENCY = 8
 /** How far a stored close may sit from the same session's refetched close before the series counts
