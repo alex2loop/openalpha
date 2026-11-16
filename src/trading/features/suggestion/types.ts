@@ -260,6 +260,9 @@ export interface SuggestionOutcome {
   readonly returnPct: number
   /** A fraction, on the same scale as `returnPct`. */
   readonly benchmarkReturnPct?: number
+  /** Price run against and for the call before it closed, in risk units; absent on older rows. */
+  readonly adverseExcursion?: number
+  readonly favorableExcursion?: number
   /** Which crossing rule scored this row; absent on rows resolved before the rule was versioned.
    *  Reported as a calculation version so two rules never blend into one win rate. */
   readonly formulaVersion?: string

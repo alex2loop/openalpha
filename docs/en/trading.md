@@ -574,6 +574,14 @@ The band used is the one stored for the order session. So a new listing's wider 
 
 Then it reports win rate, mean and median return, the benchmark comparison and **calibration by confidence band**. A rate without its denominator tells you nothing. And if high-confidence calls win no more often than low-confidence ones, that is the number worth reading next to the headline.
 
+**Excursions.** A call resolved from this release on also records how far the price ran against it and for it before it closed. The unit is the risk unit: the distance from the entry the call was scored from to its plan's stop, never a trailed one. The figures are gross of fees. `/reflect` prints one line of medians:
+
+- how far winning calls ran against you at their worst;
+- how far losing calls did;
+- how far calls the stop closed at a loss had run your way before it hit.
+
+A median appears only once its group has 20 measured calls, the same floor every rate uses. A call resolved earlier has no figure, so it is left out of every group rather than counted as zero, and nothing is back-filled.
+
 Every rate counts independent calls. A call that repeats one still open, on the same name and side, rides the same price move, so it is folded into the first. The brief re-issues a held idea every session, and without folding each of those rows would count as a separate outcome. `/reflect` says how many it folded.
 
 The per-focus and per-agent records below fold the same way, each over its own focus's calls (just as `/reflect` reads one focus). So a focus reaches the reporting minimum only on independent calls, and its sample matches what `/reflect` reports for it.

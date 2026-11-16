@@ -18,6 +18,7 @@ import type { ConvictionBand, SuggestionAction } from '@/trading/kernel/convicti
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { FocusKey } from '@/trading/kernel/operator/focus'
 import { isMarked, REVIEW_MARK_IDS } from '@/trading/features/suggestion/pipeline/review-marks'
+import { summarizeExcursions } from '@/trading/features/suggestion/track-record/excursion'
 import { CONVICTION_BANDS } from '@/trading/kernel/conviction'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isWinningReturn, outcomeVerdictOf } from '@/trading/kernel/outcome-verdict'
@@ -72,6 +73,7 @@ export function summarizeTrackRecord(
     calibration: calibrationByBand(rows, minimumSampleSize),
     reviewSplits: splitByReviewMark(rows, minimumSampleSize),
     shadow: shadowSummary(rows),
+    excursions: summarizeExcursions(rows, minimumSampleSize),
     caveats,
   }
 }

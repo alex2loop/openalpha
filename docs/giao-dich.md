@@ -577,6 +577,14 @@ Biên độ được dùng là biên độ đã lưu cho phiên đặt lệnh. N
 
 Rồi nó báo tỷ lệ thắng, lợi suất trung bình và trung vị, phép so với chuẩn, và **hiệu chỉnh theo dải mức tin cậy**. Một tỷ lệ không kèm mẫu số thì không nói lên gì. Và nếu các đề xuất tin cậy cao không thắng nhiều hơn đề xuất tin cậy thấp, đó chính là con số đáng đọc cạnh con số tiêu đề.
 
+**Biên độ chạy.** Đề xuất được chốt từ bản phát hành này còn ghi lại giá đã chạy ngược và chạy thuận với nó bao xa trước khi đóng. Đơn vị là đơn vị rủi ro: khoảng cách từ giá vào dùng để chấm đến mức cắt lỗ của kế hoạch, không phải mức cắt lỗ đã nâng theo. Con số chưa trừ phí. `/reflect` in một dòng trung vị:
+
+- đề xuất thắng đã chạy ngược bao xa ở đoạn tệ nhất;
+- đề xuất thua cũng vậy;
+- đề xuất bị cắt lỗ đã từng chạy thuận bao xa trước khi chạm mức cắt lỗ.
+
+Trung vị chỉ hiện khi nhóm của nó có đủ 20 đề xuất đã đo, cùng ngưỡng với mọi tỷ lệ. Đề xuất chốt từ trước không có con số này nên không vào nhóm nào, thay vì bị tính là 0, và không có gì được điền bù.
+
 Mọi tỷ lệ chỉ đếm các đề xuất độc lập. Một đề xuất lặp lại một đề xuất còn mở, trên cùng mã và cùng chiều, thì đi theo cùng một nhịp giá, nên được gộp vào đề xuất đầu. Bản tin nhắc lại một ý tưởng đang nắm mỗi phiên, và nếu không gộp thì mỗi dòng đó sẽ bị đếm như một kết quả riêng. `/reflect` báo đã gộp bao nhiêu.
 
 Hồ sơ theo phạm vi và theo agent bên dưới gộp cùng cách, trên các đề xuất của riêng từng phạm vi (giống `/reflect` đọc một phạm vi). Nên một phạm vi chỉ đạt mức tối thiểu để báo cáo bằng các đề xuất độc lập, và mẫu của nó khớp với điều `/reflect` báo về nó.

@@ -24,7 +24,11 @@ import {
   toFactorResult,
   toFactorResultPayload,
 } from '@/trading/features/suggestion/store/factor-payload'
-import { parseSuggestionPayload } from '@/trading/features/suggestion/store/suggestion-payload'
+import {
+  parseSuggestionPayload,
+  toOutcomeExtras,
+  toOutcomePayload,
+} from '@/trading/features/suggestion/store/suggestion-payload'
 import { suggestionId } from '@/trading/features/suggestion/types'
 import { REDUCE_REASON_CODES } from '@/trading/kernel/caveat'
 import {
@@ -100,8 +104,7 @@ export function toPayload(suggestion: StoredSuggestion): SuggestionPayload {
     restingEntry: suggestion.restingEntry,
     settlement: suggestion.settlement,
     priceBand: suggestion.priceBand,
-    benchmarkReturnPct: suggestion.outcome?.benchmarkReturnPct,
-    outcomeFormulaVersion: suggestion.outcome?.formulaVersion,
+    ...toOutcomePayload(suggestion.outcome),
   }
 }
 
@@ -364,16 +367,12 @@ function toOutcome(row: SuggestionRow, payload: SuggestionPayload): SuggestionOu
     return undefined
   }
 
-  const benchmark = payload.benchmarkReturnPct
-  const formulaVersion = payload.outcomeFormulaVersion
-
   return {
     status: toMember(row.outcome_status, OUTCOME_STATUSES, 'outcome status'),
     resolvedAt: row.resolved_at,
     exitDay: tradingDay(readField(row.exit_day, row, 'exit_day')),
     returnPct: readField(row.return_pct, row, 'return_pct'),
-    ...(benchmark === undefined ? {} : { benchmarkReturnPct: benchmark }),
-    ...(formulaVersion === undefined ? {} : { formulaVersion }),
+    ...toOutcomeExtras(payload),
   }
 }
 
