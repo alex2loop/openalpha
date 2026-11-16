@@ -125,6 +125,14 @@ export const FILING_FLAG_KINDS: readonly MarketEventKind[] = Object.freeze([
   'non-reliance',
 ])
 
+/** What a name has filed or reported that already happened: its earnings release, an insider's
+ *  purchase, and the flagged 8-K items. */
+export const FILED_EVENT_KINDS: readonly MarketEventKind[] = Object.freeze([
+  'earnings-release',
+  'insider-purchase',
+  ...FILING_FLAG_KINDS,
+])
+
 /** The flagged filings that hold a buy: insolvency, and the company saying its own accounts cannot
  *  be relied on. A listing notice stays informational: the item also covers a voluntary transfer
  *  between exchanges, which is common and benign. */

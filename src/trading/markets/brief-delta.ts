@@ -1,3 +1,4 @@
+import type { MarketRef } from '@/trading/kernel/instrument'
 import type {
   BriefNumericField,
   BriefSectionKind,
@@ -31,10 +32,13 @@ const COMPARED_FACTS = Object.freeze([
 
 /** What moved since the last brief: one row per fact both sessions hold, and only when the two
  *  sides differ. Absent whole when there is no previous snapshot; a first-ever brief prints no
- *  block rather than five arrows from nothing. */
+ *  block rather than five arrows from nothing. The previous brief counts only for the
+ *  operator's own sections and `home`'s: after a home switch, the old market's breadth is not
+ *  this one's yesterday. */
 export async function buildSessionDelta(
   context: BriefContext,
-  sections: readonly BriefSectionResult[]
+  sections: readonly BriefSectionResult[],
+  home: MarketRef
 ): Promise<BriefSectionResult> {
   const previous = await context.services.previousSections({
     before: context.request.asOf,
@@ -46,7 +50,10 @@ export async function buildSessionDelta(
     return omitted('session-delta')
   }
 
-  const rows = COMPARED_FACTS.flatMap((fact) => deltaRow(fact, previous, sections) ?? [])
+  const comparable = previous.filter(
+    (section) => section.market === undefined || section.market === home
+  )
+  const rows = COMPARED_FACTS.flatMap((fact) => deltaRow(fact, comparable, sections) ?? [])
 
   return rows.length === 0 ? omitted('session-delta') : ready('session-delta', rows)
 }

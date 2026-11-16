@@ -309,6 +309,25 @@ export function isAboveMean(closes: readonly number[], window: number): boolean 
   return last === undefined ? undefined : last > mean
 }
 
+interface AboveMeanShare {
+  readonly ratio: number
+  readonly measured: number
+}
+
+/** The share of `series` above their own `window`-session mean, among those with a full window
+ *  behind them: a younger listing has no mean to be below, so it is left out of the count and the
+ *  base. Absent when none could be measured, never zero. */
+export function aboveMeanShare(
+  series: readonly (readonly number[])[],
+  window: number
+): AboveMeanShare | undefined {
+  const readings = series.flatMap((closes) => isAboveMean(closes, window) ?? [])
+
+  return readings.length === 0
+    ? undefined
+    : { ratio: readings.filter(Boolean).length / readings.length, measured: readings.length }
+}
+
 /** `bars` as they stood at `asOf`, or nothing when they do not reach that session. A trend read
  *  beside counts taken name by name at `asOf` would put one session's trend under another's stamp
  *  if its series stopped short, and one running ahead would do the reverse. */

@@ -11,7 +11,7 @@ import {
   US_TREND_SLOPE_SESSIONS,
 } from '@/trading/markets/equity-us/policy'
 import { usAdjustedCandles } from '@/trading/markets/equity-us/screen'
-import { indexTrendReading, isAboveMean, seriesThrough } from '@/trading/markets/timeseries'
+import { aboveMeanShare, indexTrendReading, seriesThrough } from '@/trading/markets/timeseries'
 
 /** The board as it stood at `session`: the share of its names above their own 50- and 200-session
  *  mean, the benchmark fund's distance to its 50-session mean, and the distribution days of the
@@ -23,8 +23,8 @@ export function usBreadthAt(board: UsBoard, session: TradingDay): BreadthTrend {
 
     return candles === undefined ? [] : [candles.map((candle) => candle.close)]
   })
-  const above50 = aboveMean(series, US_TREND_SESSIONS)
-  const above200 = aboveMean(series, US_LONG_TREND_SESSIONS)
+  const above50 = aboveMeanShare(series, US_TREND_SESSIONS)
+  const above200 = aboveMeanShare(series, US_LONG_TREND_SESSIONS)
   const benchmark = fundSeries(board, US_BENCHMARK_TICKER, session)
 
   return {
@@ -45,31 +45,6 @@ export function usBreadthAt(board: UsBoard, session: TradingDay): BreadthTrend {
   }
 }
 
-interface AboveMean {
-  readonly ratio: number
-  readonly measured: number
-}
-
-/** The share above their own mean among the names with a full window behind them: a younger listing
- *  has no mean to be below, so it is left out of the count and the base. */
-function aboveMean(series: readonly (readonly number[])[], window: number): AboveMean | undefined {
-  const readings = series.flatMap((closes) => isAboveMean(closes, window) ?? [])
-
-  return readings.length === 0
-    ? undefined
-    : { ratio: readings.filter(Boolean).length / readings.length, measured: readings.length }
-}
-
-function fundSeries(
-  board: UsBoard,
-  ticker: Ticker,
-  session: TradingDay
-): readonly Candle[] | undefined {
-  const fund = board.funds.find((entry) => entry.record.instrument.ticker === ticker)
-
-  return fund === undefined ? undefined : seriesThrough(usAdjustedCandles(fund.bars), session)
-}
-
 function distributionAt(board: UsBoard, session: TradingDay): Pick<BreadthTrend, 'distribution'> {
   const distribution = US_DISTRIBUTION_TICKERS.flatMap((ticker) => {
     const days = distributionDays(fundSeries(board, ticker, session))
@@ -80,6 +55,16 @@ function distributionAt(board: UsBoard, session: TradingDay): Pick<BreadthTrend,
   })
 
   return distribution.length === 0 ? {} : { distribution }
+}
+
+function fundSeries(
+  board: UsBoard,
+  ticker: Ticker,
+  session: TradingDay
+): readonly Candle[] | undefined {
+  const fund = board.funds.find((entry) => entry.record.instrument.ticker === ticker)
+
+  return fund === undefined ? undefined : seriesThrough(usAdjustedCandles(fund.bars), session)
 }
 
 /** Absent without the window's sessions and the one before them, and when any of them traded no

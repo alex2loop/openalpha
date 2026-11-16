@@ -21,6 +21,7 @@ import {
   resolveTradeability,
 } from '@/trading/markets/equity-vn/tradeability'
 import {
+  aboveMeanShare,
   indexTrendReading,
   isAboveMean,
   seriesThrough,
@@ -140,9 +141,12 @@ export function aboveMeanRatios(
 
   return Object.fromEntries(
     MEAN_RATIO_WINDOWS.flatMap(([id, window]) => {
-      const readings = settled.flatMap((name) => isAboveMean(name.closes, window) ?? [])
+      const above = aboveMeanShare(
+        settled.map((name) => name.closes),
+        window
+      )
 
-      return readings.length === 0 ? [] : [[id, readings.filter(Boolean).length / readings.length]]
+      return above === undefined ? [] : [[id, above.ratio]]
     })
   )
 }

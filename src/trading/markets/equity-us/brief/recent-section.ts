@@ -5,15 +5,10 @@ import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/opera
 import type { BriefContext } from '@/trading/markets/brief-context'
 import type { DatedEvent } from '@/trading/markets/brief-events'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
-import { FILING_FLAG_KINDS } from '@/trading/kernel/market/market-event'
+import { FILED_EVENT_KINDS } from '@/trading/kernel/market/market-event'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
 
-const FILED_KINDS: readonly MarketEventKind[] = [
-  'earnings-release',
-  'insider-purchase',
-  ...FILING_FLAG_KINDS,
-]
 const UPCOMING_KINDS: readonly MarketEventKind[] = ['dividend-ex-date', 'earnings-date']
 /** The events provider that dates filings: registered only when the SEC contact is set, while
  *  Nasdaq's ex-dates answer without one. */
@@ -53,7 +48,7 @@ export async function buildRecent(context: BriefContext): Promise<BriefSectionRe
 
 /** A filing already out and an ex-date or a report still ahead; a past one is not news. */
 function isRecent(event: MarketEvent, asOf: TradingDay): boolean {
-  if (FILED_KINDS.includes(event.kind)) {
+  if (FILED_EVENT_KINDS.includes(event.kind)) {
     return event.at <= asOf
   }
 

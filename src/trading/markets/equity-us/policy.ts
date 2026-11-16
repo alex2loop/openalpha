@@ -40,7 +40,7 @@ export const US_TICK: TickSizePolicy = Object.freeze({
 export const US_BENCHMARK_TICKER: Ticker = ticker('SPY')
 /** The funds whose distribution days are counted: the broad market and the Nasdaq-100. */
 export const US_DISTRIBUTION_TICKERS: readonly Ticker[] = Object.freeze([
-  ticker('SPY'),
+  US_BENCHMARK_TICKER,
   ticker('QQQ'),
 ])
 /** The IBD definition: a session down at least `declineAtLeast` on more volume than the one before

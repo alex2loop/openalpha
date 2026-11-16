@@ -230,7 +230,8 @@ export function formatWholeFraction(locale: Locale, fraction: number): string {
   return formatNumber(locale, 'percentWhole', fraction)
 }
 
-/** A risk-reward ratio, where the third decimal is noise: 1.56 and 1.559 buy the same trade. */
+/** A fixed two-decimal figure (ratios, per-share amounts), where the third decimal is noise: 1.56
+ *  and 1.559 buy the same trade. */
 export function formatRatio(locale: Locale, ratio: number): string {
   return formatNumber(locale, 'ratio', ratio)
 }
