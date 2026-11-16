@@ -13,6 +13,7 @@ import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import { ValidationError } from '@/core/errors'
 import { EXTREME_SCORE_AT, MILD_SCORE_AT } from '@/trading/kernel/conviction'
 import { YIELD_RANKED_FACTOR_IDS } from '@/trading/kernel/factor'
+import { median } from '@/trading/markets/timeseries'
 
 export const FACTOR_SCORING_VERSION = '1.0.0'
 
@@ -182,7 +183,7 @@ export function boardMedians<K extends FactorId>(
     }
   }
 
-  return new Map([...scores].map(([id, values]) => [id, median(values)]))
+  return new Map([...scores].map(([id, values]) => [id, median(values) ?? 0]))
 }
 
 /** Most distinctive first: how far this name's reading sits from the board's. Ties hold the
@@ -202,15 +203,6 @@ function deviationFrom<K extends FactorId>(
   factor: FactorResult<K>
 ): number {
   return Math.abs(factor.score - (medians.get(factor.id) ?? 0))
-}
-
-/** Only ever called with one factor's collected scores, which is non-empty by construction. */
-function median(values: readonly number[]): number {
-  const sorted = [...values].sort((left, right) => left - right)
-  const middle = Math.floor(sorted.length / 2)
-  const upper = sorted[middle] ?? 0
-
-  return sorted.length % 2 === 0 ? ((sorted[middle - 1] ?? 0) + upper) / 2 : upper
 }
 
 // Split out of scoreFactors so the aggregation above reads as one paragraph: weight lookup,
