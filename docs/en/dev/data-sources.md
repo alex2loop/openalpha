@@ -833,7 +833,7 @@ the whole scope and writes it to `MarketDataStore`; features read the store. The
 set being replaced. A screen cannot issue one live request per name, and evidence must be stable across a session.
 The membership read runs under its own short budget (`MEMBERSHIP_BUDGET_MS`, 5 s) and is canceled past it, because a basket label is
 never worth holding the universe for; the universe then settles without it, keeps the stored tiers (none on a first load) and carries
-`source.index-membership-unavailable`. Daemon and browser alike.
+`source.index-membership-unavailable`. Daemon and browser alike. A US `macro` pass stored without some drivers names them in `missingTargets` (a series no source serves is no target), and the next refresh past `US_MACRO_REPAIR_COOLDOWN_MS` runs the kind again, because the brief reads the stored composite and would print the gap until the next session.
 
 - **Provenance is persisted with the row.** A `BarRecord` carries the `sourceId` and `fetchedAt` of its fetch, so a suggestion
   names the provider that published its latest bar, not the one routed today. One stamp per factor, not per bar.

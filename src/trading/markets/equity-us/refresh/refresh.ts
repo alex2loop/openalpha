@@ -19,6 +19,7 @@ import { loadUsCoverage } from '@/trading/markets/equity-us/board'
 import {
   US_ACCOUNTS_STALE_MS,
   US_EVIDENCE_SESSIONS,
+  US_MACRO_REPAIR_COOLDOWN_MS,
   US_MARKET_REF,
   US_UNIVERSE_STALE_MS,
 } from '@/trading/markets/equity-us/policy'
@@ -224,7 +225,8 @@ async function runKind(
     !input.request.forced &&
     input.due !== true &&
     attempt !== undefined &&
-    isKindCurrent(input.manifest.calendar, input.request.now, attempt)
+    isKindCurrent(input.manifest.calendar, input.request.now, attempt) &&
+    !isMacroRepairDue(attempt, input.request.now)
   ) {
     return buildSkippedResult(kind, attempt.result.recordCount)
   }
@@ -235,6 +237,18 @@ async function runKind(
   await settle(input, result)
 
   return result
+}
+
+/** The macro kind names the drivers it stored without, so the next refresh past the cooldown asks
+ *  for them again. Other kinds keep a partial attempt: repeating one costs a fetch per name. */
+function isMacroRepairDue(attempt: MarketRefreshAttempt, now: number): boolean {
+  const { kind, missingTargets } = attempt.result
+
+  return (
+    kind === 'macro' &&
+    missingTargets.length > 0 &&
+    now - attempt.attemptedAt >= US_MACRO_REPAIR_COOLDOWN_MS
+  )
 }
 
 /** Never from `finally`: a throw or abort must leave no row so the next boot repairs the

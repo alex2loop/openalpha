@@ -100,20 +100,21 @@ async function storeMacro(input: MacroRefreshInput, write: MacroWrite): Promise<
 
 /** The kind's targets are the drivers of the composite: one stored absent renormalizes over the rest
  *  and reads like a whole model, so naming it is what lets the repair pass fetch it once its source
- *  publishes. */
+ *  publishes. A series no source serves here is no target: nothing could fetch it. */
 function toMacroResult(
   view: MacroRiskView,
   provenance: readonly SourceProvenance[],
   caveats: readonly Caveat[]
 ): RefreshKindResult {
-  const targetCount = view.drivers.length + view.missing.length
+  const missingTargets = view.missing.filter((entry) => entry.reason !== 'unserved')
+  const targetCount = view.drivers.length + missingTargets.length
 
   return {
     kind: 'macro',
     status: refreshStatus(view.drivers.length, targetCount, 'upserted'),
     targetCount,
     successfulTargetCount: view.drivers.length,
-    missingTargets: view.missing.map((entry) => entry.id),
+    missingTargets: missingTargets.map((entry) => entry.id),
     recordCount: 1,
     provenance,
     caveats,

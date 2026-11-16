@@ -4,7 +4,7 @@ import type { BoardLotPolicy, Ticker, TickSizePolicy } from '@/trading/kernel/in
 import type { AdmissionPolicy } from '@/trading/markets/admission'
 import type { MacroDriverPolicy } from '@/trading/markets/macro-risk'
 import type { SectorPolicy } from '@/trading/markets/sector-strength'
-import { MS_PER_DAY } from '@/core/utils/time'
+import { MS_PER_DAY, MS_PER_MINUTE } from '@/core/utils/time'
 import { currencyCode, marketRef, region, ticker } from '@/trading/kernel/instrument'
 import { RESTATEMENT_TOLERANCE } from '@/trading/markets/bar-restatement'
 import { usClosuresOf, usEarlyClosesOf } from '@/trading/markets/equity-us/calendar/closures'
@@ -234,6 +234,11 @@ export const US_EQUITY_MACRO_DRIVERS: MacroDriverPolicy = Object.freeze({
     'us-term-spread': 0.1,
   }),
 })
+
+/** How long a macro composite stored without some drivers waits before a refresh asks for them
+ *  again: the series publish through the day, and a composite stored short reads as the whole
+ *  model until then. */
+export const US_MACRO_REPAIR_COOLDOWN_MS = 15 * MS_PER_MINUTE
 
 /** Sessions a stored regime still anchors the next read's band against. */
 export const US_REGIME_MEMORY_SESSIONS = 5
