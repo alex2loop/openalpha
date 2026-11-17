@@ -60,6 +60,7 @@ export const tradingConfigPatchSchema = z.strictObject({
         maximum_stop_loss: boundedNumber(MAXIMUM_STOP_LOSS_BOUNDS).optional(),
         stop_loss_atr: boundedNumber(STOP_LOSS_ATR_BOUNDS).optional(),
         reward_risk: boundedNumber(REWARD_RISK_BOUNDS).optional(),
+        dividend_tax: z.number().min(0).lt(1).optional(),
       })
     )
     .optional(),

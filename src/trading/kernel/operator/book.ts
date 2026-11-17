@@ -31,6 +31,11 @@ export interface Position {
    *  How much of `costBasis*` above is fee rather than fill, reported on its own. */
   readonly costBasisFeesNative: number
   readonly costBasisFeesBase: number
+  /** Cash dividends the units held earned, as recorded (what landed, after any tax withheld), in
+   *  the position's own currency and in the book's. A sale releases its share pro rata, as it does
+   *  the basis. */
+  readonly dividendsNative: number
+  readonly dividendsBase: number
   /** Units sold since the position last opened from flat. Zero on one never trimmed. */
   readonly soldQuantity: number
   /** Every buy since the position last opened from flat, oldest first. */

@@ -74,6 +74,9 @@ export interface QuoteConvention {
   readonly display?: PriceDisplay
   /** Set where the market quotes a dealer board: a level on it is watched on the buy side. */
   readonly dealerBoard?: true
+  /** The tax the market's cash dividends lose before they land, so a holding's cost after them
+   *  reads the way a broker states it. Absent where none is withheld. */
+  readonly dividendTax?: number
 }
 
 /** A price and the convention it prints in. The currency is its own field rather than the market's,

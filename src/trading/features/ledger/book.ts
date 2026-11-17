@@ -244,8 +244,7 @@ function applySell(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
   // The sale's own fee is netted out of the proceeds above, never capitalized into what is left.
   position.costBasisNative -= basisReleasedNative
   position.costBasisBase -= basisReleasedBase
-  position.costBasisFeesNative -= position.costBasisFeesNative * share
-  position.costBasisFeesBase -= position.costBasisFeesBase * share
+  releaseCarried(position, share)
 
   // Snap the dust float subtraction leaves behind: a residual quantity a later sell's share would
   // divide against, and a residual basis the next buy would average its own cost into. A closing
@@ -306,6 +305,32 @@ function applyCashTxn(state: FoldState, entry: LedgerEntry, txn: CashTxn | Divid
 
   if (txn.kind === 'dividend') {
     state.dividendsBase += delta
+    creditDividend(state, txn, delta)
+  }
+}
+
+/** A sale takes its share of what the position carries beside its basis: the fee part of it and the
+ *  dividends its units earned. */
+function releaseCarried(position: MutablePosition, share: number): void {
+  position.costBasisFeesNative -= position.costBasisFeesNative * share
+  position.costBasisFeesBase -= position.costBasisFeesBase * share
+  position.dividendsNative -= position.dividendsNative * share
+  position.dividendsBase -= position.dividendsBase * share
+}
+
+/** A dividend on a holding still open lowers what it cost per unit, the way a broker states it. One
+ *  recorded in another currency than the holding's stays out rather than convert at a rate the row
+ *  never stated. */
+function creditDividend(state: FoldState, txn: DividendTxn, amountBase: number): void {
+  const position = positionAt(state, txn.instrument, txn.venue)
+
+  if (position === undefined || position.quantity <= QUANTITY_EPSILON) {
+    return
+  }
+
+  if (txn.currency === position.currency) {
+    position.dividendsNative += txn.amount
+    position.dividendsBase += amountBase
   }
 }
 
@@ -381,6 +406,8 @@ function positionFor(state: FoldState, txn: TradeTxn): MutablePosition {
     costBasisBase: 0,
     costBasisFeesNative: 0,
     costBasisFeesBase: 0,
+    dividendsNative: 0,
+    dividendsBase: 0,
     cycleSoldQuantity: 0,
     cycleBuys: [],
     lots: [],
@@ -415,6 +442,8 @@ function toPosition(position: MutablePosition, asOf: TradingDay): Position {
     costBasisBase: position.costBasisBase,
     costBasisFeesNative: position.costBasisFeesNative,
     costBasisFeesBase: position.costBasisFeesBase,
+    dividendsNative: position.dividendsNative,
+    dividendsBase: position.dividendsBase,
     soldQuantity: position.cycleSoldQuantity,
     buys: [...position.cycleBuys],
     lots: position.lots

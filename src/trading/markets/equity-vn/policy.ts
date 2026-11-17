@@ -128,6 +128,8 @@ export const BOARD_LOT: BoardLotPolicy = Object.freeze({ size: 100 })
 
 /** VN boards, and every broker app, quote in thousands of dong to two decimals: 27.55 means 27,550.
  *  Storage stays in whole dong; only human-facing prices are converted. */
+/** Personal income tax withheld from a cash dividend before it is paid. */
+export const VN_DIVIDEND_TAX = 0.05
 export const VN_BOARD_PRICE_DISPLAY: PriceDisplay = Object.freeze({ divisor: 1000, decimals: 2 })
 
 /** T+2 trading days. Every settlement question reads this one value, so the widely expected T+1

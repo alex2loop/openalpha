@@ -9,8 +9,13 @@ it. OpenAlpha shows both in its update notice. A release you should install soon
 
 ## [1.8.5] - 2026-11-17
 
-Ask for a price before a market's list of names has loaded and OpenAlpha now waits a few seconds for it and answers, instead of saying it doesn't know the name. This works everywhere: in the terminal, chat apps, the web and AI apps.
-> Hỏi giá khi danh sách mã của thị trường chưa tải xong thì OpenAlpha giờ chờ vài giây để tải rồi trả lời, thay vì báo không biết mã. Áp dụng ở mọi nơi: terminal, ứng dụng chat, bản web và ứng dụng AI.
+Ask for a price before a market's list of names has loaded and OpenAlpha now waits a few seconds for it and answers, instead of saying it doesn't know the name. Your cost on a holding that paid cash dividends now matches your broker's app.
+> Hỏi giá khi danh sách mã của thị trường chưa tải xong thì OpenAlpha giờ chờ vài giây để tải rồi trả lời, thay vì báo không biết mã. Giá vốn của mã đã nhận cổ tức tiền mặt giờ khớp với app công ty chứng khoán.
+
+### Changed
+
+- A holding that earned cash dividends you recorded shows its cost after dividends, the way a Vietnamese broker does: what you paid with fees, less the dividend grossed back up to what was declared before the 5% tax. The suggestion report, `/portfolio`, the line after `/record` and the office page's ticker card all show it and measure that holding's profit and loss from it, and the report keeps what you paid beside it. `[trading.markets.<id>] dividend_tax` sets the withholding rate. NAV, the book's total profit and loss and realized profit are unchanged.
+- The suggestion report says "your cost, fees included" instead of "you bought at", since the figure always held the buy fee.
 
 ### Fixed
 

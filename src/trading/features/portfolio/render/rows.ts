@@ -15,6 +15,7 @@ import { openLots } from '@/trading/features/portfolio/folds/holdings'
 import { renderUnplannedLine, riskFacts } from '@/trading/features/portfolio/render/attention'
 import { buildInstrumentKey, ETF_KIND } from '@/trading/kernel/instrument'
 import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
+import { costAfterDividends } from '@/trading/markets/cost'
 import {
   formatCount,
   formatFixedFraction,
@@ -136,32 +137,17 @@ function renderPosition(
   display: BookDisplay
 ): readonly string[] {
   const { instrument, quantity, currency } = valued.position
-  const board = quotedInOf(display.quoteConventions?.get(instrument.market))
+  const convention = display.quoteConventions?.get(instrument.market)
+  const quoted = { currency, ...quotedInOf(convention) }
   const key = buildInstrumentKey(instrument)
-  // Fee-bearing, as the broker app shows it: the entry fee is part of what the holding has to
-  // clear, so the row's cost is the price an exit breaks even against.
-  const investedNative = valued.position.costBasisNative
-  const investedBase = valued.position.costBasisBase
-  // `foldBook` drops positions at or below dust, so the unit cost never divides by zero. Native,
-  // not base: a price row is quoted the way its own market quotes, so a crypto cost reads in USD
-  // per coin rather than as billions of the book's currency.
-  const unitCostNative = investedNative / quantity
-  const unitCost = formatQuotedPrice(locale, unitCostNative, { currency, ...board })
+  const cost = holdingCostOf(valued.position, convention)
   const shared = {
     ticker: `${instrument.ticker}${renderKindBadge(locale, display.instrumentKinds?.get(key))}`,
     quantity: formatQuantity(locale, quantity),
   }
 
   if (valued.kind === 'unpriced') {
-    return [
-      `${INDENT[1]}${t(locale, 'trading.render.portfolio.unpriced', shared)}`,
-      `${INDENT[2]}${t(locale, 'trading.render.portfolio.unpricedDetail', {
-        cost: unitCost,
-        total: formatMoney(locale, investedBase, display.currency),
-      })}`,
-      ...renderVenueSplitLine(locale, valued.position, display.context),
-      ...renderUnsettledLine(locale, valued),
-    ]
+    return renderUnpricedPosition(locale, valued, { display, shared, cost, quoted })
   }
 
   return [
@@ -180,13 +166,57 @@ function renderPosition(
       display.context,
       1
     ),
-    ...renderPriceLines(locale, valued, {
-      context: display.context,
-      unitCost: unitCostNative,
-      currency,
-      ...board,
-    }),
-    ...positionFactLines(locale, valued, { ...display, quote: { currency, ...board } }),
+    ...renderPriceLines(locale, valued, { context: display.context, cost, ...quoted }),
+    ...positionFactLines(locale, valued, { ...display, quote: quoted, cost }),
+    ...renderVenueSplitLine(locale, valued.position, display.context),
+    ...renderUnsettledLine(locale, valued),
+  ]
+}
+
+interface HoldingCost {
+  readonly native: number
+  /** What the holding's profit and loss is measured from, in the book's currency. */
+  readonly basisBase: number
+  /** The cost is after the cash dividends the units earned, so its label says so. */
+  readonly afterDividends?: true
+}
+
+/** Fee-bearing, as the broker app shows it: the entry fee is part of what the holding has to clear,
+ *  and the cash dividends the units earned come off it. Native, not base: a price row is quoted the
+ *  way its own market quotes, so a crypto cost reads in USD per coin rather than as billions of the
+ *  book's currency. `foldBook` drops positions at or below dust, so it never divides by zero. */
+function holdingCostOf(position: Holding, convention: QuoteConvention | undefined): HoldingCost {
+  const after = costAfterDividends(position, convention?.dividendTax)
+
+  return after === undefined
+    ? { native: position.costBasisNative / position.quantity, basisBase: position.costBasisBase }
+    : { native: after.unitCostNative, basisBase: after.costBasisBase, afterDividends: true }
+}
+
+interface UnpricedParts {
+  readonly display: BookDisplay
+  readonly shared: { readonly ticker: string; readonly quantity: string }
+  readonly cost: HoldingCost
+  readonly quoted: QuotedIn
+}
+
+function renderUnpricedPosition(
+  locale: Locale,
+  valued: ValuedPosition,
+  parts: UnpricedParts
+): readonly string[] {
+  const { display, cost } = parts
+  const key =
+    cost.afterDividends === undefined
+      ? 'trading.render.portfolio.unpricedDetail'
+      : 'trading.render.portfolio.unpricedDetailAfterDividends'
+
+  return [
+    `${INDENT[1]}${t(locale, 'trading.render.portfolio.unpriced', parts.shared)}`,
+    `${INDENT[2]}${t(locale, key, {
+      cost: formatQuotedPrice(locale, cost.native, parts.quoted),
+      total: formatMoney(locale, valued.position.costBasisBase, display.currency),
+    })}`,
     ...renderVenueSplitLine(locale, valued.position, display.context),
     ...renderUnsettledLine(locale, valued),
   ]
@@ -200,10 +230,11 @@ type PricedPosition = Extract<ValuedPosition, { readonly kind: 'priced' }>
 function positionFactLines(
   locale: Locale,
   valued: PricedPosition,
-  display: BookDisplay & { readonly quote: Partial<QuotedIn> }
+  display: BookDisplay & { readonly quote: Partial<QuotedIn>; readonly cost: HoldingCost }
 ): readonly string[] {
   const key = buildInstrumentKey(valued.position.instrument)
-  const investedBase = valued.position.costBasisBase
+  // Measured from the cost the row states, so a holding that paid dividends reads as a broker's.
+  const investedBase = display.cost.basisBase
   const pnlBase = valued.valueBase - investedBase
 
   return [
@@ -264,10 +295,7 @@ function renderVenueSplitLine(
 function renderPriceLines(
   locale: Locale,
   valued: ValuedPosition,
-  board: QuotedIn & {
-    readonly context: RenderContext
-    readonly unitCost: number
-  }
+  board: QuotedIn & { readonly context: RenderContext; readonly cost: HoldingCost }
 ): readonly string[] {
   if (valued.kind !== 'priced') {
     return []
@@ -279,7 +307,8 @@ function renderPriceLines(
     locale,
     {
       timezone: board.context.timezone,
-      unitCost: board.unitCost,
+      unitCost: board.cost.native,
+      ...(board.cost.afterDividends === undefined ? {} : { costAfterDividends: true }),
       currency: board.currency,
       ...(previousClose === undefined
         ? {}

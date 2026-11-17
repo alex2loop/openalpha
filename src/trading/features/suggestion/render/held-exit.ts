@@ -23,10 +23,19 @@ const REVIEW_ROW_KEYS = Object.freeze({
   reached: 'heldExitReviewFundReached',
 } as const)
 
+const COST_ROW_KEYS = Object.freeze({
+  paid: { priced: 'heldExitCost', unpriced: 'heldExitCostUnpriced' },
+  afterDividends: {
+    priced: 'heldExitCostAfterDividends',
+    unpriced: 'heldExitCostAfterDividendsUnpriced',
+  },
+} as const)
+
 interface HeldExit {
   readonly held: HeldPosition
+  /** What the block measures from: the cost after dividends where the units earned any. */
   readonly unitCost: number
-  /** The basis an exit has to clear: the recorded entry cost plus what the sale itself will take.
+  /** The basis an exit has to clear: that cost plus what the sale itself will take.
    *  Equal to `unitCost` when the market has no configured rate. */
   readonly exitBreakeven: number
   /** Absent on a hold, which carries no plan levels of its own. */
@@ -109,7 +118,8 @@ function heldExitOf(input: HeldExitInput): HeldExit | undefined {
     return undefined
   }
 
-  const unitCost = held.unitCostNative
+  // The cost a broker shows: every move below is measured from the figure the cost row states.
+  const unitCost = held.unitCostAfterDividendsNative ?? held.unitCostNative
 
   if (!(unitCost > 0 && Number.isFinite(unitCost))) {
     return undefined
@@ -173,16 +183,26 @@ function saleRows(input: HeldExitInput, exit: HeldExit): readonly string[] {
   ]
 }
 
+/** The cost a broker shows: after the cash dividends the units earned where they earned any, with
+ *  what was paid beside it so the two apps can be read against each other. */
 function costRow(locale: Locale, exit: HeldExit, quote?: QuotedIn): string {
-  const unitCost = formatPriceIn(locale, exit.unitCost, quote)
-
-  if (exit.mark === undefined) {
-    return t(locale, 'trading.render.suggestion.heldExitCostUnpriced', { unitCost })
+  const cost = exit.unitCost
+  const keys =
+    exit.held.unitCostAfterDividendsNative === undefined
+      ? COST_ROW_KEYS.paid
+      : COST_ROW_KEYS.afterDividends
+  const params = {
+    unitCost: formatPriceIn(locale, cost, quote),
+    paid: formatPriceIn(locale, exit.held.unitCostNative, quote),
   }
 
-  return t(locale, 'trading.render.suggestion.heldExitCost', {
-    unitCost,
-    pnl: formatSignedFraction(locale, (exit.mark - exit.unitCost) / exit.unitCost),
+  if (exit.mark === undefined) {
+    return t(locale, `trading.render.suggestion.${keys.unpriced}`, params)
+  }
+
+  return t(locale, `trading.render.suggestion.${keys.priced}`, {
+    ...params,
+    pnl: formatSignedFraction(locale, (exit.mark - cost) / cost),
   })
 }
 

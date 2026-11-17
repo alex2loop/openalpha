@@ -1,6 +1,7 @@
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { Market, MarketManifest } from '@/trading/markets/types'
+import { definedOnly } from '@/core/utils/collections'
 import { US_EQUITY_FACTOR_IDS, US_ETF_FACTOR_IDS } from '@/trading/kernel/factor'
 import { portfolioSegment, quoteUnit } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
@@ -77,6 +78,7 @@ export function usManifest(config: TradingConfig): MarketManifest {
     minimumRiskReward: US_MINIMUM_RISK_REWARD,
     boardLot: US_BOARD_LOT,
     tickSize: US_TICK,
+    ...definedOnly({ dividendTax: config.markets[US_MARKET_REF]?.dividendTax }),
     strategyVersion: strategyVersionOf(US_STRATEGY_VERSION, config.markets[US_MARKET_REF]),
     calculationVersions: [
       { name: 'factor-scoring', version: FACTOR_SCORING_VERSION },

@@ -43,13 +43,18 @@ const ORDER = Object.freeze({ units: 1_300, policyUnits: 7_700, sizePctNav: 0.03
 const BASE_HOLDING: HeldPosition = {
   units: 400,
   unitCostNative: 42_330,
+  unitCostAfterDividendsNative: 40_860,
   settledUnits: 200,
   openLotCount: 3,
   firstAcquiredAt: tradingDay('2026-09-24'),
   pctNav: 0.0851,
   settlesOn: tradingDay('2026-10-01'),
 }
-const COST_VARIANT: HeldPosition = { ...BASE_HOLDING, unitCostNative: 51_170 }
+const COST_VARIANT: HeldPosition = {
+  ...BASE_HOLDING,
+  unitCostNative: 51_170,
+  unitCostAfterDividendsNative: 49_390,
+}
 const SIZE_VARIANT: HeldPosition = { ...BASE_HOLDING, units: 800, settledUnits: 400 }
 
 type Arm = (held: HeldPosition) => StoredSuggestion
@@ -176,6 +181,7 @@ function forbiddenFigures(locale: Locale, audience: ToolAudience): readonly stri
   const quoted = { currency: CURRENCY }
   const always = [
     formatPriceIn(locale, BASE_HOLDING.unitCostNative, quoted),
+    formatPriceIn(locale, BASE_HOLDING.unitCostAfterDividendsNative ?? 0, quoted),
     formatQuantity(locale, ORDER.policyUnits),
   ]
 

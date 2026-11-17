@@ -178,6 +178,11 @@ export interface MarketManifest {
    *  that no longer exists. Read against a live quote, which is why it is the market's own call: one
    *  that omits it keeps its stored answer for the whole cooldown and pays for no quote. */
   readonly minimumRiskReward?: number
+  /** The tax a cash dividend loses before it lands, as a fraction. A holding's cost after dividends
+   *  grosses what landed back up to what was declared, the figure a broker takes off its cost.
+   *  Resolved with `[trading.markets.<id>] dividend_tax` laid over the market's own; absent is none
+   *  withheld. */
+  readonly dividendTax?: number
   /** Set when this market's `bars` capability answers with a volatility REFERENCE series rather
    *  than this instrument's own price history - a different instrument, in a different unit, from
    *  which only relative moves carry over. gold-vn is the case: it quotes VND per lượng and has no

@@ -12,6 +12,9 @@ export interface HeldPosition {
    *  beside it rather than against the book's base. Stored rather than re-derived, because a
    *  re-rendered suggestion has the payload and not the book. */
   readonly unitCostNative: number
+  /** `unitCostNative` less the cash dividends the units earned, grossed up to what was declared:
+   *  the cost a broker shows. Absent when they earned none. */
+  readonly unitCostAfterDividendsNative?: number
   readonly settledUnits: number
   /** How many separate buys the position is still made of, across every venue holding it. One is an
    *  entry; more than one means this add is a tranche, which is the fact that decides whether the

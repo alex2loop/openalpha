@@ -131,6 +131,7 @@ function toQuoteConvention(manifest: MarketManifest): QuoteConvention {
     unit: manifest.quoteUnit,
     ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
     ...(manifest.quotesDealerBoard === true ? { dealerBoard: true as const } : {}),
+    ...(manifest.dividendTax === undefined ? {} : { dividendTax: manifest.dividendTax }),
   }
 }
 

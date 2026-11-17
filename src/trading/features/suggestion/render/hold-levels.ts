@@ -66,13 +66,15 @@ function heldLevelLines(input: HeldLevelsInput): readonly string[] {
   const { locale, quoted, held, operatorFigures } = input
   const standing = input.suggestion.standingExit
   const mark = holdingMarkOf(input.suggestion, input.entry)
-  const reference = operatorFigures === 'withheld' ? mark : held.unitCostNative
+  // The cost a broker shows, so the moves read against the figure the operator checks them by.
+  const cost = held.unitCostAfterDividendsNative ?? held.unitCostNative
+  const reference = operatorFigures === 'withheld' ? mark : cost
   const withheld = withheldSuffix(operatorFigures)
 
   if (input.isReduce && standing === undefined) {
     return declinedSaleLines(locale, {
       ticker: input.suggestion.instrument.ticker,
-      unitCost: formatPriceIn(locale, held.unitCostNative, quoted),
+      unitCost: formatPriceIn(locale, cost, quoted),
       exits: levelParams(locale, { ...input.levels, reference }, quoted),
       withheld,
     })

@@ -784,6 +784,7 @@ open_days = ["2027-09-01"]     # ngày luật cho nghỉ nhưng sàn vẫn giao 
 maximum_stop_loss = 0.08       # điểm cắt lỗ không bao giờ xa quá 8% dưới giá vào (0.02-0.30)
 stop_loss_atr = 3              # khoảng cắt lỗ tính bằng số lần biên độ ngày trung bình (1-5)
 reward_risk = 3                # mục tiêu bằng bao nhiêu lần khoảng rủi ro (1-5)
+dividend_tax = 0.05            # thuế khấu trừ trên cổ tức tiền mặt; cổ phiếu Việt Nam mặc định 0.05
 
 [trading.briefs]
 send_time = "08:15"            # mặc định cho một bản gửi chưa tự đặt giờ trong chat
@@ -968,6 +969,11 @@ hình quyết định cái gì chạy và khi nào, cộng ba thứ thuộc quy�
   Mức trần làm gì với mục tiêu, cỡ lệnh và điểm cắt lỗ bạn đang giữ nằm ở [Giao dịch](giao-dich.md).
   Crypto còn đặt lệnh mua chờ thấp hơn giá live nửa ATR cho mã đã tăng từ 25% trong một tuần; đó là
   chính sách của thị trường, không phải một khóa cấu hình.
+- **Thuế trừ vào cổ tức.** `[trading.markets.<id>] dividend_tax` (từ 0 đến dưới 1) là phần cổ tức tiền
+  mặt bị khấu trừ trước khi về tài khoản. Giá vốn sau cổ tức quy số bạn ghi về lại số trước thuế theo
+  thuế suất này, để khớp với app công ty chứng khoán. Cổ phiếu Việt Nam mặc định 0.05, các thị trường
+  khác là 0. Nó không đổi điểm số, NAV hay tổng của sổ, chỉ đổi giá vốn từng mã và lãi/lỗ tính từ
+  giá vốn đó.
 
 **Lịch giao dịch theo luật, với hai thiết lập.** Giờ phiên và ngày cuối tuần nằm trong mã. Các ngày
 nghỉ được tính từ Bộ luật Lao động cho năm nào cũng được, nên không có danh sách nào để bạn phải cập

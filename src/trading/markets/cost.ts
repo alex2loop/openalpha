@@ -1,5 +1,6 @@
 import type { CostRates, DefaultVenues, FEE_ASSETS, TradingCosts } from '@/trading/kernel/config'
 import type { MarketRef, VenueRef } from '@/trading/kernel/instrument'
+import type { Position } from '@/trading/kernel/operator/book'
 
 /** How far a recorded fee may sit from the configured rate before the confirmation says so. Loose
  *  enough to ignore a maker fill priced against a taker rate, which is two basis points of
@@ -85,6 +86,38 @@ export function costBreakevenPrice(entry: number, cost: TradeCost): number {
  *  approximate about a number the ledger stores. */
 export function exitBreakevenPrice(unitCostGross: number, cost: TradeCost): number {
   return unitCostGross / (1 - cost.sellRate)
+}
+
+/** A holding's cost once the cash dividends it earned come off: per unit in its own currency, and
+ *  whole in the book's, which a holding's profit and loss is measured from. */
+interface CostAfterDividends {
+  readonly unitCostNative: number
+  readonly costBasisBase: number
+}
+
+type DividendBearing = Pick<
+  Position,
+  'quantity' | 'costBasisNative' | 'costBasisBase' | 'dividendsNative' | 'dividendsBase'
+>
+
+/** The cost the way a broker states it: what landed is grossed up to what was declared at the
+ *  market's withholding rate before it comes off. Absent when the units earned none, and when their
+ *  dividends paid the holding back in full, where the cost paid is the only one left to state. */
+export function costAfterDividends(
+  position: DividendBearing,
+  dividendTax = 0
+): CostAfterDividends | undefined {
+  if (position.dividendsNative <= 0) {
+    return undefined
+  }
+
+  const kept = 1 - dividendTax
+  const basisNative = position.costBasisNative - position.dividendsNative / kept
+  const costBasisBase = position.costBasisBase - position.dividendsBase / kept
+
+  return basisNative > 0 && costBasisBase > 0
+    ? { unitCostNative: basisNative / position.quantity, costBasisBase }
+    : undefined
 }
 
 export function estimatedFee(notional: number, rate: number): number {

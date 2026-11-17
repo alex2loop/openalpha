@@ -1,5 +1,5 @@
 import type { SizedValuedBook, ValuedBook } from '@/trading/features/portfolio/types'
-import type { PortfolioSegment } from '@/trading/kernel/instrument'
+import type { MarketRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import {
   currentSegmentWeights,
@@ -20,6 +20,9 @@ interface SegmentShare {
 /** The valued book with its segments set against the profile's targets. */
 export interface PortfolioView extends SizedValuedBook {
   readonly shares: readonly SegmentShare[]
+  /** Per market held, the tax its cash dividends lose before they land, so a client states a
+   *  holding's cost after dividends as `/portfolio` does. Absent where none is withheld. */
+  readonly dividendTaxes: ReadonlyMap<MarketRef, number>
 }
 
 /** The weight column divides NAV over these segments, so it is rounded as a set rather than cell by

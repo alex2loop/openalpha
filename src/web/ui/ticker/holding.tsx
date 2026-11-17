@@ -67,10 +67,17 @@ function HoldingFacts({ position, stop, currency }: HoldingFactsProps) {
   return (
     <dl class="kv">
       <Fact label={tr('ui.office.ticker.quantity')} value={formatQuantity(position.quantity)} />
-      <Fact
-        label={tr('ui.office.ticker.cost')}
-        value={formatMarketPrice(market, position.unitCostNative)}
-      />
+      {position.afterDividends === undefined ? (
+        <Fact
+          label={tr('ui.office.ticker.cost')}
+          value={formatMarketPrice(market, position.unitCostNative)}
+        />
+      ) : (
+        <Fact
+          label={tr('ui.office.ticker.costAfterDividends')}
+          value={formatMarketPrice(market, position.afterDividends.unitCostNative)}
+        />
+      )}
       {position.heldSince !== undefined && (
         <Fact
           label={tr('ui.office.ticker.since')}

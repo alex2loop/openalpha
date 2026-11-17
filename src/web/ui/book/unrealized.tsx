@@ -27,9 +27,10 @@ export function Unrealized({ book }: { readonly book: TradingPortfolioResponse }
 /** What one holding has gained or lost against what it cost, as a percent; an unpriced one has no
  *  move to print. */
 export function toMovePercent(position: AbsolutePositionWire): number | undefined {
-  const { unrealizedPnlBase, investedBase } = position
+  const { unrealizedPnlBase } = position
+  const basis = position.afterDividends?.costBasisBase ?? position.investedBase
 
-  return unrealizedPnlBase === undefined || investedBase <= 0
+  return unrealizedPnlBase === undefined || basis <= 0
     ? undefined
-    : (unrealizedPnlBase / investedBase) * PERCENT
+    : (unrealizedPnlBase / basis) * PERCENT
 }

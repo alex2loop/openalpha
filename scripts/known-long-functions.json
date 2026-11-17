@@ -106,7 +106,6 @@
     "src/trading/features/portfolio/folds/valuation.ts#valueBook": 43,
     "src/trading/features/portfolio/folds/valuation.ts#valuePosition": 52,
     "src/trading/features/portfolio/render/cash.ts#renderCashSections": 45,
-    "src/trading/features/portfolio/render/rows.ts#renderPosition": 48,
     "src/trading/features/portfolio/tools/input.ts#profilePatchInput": 42,
     "src/trading/features/suggestion/exit-plan/recorded.ts#buildRecordedPlan": 44,
     "src/trading/features/suggestion/exit-plan/recorded.ts#planRecordedEntry": 42,
