@@ -654,6 +654,11 @@ Under `mcp serve` the connected client's model stands in for the provider chain:
   are listed as `model_requests`.
 - Both halves of a request's wait are logged (`mcp.request_viewed`, `mcp.request_answered`). `serveMcp`
   drains the jobs before the store closes.
+- With no live daemon for the data dir (`liveDaemonPid`), `serveMcp` starts one background pass of
+  `refreshMarketsInUse` (`trading/wiring/loop.ts`, shared with the web edition's upkeep), so a
+  first start fills each market's stored listing and a later one tops up stale kinds. The pass is
+  aborted and awaited before the jobs drain; a failure is logged as `mcp.refresh_failed` and never stops
+  the server.
 
 Every MCP run carries `audience: 'operator'` (`RunOptions` to `ToolInvocationContext`); other runs are
 `agent`. Under `operator`, suggestion tools keep `units` and `portfolio_rebalance` reads

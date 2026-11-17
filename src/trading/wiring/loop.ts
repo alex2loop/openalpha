@@ -2,12 +2,17 @@ import type { DaemonTask, TaskPassListener } from '@/core/container'
 import type { OperatorMessage } from '@/core/errors'
 import type { Logger } from '@/core/logging/logger'
 import type { OperationsPolicy } from '@/trading/kernel/config'
+import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { type MissingEnvError, missingEnvOf } from '@/core/config/operator-errors'
 import { notifyPass, TASK_FAILED } from '@/core/container'
 import { ChannelError, isAbortError, LLMError, RunHalted, StorageError } from '@/core/errors'
 import { REACHABILITY_HOST, type ReachabilityProbe } from '@/core/limits'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
+import {
+  logRefreshDegradations,
+  refreshDegradations,
+} from '@/trading/features/market-data/ops/refresh'
 
 /** What a tick may say about its own pass without failing it. */
 export interface PassNotes {
@@ -279,11 +284,47 @@ function warnKeyMissingOnce(
   spec.logger.warn('trading.tick_key_missing', { operation: spec.name, env: err.env })
 }
 
+interface MarketSweep {
+  readonly services: Pick<TradingServices, 'refreshMarketData'>
+  readonly logger: Logger
+  readonly signal: AbortSignal
+}
+
+/** One refresh of the markets in use, for a host that runs no daemon (the browser, `mcp serve`). A
+ *  degraded result is logged; an abort ends it quietly; a failure of the outside world (a provider,
+ *  the storage) goes to `onBoundaryFailure`, which logs it under its caller's own key or rethrows;
+ *  anything else is this code being wrong and rejects. */
+export async function refreshMarketsInUse(
+  sweep: MarketSweep,
+  onBoundaryFailure: (err: unknown) => void
+): Promise<void> {
+  const { services, logger, signal } = sweep
+
+  try {
+    const results = await services.refreshMarketData({ signal, scheduled: true })
+    const degradations = refreshDegradations(results)
+
+    if (degradations.length > 0) {
+      logRefreshDegradations({ logger, forced: false, degradations })
+    }
+  } catch (err: unknown) {
+    if (isAbortError(err)) {
+      return
+    }
+
+    if (!isBoundaryFailure(err)) {
+      throw err
+    }
+
+    onBoundaryFailure(err)
+  }
+}
+
 /** A storage, channel, or provider failure, or a model key the operator has not set yet, is the
  *  outside world being unavailable, and the next interval is the right response. Everything else
  *  — a validation failure, a lost invariant, a misconfiguration — is this code being wrong, and
  *  retrying it forever would hide that. */
-export function isBoundaryFailure(err: unknown): boolean {
+function isBoundaryFailure(err: unknown): boolean {
   if (err instanceof RunHalted) {
     return err.code === 'budget' || err.code === 'rate'
   }

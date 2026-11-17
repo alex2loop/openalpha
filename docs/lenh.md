@@ -1156,6 +1156,12 @@ tệp cấu hình khi đã có tệp đó. Sau đó nó ghi tệp kỹ năng đ�
 chưa có `config.toml` thì các giá trị mặc định được dùng, và server tự đọc tệp đó ở lần khởi động sau khi
 `onboard` đã ghi ra.
 
+Khi không có dịch vụ nền OpenAlpha nào đang chạy, `mcp serve` tự giữ dữ liệu thị trường của mình luôn mới:
+lúc khởi động, nó làm mới một lượt các thị trường bạn theo dõi mà không bắt trợ lý phải chờ. Ở lần khởi động đầu,
+danh sách mã của từng thị trường về trong vài giây, còn lịch sử giá về dần trong vài phút sau đó, nên câu hỏi
+đặt ngay những giây đầu có thể được báo là danh sách mã đang tải. Khi dịch vụ nền đang chạy, việc
+này đã có nó lo, nên `mcp serve` để yên.
+
 `--host` chọn ứng dụng: `claude-code` (mặc định), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, hoặc `agents` cho vị trí Agent Skills trung tính
 (`~/.agents/skills`). Một thân kỹ năng phục vụ mọi ứng dụng. Claude Desktop, Windsurf và Zed không có thư

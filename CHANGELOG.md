@@ -7,6 +7,15 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.3] - 2026-11-17
+
+AI apps that use OpenAlpha without the background service now get Vietnam stock prices from the first start: `mcp serve` loads the market data itself instead of waiting for a refresh nobody runs.
+> Ứng dụng AI dùng OpenAlpha mà không chạy dịch vụ nền giờ có giá cổ phiếu Việt Nam ngay từ lần khởi động đầu: `mcp serve` tự tải dữ liệu thị trường thay vì chờ một lần làm mới không ai chạy.
+
+### Fixed
+
+- `mcp serve` with no background service running refreshes the markets you use once as it starts. On a first start the list of names loads within a minute and the price history within a few minutes; a later start only tops up what went stale. Before, every Vietnam ticker answered that the market's list of names was missing until `openalpha start` or `/refresh` ran.
+
 ## [1.8.2] - 2026-11-17
 
 OpenAlpha is now listed on the official MCP Registry, so AI apps that read it can find and add it. Each release carries an extension for the Claude app, and the `openalpha-mcp` npm package starts OpenAlpha from apps that install servers with `npx`. `mcp serve` no longer needs a config file to start.
