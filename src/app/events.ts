@@ -9,9 +9,6 @@ declare module '@/core/events' {
     order_filled: OrderFill
     /** One alert pass finished: it read one cursor page, not the whole book. Epoch ms. */
     alerts_checked: { readonly at: number }
-    /** This process wrote the operator's trading profile: watchlist, segments, targets or
-     *  exclusions. A page re-reads it; nothing says what changed. */
-    profile_saved: Record<string, never>
     /** A sentence the app files to the bell for itself (a restart finished, an agent deleted). It is
      *  never sent to a chat. `kind` lets a page tell the ones it waits for from the rest. Epoch ms. */
     daemon_notice: {
