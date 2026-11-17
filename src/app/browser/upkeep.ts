@@ -1,6 +1,5 @@
 import type { App, TaskPass, TaskPassListener } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
-import { refreshMarketsInUse } from '@/app/market-sweep'
 import {
   RETENTION_INTERVAL_MS,
   RETENTION_PASS,
@@ -10,6 +9,7 @@ import { notifyPass, reportPass } from '@/core/container'
 import { createPeriodicPass, type PeriodicPass } from '@/core/periodic-pass'
 import { formatErrForLog } from '@/core/security/credentials'
 import { StorageFullError } from '@/persistence/api'
+import { refreshMarketsInUse } from '@/trading/api'
 
 const HISTORY_FULL: NonNullable<TaskPass['error']> = { key: 'ui.office.edition.history.full' }
 
@@ -99,7 +99,11 @@ async function refreshInUse(context: UpkeepContext, listener: TaskPassListener):
 
   try {
     await refreshMarketsInUse(
-      { app: context.app, logger: context.logger, signal: context.app.signal },
+      {
+        services: context.app.resolve('tradingServices'),
+        logger: context.logger,
+        signal: context.app.signal,
+      },
       (err) => {
         if (err instanceof StorageFullError) {
           throw err

@@ -559,7 +559,8 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # quantity to buy or sell, never cash, costs or trade history.
 # `openalpha mcp install --host <app>` prints the server entry in that app's format
 # and writes the OpenAlpha skill into that app's skills folder (--skill-dir moves it).
-# mcp serve also starts before this file exists, on the defaults.
+# mcp serve also starts before this file exists, on the defaults. When no daemon is running, it
+# refreshes the markets in use once as it starts, so its data does not go stale.
 
 
 # ---- MCP servers ------------------------------------------------------------

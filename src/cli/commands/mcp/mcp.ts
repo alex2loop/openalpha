@@ -20,6 +20,7 @@ import type { McpJobReply, McpJobs, McpSurface, ToolApproval } from '@/engine/ap
 import { createCommand, createGroup } from '@/cli/command'
 import { createMcpApproval, hasFormElicitation } from '@/cli/commands/mcp/approval'
 import { mcpInstallCommand } from '@/cli/commands/mcp/install'
+import { refreshWithoutDaemon } from '@/cli/commands/mcp/market-sweep'
 import { toCallToolResult } from '@/cli/commands/mcp/reply'
 import { MCP_COMMAND_NEEDS } from '@/cli/commands/mcp/serve-contract'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
@@ -98,6 +99,8 @@ async function serveMcp(_args: ParsedArgs, app: CliApp): Promise<number> {
   }
 
   const releaseSignals = stopOnSignal(app.terminal, stop)
+  const sweepAbort = new AbortController()
+  const sweep = refreshWithoutDaemon(app, sweepAbort.signal)
 
   for (const event of STDIN_CLOSE_EVENTS) {
     app.terminal.stdin.once(event, stop)
@@ -107,6 +110,8 @@ async function serveMcp(_args: ParsedArgs, app: CliApp): Promise<number> {
     await server.connect(transport)
     await closed
   } finally {
+    sweepAbort.abort()
+    await sweep
     await jobs.drain()
     await closeTransport(transport)
 

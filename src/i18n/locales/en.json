@@ -4969,7 +4969,7 @@
     "caveat.market-data.volatility-abstained-at-high": "{ticker} is within {proximity} of its {sessions}-session high, so the volatility factor did not vote.",
     "caveat.market-data.conviction-drift": "Full confidence covers {share} of the board where the scale aims at {target}, so it sizes more names at full weight.",
     "caveat.market-data.venue-catalog-unavailable": "Could not read what your venue lists, so the board may hold names you cannot buy.",
-    "caveat.market-data.universe-empty": "The market universe is empty; run /refresh to load market data.",
+    "caveat.market-data.universe-empty": "I don't have this market's list of names yet. On a first start it loads within a minute; otherwise run /refresh.",
     "caveat.market-data.history-empty": "No price history has been loaded for this market yet; run /refresh to load it, then screen again.",
     "caveat.market-data.kind-unsupported": "{market} lists no {instrumentKind} instruments, so the screen cannot be narrowed to that kind.",
     "caveat.market-data.overview-unsupported": "This market does not publish a headline overview.",

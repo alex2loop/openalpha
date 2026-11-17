@@ -1172,6 +1172,12 @@ once one exists. Then it writes the skill file the app reads.
 `config.toml` exists, the defaults apply, and the server picks the file up on its next start once
 `onboard` writes it.
 
+When no OpenAlpha is running in the background, `mcp serve` keeps its own market data fresh: as it
+starts, it refreshes the markets you follow once, without making the assistant wait. On a first start
+it fetches each market's list of names within seconds and the price history over the next few minutes,
+so a question asked in the very first moments may be told the list is still loading. When the
+background service is running, it already does this and `mcp serve` leaves it alone.
+
 `--host` picks the app: `claude-code` (the default), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, or `agents` for the neutral Agent Skills
 location (`~/.agents/skills`). One skill body serves every app. Claude Desktop, Windsurf and Zed have
