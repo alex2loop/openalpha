@@ -6762,6 +6762,7 @@
     "longDescription": "Dùng {brand} đã cài trên máy này, nên hãy cài hoặc cập nhật lên bản phát hành mới nhất trước: {installUrl}. Mô hình AI của chính ứng dụng trợ lý làm phần suy nghĩ; ở đây {brand} không cần khóa AI riêng.",
     "installDirTitle": "Thư mục cài {brand}",
     "installDirDescription": "Thư mục mà script cài đặt đã đặt {brand} vào. Chỉ đổi khi bạn cài nó ở chỗ khác.",
-    "binaryMissing": "Không thấy {brand} ở {path}. Hãy cài nó ({installUrl}), hoặc trỏ mục thư mục cài ({env}) tới chỗ đã cài."
+    "binaryMissing": "Không thấy {brand} ở {path}. Hãy cài nó ({installUrl}), hoặc trỏ mục thư mục cài ({env}) tới chỗ đã cài.",
+    "binaryUnstartable": "{brand} ở {path} không khởi động được: {reason}"
   }
 }

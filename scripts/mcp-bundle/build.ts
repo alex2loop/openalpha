@@ -11,7 +11,7 @@ import { BRAND } from '@/core/brand'
 import { LOCALES } from '@/core/types/locale'
 import { t } from '@/i18n'
 import pkg from '../../package.json' with { type: 'json' }
-import { PATH_PLACEHOLDER } from './launcher-config'
+import { PATH_PLACEHOLDER, REASON_PLACEHOLDER } from './launcher-config'
 
 const ROOT = resolve(import.meta.dir, '../..')
 const OUT_DIR = resolve(ROOT, 'dist')
@@ -38,7 +38,6 @@ const LOCALE_TAGS = { en: 'en-US', vi: 'vi-VN' } as const satisfies Record<Local
 const INSTALL_DIR_ENV = `${BRAND.envPrefix}INSTALL_DIR`
 const DEFAULT_INSTALL_DIR = '.local/bin'
 const INSTALL_URL = `${BRAND.repository}#readme`
-const PLATFORMS = ['darwin', 'win32', 'linux'] as const
 const SERVER_SCHEMA_URL =
   'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json'
 const REGISTRY_DESCRIPTION_MAX = 100
@@ -102,6 +101,13 @@ async function buildLauncher(): Promise<string> {
         path: PATH_PLACEHOLDER,
         installUrl: INSTALL_URL,
         env: INSTALL_DIR_ENV,
+      })
+    ),
+    unstartableMessageLines: LOCALES.map((locale) =>
+      t(locale, 'mcpBundle.binaryUnstartable', {
+        brand: BRAND.display,
+        path: PATH_PLACEHOLDER,
+        reason: REASON_PLACEHOLDER,
       })
     ),
   }
@@ -202,13 +208,12 @@ function buildManifest(): Record<string, unknown> {
       install_dir: {
         type: 'directory',
         title: t(DEFAULT_LOCALE, 'mcpBundle.installDirTitle', { brand: BRAND.display }),
-        description: t(DEFAULT_LOCALE, 'mcpBundle.installDirDescription', { brand: BRAND.display }),
+        description: buildInstallDirDescription(),
         required: true,
         default: `${MCPB_HOME}/${DEFAULT_INSTALL_DIR}`,
       },
     },
     tools_generated: true,
-    compatibility: { platforms: PLATFORMS },
     localization: {
       resources: `${RESOURCES_DIR}/${MCPB_LOCALE}.json`,
       default_locale: LOCALE_TAGS[DEFAULT_LOCALE],
@@ -251,9 +256,21 @@ function buildServerJson(input: {
         version: BRAND.version,
         runtimeHint: NPM_RUNTIME_HINT,
         transport: { type: 'stdio' },
+        environmentVariables: [
+          {
+            name: INSTALL_DIR_ENV,
+            description: buildInstallDirDescription(),
+            isRequired: false,
+            isSecret: false,
+          },
+        ],
       },
     ],
   }
+}
+
+function buildInstallDirDescription(): string {
+  return t(DEFAULT_LOCALE, 'mcpBundle.installDirDescription', { brand: BRAND.display })
 }
 
 async function runMcpb(args: readonly string[]): Promise<void> {

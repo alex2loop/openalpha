@@ -6762,6 +6762,7 @@
     "longDescription": "Uses the {brand} installed on this computer, so install or update it to the latest release first: {installUrl}. Your AI app's own model does the thinking; {brand} needs no AI key of its own here.",
     "installDirTitle": "{brand} install folder",
     "installDirDescription": "The folder the install script put {brand} in. Change it only if you installed it somewhere else.",
-    "binaryMissing": "{brand} is not at {path}. Install it ({installUrl}), or point the install folder setting ({env}) at where it is."
+    "binaryMissing": "{brand} is not at {path}. Install it ({installUrl}), or point the install folder setting ({env}) at where it is.",
+    "binaryUnstartable": "{brand} at {path} could not start: {reason}"
   }
 }

@@ -234,10 +234,11 @@ jobs:
 
   # Publishes the npm launcher the registry lists for apps that install with npx. npm takes it by
   # trusted publishing (OIDC, no token), set up on npmjs.com after the package's first hand-made
-  # publish. A version npm already holds is skipped, so a re-run carries on to the registry.
+  # publish. A version npm already holds is skipped, so a re-run carries on to the registry. It
+  # needs publish, so a dry run or an existing release skips it; a prerelease is not published.
   npm:
     needs: [build, publish]
-    if: needs.build.outputs.new == 'true' && !inputs.dry_run && github.ref == 'refs/heads/main' && !contains(needs.build.outputs.tag, '-')
+    if: ${{ !contains(needs.build.outputs.tag, '-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -264,13 +265,11 @@ jobs:
           fi
           npm publish --provenance --access public
 
-  # Lists the release on the MCP Registry, which directories such as Glama mirror. It runs after the
-  # Release exists, so a registry failure leaves the Release intact and "Re-run failed jobs" retries
-  # only this job while registry-files lasts. A prerelease is not listed, as releases/latest skips
-  # it too.
+  # Lists the release on the MCP Registry, which directories such as Glama mirror; it runs only
+  # after npm succeeded. A failure leaves the Release intact, and "Re-run failed jobs" retries only
+  # this job while registry-files lasts; a version the registry already lists is skipped.
   registry:
     needs: [build, publish, npm]
-    if: needs.build.outputs.new == 'true' && !inputs.dry_run && github.ref == 'refs/heads/main' && !contains(needs.build.outputs.tag, '-')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # The OIDC token is the login the registry accepts for this repository's io.github namespace.
@@ -305,5 +304,13 @@ jobs:
       - name: Publish to the MCP Registry
         working-directory: dist
         run: |
+          name="$(jq -r '.name | @uri' server.json)"
+          version="$(jq -r '.version | @uri' server.json)"
+          listed="$(curl --silent --location --output /dev/null --write-out '%{http_code}' \
+            "https://registry.modelcontextprotocol.io/v0.1/servers/$name/versions/$version")"
+          if [ "$listed" = 200 ]; then
+            echo "The registry already lists this version"
+            exit 0
+          fi
           ../mcp-publisher login github-oidc
           ../mcp-publisher publish

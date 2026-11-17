@@ -7,19 +7,22 @@ import { join } from 'node:path'
 
 import type { LauncherConfig } from './launcher-config'
 import { MCP_SERVE_ARGV } from '@/cli/commands/mcp/serve-contract'
-import { PATH_PLACEHOLDER } from './launcher-config'
+import { PATH_PLACEHOLDER, REASON_PLACEHOLDER } from './launcher-config'
 
 declare const LAUNCHER_CONFIG: LauncherConfig
 
+// Read once: the build's `define` inlines the whole object at every reference.
+const CONFIG: LauncherConfig = LAUNCHER_CONFIG
 const EXIT_FAILED = 1
 const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM'] as const
 const WINDOWS_EXECUTABLE_SUFFIX = '.exe'
+const NOT_FOUND_CODE = 'ENOENT'
 
 launch(resolveBinaryPath())
 
 function launch(path: string): void {
   if (!existsSync(path)) {
-    reportMissing(path)
+    report(CONFIG.missingMessageLines, path)
 
     return
   }
@@ -38,9 +41,14 @@ function launch(path: string): void {
     process.once(signal, forward)
   }
 
-  child.once('error', (err) => {
+  child.once('error', (err: NodeJS.ErrnoException) => {
     release()
-    reportMissing(path, err.message)
+
+    if (err.code === NOT_FOUND_CODE) {
+      report(CONFIG.missingMessageLines, path)
+    } else {
+      report(CONFIG.unstartableMessageLines, path, err.message)
+    }
   })
   child.once('exit', (code) => {
     release()
@@ -51,18 +59,17 @@ function launch(path: string): void {
 // The install folder is the one the install scripts honor; an empty value means the default.
 function resolveBinaryPath(): string {
   const installDir =
-    process.env[LAUNCHER_CONFIG.installDirEnv] || join(homedir(), LAUNCHER_CONFIG.defaultInstallDir)
+    process.env[CONFIG.installDirEnv] || join(homedir(), CONFIG.defaultInstallDir)
   const suffix = process.platform === 'win32' ? WINDOWS_EXECUTABLE_SUFFIX : ''
 
-  return join(installDir, `${LAUNCHER_CONFIG.binaryName}${suffix}`)
+  return join(installDir, `${CONFIG.binaryName}${suffix}`)
 }
 
-function reportMissing(path: string, detail?: string): void {
-  const lines = LAUNCHER_CONFIG.missingMessageLines.map((line) =>
-    line.replaceAll(PATH_PLACEHOLDER, () => path)
+function report(lines: readonly string[], path: string, reason = ''): void {
+  const filled = lines.map((line) =>
+    line.replaceAll(PATH_PLACEHOLDER, () => path).replaceAll(REASON_PLACEHOLDER, () => reason)
   )
-  const detailLines = detail === undefined ? [] : [detail]
 
-  process.stderr.write(`${[...lines, ...detailLines].join('\n')}\n`)
+  process.stderr.write(`${filled.join('\n')}\n`)
   process.exitCode = EXIT_FAILED
 }
