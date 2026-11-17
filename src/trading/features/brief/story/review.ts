@@ -30,6 +30,8 @@ export interface TrackedStory {
   readonly code: StoryCode
   /** The session the story was told for. */
   readonly toldIn: TradingDay
+  /** The market that told it; absent on a story stored before this was recorded. */
+  readonly market?: string
   readonly sector?: string
   readonly watches: readonly TrackedWatch[]
   readonly status: ThesisStatus
@@ -89,6 +91,7 @@ function toldStory(section: ReadySection): readonly TrackedStory[] {
     {
       code,
       toldIn: section.asOf,
+      ...marketOf(head),
       ...sectorOf(head),
       watches: rest.flatMap(watchOf),
       status: 'open',
@@ -109,11 +112,16 @@ function carriedStory(section: ReadySection): readonly TrackedStory[] {
     {
       code,
       toldIn: tradingDay(head.at),
+      ...marketOf(head),
       ...sectorOf(head),
       watches: rest.flatMap(watchOf),
       status,
     },
   ]
+}
+
+function marketOf(row: BriefSectionRow | undefined): { readonly market?: string } {
+  return typeof row?.market === 'string' ? { market: row.market } : {}
 }
 
 function sectorOf(row: BriefSectionRow | undefined): { readonly sector?: string } {

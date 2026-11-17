@@ -227,12 +227,11 @@ export function buildProprietaryFlow(context: VnBriefContext): Promise<BriefSect
 
 /** Top net buys and net sells by magnitude; a name with no flow at all is not news. */
 function foreignNameRows(names: readonly NameEvidence[]): readonly BriefSectionRow[] {
-  const flows = names
-    .map((name) => ({
-      ticker: name.record.instrument.ticker,
-      net: name.flowReads.foreignNet20,
-    }))
-    .filter((row) => row.net !== 0)
+  const flows = names.flatMap((name) => {
+    const net = name.flowReads.foreignNet20
+
+    return net === null || net === 0 ? [] : [{ ticker: name.record.instrument.ticker, net }]
+  })
   const sorted = [...flows].sort((left, right) => right.net - left.net)
 
   return [

@@ -5,6 +5,7 @@ import type { RoomId } from '@/web/scene/types'
 import { pageMinute } from '@/web/scene/clock/clock'
 import { roomOfRun } from '@/web/scene/data/room-status'
 import { todayRuns } from '@/web/scene/data/today-runs'
+import { operatorToday } from '@/web/state/activity'
 import { state } from '@/web/state/session'
 import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
@@ -18,7 +19,10 @@ export const finishedCaptions: ReadonlySignal<Partial<Record<RoomId, string>>> =
   const read = todayRuns.value
   const timeZone = state.value?.timeZone
 
-  if (read === undefined || read.day !== pageMinute.value.day || timeZone === undefined) {
+  // The page minute re-reads the operator's day, so yesterday's boards drop when it turns.
+  pageMinute.value
+
+  if (read === undefined || read.day !== operatorToday() || timeZone === undefined) {
     return {}
   }
 

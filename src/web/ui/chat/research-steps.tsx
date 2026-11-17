@@ -1,13 +1,12 @@
 import { useEffect } from 'preact/hooks'
 
-import type { Turn } from '@/web/state/chat'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
+import { commandWordOf, type Turn } from '@/web/state/chat'
 import { onWireEvent } from '@/web/state/events'
 import { findRun } from '@/web/state/live'
 import { tr } from '@/web/text/tr'
 import { StepList } from '@/web/ui/agent/steps'
-import { commandWordOf } from '@/web/ui/chat/command-link'
 import { Button } from '@/web/ui/kit/button'
 import { openReader } from '@/web/ui/reader/reader'
 

@@ -111,10 +111,28 @@ async function loadBoard(abortSignal: AbortSignal): Promise<void> {
     calls.value = suggestions.value.suggestions
   }
 
+  const held = digests.value
+  const nextToday = settleDigest(todayDigest, today, held)
+  const nextYesterday = settleDigest(yesterdayDigest, yesterday, held)
+
   digests.value = {
-    ...(todayDigest.status === 'fulfilled' ? { today: todayDigest.value } : {}),
-    ...(yesterdayDigest.status === 'fulfilled' ? { yesterday: yesterdayDigest.value } : {}),
+    ...(nextToday === undefined ? {} : { today: nextToday }),
+    ...(nextYesterday === undefined ? {} : { yesterday: nextYesterday }),
   }
+}
+
+// A failed read keeps the last good digest of that same day, whichever slot it sat in when the day
+// turned; none is left to show for a day never read.
+function settleDigest(
+  read: PromiseSettledResult<DigestWire>,
+  day: string,
+  held: DigestPair
+): DigestWire | undefined {
+  if (read.status === 'fulfilled') {
+    return read.value
+  }
+
+  return [held.today, held.yesterday].find((candidate) => candidate?.day === day)
 }
 
 // Only a change after the first read is a landing; the first read is what was already there.

@@ -25,17 +25,11 @@ import type {
 } from '@/trading/features/themes/types'
 import { isHardEvidence } from '@/trading/features/themes/evidence/bundle'
 import { formatFigure } from '@/trading/features/themes/evidence/series'
+import { FORWARD_WEIGHT } from '@/trading/features/themes/score/policy'
 import { SCENARIO_CASES, themeId } from '@/trading/features/themes/types'
 
 const MINIMUM_FOUNDING_ORIGINS = 2
 const FULL_PROBABILITY_PCT = 100
-/** How much of the exposure rests on what is promised rather than what is booked: an emerging
- *  theme has little revenue yet, a mature one is mostly in the accounts (FTSE Russell). */
-const FORWARD_WEIGHT: Readonly<Record<ThemeMaturity, number>> = Object.freeze({
-  emerging: 0.7,
-  scaling: 0.5,
-  mature: 0.3,
-})
 /** Highest first; below the last band is `low`. */
 const EXPOSURE_BANDS: readonly { readonly label: ExposureLabel; readonly fromPct: number }[] =
   Object.freeze([

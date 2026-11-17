@@ -1,6 +1,6 @@
 import type { ActivityResponse } from '@/app/server/wire/activity'
-import type { ClockParts } from '@/web/text/time'
 import { todayRuns } from '@/web/scene/data/today-runs'
+import { operatorToday } from '@/web/state/activity'
 import { setCapped } from '@/web/state/capped-map'
 
 // The tray holds at most this many sheets; a day's reports past it leave the stack as it is.
@@ -12,7 +12,7 @@ const REPORT_NAMES: ReadonlySet<string> = new Set(['research', 'brief'])
 
 /** The printer's out-tray: one sheet for each report delivered today, up to `MAX_SHEETS`, and when
  *  the newest came out (`feedAt`, a `performance.now()` instant; absent for sheets laid from the
- *  day's read, which are already on the stack). Cleared when the page day turns. */
+ *  day's read, which are already on the stack). Cleared when the operator's day turns. */
 export interface PrintTray {
   day: string | undefined
   count: number
@@ -35,11 +35,17 @@ export function feedReport(
   }
 }
 
-/** Turns the tray's day with the page clock and lays a sheet for each of today's reports the
+/** Turns the tray's day with the operator's and lays a sheet for each of today's reports the
  *  day's read lists, once per read. */
-export function stepPrintTray(tray: PrintTray, clock: ClockParts): void {
-  if (tray.day !== clock.day) {
-    tray.day = clock.day
+export function stepPrintTray(tray: PrintTray): void {
+  const day = operatorToday()
+
+  if (day === undefined) {
+    return
+  }
+
+  if (tray.day !== day) {
+    tray.day = day
     tray.count = 0
     tray.feedAt = undefined
     tray.counted.clear()

@@ -21,6 +21,8 @@ const OPERATOR_ONLY_BRIEF_FIELDS: ReadonlySet<string> = new Set([
   'nav',
   'previousFlow',
   'losingReturnPct',
+  'spentUsd',
+  'limitUsd',
 ])
 
 export function createBriefBuildTool(

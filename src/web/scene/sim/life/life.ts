@@ -193,7 +193,7 @@ function readStep(state: LifeState, deps: LifeDeps): LifeStep {
 
 function stepLife(state: LifeState, step: LifeStep): boolean {
   noteBusy(state, step)
-  stepPrintTray(state.printTray, step.clock)
+  stepPrintTray(state.printTray)
   clearFailed(state, step)
   stepPresence(state, step)
   stepCrew(state, step)

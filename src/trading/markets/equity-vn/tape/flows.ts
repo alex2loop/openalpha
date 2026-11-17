@@ -72,9 +72,14 @@ export function newestFlowDay(
 }
 
 /** Net foreign flow over the window, in the flows' own currency. The brief's desk-flow sections
- *  report this; they do not re-align or re-sum anything. */
-export function netFlowValue(flows: readonly FlowSnapshot[], sessions: number): number {
-  return sumOverWindow(flows, sessions, (flow) => flow.foreignNetValue)
+ *  report this; they do not re-align or re-sum anything. `null` when no session in the window
+ *  carries a figure, the same as the proprietary desk. */
+export function netFlowValue(flows: readonly FlowSnapshot[], sessions: number): number | null {
+  const window = flows.slice(-sessions)
+
+  return window.some((flow) => Number.isFinite(flow.foreignNetValue))
+    ? sumOverWindow(window, sessions, (flow) => flow.foreignNetValue)
+    : null
 }
 
 /** `null` when no session in the window carries the figure: a source that never reports it must not

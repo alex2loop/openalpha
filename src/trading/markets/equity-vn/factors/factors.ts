@@ -309,12 +309,13 @@ function trendScore(closes: readonly number[]): number | undefined {
 export function toSectorMember(evidence: NameEvidence): SectorMember {
   const at = tradedDayOf(evidence)
   const marketCap = evidence.fundamental?.marketCap
+  const foreignNet = evidence.flowReads.foreignNet20
 
   return {
     ticker: evidence.record.instrument.ticker,
     ...(evidence.record.sector === undefined ? {} : { sector: evidence.record.sector }),
     closes: evidence.closes,
-    foreignNetBase: evidence.flowReads.foreignNet20,
+    ...(foreignNet === null ? {} : { foreignNetBase: foreignNet }),
     ...(marketCap === undefined ? {} : { marketCap }),
     ...(at === undefined ? {} : { at }),
   }

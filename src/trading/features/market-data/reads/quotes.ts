@@ -24,6 +24,7 @@ import { freshnessOf } from '@/trading/features/market-data/reads/freshness'
 import { settledCloseBefore } from '@/trading/features/market-data/reads/previous-close'
 import {
   calendarSessionsBetween,
+  REFERENCE_BARS_ONLY,
   resolveDay,
   resolveInstrument,
   unsupportedCapability,
@@ -236,6 +237,12 @@ export async function runBars(
   }
 
   const { market, instrument } = resolved
+
+  // A reference series is another instrument's tape in another unit: no candle of it belongs to this name.
+  if (market.manifest.referenceBarsOnly === true) {
+    return unsupportedCapability(REFERENCE_BARS_ONLY)
+  }
+
   const sessions = calendarSessionsBetween(market, options.fromDay, options.toDay)
 
   if (sessions === 0) {

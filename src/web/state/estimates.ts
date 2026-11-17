@@ -3,6 +3,7 @@ import { effect, type ReadonlySignal, signal } from '@preact/signals'
 import type { CommandList } from '@/app/server/wire/system'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { commandWordOf } from '@/web/state/chat'
 import { cost } from '@/web/state/cost'
 import { connection } from '@/web/state/session'
 import { formatUsd } from '@/web/text/figures'
@@ -39,7 +40,9 @@ export function startEstimates(): () => void {
 
 /** What `name` (with its slash) usually costs; absent while the daemon has no estimate for it. */
 export function estimateOf(name: string): SlashCommandInfo['estimate'] {
-  return list.value.find((command) => command.name === name)?.estimate
+  const key = commandWordOf(name)
+
+  return list.value.find((command) => command.name === key)?.estimate
 }
 
 /** Whether `name` (with its slash) is known to cost no AI: it never has, or never can. */

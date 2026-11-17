@@ -15,6 +15,7 @@ import type { PriceFormat } from '@/web/text/figures'
 import { ROUTES } from '@/web/api/routes'
 import { createRouteBlock } from '@/web/state/block'
 import { setCapped } from '@/web/state/capped-map'
+import { onWireEvent } from '@/web/state/events'
 
 const OVERVIEW_POLL_MS = 60_000
 // Each poll makes the daemon read live providers, so it stays slow.
@@ -80,9 +81,11 @@ export const freshCalls: ReadonlySignal<readonly SuggestionWire[]> = computed(()
   (callsBlock.view.value.data?.suggestions ?? []).filter((call) => call.action === 'buy')
 )
 
-/** Reads the market data now and keeps it fresh until the returned stop. */
+/** Reads the market data now and keeps it fresh until the returned stop. The watchlist is read again
+ *  whenever the profile is saved anywhere; the poll catches up a page that missed the event. */
 export function startMarket(): () => void {
   const stops = [
+    onWireEvent('profile_saved', refreshWatch),
     marketsBlock.start(OVERVIEW_POLL_MS),
     overviewBlock.start(OVERVIEW_POLL_MS),
     holdingsBlock.start(OVERVIEW_POLL_MS),
@@ -97,6 +100,12 @@ export function startMarket(): () => void {
       stop()
     }
   }
+}
+
+/** Reads the profile and the quotes again, so the watchlist and the price tape show what was saved. */
+export function refreshWatch(): void {
+  profileBlock.retry()
+  quotesBlock.retry()
 }
 
 /** `market:ticker`: one instrument's identity across the page's lists. */

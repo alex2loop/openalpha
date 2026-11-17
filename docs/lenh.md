@@ -160,8 +160,8 @@ câu lệnh nào và menu Telegram. Nhờ vậy một câu lệnh hành xử gi�
 
 | Câu lệnh | Mục đích |
 |---|---|
-| `/agent` | Xem agent cửa vào; operator kênh có quyền thì đổi được. Trong terminal, chọn bằng `chat --agent <id>` |
-| `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat |
+| `/agent` | Xem agent cửa vào; operator kênh có quyền thì đổi được, trong ứng dụng web bạn cũng đổi được. Trong terminal, chọn bằng `chat --agent <id>` |
+| `/model` | Xem bộ chọn mô hình đã cấu hình ở mọi nơi; chọn thì trong kênh chat hoặc ứng dụng web |
 | `/research` | Chạy nghiên cứu có giới hạn và trích nguồn, không đổi agent đang chọn |
 | `/health` | Xem các mã sức khỏe của runtime và kênh, việc tự chạy nào đang làm và việc nào lỗi ở lần gần nhất (chỉ tên việc; lý do xem ở `status` hoặc trang văn phòng) |
 | `/upgrade` | Chỉ người vận hành: xem bản đang dùng, bản mới nhất và điều bản mới mang lại; `/upgrade confirm` (hoặc nút bấm) cài bản mới ngay từ Telegram/Zalo |
@@ -603,7 +603,8 @@ trò chuyện gần nhất, thêm `--limit <n>` để đổi số này.
 xác nhận trước khi chạy.
 
 `cost` nhận `--period day|week|month` (`week` tính từ thứ Hai, như `/transactions week`), hoặc một
-khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). Nó đọc số liệu từng lần gọi đã lưu thay vì ước lượng
+khoảng ngày ISO `--from`/`--to` (gồm cả hai đầu). `--from` và `--to` phải đi cùng nhau và không dùng chung
+với `--period`. Nó đọc số liệu từng lần gọi đã lưu thay vì ước lượng
 từ nội dung hội thoại, nên khớp với hóa đơn của nhà cung cấp.
 
 `--breakdown` tách đúng khoảng đó theo agent và mô hình, đắt nhất trước: số lời gọi, số lần hỏng, thời
@@ -930,6 +931,8 @@ khớp.
   đó.
 - Sàn chưa có khóa API thì câu trả lời nêu tên các biến còn thiếu. Sàn bạn tự đặt lệnh không gửi lệnh
   khớp về, nên câu trả lời nhắc bạn ghi tay bằng `/record buy` hoặc `/record sell`.
+- Lệnh khớp được ghi theo ngày của thị trường nó, không bao giờ sau ngày của sổ: một lệnh crypto khớp vào
+  tối ở Mỹ, khi giờ UTC đã sang ngày hôm sau, được ghi theo ngày ở New York.
 - Mỗi lệnh khớp được khóa theo mã lệnh của chính sàn, và một lệnh khớp có số liệu trùng với dòng bạn gõ
   tay thì được bỏ qua. Chạy hai lần thì lần hai không ghi gì, và câu trả lời cho biết đã nhận ra bao
   nhiêu.

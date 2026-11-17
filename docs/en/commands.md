@@ -159,8 +159,8 @@ Telegram menu. So a command behaves the same in the REPL and in a group chat.
 
 | Command | Purpose |
 |---|---|
-| `/agent` | Show the entry agent; an authorized channel operator can change it. In the terminal, pick it with `chat --agent <id>` |
-| `/model` | Show a configured model selector anywhere; select one in a chat channel |
+| `/agent` | Show the entry agent; an authorized channel operator can change it, and so can you in the web app. In the terminal, pick it with `chat --agent <id>` |
+| `/model` | Show a configured model selector anywhere; select one in a chat channel or the web app |
 | `/research` | Run bounded, cited research without changing the selected agent |
 | `/health` | Show runtime and channel health codes, which automatic jobs are at work and which failed their last pass (names only; the reason is in `status` or on the office page) |
 | `/upgrade` | Operator only: shows your version, the latest release and what it brings; `/upgrade confirm` (or the button) installs it from Telegram/Zalo |
@@ -617,7 +617,8 @@ most recent sessions unless you pass `--limit <n>`.
 prompt before you run it.
 
 `cost` takes `--period day|week|month` (`week` starts on Monday, like `/transactions week`) or an
-inclusive `--from`/`--to` ISO-day range. It reads the stored per-call records instead of estimating
+inclusive `--from`/`--to` ISO-day range. `--from` and `--to` go together, and neither combines with
+`--period`. It reads the stored per-call records instead of estimating
 from transcripts, so it agrees with your provider's invoice.
 
 `--breakdown` lists the same window per assistant and model, most expensive first: calls, failures,
@@ -947,6 +948,8 @@ it is synced for the part that filled.
   and pages the exchange to the end of that window.
 - An exchange with no API key yet gets a reply naming the variables it is waiting for. A venue you
   trade by hand sends no fills, so the reply points you to `/record buy` or `/record sell`.
+- A fill is dated on its market's day, never later than your book's: a crypto fill made in the US
+  evening, already the next day in UTC, is booked on the day it is in New York.
 - Each fill is keyed on the venue's own order id, and a fill matching a row you typed by hand is left
   alone. Running it twice books nothing the second time, and the reply says how many it recognized.
 - A fill matching one of your rows on everything *but* the date is reported, not booked. Fix the date

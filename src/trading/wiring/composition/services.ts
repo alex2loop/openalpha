@@ -17,7 +17,6 @@ import type { SuggestionService } from '@/trading/features/suggestion/suggestion
 import type { FactorLogService } from '@/trading/features/suggestion/track-record/factor-log-types'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
-import type { InstrumentRef } from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type {
@@ -45,6 +44,7 @@ import { createReduceVerdicts } from '@/trading/features/suggestion/reduce-verdi
 import { createSuggestionService } from '@/trading/features/suggestion/suggestion'
 import { createFactorLogService } from '@/trading/features/suggestion/track-record/factor-log-service'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
+import { quoteOf } from '@/trading/wiring/composition/order-quote'
 import {
   createPortfolioReader,
   listFillsSince,
@@ -74,6 +74,7 @@ interface DomainServiceDeps {
   recipient(): DeliveryAddress | undefined
   readonly onFilled: OrderFilledListener
   readonly onAlertFired: AlertFiredListener
+  readonly onProfileSaved: () => void
   readonly onFocusCallScored: CallScoredNotices['onFocusScored']
   readonly config: TradingConfig
   readonly logger: Logger
@@ -97,6 +98,7 @@ function buildProfiles(deps: DomainServiceDeps): ProfileService {
     baseCurrency: deps.config.baseCurrency,
     homeRegion: deps.config.defaultRegion,
     heldMarkets: deps.venues.heldMarkets(),
+    onSaved: deps.onProfileSaved,
   })
 }
 
@@ -339,28 +341,6 @@ function buildOrder(parts: OrderParts): OrderService | undefined {
       return input.amount * quote.value.rate
     },
   })
-}
-
-/** The live price the caps, the drift check and the prompt all read. An unpriced instrument is a
- *  refusal, not a zero: every cap downstream would pass against one. */
-async function quoteOf(
-  marketData: MarketDataService,
-  instrument: InstrumentRef,
-  at: { readonly now: number; readonly signal: AbortSignal }
-): Promise<number> {
-  const result = await marketData.quote({
-    ticker: instrument.ticker,
-    market: instrument.market,
-    now: at.now,
-    signal: at.signal,
-  })
-
-  // A close or a stale print also reads as available; sizing and drift run on the live tape only.
-  if (result.kind !== 'available' || result.value.observed.kind !== 'live') {
-    throw new OrderError('order.quote_not_live', `no live price for ${instrument.ticker}`)
-  }
-
-  return result.value.quote.price
 }
 
 /** The two unattended senders, split out only to keep the assembly point readable. Both render in

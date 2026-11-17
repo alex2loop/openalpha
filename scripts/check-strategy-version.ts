@@ -4,7 +4,7 @@
 // changed weight, multiplier or bound could ship under a version claiming the old population.
 // Theme scores have the same contract with `SCORE_VERSION`, which the themes track record filters on.
 import { createHash } from 'node:crypto'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dir, '..')
@@ -25,11 +25,9 @@ const POLICY_SOURCES: Readonly<Record<string, readonly string[]>> = {
   ],
 }
 /** Theme scores are arithmetic over named weights and scales rather than one policy literal, so
- *  the whole of each file that computes one counts, its version line aside. */
-const SCORE_SOURCES = [
-  'src/trading/features/themes/score/compose.ts',
-  'src/trading/features/themes/score/reads.ts',
-]
+ *  the whole of every file in the score folder counts, its version line aside. The constants that
+ *  decide a score from outside live in `policy.ts` there. */
+const SCORE_DIR = 'src/trading/features/themes/score'
 const SCORE_ENTRY = 'themes'
 const SCORE_VERSION_RE = /export const SCORE_VERSION\s*=\s*'([^']+)'/
 /** The policy literals, and the scalars and bounds they read from beside them: a normalization
@@ -66,11 +64,14 @@ async function readMarket(files: readonly string[]): Promise<Recorded> {
 }
 
 async function readScore(): Promise<Recorded> {
-  const texts = await Promise.all(SCORE_SOURCES.map((file) => readFile(resolve(ROOT, file), 'utf8')))
-  const version = SCORE_VERSION_RE.exec(texts[0] ?? '')?.[1]
+  const names = (await readdir(resolve(ROOT, SCORE_DIR))).filter((name) => name.endsWith('.ts'))
+  const texts = await Promise.all(
+    names.sort().map((name) => readFile(resolve(ROOT, SCORE_DIR, name), 'utf8'))
+  )
+  const version = texts.flatMap((text) => SCORE_VERSION_RE.exec(text)?.[1] ?? [])[0]
 
   if (version === undefined) {
-    throw new Error(`${SCORE_SOURCES[0]}: no score version found`)
+    throw new Error(`${SCORE_DIR}: no score version found`)
   }
 
   return { version, digest: digestOf(texts.join('\n').replace(SCORE_VERSION_RE, '')) }

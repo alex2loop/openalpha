@@ -87,7 +87,7 @@ model = "deepseek/deepseek-v4.1-flash"
 # base_url = "http://127.0.0.1:11434/v1"
 # cost_input_per_m = 0                # USD per million tokens; set input+output together
 # cost_output_per_m = 0
-# cost_cache_read_per_m = 0           # optional; omitted cache usage is uncharged
+# cost_cache_read_per_m = 0           # optional; left out, cache reads and writes bill at the input rate
 # cost_cache_write_per_m = 0
 
 # ChatGPT subscription: run `openalpha auth login chatgpt` once, then omit api_key_env.
@@ -170,7 +170,7 @@ max_daily_usd = 2           # 0 = uncapped
 
 [locale]
 language = "en"                   # en | vi; every reply, brief and alert uses it (unset: vi, or en with region = "us")
-# timezone = "UTC"                # IANA tz; defaults to the host zone
+# timezone = "UTC"                # IANA tz every shown clock reads in, market hours too; defaults to the host zone
 # currency = "VND"                # ISO 4217 operator base currency
 # region = "vn"                   # home market: vn | us (world gold owns global but is reference only). Leads the
                                   # brief, and a new profile starts in its own segments. Set currency to match.

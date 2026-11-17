@@ -64,7 +64,7 @@ interface TradingDaemonDeps {
   readonly themes: Pick<ThemeService, 'resolveOutcomes'>
   readonly briefs: BriefService
   readonly markets: MarketRegistry
-  readonly portfolio: Pick<PortfolioService, 'positionsAt' | 'record'>
+  readonly portfolio: Pick<PortfolioService, 'positionsAt' | 'record' | 'dayAt'>
   readonly reportDeps: IntradayReportDeps
   readonly intradaySettings: IntradaySettingsStore
   /** How late after its slot a timed send may still go out (`[schedule] late_grace_ms`). */

@@ -318,6 +318,13 @@ export interface MarketSessionWire {
   readonly closeAuction?: { readonly from: string; readonly to: string }
   readonly today: string
   readonly tradesToday: boolean
+  /** Today's hours as epoch ms, for printing on the operator's clock; absent on a day it does not
+   *  trade. */
+  readonly todayAt?: {
+    readonly open: number
+    readonly close: number
+    readonly breaks?: readonly { readonly from: number; readonly to: number }[]
+  }
   readonly nextTradingDay: string
   readonly phase: SessionPhase
 }

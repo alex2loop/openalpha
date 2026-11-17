@@ -21,8 +21,9 @@ export interface SectorMember {
   readonly closes: readonly number[]
   /** Absent on a market that publishes no foreign flow, which leaves the sector without one. */
   readonly foreignNetBase?: number
-  /** Weights the session return. Absent until fundamentals are fetched, which leaves the name out
-   *  of that one number rather than out of the sector. */
+  /** Weights the session and excess returns. Absent until fundamentals are fetched, which leaves the
+   *  name out of those weighted means unless no member carries one, when they fall back to equal
+   *  weight. */
   readonly marketCap?: number
   /** The session this member's newest usable bar belongs to. Absent when it has none, which keeps
    *  a name that did not trade out of the session return without disturbing the window returns. */

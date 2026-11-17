@@ -40,6 +40,7 @@ export function planStory(input: StoryInput): readonly BriefSectionResult[] {
     asOf: read.session,
     provenance: read.provenance,
     currency: read.currency,
+    market: input.market,
   }
   const reviewed = reviewedStories(input, read)
   const tracked = new Set(reviewed.map(runKeyOf))
@@ -71,15 +72,19 @@ function ongoingLength(
 /** The stories yesterday's brief left open, scored against today and newest first. One told for the
  *  session being read has nothing new to say about it, so it is left out. */
 function reviewedStories(input: StoryInput, read: ReadStory): readonly TrackedStory[] {
-  const scored = trackedStories(input.previous ?? []).map((story) =>
-    scoreStory(story, {
-      market: input.market,
-      session: read.session,
-      sections: input.sections,
-      calendar: input.calendar,
-      ...(read.levels === undefined ? {} : { levels: read.levels }),
-    })
-  )
+  // Scored against this market's sections, so a story another market told, or one stored before
+  // the market was recorded and so unknowable, would be marked on data it never read.
+  const scored = trackedStories(input.previous ?? [])
+    .filter((story) => story.market === input.market)
+    .map((story) =>
+      scoreStory(story, {
+        market: input.market,
+        session: read.session,
+        sections: input.sections,
+        calendar: input.calendar,
+        ...(read.levels === undefined ? {} : { levels: read.levels }),
+      })
+    )
 
   return scored
     .filter((story) => story.toldIn < read.session)
@@ -89,9 +94,9 @@ function reviewedStories(input: StoryInput, read: ReadStory): readonly TrackedSt
 
 /** The told runs that go on today, with their length. Only a story that was told leaves a run
  *  behind, so a candidate that lost on its first day can still be told later. A previous story
- *  section for the session just before extends a run; a rebuild of the same session keeps its
- *  lengths, except the story first told there, which is told again. A gap of unbriefed sessions
- *  ends every run. */
+ *  section for the session just before extends a run; a brief reading the same session as the
+ *  previous one (a weekend or holiday morning) keeps its lengths, so the story told for that
+ *  session is not told again. A gap of unbriefed sessions ends every run. */
 function continuingRuns(
   read: ReadStory,
   previous: readonly BriefSectionResult[] | null,
@@ -110,7 +115,7 @@ function continuingRuns(
       runs[candidate.runKey] = prior + 1
     }
 
-    if (prior !== undefined && same && prior > FIRST_RUN_SESSION) {
+    if (prior !== undefined && same) {
       runs[candidate.runKey] = prior
     }
   }

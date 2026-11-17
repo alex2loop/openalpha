@@ -62,6 +62,9 @@ const payloadSchema = z.strictObject({
   scorecardMonth: z.string().optional(),
 })
 
+// Read from a row of any render version: the month outlives the vocabulary the rest was written in.
+const scorecardMonthSchema = z.object({ scorecardMonth: z.string().optional() })
+
 type StoredSection = z.infer<typeof payloadSchema>['sections'][number]
 
 interface BriefSnapshotRow {
@@ -99,6 +102,9 @@ export interface BriefStore {
   /** The snapshot before a day, for the block that says what changed. Once today's snapshot is
    *  written `findLatest` returns today's, which is why this query exists beside it. */
   findPrevious(options: PreviousBriefOptions): Promise<BriefSnapshot | null>
+  /** The month the previous row delivered the scorecard in, whatever render version wrote it, so a
+   *  version bump does not print the monthly scorecard a second time. */
+  findPreviousScorecardMonth(options: PreviousBriefOptions): Promise<string | undefined>
 }
 
 export function createBriefStore(deps: StoreDeps): BriefStore {
@@ -108,6 +114,7 @@ export function createBriefStore(deps: StoreDeps): BriefStore {
     findExact: (options) => findExact(deps, options),
     findLatest: (options) => findLatest(deps, options),
     findPrevious: (options) => findPrevious(deps, options),
+    findPreviousScorecardMonth: (options) => findPreviousScorecardMonth(deps, options),
   }
 }
 
@@ -194,6 +201,27 @@ async function findPrevious(
   deps: StoreDeps,
   options: PreviousBriefOptions
 ): Promise<BriefSnapshot | null> {
+  const row = await readPreviousRow(deps, options)
+
+  return row ? toBriefSnapshot(row) : null
+}
+
+async function findPreviousScorecardMonth(
+  deps: StoreDeps,
+  options: PreviousBriefOptions
+): Promise<string | undefined> {
+  const row = await readPreviousRow(deps, options)
+
+  return row
+    ? parseJson(row.payload, 'brief snapshot', (value) => scorecardMonthSchema.parse(value))
+        .scorecardMonth
+    : undefined
+}
+
+async function readPreviousRow(
+  deps: StoreDeps,
+  options: PreviousBriefOptions
+): Promise<BriefSnapshotRow | undefined> {
   assertNotAborted(options.signal)
 
   const p = deps.dialect.param
@@ -202,9 +230,8 @@ async function findPrevious(
       'ORDER BY day DESC LIMIT 1',
     [options.before, options.authoredLocale]
   )
-  const row = rows[0]
 
-  return row ? toBriefSnapshot(row) : null
+  return rows[0]
 }
 
 /** Null for a snapshot this build cannot answer with: one written against a different render

@@ -104,6 +104,7 @@ interface ReleaseAlertOptions {
   readonly alertId: AlertId
   readonly leaseToken: LeaseToken
   readonly now: number
+  readonly wasAttempted: boolean
 }
 
 export interface AlertStore {
@@ -131,9 +132,8 @@ export interface AlertStore {
   markFired(options: MarkFiredOptions): Promise<boolean>
   deferDelivery(options: DeferAlertOptions): Promise<boolean>
   disable(options: DisableAlertOptions): Promise<DisableAlertResult>
-  /** Undoes a claim whose delivery was aborted before it completed: back to `triggered`, due
-   *  immediately, with the claim's attempt increment handed back. Takes no signal — this is the
-   *  cleanup that runs while the tick's signal is already aborted. */
+  /** Undoes an aborted claim: back to `triggered`, due now, the attempt handed back unless its
+   *  delivery started (a retry then starts no job). No signal: it runs once the tick's is aborted. */
   release(options: ReleaseAlertOptions): Promise<boolean>
 }
 
@@ -438,10 +438,10 @@ async function deferDelivery(deps: StoreDeps, options: DeferAlertOptions): Promi
 async function release(deps: StoreDeps, options: ReleaseAlertOptions): Promise<boolean> {
   const p = deps.dialect.param
   const result = await deps.db.execute(
-    `UPDATE alerts SET state = 'triggered', next_due_at = ${p(1)}, attempts = attempts - 1, ` +
+    `UPDATE alerts SET state = 'triggered', next_due_at = ${p(1)}, attempts = attempts - ${p(2)}, ` +
       'lease_token = NULL, lease_until = NULL ' +
-      `WHERE id = ${p(2)} AND state = 'delivering' AND lease_token = ${p(3)}`,
-    [options.now, options.alertId, options.leaseToken]
+      `WHERE id = ${p(3)} AND state = 'delivering' AND lease_token = ${p(4)}`,
+    [options.now, options.wasAttempted ? 0 : 1, options.alertId, options.leaseToken]
   )
 
   return result.changes === 1

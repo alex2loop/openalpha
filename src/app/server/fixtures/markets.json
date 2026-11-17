@@ -40,6 +40,7 @@
         "close": "17:30",
         "today": "2026-10-23",
         "tradesToday": true,
+        "todayAt": { "open": 1792717200000, "close": 1792751400000 },
         "nextTradingDay": "2026-10-24",
         "phase": "open"
       },
@@ -87,6 +88,11 @@
         },
         "today": "2026-10-23",
         "tradesToday": true,
+        "todayAt": {
+          "open": 1792720800000,
+          "close": 1792741500000,
+          "breaks": [{ "from": 1792729800000, "to": 1792735200000 }]
+        },
         "nextTradingDay": "2026-10-26",
         "phase": "break"
       },

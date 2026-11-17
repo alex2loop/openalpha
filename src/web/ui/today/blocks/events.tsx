@@ -1,4 +1,4 @@
-import type { MarketEventWire } from '@/app/server/wire/trading'
+import type { AbsolutePositionWire, MarketEventWire } from '@/app/server/wire/trading'
 import { formatDay } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
@@ -25,6 +25,12 @@ interface HeldEvent {
   readonly event: MarketEventWire
 }
 
+interface HeldEvents {
+  readonly events: readonly HeldEvent[]
+  /** Held names with an event source that were not read: only the largest are. */
+  readonly leftOut: number
+}
+
 /** "Sự kiện sắp tới": ex-dates, meetings and listings of the names the operator holds. */
 export function Events() {
   const reading = useBlockRead(loadEvents, {
@@ -43,48 +49,60 @@ export function Events() {
       icon={<CalendarIcon />}
       reading={reading}
     >
-      {(events) => <EventList events={events} />}
+      {(held) => <EventList held={held} />}
     </BlockFrame>
   )
 }
 
-function EventList({ events }: { readonly events: readonly HeldEvent[] }) {
+function EventList({ held }: { readonly held: HeldEvents }) {
+  const { events, leftOut } = held
+  const note =
+    leftOut === 0 ? null : (
+      <p class="meta">{tr('ui.office.today.eventsLargestOnly', { count: EVENTS_TICKERS_MAX })}</p>
+    )
+
   if (events.length === 0) {
-    return <p class="empty-note">{tr('ui.office.today.noEvents', { days: EVENTS_WINDOW_DAYS })}</p>
+    return (
+      <>
+        <p class="empty-note">{tr('ui.office.today.noEvents', { days: EVENTS_WINDOW_DAYS })}</p>
+        {note}
+      </>
+    )
   }
 
   return (
     <div class="row-list">
-      {events.map((held) => (
-        <div key={held.key} class="row">
+      {events.map((entry) => (
+        <div key={entry.key} class="row">
           <div>
             <b>
-              <TickerLink ticker={held.ticker} market={held.market} />
+              <TickerLink ticker={entry.ticker} market={entry.market} />
             </b>{' '}
-            {held.event.title}
-            {held.event.detail !== undefined && <p class="meta">{held.event.detail}</p>}
+            {entry.event.title}
+            {entry.event.detail !== undefined && <p class="meta">{entry.event.detail}</p>}
           </div>
-          <span class="row-note">{formatDay(locale.value, held.event.at)}</span>
+          <span class="row-note">{formatDay(locale.value, entry.event.at)}</span>
         </div>
       ))}
+      {note}
     </div>
   )
 }
 
 // Reads each held name that has an event source; one name failing leaves the rest, all failing fails.
-async function loadEvents(abort: AbortSignal): Promise<readonly HeldEvent[]> {
+async function loadEvents(abort: AbortSignal): Promise<HeldEvents> {
   const timeZone = state.value?.timeZone
 
   if (timeZone === undefined) {
-    return []
+    return { events: [], leftOut: 0 }
   }
 
   const fromDay = buildDayKey(Date.now(), timeZone)
   const toDay = shiftDay(fromDay, EVENTS_WINDOW_DAYS)
-  const targets = heldPositions.value
-    .map((position) => position.instrument)
-    .filter((instrument) => findMarket(instrument.market)?.hasEvents === true)
-    .slice(0, EVENTS_TICKERS_MAX)
+  const withEvents = heldPositions.value
+    .filter((position) => findMarket(position.instrument.market)?.hasEvents === true)
+    .sort((a, b) => rankValueOf(b) - rankValueOf(a))
+  const targets = withEvents.slice(0, EVENTS_TICKERS_MAX).map((position) => position.instrument)
   const settled = await Promise.allSettled(
     targets.map((instrument) =>
       getJson(ROUTES.events, { query: { ...instrument, fromDay, toDay }, signal: abort })
@@ -98,7 +116,7 @@ async function loadEvents(abort: AbortSignal): Promise<readonly HeldEvent[]> {
     throw failures[0]
   }
 
-  return settled
+  const events = settled
     .flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     .flatMap((answer) =>
       answer.events.map((event) => ({
@@ -111,4 +129,11 @@ async function loadEvents(abort: AbortSignal): Promise<readonly HeldEvent[]> {
     .filter((held) => held.event.at >= fromDay)
     .sort((a, b) => a.event.at.localeCompare(b.event.at))
     .slice(0, EVENTS_SHOWN)
+
+  return { events, leftOut: withEvents.length - targets.length }
+}
+
+// An unpriced holding ranks by what it cost.
+function rankValueOf(position: AbsolutePositionWire): number {
+  return position.marketValueBase ?? position.investedBase
 }

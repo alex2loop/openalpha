@@ -256,7 +256,7 @@ function listTickers(text: string, matches: readonly Match[]): readonly SuggestO
 
 // While the first word is still being typed, the commands it starts.
 function listCommands(text: string): readonly SuggestOption[] {
-  const typed = text.trimStart()
+  const typed = text.trimStart().toLowerCase()
 
   if (typed !== '' && (!typed.startsWith(COMMAND_PREFIX) || WORD_BREAK.test(typed))) {
     return []

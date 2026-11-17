@@ -7,6 +7,7 @@ import type {
   LedgerTxnDraftInput,
   LedgerWriteResult,
 } from '@/trading/features/ledger/types'
+import type { TradingDay } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -14,9 +15,10 @@ import { buildInstrumentKey } from '@/trading/kernel/instrument'
 
 const VOID_TIMEOUT_MS = 30_000
 
-/** The two portfolio writes a sync makes, declared here because `ledger` does not import
- *  `portfolio`. `PortfolioService` satisfies it. */
+/** The portfolio calls a sync makes, declared here because `ledger` does not import `portfolio`.
+ *  `PortfolioService` satisfies it. */
 interface FillWriter {
+  dayAt(at: number): TradingDay
   record(options: {
     readonly draft: LedgerTxnDraftInput
     readonly idempotencyKey: string

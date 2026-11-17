@@ -13,11 +13,6 @@ import type {
   ThemeRunReads,
   ThemeScore,
 } from '@/trading/features/themes/types'
-import {
-  MAXIMUM_RATING,
-  MAXIMUM_SECTORS,
-  MINIMUM_RATING,
-} from '@/trading/features/themes/analyst/schemas'
 import { isCrowdingDecided } from '@/trading/features/themes/chain/company-facts'
 import {
   indexEvidence,
@@ -30,6 +25,11 @@ import {
   SCORE_SCALE,
   toPartValue,
 } from '@/trading/features/themes/score/compose'
+import {
+  MAXIMUM_RATING,
+  MAXIMUM_SECTORS,
+  MINIMUM_RATING,
+} from '@/trading/features/themes/score/policy'
 import { SCENARIO_CASES } from '@/trading/features/themes/types'
 
 const PERCENT = 100

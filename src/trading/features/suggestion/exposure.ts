@@ -33,10 +33,10 @@ export interface HeldPosition {
   readonly openedOn?: TradingDay
 }
 
-/** One weight against the cap it is measured by. */
+/** One weight against the cap it is measured by. The weight is absent when the book has no NAV. */
 export interface CapExposure {
   readonly name: string
-  readonly pctNav: number
+  readonly pctNav?: number
   readonly capPctNav: number
 }
 

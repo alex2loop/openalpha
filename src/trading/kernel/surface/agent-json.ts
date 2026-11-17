@@ -55,6 +55,17 @@ export function writtenQuote<Q extends PricedQuote>(quote: Q, price: PriceWriter
   }
 }
 
+/** A session's extremes written the way its price is, so a high beside a board-scaled price never
+ *  reads in a different unit. */
+export function writtenSession<S extends { readonly high: number; readonly low: number }>(
+  session: S,
+  price: PriceWriter
+): Omit<S, 'high' | 'low'> & { readonly high: string; readonly low: string } {
+  const { high, low, ...rest } = session
+
+  return { ...rest, high: price(high), low: price(low) }
+}
+
 function writtenBoard(board: DealerBoard, price: PriceWriter): WrittenBoard {
   return {
     buyPrice: price(board.buyPrice),

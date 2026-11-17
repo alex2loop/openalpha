@@ -371,6 +371,7 @@ async function capsFor(deps: OrderServiceDeps, caps: CapsInput): Promise<Caps> {
       side: input.request.side,
       orderType: input.request.orderType,
       notional: caps.notional,
+      currency: caps.currency,
       notionalBase,
       hasStopLoss: input.request.exit?.stopLoss !== undefined,
       venue: caps.venue,
@@ -387,6 +388,7 @@ interface CapTerms {
   readonly side: OrderSide
   readonly orderType: OrderType
   readonly notional: number
+  readonly currency: CurrencyCode
   readonly notionalBase: number
   readonly hasStopLoss: boolean
   readonly venue: VenueRef
@@ -401,7 +403,9 @@ export function rejectionsFor(deps: OrderServiceDeps, terms: CapTerms): readonly
     policy: deps.policy,
     side: terms.side,
     notional: terms.notional,
+    currency: terms.currency,
     notionalBase: terms.notionalBase,
+    baseCurrency: terms.book.book.baseCurrency,
     orderType: terms.orderType,
     ...(cost === undefined ? {} : { cost }),
     availableCashBase: venueCashBase(terms),

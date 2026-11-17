@@ -161,6 +161,7 @@ function createBrowserTradingProvider(
     onFilled: () => () => undefined,
     onAlertFired: () => () => undefined,
     onAlertsChecked: () => () => undefined,
+    onProfileSaved: (app) => () => app.resolve('bus').emit('profile_saved', {}),
     onTaskPass: () => () => undefined,
     runScheduled: (app) => (request) => app.resolve('slashDispatcher').runScheduled(request),
     onRoleOutput: (app) => (output) => app.resolve('bus').emit('role_output', output),

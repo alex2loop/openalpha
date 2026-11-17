@@ -14,13 +14,14 @@ import {
   MAXIMUM_CITATIONS,
   MAXIMUM_CLAIM_TEXT_CHARS,
   MAXIMUM_PROPOSALS,
-  MAXIMUM_SECTORS,
   THEME_COMPANY_REPLY,
   THEME_DISCOVERY_REPLY,
   THEME_SECTOR_REPLY,
   THEME_UPDATE_REPLY,
 } from '@/trading/features/themes/analyst/schemas'
+import { isCrowdingDecided } from '@/trading/features/themes/chain/company-facts'
 import { formatFigure, formatShare } from '@/trading/features/themes/evidence/series'
+import { MAXIMUM_SECTORS } from '@/trading/features/themes/score/policy'
 
 const PROMPT_VERSION_HEX = 12
 /** The newest themes the discovery prompt names, each with its thesis so a copy under a new title
@@ -283,5 +284,8 @@ function renderCrowding(crowding: Crowding): string {
       : `${crowding.recentHeadlines} stories on it in the last two weeks`,
   ]
 
-  return `Crowding: ${signals.join('; ')}. Code reads it as ${crowding.crowded ? 'crowded' : 'not crowded'}.`
+  const uncrowded = isCrowdingDecided(crowding) ? 'not crowded' : 'undecided'
+  const verdict = crowding.crowded ? 'crowded' : uncrowded
+
+  return `Crowding: ${signals.join('; ')}. Code reads it as ${verdict}.`
 }

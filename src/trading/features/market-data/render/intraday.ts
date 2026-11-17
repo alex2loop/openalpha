@@ -206,7 +206,7 @@ function renderInstrumentRow(context: RowContext, row: IntradayRow, depth: numbe
   const pair = toPricePair(context, row)
   const indent = INDENT[depth] ?? ''
 
-  if (pair === undefined || row.currency === undefined || row.observed === undefined) {
+  if (pair === undefined || row.observed === undefined) {
     return `${indent}${t(locale, 'trading.intraday.row.unpriced', { ticker: row.ticker })}`
   }
 

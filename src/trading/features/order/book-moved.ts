@@ -1,7 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { CapRejection } from '@/trading/features/order/types'
 import type { CapBreach } from '@/trading/kernel/operator/exposure'
-import type { QuotedIn } from '@/trading/render/money'
 import { renderCapRejections } from '@/trading/features/order/render'
 import { OrderError } from '@/trading/features/order/types'
 import { renderCapBreach } from '@/trading/render/exposure'
@@ -12,7 +11,6 @@ const LINE_SEPARATOR = '\n'
 export interface BookRefusals {
   readonly rejections: readonly CapRejection[]
   readonly breaches: readonly CapBreach[]
-  readonly quotedIn: QuotedIn
 }
 
 /** The caps no longer allow an order the operator confirmed. The message is the machine codes, which
@@ -30,10 +28,10 @@ export class BookMovedError extends OrderError {
   }
 
   override detail(locale: Locale): string {
-    const { rejections, breaches, quotedIn } = this.refusals
+    const { rejections, breaches } = this.refusals
 
     return [
-      ...(rejections.length === 0 ? [] : [renderCapRejections(locale, rejections, quotedIn)]),
+      ...(rejections.length === 0 ? [] : [renderCapRejections(locale, rejections)]),
       ...breaches.map((breach) => renderCapBreach(locale, breach)),
     ].join(LINE_SEPARATOR)
   }

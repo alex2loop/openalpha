@@ -4,6 +4,7 @@ import { useEffect } from 'preact/hooks'
 import type { CommandCompletion } from '@/app/server/wire/system'
 import { getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { commandWordOf } from '@/web/state/chat'
 import { commands } from '@/web/state/estimates'
 
 const COMPLETION_DEBOUNCE_MS = 120
@@ -116,7 +117,7 @@ function readPosition(text: string): Position | undefined {
 }
 
 function isKnownCommand(context: string): boolean {
-  const name = context.trim().split(WORD_BREAK, 1)[0]?.toLowerCase()
+  const name = commandWordOf(context)
 
   return commands.value.some((command) => command.name === name)
 }

@@ -74,7 +74,7 @@ Một bảng tuyến cố định quyết định nguồn nào phục vụ một
 | `mexc` | nến và giá crypto cho các mã mà cả `binance` lẫn `bybit` đều không niêm yết | không |
 | `coingecko` | nguồn dự phòng cuối cho bảng crypto; nguồn duy nhất tra một ký hiệu nằm ngoài mọi bảng; tỷ giá mà một coin thanh toán giao dịch so với một tiền pháp định; lịch sử tỷ giá đồng bằng giá USDT tính theo đồng, đứng sau `yahoo` | `COINGECKO_API_KEY` (tùy chọn) |
 | `vndirect` | công cụ VN, nến, dữ liệu cơ bản, sự kiện, dòng tiền, room ngoại, khuyến nghị của giới môi giới, vĩ mô VN, giá hàng hóa hằng ngày, tin tức VN | không |
-| `vndirect-index` | chỉ số mà dịch vụ nền đọc: lịch sử ngày, đứng trước `entrade` và `vietcap-chart`; tách riêng khỏi `vndirect` để một lần hỏng của chỉ số không làm tạm dừng nến cổ phiếu | không |
+| `vndirect-index` | chỉ số mà dịch vụ nền đọc: lịch sử ngày, đứng trước `vietcap-chart` và `entrade`; tách riêng khỏi `vndirect` để một lần hỏng của chỉ số không làm tạm dừng nến cổ phiếu | không |
 | `entrade` | giá và nến VN; đứng sau `vietcap-chart` cho giá của một chỉ số, đứng sau `vndirect-index` ở nến chỉ số (nó chỉ vẽ bốn chỉ số tiêu đề) | không |
 | `vietcap` | thành phần rổ chỉ số VN (`vn30`, `vn100`) và dữ liệu mua bán chủ động theo từng mã | không |
 | `vps-board` | thành phần rổ chỉ số VN, đứng sau `vietcap`; chỉ trả lời khi mọi mã VN30 của nó đều nằm trong danh sách VN100 | không |
@@ -726,7 +726,9 @@ Khi thị trường chính là Việt Nam hoặc Mỹ, bản tin mở đầu b�
 cùng phần nhìn lại các câu chuyện trước.
 
 - **Phần nhìn lại** đối chiếu các điều kiện theo dõi của một câu chuyện đã kể ở phiên trước với số liệu
-  hôm nay, và cho biết câu chuyện đó có đúng hướng hay không.
+  hôm nay, và cho biết câu chuyện đó có đúng hướng hay không. Phần này chỉ xét các câu chuyện do thị
+  trường chính hiện tại kể, nên sau khi bạn đổi thị trường chính, các câu chuyện của thị trường trước
+  không được chấm.
 - **Câu chuyện** nêu một điều bất thường mà thị trường chính vừa làm. Nó gồm một câu dẫn, các số
   liệu đứng sau, nhận định được ghi rõ là suy luận, điều có thể khiến nhận định sai và điều cần theo dõi
   tiếp.
@@ -766,7 +768,6 @@ Một bản tin đọc theo thứ tự này:
 | Bối cảnh vĩ mô | `regime-shift` `macro` `world-markets` `deposit-rate` `macro-headlines` `economy-headlines` |
 | Mỗi thị trường | `market-prices` `market-quotes` `market-board` `breadth` `range` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `index-review` `events` `recent` `headlines` |
 | Mỗi thị trường, chỉ có trên `/overview <thị trường>` | `reading` `tape` `turnover` `sector-turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
-| Danh sách theo dõi | `watchlist-leading` `watchlist-dropped` `screen-delta` |
 | Hành động | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
 Ở `/overview equity-vn`, khối Việt Nam thêm hai số đọc mà bản tin không mang. **Ai mua, ai bán** chia mua ròng và bán ròng của một phiên trên cả sàn HOSE và HNX thành khối ngoại, tự doanh và phía còn lại (đúng bằng số đối nghịch của hai bên kia). Nó neo vào phiên mới nhất mà số tự doanh đã phủ tới và nói rõ khi phiên đó sớm hơn phiên đã chốt. **Tiền giao dịch tập trung ở ngành nào** (`sector-turnover`) liệt kê năm ngành có giá trị giao dịch lớn nhất, mỗi ngành kèm tỷ trọng trong tổng giá trị thị trường của phiên (các tỷ trọng cộng lại nhỏ hơn toàn bộ, vì có mã không khai ngành) và bội số so với trung bình 20 phiên của chính nó khi đã có các phiên trước đó.

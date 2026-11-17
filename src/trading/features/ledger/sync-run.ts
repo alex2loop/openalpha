@@ -61,6 +61,7 @@ export async function runVenueSync(
     venue: found,
     adapter: found.adapter,
     markets: deps.markets,
+    book: deps.portfolio,
     ledger: deps.ledger,
     recorded: window.recorded,
     since: window.since,

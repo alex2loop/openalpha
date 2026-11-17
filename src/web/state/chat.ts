@@ -12,6 +12,7 @@ import { connection } from '@/web/state/session'
 
 const MAX_TURNS = 200
 const MAX_CHAT_STEPS = 20
+const WORD_BREAK = /\s+/
 // One line per preference the hook keeps, of which there are five.
 const MAX_TURN_PREFERENCES = 5
 /** What starts a command rather than a question. */
@@ -66,6 +67,8 @@ export interface Turn {
   readonly cutAt?: number
   readonly runId?: string
   readonly error?: string
+  /** Why the run halted, when it ended with no reply to show. */
+  readonly haltCode?: string
   /** The session it runs in: the page's when sent, else the one the daemon named for it. */
   readonly sessionId?: string
   /** Sent while the page had no session: the session the daemon names for it becomes the page's. */
@@ -103,6 +106,19 @@ export const viewedSession = signal<ChatSession | undefined>(undefined)
 
 export function isFinished(turn: Turn): boolean {
   return FINISHED.has(turn.status)
+}
+
+/** The words of a line, the command first and lower-cased: the dispatcher reads `/Suggest` as
+ *  `/suggest`, so the page compares a typed name only through this. */
+export function commandWordsOf(text: string): readonly string[] {
+  const [command = '', ...args] = text.trim().split(WORD_BREAK)
+
+  return [command.toLowerCase(), ...args]
+}
+
+/** The first word of a line: the command it names, slash included. */
+export function commandWordOf(text: string): string {
+  return commandWordsOf(text)[0] ?? ''
 }
 
 /** Reads the chat frames and the run events that name a turn's run. The returned stop is
@@ -177,13 +193,21 @@ export function sendMessage(text: string, opts: SendOptions = {}): boolean {
   return true
 }
 
-/** Adds the text to `turn`'s running answer; it reads it at its next step. A command is never a
- *  steer: it would run on its own. */
+/** A line that can be added to a running answer: not empty, and never a command, which would run
+ *  on its own. */
+export function isSteerable(text: string): boolean {
+  const message = text.trim()
+
+  return message !== '' && !message.startsWith(COMMAND_PREFIX)
+}
+
+/** Adds the text to `turn`'s running answer; it reads it at its next step. False when the line
+ *  is not steerable or the socket is not live. */
 export function steer(turn: Turn, text: string): boolean {
   const message = text.trim()
   const frame = withSession({ type: 'steer', message, id: turn.localId }, resolveSession(turn))
 
-  if (message === '' || message.startsWith(COMMAND_PREFIX) || !sendFrame(frame)) {
+  if (!(isSteerable(message) && sendFrame(frame))) {
     return false
   }
 
@@ -363,7 +387,7 @@ function applyFrame(turn: Turn, frame: ChatServerFrame): Turn {
       // A command told to stop after it began ends as dropped too.
       return toFinished(turn, turn.status === 'running' ? 'stopped' : 'dropped')
     case 'done':
-      return toDone(turn, frame.runId, frame.sessionId)
+      return toDone(turn, frame)
     case 'error':
       return { ...toFinished(turn, 'error'), error: frame.message }
     case 'steered':
@@ -405,8 +429,9 @@ function toFinished(turn: Turn, status: TurnStatus): Turn {
   return { ...turn, status, doneAt: performance.now() }
 }
 
-function toDone(turn: Turn, frameRunId: string | undefined, session: string | undefined): Turn {
-  const runId = frameRunId ?? turn.runId
+function toDone(turn: Turn, frame: Extract<ChatServerFrame, { readonly kind: 'done' }>): Turn {
+  const { sessionId: session, haltCode } = frame
+  const runId = frame.runId ?? turn.runId
   // The live store notes a finished run's tickers before the hub tells anyone of the event.
   const tickers = runId === undefined ? [] : findFinishedTickers(runId)
 
@@ -414,6 +439,7 @@ function toDone(turn: Turn, frameRunId: string | undefined, session: string | un
     ...toFinished(turn, 'done'),
     ...(runId === undefined ? {} : { runId }),
     ...(tickers.length === 0 ? {} : { tickers }),
+    ...(haltCode === undefined || turn.reply.trim() !== '' ? {} : { haltCode }),
     ...(turn.sessionId === undefined && session !== undefined ? { sessionId: session } : {}),
   }
 }

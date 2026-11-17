@@ -75,6 +75,7 @@ interface TradingCommandDeps {
     | 'rebalanceAbsolute'
     | 'positionsAt'
     | 'reconcile'
+    | 'dayAt'
   >
   readonly nav: Pick<NavService, 'history'>
   readonly profiles: ProfileService
@@ -291,12 +292,14 @@ function ledgerWriteCommands(deps: TradingCommandDeps): readonly SlashCommand[] 
 /** The two that read the suggestion store. `/reflect` carries the ledger as well, because scoring a
  *  call compares its suggested entry against the fill the operator actually got. */
 function suggestionCommands(deps: TradingCommandDeps): readonly SlashCommand[] {
-  const { alerts, marketData, profiles, suggestions } = deps
+  const { alerts, marketData, portfolio, profiles, suggestions } = deps
 
   return [
     createSuggestCommand({
       ...suggestionReportDeps({ suggestions, marketData, profiles }, deps.config),
       coverage: alerts,
+      portfolio,
+      markets: deps.markets,
       venues: deps.venues,
       ...(deps.edition?.suggest === undefined ? {} : { analysis: deps.edition.suggest }),
     }),

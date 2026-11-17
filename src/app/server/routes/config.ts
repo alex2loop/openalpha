@@ -25,6 +25,7 @@ import { serializeFileWrite } from '@/app/server/routes/file-write'
 import { fieldsRefusal, readJsonBody } from '@/app/server/routes/params'
 import { saveEditedConfig } from '@/cli/api'
 import { probeConfig } from '@/core/config/load'
+import { agentId, runId } from '@/core/ids'
 import { replacePrivateFileAtomic } from '@/core/security/private-files'
 import { isPlainRecord } from '@/core/utils/collections'
 import { hashString } from '@/core/utils/hash'
@@ -212,6 +213,7 @@ function handleProviders(_req: Request, _ctx: ApiRouteContext): Promise<Response
 const TEST_MAX_TOKENS = 64
 const TEST_TIMEOUT_MS = 30_000
 const TEST_PROMPT = 'Reply with OK.'
+const TEST_AGENT = 'provider-test'
 /** The provider accepted the key and answered; running out of room or answering nothing is not
  *  a key problem. */
 const ANSWERED_CODES: ReadonlySet<string> = new Set(['output_budget_exhausted', 'empty_response'])
@@ -231,6 +233,13 @@ async function handleProviderTest(req: Request, ctx: ApiRouteContext): Promise<R
   })
 
   const providerModel = { provider: primary.provider, model: primary.model }
+  const recordAttempt = ctx.app.resolve('attemptRecorder')
+  // Not a run: the attempts are billed under an identity of their own.
+  const identity = {
+    runId: runId(crypto.randomUUID()),
+    agentId: agentId(TEST_AGENT),
+    sessionId: null,
+  }
 
   try {
     await ctx.app.resolve('llmChains').primary.stream(
@@ -242,7 +251,8 @@ async function handleProviderTest(req: Request, ctx: ApiRouteContext): Promise<R
         reasoningMode: 'default',
         signal: AbortSignal.any([req.signal, AbortSignal.timeout(TEST_TIMEOUT_MS)]),
       },
-      () => undefined
+      () => undefined,
+      (attempt) => recordAttempt(identity, attempt).then(() => undefined)
     )
 
     return json({ ok: true, model: primary.model } satisfies ProviderTestResult)

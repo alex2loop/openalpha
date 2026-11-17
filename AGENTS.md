@@ -255,7 +255,7 @@ Implementation plus one composition registration; defining does not activate.
 ### Themes
 
 - `features/themes/` keeps the operator's theme list; code mints every evidence id and scores every read, the model never scores, and a run writes nothing until every step answered. Details: [docs/en/trading.md](docs/en/trading.md#themes).
-- The themes track record reads only runs stamped with the current `SCORE_VERSION`. `check-strategy-version` digests `features/themes/score/` whole: a change that moves a score bumps `SCORE_VERSION` in the same commit, then re-record with `--write`.
+- The themes track record reads only runs stamped with the current `SCORE_VERSION`. `check-strategy-version` digests `features/themes/score/` whole, so every constant that decides a score (weights, crowding lines, hard-evidence kinds, rating and sector bounds) lives in `score/policy.ts`: a change that moves a score bumps `SCORE_VERSION` in the same commit, then re-record with `--write`.
 
 ### Settled decisions
 

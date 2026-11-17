@@ -1,11 +1,14 @@
 import type { Pricing } from '@/ai/cost/pricing'
+import type { ModelReasoningCapability } from '@/ai/reasoning/effort'
 import type { ChainEntry } from '@/ai/types'
 import type { ResolvedLlm } from '@/core/config/resolve'
 import type { LLMRequest, ProviderChain, ReasoningMode } from '@/core/llm'
-import { cacheRatesOf } from '@/ai/cost/pricing'
-import { widenedMaxTokens } from '@/ai/reasoning/resolve'
+import { cacheRatesOf, OPENROUTER_PROVIDER } from '@/ai/cost/pricing'
+import { MANDATORY_EFFORTS } from '@/ai/openrouter-feed'
+import { resolveSourceReasoning, widenedMaxTokens } from '@/ai/reasoning/resolve'
 
 const CEILING_PER_MILLION = 1_000_000
+const ALWAYS_REASONING: ModelReasoningCapability = { efforts: MANDATORY_EFFORTS }
 
 type CostEstimate = Parameters<ProviderChain['estimateMaxCost']>[0]
 type LadderRequest = Pick<CostEstimate, 'hasOutputContract' | 'reasoningMode'>
@@ -68,10 +71,17 @@ function maxAttemptsPerEntry(
 }
 
 // Prices what the chain will actually permit: a downgraded entry widens max_tokens by the reserve
-// delta, so the pre-call ceiling has to widen with it.
+// delta, so the pre-call ceiling has to widen with it. The attempt resolves with the request mode
+// and, on OpenRouter, the feed's capability, only known asynchronously there: the ceiling assumes
+// the endpoint cannot reason off, the case that raises the reserve.
 function entryOutputTokens(entry: ChainEntry, requested: ReasoningMode, maxTokens: number): number {
   const capped = Math.min(entry.maxTokens ?? maxTokens, maxTokens)
   const mode = requested === 'default' ? entry.reasoningMode : requested
+  const resolution = resolveSourceReasoning(entry, {
+    requested: mode,
+    maxTokens: capped,
+    ...(entry.provider.id === OPENROUTER_PROVIDER ? { capability: ALWAYS_REASONING } : {}),
+  })
 
-  return widenedMaxTokens(capped, mode, entry.reasoningResolution.effectiveMode)
+  return widenedMaxTokens(capped, mode, resolution.effectiveMode)
 }

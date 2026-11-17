@@ -122,7 +122,9 @@ export async function composeBrief<Board>(
   // Converted only once the macro block exists: an economy story it already stated stays out, the
   // way both blocks' stories stay out of every market's headlines below.
   const economy = toHeadlineSection('economy-headlines', economyNews, takenStoryKeys(producing))
-  const finished = [...producing, economy, ...suggestions]
+  // Read once the debates have spent, or it always reports zero.
+  const cost = await runSection('cost', context, composition)
+  const finished = [...producing, economy, ...suggestions, cost]
   // Every market including this one: the converter's kinds are the ones no builder produces, so
   // the home block gains its prices, range, and leaders from the same path gold and crypto use.
   const fromOverviews = overviews.flatMap((overview) => overviewSections(overview))
@@ -395,13 +397,14 @@ function tickersOf(section: BriefSectionResult): readonly string[] {
     : section.rows.flatMap((row) => (typeof row.ticker === 'string' ? [row.ticker] : []))
 }
 
-/** The kinds this pass builds: not the deferred ones, not `headlines` - built from `marketNews`
- *  above, one per market - and not the kinds each market's overview converter emits: those have no
- *  builder, and asking for one produces a section that reports its own absence under a market
- *  nobody stamped. */
+/** The kinds this pass builds: not the deferred ones (`cost` among them), not `headlines` - built
+ *  from `marketNews` above, one per market - and not the kinds each market's overview converter
+ *  emits: those have no builder, and asking for one produces a section that reports its own absence
+ *  under a market nobody stamped. */
 function isEarlyKind(kind: BriefSectionKind): kind is ProducingSectionKind {
   return (
     kind !== 'next-actions' &&
+    kind !== 'cost' &&
     kind !== 'session-delta' &&
     kind !== 'headlines' &&
     kind !== 'economy-headlines' &&

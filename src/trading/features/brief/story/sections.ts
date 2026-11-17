@@ -1,14 +1,16 @@
 import type { TrackedStory } from '@/trading/features/brief/story/review'
-import type { CurrencyCode, TradingDay } from '@/trading/kernel/instrument'
+import type { CurrencyCode, MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { BriefSectionResult, BriefSectionRow } from '@/trading/kernel/operator/brief-section'
 import type { StoryCandidate, StoryWatch } from '@/trading/kernel/operator/brief-story'
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import { toRunKey } from '@/trading/kernel/operator/brief-story'
 
 /** What both sections share. Neither carries a market stamp: the block is the brief's lead, above
- *  every market's own, and a stamped section would be filed under a market and vanish. */
+ *  every market's own, and a stamped section would be filed under a market and vanish. `market` is
+ *  the market that told the story, written on the head row for the next review to read. */
 export interface SectionStamp {
   readonly asOf: TradingDay
+  readonly market: MarketRef
   readonly provenance: readonly SourceProvenance[]
   readonly currency: CurrencyCode
 }
@@ -29,6 +31,7 @@ export function buildReviewSection(
     story: story.code,
     thesisStatus: story.status,
     at: story.toldIn,
+    market: stamp.market,
     ...(story.sector === undefined ? {} : { sector: story.sector }),
     ...(runLength === undefined ? {} : { sessions: runLength }),
   }
@@ -58,7 +61,7 @@ export function buildStorySection(
   return readySection(
     'story',
     [
-      { story: story.code, ...sectorOfFacts(story) },
+      { story: story.code, market: stamp.market, ...sectorOfFacts(story) },
       ...story.facts.map((fact) => ({ ...fact.row, storyRole: fact.role })),
       ...story.watches.map((watch) => watchRow(watch)),
       ...runRows,

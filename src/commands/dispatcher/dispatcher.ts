@@ -303,6 +303,14 @@ function rejectSurface(policy: SlashInvocationPolicy, surface: CommandSurface): 
   }
 }
 
+// The page runs the terminal's commands in a chat of its own, so a command that keeps its choice per
+// chat runs there too.
+function isSurfaceAdmitted(policy: SlashInvocationPolicy, context: SlashContext): boolean {
+  return policy.surfaces.some(
+    (surface) => surface === context.surface || surface === context.readsAs
+  )
+}
+
 function rejectHandled(): AdmissionResult {
   return { kind: 'rejected', result: { kind: 'handled' }, isRecorded: true }
 }
@@ -311,7 +319,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
   const { resolved, context, cooldowns, idempotency, calls, pendingKeys, ratePerMinute } = options
   const { policy, command } = resolved
 
-  if (!policy.surfaces.includes(context.surface)) {
+  if (!isSurfaceAdmitted(policy, context)) {
     return rejectSurface(policy, context.surface)
   }
 

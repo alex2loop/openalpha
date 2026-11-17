@@ -11,7 +11,7 @@ import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { adjacentDays, QUANTITY_TOLERANCE } from '@/trading/features/ledger/fills'
 import { listingOnce } from '@/trading/features/ledger/sync-listing'
-import { resolveDay, resolveInstrument } from '@/trading/features/market-data/resolve'
+import { resolveFillDay, resolveInstrument } from '@/trading/features/market-data/resolve'
 import { currencyCode, isSameInstrument, ticker } from '@/trading/kernel/instrument'
 import { isBookableFill, toBookedFill } from '@/trading/kernel/venue/fee'
 
@@ -78,6 +78,8 @@ interface VenueSyncInput {
   readonly venue: Venue
   readonly adapter: SpotAdapter
   readonly markets: MarketRegistry
+  /** Dates a fill no later than the book's own day. */
+  readonly book: { dayAt(at: number): TradingDay }
   readonly ledger: Pick<LedgerStore, 'findByIdempotency'>
   readonly recorded: readonly LedgerEntry[]
   readonly since: number
@@ -225,7 +227,7 @@ async function toSyncedFill(
     return market
   }
 
-  const at = resolveDay(market, receipt.filledAt)
+  const at = resolveFillDay(market, receipt.filledAt, input.book)
 
   if (at < input.fromDay) {
     return 'beforeBook'

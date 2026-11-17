@@ -99,6 +99,7 @@ function toCapRejectionWire(rejection: CapRejection): CapRejectionWire {
     limit: rejection.limit,
     actual: rejection.actual,
     ...(rejection.venue === undefined ? {} : { venue: rejection.venue }),
+    ...(rejection.currency === undefined ? {} : { currency: rejection.currency }),
   }
 }
 

@@ -5,7 +5,6 @@ import type { EvidenceDraft, PricedAt } from '@/trading/features/themes/types'
 import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type { Candle } from '@/trading/kernel/market/market-data'
 import type { ValuationPoint } from '@/trading/kernel/market/valuation'
-import { MAXIMUM_TARGET_PE } from '@/trading/features/themes/analyst/schemas'
 import { toSectorValuationDraft } from '@/trading/features/themes/chain/sector-facts'
 import {
   formatFigure,
@@ -13,6 +12,7 @@ import {
   toDayBefore,
   toPercentRank,
 } from '@/trading/features/themes/evidence/series'
+import { MAXIMUM_TARGET_PE } from '@/trading/features/themes/score/policy'
 import { THEME_MARKET } from '@/trading/features/themes/types'
 
 const RETURN_WINDOW_DAYS = 366

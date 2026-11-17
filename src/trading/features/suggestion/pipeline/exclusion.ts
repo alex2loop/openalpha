@@ -1,5 +1,6 @@
 import type { Stage, StageDecision, StageInput } from '@/trading/markets/stage'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
+import { isBookCall } from '@/trading/kernel/operator/focus'
 import { STAGE_PASS } from '@/trading/markets/stage'
 
 const EXCLUSION_STAGE_ID = 'profile-exclusion'
@@ -18,6 +19,10 @@ export function createExclusionStage(): Stage {
 }
 
 function evaluate(input: StageInput): StageDecision {
+  if (!isBookCall(input.suggestion)) {
+    return STAGE_PASS
+  }
+
   const key = buildInstrumentKey(input.suggestion.instrument)
   const excluded = input.profile.exclusions.some((entry) => buildInstrumentKey(entry) === key)
 

@@ -4,6 +4,7 @@ import { openLots } from '@/trading/features/portfolio/folds/holdings'
 import { lowerBand } from '@/trading/kernel/conviction'
 import { ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
 import { eventsFromDay } from '@/trading/kernel/market/market-event'
+import { isBookCall } from '@/trading/kernel/operator/focus'
 import { loweredDecision, STAGE_PASS } from '@/trading/markets/stage'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 
@@ -32,7 +33,7 @@ export function createAveragingDownStage(): Stage {
 function evaluate(input: StageInput): StageDecision {
   const { suggestion } = input
 
-  if (suggestion.action !== 'buy' || input.instrumentKind === ETF_KIND) {
+  if (suggestion.action !== 'buy' || !isBookCall(suggestion) || input.instrumentKind === ETF_KIND) {
     return STAGE_PASS
   }
 

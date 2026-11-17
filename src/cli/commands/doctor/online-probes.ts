@@ -309,6 +309,7 @@ async function probeProviderKey(options: {
       credentials,
     })
 
+    // Doctor and onboard run without boot: no tracker or ledger exists to bill this one-token call.
     await chain.stream(
       {
         model: model.model,

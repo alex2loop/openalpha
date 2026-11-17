@@ -8,7 +8,7 @@ import type { BookedFill, FeePriceLookup } from '@/trading/kernel/venue/fee'
 import { isAbortError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { buildVenueFillKey } from '@/trading/features/ledger/sync'
-import { resolveDay } from '@/trading/features/market-data/resolve'
+import { resolveFillDay } from '@/trading/features/market-data/resolve'
 import { OrderError } from '@/trading/features/order/types'
 import { isBookableFill, toBookedFill } from '@/trading/kernel/venue/fee'
 
@@ -208,14 +208,14 @@ async function record(
 
 /** The day the fill traded in, from its own stamp: the order may fill a session before this runs
  *  to its end, and the confirm's clock would put the trade on a day it did not happen. A fill the
- *  venue left unstamped falls back to the day it was prepared on. */
+ *  venue left unstamped is dated by the execute clock. */
 function fillDayOf(deps: OrderServiceDeps, filled: Omit<FilledOrder, 'write'>): TradingDay {
   const { input, receipt } = filled
   const market = deps.markets.find(input.staged.instrument.market)
 
-  return market === null || receipt.filledAt === undefined
+  return market === null
     ? input.prepared.day
-    : resolveDay(market, receipt.filledAt)
+    : resolveFillDay(market, receipt.filledAt ?? input.now, deps.portfolio)
 }
 
 /** `/record sync` may book this fill under the venue's key while the order is still polling. The

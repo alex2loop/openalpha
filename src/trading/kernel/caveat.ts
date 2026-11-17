@@ -67,6 +67,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'market-data.trade-sides-empty', severity: 'warn' },
   { code: 'market-data.trade-sides-missed', severity: 'warn' },
   { code: 'market-data.insufficient-history', severity: 'warn' },
+  { code: 'market-data.reference-bars-only', severity: 'info' },
   { code: 'market-data.universe-truncated', severity: 'warn' },
   { code: 'market-data.universe-shallow', severity: 'warn' },
   { code: 'market-data.universe-fallback', severity: 'info' },

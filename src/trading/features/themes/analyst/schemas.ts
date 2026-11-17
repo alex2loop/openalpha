@@ -3,6 +3,12 @@ import { z } from 'zod'
 import type { JsonOutputContract } from '@/core/llm'
 import { toResearchOutputContract } from '@/engine/api'
 import {
+  MAXIMUM_RATING,
+  MAXIMUM_SECTORS,
+  MAXIMUM_TARGET_PE,
+  MINIMUM_RATING,
+} from '@/trading/features/themes/score/policy'
+import {
   EARNINGS_VERDICTS,
   SECTOR_EFFECTS,
   SECTOR_LINKAGES,
@@ -21,14 +27,9 @@ const MAXIMUM_HORIZON_MONTHS = 60
 const MAXIMUM_TITLE_CHARS = 120
 export const MAXIMUM_CLAIM_TEXT_CHARS = 400
 const MAXIMUM_SUMMARY_CHARS = 700
-/** A theme reaches a few sectors clearly; more is a list, not a judgment. */
-export const MAXIMUM_SECTORS = 3
 const MAXIMUM_CHAIN_CLAIMS = 4
-export const MINIMUM_RATING = 1
-export const MAXIMUM_RATING = 5
 const MAXIMUM_EPS_GROWTH_PCT = 300
 const MINIMUM_EPS_GROWTH_PCT = -100
-export const MAXIMUM_TARGET_PE = 200
 
 /** Discovery proposes at most this many per run, so the operator's queue stays readable. */
 export const MAXIMUM_PROPOSALS = 3

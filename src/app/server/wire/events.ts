@@ -40,6 +40,8 @@ type WireEventKind =
   | 'mover'
   | 'order_filled'
   | 'alerts_checked'
+  /** 'profile_saved': the trading profile was written; it has no payload, so read GET /v1/profile. */
+  | 'profile_saved'
   | 'tasks_changed'
   | 'schedule_result'
   | 'call_scored'

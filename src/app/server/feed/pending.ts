@@ -1,3 +1,4 @@
+import type { Decision } from '@/app/server/wire/chat'
 import type { PendingWire, QuestionPendingWire } from '@/app/server/wire/live'
 import type { EventBus } from '@/core/events'
 import type { RunId } from '@/core/ids'
@@ -20,12 +21,17 @@ interface ApprovalEntry {
   readonly expiresAt: number
 }
 
+/** Where an approval was asked and the answers it offers. */
+export interface PendingApproval {
+  readonly channelId: string
+  readonly decisions: readonly Decision[]
+}
+
 interface PendingFeed {
   /** The approvals and questions still waiting, on every channel: approvals first, each oldest first. */
   list(): readonly PendingWire[]
-  /** The raw channel an approval was asked on; undefined for an id no longer waiting (answered,
-   *  timed out, its run gone, or never asked). */
-  originOf(requestId: string): string | undefined
+  /** Undefined for an id no longer waiting (answered, timed out, its run gone, or never asked). */
+  approvalOf(requestId: string): PendingApproval | undefined
   stop(): void
 }
 
@@ -55,10 +61,14 @@ export function createPendingFeed(deps: PendingFeedDeps): PendingFeed {
 
       return [...[...approvals.values()].map((entry) => entry.wire), ...questions.values()]
     },
-    originOf(requestId) {
+    approvalOf(requestId) {
       prune(approvals, questions, deps.liveRunIds())
 
-      return approvals.get(requestId)?.channelId
+      const entry = approvals.get(requestId)
+
+      return entry === undefined
+        ? undefined
+        : { channelId: entry.channelId, decisions: entry.wire.event.approval?.decisions ?? [] }
     },
     stop() {
       for (const off of offs) {
