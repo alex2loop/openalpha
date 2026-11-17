@@ -278,6 +278,8 @@ export interface MarketConfig {
   readonly stopLossAtr?: number
   /** Target as a multiple of the risk distance. Absent keeps the market's own. */
   readonly rewardRisk?: number
+  /** Tax withheld from a cash dividend, as a fraction. Absent keeps the market's own. */
+  readonly dividendTax?: number
 }
 
 export type MarketConfigs = Readonly<Partial<Record<MarketRef, MarketConfig>>>

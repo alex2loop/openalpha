@@ -1,5 +1,7 @@
 import type { PortfolioView } from '@/trading/features/portfolio/render/segment-shares'
+import type { ValuedPosition } from '@/trading/features/portfolio/types'
 import type { AnalysisId, AnalysisRecord } from '@/trading/features/suggestion/analysis/types'
+import type { MarketRef } from '@/trading/kernel/instrument'
 import type { StopCover } from '@/trading/kernel/operator/alert'
 import type { Page } from '@/trading/kernel/store/page'
 import type { AgentMethods } from '@/trading/wiring/host/agents'
@@ -70,7 +72,26 @@ async function portfolioView(
     profileOf(deps, scope),
   ])
 
-  return { ...sized, shares: toSegmentShares(sized.valued, profile) }
+  return {
+    ...sized,
+    shares: toSegmentShares(sized.valued, profile),
+    dividendTaxes: dividendTaxesOf(deps, sized.valued.positions),
+  }
+}
+
+function dividendTaxesOf(
+  deps: TradingHostDeps,
+  positions: readonly ValuedPosition[]
+): ReadonlyMap<MarketRef, number> {
+  const markets = new Set(positions.map((valued) => valued.position.instrument.market))
+
+  return new Map(
+    [...markets].flatMap((market) => {
+      const tax = deps.services.marketData.quoteConvention(market)?.dividendTax
+
+      return tax === undefined ? [] : [[market, tax] as const]
+    })
+  )
 }
 
 function bookMethods(deps: TradingHostDeps): BookMethods {

@@ -4,11 +4,13 @@ import type { SizedValuedBook } from '@/trading/features/portfolio/types'
 import type { TradingConfig } from '@/trading/kernel/config'
 import type { CurrencyCode, InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { AlertCondition } from '@/trading/kernel/operator/alert'
+import type { QuoteConvention } from '@/trading/render/money'
 import type { VenueRegistry } from '@/trading/venues/types'
 import type { TradingServices } from '@/trading/wiring/composition/service-aggregate'
 import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 import { marksByInstrument } from '@/trading/features/portfolio/view'
 import { DEFAULT_FOCUS_KEY, DEFAULT_RUN_FOCUS } from '@/trading/kernel/operator/focus'
+import { costAfterDividends } from '@/trading/markets/cost'
 import { isBoardScaled } from '@/trading/render/money'
 import { createTradeableBook } from '@/trading/wiring/composition/delivery-reads'
 
@@ -98,7 +100,9 @@ function lazyBookReads(
       // headline reading 0 reads as a loss. An unknown total is still a book.
       return sized.valued.navBase !== undefined && sized.valued.navBase <= 0
         ? null
-        : toBookSummary(sized, config.baseCurrency)
+        : toBookSummary(sized, config.baseCurrency, (market) =>
+            services().marketData.quoteConvention(market)
+          )
     },
     holdings: async (o) => {
       const book = createTradeableBook({ portfolio: services().portfolio, venues })
@@ -197,11 +201,13 @@ async function toAlertRows(
 }
 
 /** The headline plus what it is made of: the loss section counts the under-water leg from the
- *  same valuation the headline reads. A sliver the venue will not trade stays in the headline but
- *  is no holding: it has no plan, and counting it reported dust as positions without a stop. */
+ *  same valuation the headline reads, each holding against the cost its own row prints. A sliver
+ *  the venue will not trade stays in the headline but is no holding: it has no plan, and counting it
+ *  reported dust as positions without a stop. */
 function toBookSummary(
   { valued, minimumSizes }: SizedValuedBook,
-  currency: CurrencyCode
+  currency: CurrencyCode,
+  conventionOf: (market: MarketRef) => QuoteConvention | undefined
 ): BookSummary {
   return {
     ...(valued.navBase === undefined ? {} : { nav: valued.navBase }),
@@ -211,7 +217,11 @@ function toBookSummary(
         ? [
             {
               instrument: entry.position.instrument,
-              costBase: entry.position.costBasisBase,
+              costBase:
+                costAfterDividends(
+                  entry.position,
+                  conventionOf(entry.position.instrument.market)?.dividendTax
+                )?.costBasisBase ?? entry.position.costBasisBase,
               valueBase: entry.valueBase,
             },
           ]

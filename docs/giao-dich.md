@@ -1149,7 +1149,7 @@ Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 
-Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán. Thị trường mà nhóm bạn đã tắt, và bạn không nắm giữ hay theo dõi mã nào ở đó, sẽ không được tìm khi gõ mã trần: `BTC` được hiểu là đồng coin, còn quỹ Mỹ cùng tên phải gõ `equity-us:BTC`. Vàng thế giới không phải nhóm bạn tắt nên `XAUUSD` vẫn đọc được.
+Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán. Thị trường mà nhóm bạn đã tắt, và bạn không nắm giữ hay theo dõi mã nào ở đó, sẽ không được tìm khi gõ mã trần: `BTC` được hiểu là đồng coin, còn quỹ Mỹ cùng tên phải gõ `equity-us:BTC`. Vàng thế giới không phải nhóm bạn tắt nên `XAUUSD` vẫn đọc được. Khi gõ mã trần mà không lấy được giá, câu trả lời nêu các nhóm đang tắt có thể có mã đó và hai cách để đọc: gõ kèm thị trường (`equity-us:AAPL`), hoặc bật nhóm đó lên.
 
 Một mã là cổ phiếu token hóa (cổ phiếu được bọc thành token) không bị đọc như tài sản crypto: `/suggest` trả lời nó là gì và nhờ bạn gõ đúng mã cổ phiếu gốc.
 
@@ -1325,6 +1325,8 @@ như bạn gõ. Không có gì được giữ lại giữa hai bước.
 ```
 
 Giá vốn bình quân đã gồm phí mua, nên khớp với con số app công ty chứng khoán của bạn hiện, và mọi phép định giá cùng lãi/lỗ đều đo so với nó. Vì vậy mua rồi bán lại ở cùng giá sẽ hiện đúng là một khoản lỗ nhỏ.
+
+Khi mã đã nhận cổ tức tiền mặt mà bạn ghi vào sổ (`/record dividend`), giá vốn hiện ra là giá vốn sau cổ tức, đúng cách công ty chứng khoán Việt Nam hiển thị: giá bạn mua gồm phí, trừ đi cổ tức quy về số công ty đã công bố trước thuế. Dòng cổ tức trong sổ là số tiền thực nhận sau thuế, nên OpenAlpha chia nó cho một trừ thuế suất của thị trường (5% với cổ phiếu Việt Nam, đổi bằng `[trading.markets.<id>] dividend_tax`). Cổ phiếu Mỹ giữ nguyên giá vốn bạn đã trả, như công ty chứng khoán Mỹ, trừ khi bạn đặt thuế suất cho `equity-us`. 500 cổ phiếu mua ở 24,036 gồm phí, nhận 475.000 VND sau thuế, sẽ hiện 24,036 − 1,000 = 23,04. Báo cáo đề xuất, `/portfolio`, dòng xác nhận sau khi ghi sổ và thẻ mã trên trang văn phòng đều hiện con số này (báo cáo đề xuất ghi kèm giá bạn đã mua), và tính lãi/lỗ của mã đó từ nó: ở giá 24,20, vị thế trên hiện ▲ 582.000 VND (▲ 5,05%), giống app công ty chứng khoán. NAV, tổng lãi/lỗ của sổ và lãi đã chốt không đổi: ở đó cổ tức chỉ được tính một lần, là số tiền thực nhận, nên cộng lãi/lỗ các mã sẽ không ra đúng tổng của sổ. Bán bớt thì phần cổ tức đi theo phần giá vốn được bán, và cổ tức bạn chưa ghi vào sổ thì không được tính, vì OpenAlpha chỉ biết những gì có trong sổ của bạn. Bản tin sáng cũng xét một mã có đang lỗ hay không theo đúng giá vốn này. Cổ tức ghi ở sàn mà bạn không giữ mã đó thì không trừ vào giá vốn nào, và dòng xác nhận sau khi ghi sẽ báo để bạn kiểm tra xem có gõ nhầm sàn không.
 
 - Mức phí bạn nêu lệch xa tỷ lệ đã cấu hình thì dòng tỷ lệ được thay bằng mức lệch, không bị lặng lẽ chấp nhận.
 - Thị trường không có tỷ lệ cấu hình thì không in cả hai dòng: không có gì để đo so với, và một số 0 sẽ bị đọc thành sự đồng ý.
@@ -1565,7 +1567,7 @@ Cả hai trường này nhận từ 0,2 tới 1.
 
 - `horizon <nhóm> <short|long>`
 - `segment-target`, `segment-cap` và `position-cap`, mỗi cái nhận một nhóm và một phân số
-- `/profile enable|disable <nhóm>` bật hoặc tắt một nhóm
+- `/profile enable|disable <nhóm>` bật hoặc tắt một nhóm. `/profile` và `/portfolio` liệt kê các nhóm đang tắt kèm tên cần gõ, và câu lệnh để bật
 
 Một nhóm mà không sàn nào giao dịch thì luôn tắt, và lệnh bật nó bị từ chối. Hiện đó là vàng thế giới, được giữ lại vì giá của nó và vì mức chênh `gold-vn`.
 

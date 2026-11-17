@@ -23,6 +23,7 @@ import type {
   Caveat,
   InstrumentRef,
   MarketEvent,
+  MarketRef,
   NewsItem,
   PortfolioView,
   ProfileSetField,
@@ -36,6 +37,7 @@ import type {
 } from '@/trading/api'
 import {
   buildInstrumentKey,
+  costAfterDividends,
   describeCaveat,
   describeEvent,
   isBelowMinimumSize,
@@ -236,7 +238,12 @@ export function toProfileWire(
 
 export function toPortfolioWire(sized: PortfolioView, locale: Locale): TradingPortfolioResponse {
   const book = sized.valued
-  const context = { navBase: book.navBase, minimumSizes: sized.minimumSizes, locale }
+  const context = {
+    navBase: book.navBase,
+    minimumSizes: sized.minimumSizes,
+    dividendTaxes: sized.dividendTaxes,
+    locale,
+  }
 
   return {
     asOf: book.book.asOf,
@@ -266,11 +273,14 @@ function toPositionWire(
   context: {
     readonly navBase: number | undefined
     readonly minimumSizes: ReadonlyMap<string, number>
+    readonly dividendTaxes: ReadonlyMap<MarketRef, number>
     readonly locale: Locale
   }
 ): AbsolutePositionWire {
   const { navBase, minimumSizes, locale } = context
   const heldSince = position.position.buys[0]?.acquiredAt
+  const market = position.position.instrument.market
+  const afterDividends = costAfterDividends(position.position, context.dividendTaxes.get(market))
   const minimumSize = minimumSizes.get(buildInstrumentKey(position.position.instrument))
   const base = {
     instrument: toInstrumentWire(position.position.instrument),
@@ -280,6 +290,7 @@ function toPositionWire(
     ...(position.position.quantity > 0
       ? { unitCostNative: position.position.costBasisNative / position.position.quantity }
       : {}),
+    ...(afterDividends === undefined ? {} : { costAfterDividends: afterDividends }),
     ...(heldSince === undefined ? {} : { heldSince }),
     investedBase: position.position.costBasisBase,
   }
@@ -292,7 +303,7 @@ function toPositionWire(
     ...base,
     price: position.price,
     marketValueBase: position.valueBase,
-    unrealizedPnlBase: position.valueBase - base.investedBase,
+    unrealizedPnlBase: position.valueBase - (afterDividends?.costBasisBase ?? base.investedBase),
     ...(navBase === undefined || navBase === 0
       ? {}
       : { weightPctNav: percent(position.valueBase / navBase) }),

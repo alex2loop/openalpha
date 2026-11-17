@@ -72,7 +72,10 @@ export function buildRegistries(app: App, options: RegistryOptions): Registries 
   const stores = app.resolve('tradingStores')
   const sources = buildSources(app, options)
   const stages = createStageRegistry()
-  const markets = createMarketRegistry(lazyOperatorUse(app, logger))
+  // Resolved per call: the market-data service that loads a listing is built from this registry.
+  const markets = createMarketRegistry(lazyOperatorUse(app, logger), (market, signal) =>
+    app.resolve('tradingServices').marketData.ensureListing(market, signal)
+  )
   const { registry: venues, listings } = buildVenues(options, { logger, book: stores.ledger })
   const fx = createFxRates({ sources, store: stores.fxRate, logger })
   const deps: MarketDeps = {

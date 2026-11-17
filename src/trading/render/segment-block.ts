@@ -5,7 +5,7 @@ import type { RenderContext } from '@/trading/render/format'
 import type { ColumnAlign } from '@/trading/render/table'
 import { t } from '@/i18n'
 import { BAR_MARKS, CHART_CELLS, renderBar } from '@/trading/render/chart'
-import { SECTION_ICONS } from '@/trading/render/format'
+import { renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
 import { INDENT, INLINE_SEPARATOR, renderSectionTitle, toFactLines } from '@/trading/render/layout'
 import { ABSENT_CELL } from '@/trading/render/number'
 import { toTable } from '@/trading/render/table'
@@ -38,7 +38,8 @@ export interface SegmentBlock {
    *  stacked shape; the rest are the ceilings on its detail line. */
   readonly columns: readonly SegmentColumn[]
   readonly rows: readonly SegmentRow[]
-  /** Segments the operator switched off, named once under the rows instead of as rows of zeros. */
+  /** Segments the operator switched off and can switch back on, by id: named once under the rows,
+   *  with the command that switches one on, instead of as rows of zeros. */
   readonly disabled: readonly string[]
   /** Segments whose target the operator set by hand. Absent where the surface does not track them;
    *  a pin that re-seeding honours has to be visible, or a target that will not move on a
@@ -56,7 +57,7 @@ export function renderSegmentBlock(
   block: SegmentBlock,
   context: RenderContext
 ): readonly string[] {
-  const off = namedSegments(locale, 'trading.render.segment.off', block.disabled)
+  const off = switchedOffLines(locale, block.disabled)
 
   if (block.rows.length === 0 && off.length === 0) {
     return []
@@ -166,4 +167,25 @@ function namedSegments(
   }
 
   return [`${INDENT[1]}${t(locale, key, { segments: segments.join(INLINE_SEPARATOR) })}`]
+}
+
+/** The switched-off line, each segment named with the id `/profile enable` takes, then that command. */
+function switchedOffLines(locale: Locale, segments: readonly string[]): readonly string[] {
+  const [first] = segments
+
+  if (first === undefined) {
+    return []
+  }
+
+  const names = segments.map((segment) =>
+    t(locale, 'trading.render.segment.named', {
+      name: renderDeclaredValue(locale, `trading.segment.${segment}`),
+      id: segment,
+    })
+  )
+
+  return [
+    `${INDENT[1]}${t(locale, 'trading.render.segment.off', { segments: names.join(INLINE_SEPARATOR) })}`,
+    `${INDENT[1]}${t(locale, 'trading.render.segment.enableHint', { example: first })}`,
+  ]
 }

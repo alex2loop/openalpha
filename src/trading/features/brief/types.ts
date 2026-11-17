@@ -296,7 +296,8 @@ export interface BookSummary {
   readonly marks: ReadonlyMap<string, number>
 }
 
-/** One holding's cost against what it is worth now, in the book's currency. */
+/** One holding's cost, after the dividends it earned where its market counts them, against what it
+ *  is worth now, in the book's currency. */
 interface BookPositionSummary {
   readonly instrument: InstrumentRef
   readonly costBase: number

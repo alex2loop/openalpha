@@ -63,7 +63,7 @@ interface StopPlacementReader {
 interface PortfolioCommandDeps {
   readonly portfolio: Pick<PortfolioService, 'viewAbsoluteWithKinds'>
   readonly nav: Pick<NavService, 'history'>
-  readonly profiles: Pick<ProfileService, 'get' | 'isSaved'>
+  readonly profiles: Pick<ProfileService, 'get' | 'isSaved' | 'heldSegments'>
   readonly marketData: Pick<MarketDataService, 'describeMarkets' | 'events' | 'quoteConvention'>
   readonly alerts: StopDistanceReader
   readonly orders?: StopPlacementReader
@@ -150,6 +150,7 @@ async function run(deps: PortfolioCommandDeps, ctx: SlashContext): Promise<Slash
     now,
     signal: ctx.signal,
   })
+  const instruments = book.positions.map((valued) => valued.position.instrument)
   const profileOptions = { defaultLocale: ctx.locale, signal: ctx.signal }
   const [profile, profileSaved, distances, minimumSizes, restingStops] = await Promise.all([
     deps.profiles.get(profileOptions),
@@ -168,17 +169,15 @@ async function run(deps: PortfolioCommandDeps, ctx: SlashContext): Promise<Slash
       sectorCapPctNav: profile.maximumSectorPctNav,
       profile: toProfileStamp({ profile, saved: profileSaved }),
       segmentCaps: profile.caps,
+      heldSegments: new Set(deps.profiles.heldSegments()),
       instrumentKinds,
-      quoteConventions: quoteConventionsFor(
-        deps.marketData,
-        book.positions.map((valued) => valued.position.instrument)
-      ),
+      quoteConventions: quoteConventionsFor(deps.marketData, instruments),
       marketIcons: resolveMarketIcons(deps.marketData),
       stopDistances: distancesByInstrument(distances),
       restingStops,
       minimumSizes,
       upcoming: await upcoming(deps, {
-        instruments: book.positions.map((valued) => valued.position.instrument),
+        instruments,
         asOf: book.book.asOf,
         now,
         signal: ctx.signal,

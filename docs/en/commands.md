@@ -1176,11 +1176,18 @@ When no OpenAlpha is running in the background, `mcp serve` keeps its own market
 making the assistant wait: it refreshes the markets you follow as it starts, then every hour, so a
 session the app keeps open for days still sees each new close. When the assistant switches a market
 on or starts watching a name, that market loads straight away, even while a longer refresh is still
-running. On a first start each market's list of names arrives within seconds and the price history
-over the next few minutes, so a question asked in the very first moments may be told the list is
-still loading. A trade you record in a market you do not follow yet loads at the next hourly
-refresh. When the background service is running, it already does all this and `mcp serve` leaves
-it alone.
+running. A price asked for in a market whose list of names has not arrived yet waits for it, up to
+about half a minute, instead of saying the name is unknown; the price history follows over the next
+few minutes. A trade you record in a market you do not follow yet loads at the next refresh. When
+the background service is running, it keeps the markets fresh and `mcp serve` leaves that to it,
+but still loads a market the assistant switches on, since the service would only reach it at its
+next scheduled refresh.
+
+A market you have switched off is not searched when you name a ticker without its market. The
+assistant still reads its prices when you name the market (for example `equity-us` for AAPL), and it
+asks before switching the market on, since that splits your target weights again. When you are just
+starting, it walks you through what `/setup` does in the chat: how much risk you take and which
+markets you trade.
 
 `--host` picks the app: `claude-code` (the default), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, or `agents` for the neutral Agent Skills

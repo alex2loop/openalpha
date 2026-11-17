@@ -1140,7 +1140,7 @@ They arrive only while OpenAlpha runs in the background (`openalpha start --back
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
-You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing. A market whose segment you switched off, and where you hold or watch nothing, is not searched for a bare ticker: `BTC` reads as the coin, and the US fund of that name needs `equity-us:BTC`. World gold is never switched off by you, so `XAUUSD` stays readable.
+You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing. A market whose segment you switched off, and where you hold or watch nothing, is not searched for a bare ticker: `BTC` reads as the coin, and the US fund of that name needs `equity-us:BTC`. World gold is never switched off by you, so `XAUUSD` stays readable. When a bare ticker finds no price, the answer names the switched-off markets that could list it and the two ways in: type it with the market (`equity-us:AAPL`), or switch the segment on.
 
 A ticker that is a tokenized stock (a share wrapped as a token) is not read as a crypto asset: `/suggest` answers what it is and asks for the stock's own ticker.
 
@@ -1315,6 +1315,8 @@ booked as typed. Nothing is held in between.
 ```
 
 The average cost includes the entry fee, so it matches the figure your broker's app shows, and every valuation and profit and loss measures against it. A round trip at the same price therefore reads as the small loss it is.
+
+Once a holding has earned cash dividends you recorded (`/record dividend`), the cost you see is the cost after dividends, the way a Vietnamese broker shows it: what you paid with fees, less the dividends grossed back up to what the company declared. Your dividend row holds what landed after tax, so OpenAlpha divides it by one minus the market's withholding rate (5% on VN shares, `[trading.markets.<id>] dividend_tax` to change it). US shares keep the cost you paid, as US brokers do, unless you set a rate for `equity-us`. 500 shares bought at 24.036 with fees that received 475,000 VND after tax read 24.036 − 1.000 = 23.04. The suggestion report, `/portfolio`, the line after a write and the ticker card on the office page all show this figure, with what you paid beside it in the report, and measure that holding's profit and loss from it: at 24.20 the holding above reads ▲ 582,000 VND (▲ 5.05%), as your broker's app does. NAV, the book's total profit and loss and realized profit do not change: there the dividend counts once, as the cash that landed, so a holding's row and the book's total no longer add up to the same thing. A sale takes its share of the dividends along with its share of the cost, and a dividend you have not recorded does not count, since OpenAlpha only knows what is in your book. The brief counts a holding as in loss against this same cost. A dividend recorded at a venue where you hold none of that name lowers no cost, and the line after the write tells you so, in case the venue was a typo.
 
 - A stated fee that sits far from the configured rate replaces the rate line with how far off it is, rather than being silently accepted.
 - A market with no configured rate prints neither line: there is nothing to measure against, and a zero would read as agreement.
@@ -1575,7 +1577,7 @@ Both fields take 0.2 to 1.
 
 - `horizon <segment> <short|long>`
 - `segment-target`, `segment-cap` and `position-cap`, each taking a segment and a fraction
-- `/profile enable|disable <segment>` turns a segment on or off
+- `/profile enable|disable <segment>` turns a segment on or off. `/profile` and `/portfolio` list the segments that are off with the name each one takes, and the command that switches one on
 
 A segment no venue trades stays off, and enabling it is refused. Today that is world gold, kept for its price and for the `gold-vn` premium.
 

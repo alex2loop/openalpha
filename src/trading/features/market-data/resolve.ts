@@ -34,6 +34,8 @@ type InstrumentResolution =
       /** What resolving the name had to say, for a read to carry beside its own: a second market
        *  listing the same symbol, when the caller asked. */
       readonly caveats: readonly Caveat[]
+      /** What only a read that comes back empty says: the switched-off markets never searched. */
+      readonly unavailableCaveats: readonly Caveat[]
     }
   | { readonly kind: 'unresolved'; readonly result: SourceUnavailable }
 
@@ -123,6 +125,7 @@ export async function resolveInstrument(
       market: resolution.market,
       instrument: resolution.instrument,
       caveats: otherListingsOf(resolution.caveats),
+      unavailableCaveats: resolution.unavailableCaveats ?? [],
       ...(resolution.instrumentKind === undefined
         ? {}
         : { instrumentKind: resolution.instrumentKind }),

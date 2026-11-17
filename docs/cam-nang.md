@@ -166,7 +166,8 @@ mã nào trong đó được tính khối lượng hay mua vào. **Hồ sơ mớ
 muốn mua `gold-vn` thì bật trước (`gold` là vàng thế giới, chỉ để tham chiếu nên không bật được). Về mặc định: `/profile reset`.
 
 **Chưa biết bắt đầu từ đâu?** Gõ `/setup`: trợ lý chào một dòng, hỏi khẩu vị rủi ro nếu bạn chưa
-khai, và đề nghị một phân bổ khởi điểm.
+khai, hỏi bạn giao dịch những thị trường nào rồi bật đúng các nhóm đó, và đề nghị một phân bổ khởi điểm.
+`/profile` luôn cho thấy nhóm nào đang tắt và câu lệnh để bật.
 
 ### 2.3 Danh sách theo dõi và tỷ trọng mục tiêu
 

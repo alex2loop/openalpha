@@ -101,6 +101,8 @@ export function createMarketDataService(deps: MarketDataServiceDeps): MarketData
     listSources: () => deps.sources.list(),
     regions: () => deps.markets.regions(),
     markets: () => deps.markets.list().map((market) => market.manifest.id),
+    ensureListing: (market, signal) =>
+      ensure({ market, now: Date.now(), signal, partialAnswer: true }),
     describeMarkets: () => deps.markets.list().map(describeMarket),
     marketDay: (market, now) => marketDayOf(deps.markets, market, now),
     ...instrumentReads(run),

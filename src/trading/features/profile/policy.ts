@@ -347,7 +347,9 @@ function pinnedTargets(input: PinnedTargetsInput): Record<PortfolioSegment, numb
   // Float residue inside the epsilon must not leave another segment a negative weight.
   const scale = othersTotal > 0 ? Math.max(remainder, 0) / othersTotal : 0
 
+  // Spread first so every segment keeps the place it stood in, pinned or not.
   return {
+    ...segmentTargets,
     ...Object.fromEntries(others.map(([id, weight]) => [id, weight * scale])),
     ...pinned,
     [CASH_SEGMENT]: cash,

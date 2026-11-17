@@ -261,6 +261,7 @@ const payloadSchema = z.strictObject({
     .strictObject({
       units: z.number().finite(),
       unitCostNative: z.number().finite(),
+      unitCostAfterDividendsNative: z.number().finite().nonnegative().optional(),
       settledUnits: z.number().finite(),
       openLotCount: z.number().int().nonnegative(),
       firstAcquiredAt: z.string().optional(),

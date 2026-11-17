@@ -320,6 +320,7 @@ function shown(deps: ProfileCommandDeps, ctx: SlashContext, profile: UserProfile
     text: renderProfileText(ctx.locale, profile, {
       context: resolveRenderContext(deps.timezone, answerSurfaceOf(ctx)),
       homeSegment: deps.profiles.homeSegment(),
+      heldSegments: new Set(deps.profiles.heldSegments()),
       fields: fieldsOf(deps),
     }),
   }

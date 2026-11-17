@@ -188,6 +188,8 @@ function addHolding(left: Position, right: Position): Position {
     costBasisBase: left.costBasisBase + right.costBasisBase,
     costBasisFeesNative: left.costBasisFeesNative + right.costBasisFeesNative,
     costBasisFeesBase: left.costBasisFeesBase + right.costBasisFeesBase,
+    dividendsNative: left.dividendsNative + right.dividendsNative,
+    dividendsBase: left.dividendsBase + right.dividendsBase,
     soldQuantity: left.soldQuantity + right.soldQuantity,
     buys: [...left.buys, ...right.buys],
     lots: [...left.lots, ...right.lots],

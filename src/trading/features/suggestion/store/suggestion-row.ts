@@ -333,6 +333,7 @@ function toHeld(held: NonNullable<SuggestionPayload['held']>): HeldPosition {
   return {
     units: held.units,
     unitCostNative: held.unitCostNative,
+    ...definedOnly({ unitCostAfterDividendsNative: held.unitCostAfterDividendsNative }),
     settledUnits: held.settledUnits,
     openLotCount: held.openLotCount,
     ...(held.firstAcquiredAt === undefined

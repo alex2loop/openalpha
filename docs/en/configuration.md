@@ -789,6 +789,7 @@ open_days = ["2027-09-01"]     # a day the law closes but the exchange trades
 maximum_stop_loss = 0.08       # the stop never sits more than 8% below entry (0.02-0.30)
 stop_loss_atr = 3              # stop distance in average daily ranges (1-5)
 reward_risk = 3                # target as a multiple of the risk (1-5)
+dividend_tax = 0.05            # tax withheld from a cash dividend; VN shares default to 0.05
 
 [trading.briefs]
 send_time = "08:15"            # default for a delivery that has not set its own in chat
@@ -975,6 +976,12 @@ Config decides what runs and when, plus three things that are yours to judge:
   What the ceiling does to the target, the size and a stop you already hold is in
   [Trading](trading.md). Crypto also rests a buy that ran 25% or more in a week half an ATR under the
   live price; that is market policy, not a key.
+- **The tax taken off a dividend.** `[trading.markets.<id>] dividend_tax` (0 up to, not including, 1)
+  is the share of a cash dividend withheld before it lands. A holding's cost after dividends grosses
+  what you recorded back up by it, so it reads as your broker shows it. VN shares default to 0.05.
+  US shares have no rate by default, since US brokers keep the cost you paid; setting one there
+  turns the cost after dividends on. Only the two stock markets read it. It changes no score, NAV or
+  book total, only each holding's cost and the profit and loss measured from it.
 
 **The calendar follows the law, with two settings.** Session hours and the weekend are in code. The
 closures are worked out from the Labor Code for any year, so there is no list to keep up to date:

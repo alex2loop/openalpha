@@ -2,6 +2,7 @@ import type { TtlCache } from '@/core/utils/collections'
 import type { Caveat, CaveatCode } from '@/trading/kernel/caveat'
 import type { MarketRef, Ticker } from '@/trading/kernel/instrument'
 import type { DetectInstrumentOptions, MarketDetection } from '@/trading/markets/detection'
+import type { EnsureListing } from '@/trading/markets/listing-miss'
 import type { OperatorUse, ReadOperatorUse } from '@/trading/markets/operator-use'
 import type {
   Market,
@@ -10,11 +11,13 @@ import type {
   ResolveMarketOptions,
 } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
-import { NOTHING_USED, unusedMarkets } from '@/trading/markets/operator-use'
+import { resolveAfterListingLoad, UNIVERSE_EMPTY } from '@/trading/markets/listing-miss'
+import { NOTHING_USED, unusedMarkets, withSwitchedOffNote } from '@/trading/markets/operator-use'
+import { buildResolutionKey } from '@/trading/markets/resolution-key'
 
 const INCONCLUSIVE_CODES: ReadonlySet<CaveatCode> = new Set([
   'market.detector-failed',
-  'market-data.universe-empty',
+  UNIVERSE_EMPTY,
 ])
 
 /** Misses a detector already accounted for. Adding `ticker-unknown` on top of one would answer
@@ -24,13 +27,13 @@ const EXPLAINED_MISS_CODES: ReadonlySet<CaveatCode> = new Set([
   'market.ticker-not-listed',
   'market.tokenized-equity',
 ])
-const UNIVERSE_EMPTY = 'market-data.universe-empty'
 const BOARD_ONLY: Pick<DetectInstrumentOptions, 'boardOnly'> = Object.freeze({ boardOnly: true })
 
 interface ResolveCache {
   readonly markets: readonly Market[]
   readonly resolutions: TtlCache<string, MarketResolution>
   readonly use: ReadOperatorUse
+  readonly ensureListing: EnsureListing
 }
 
 // Only conclusive unqualified results are cached. An explicit market bypasses the cache, an
@@ -56,35 +59,21 @@ export async function resolveCached(
     return cached
   }
 
-  const resolution =
-    options.market === undefined
-      ? await resolveUnqualified(reachable, options, preferred)
-      : await resolveExplicit(markets, { ...options, market: options.market })
+  const resolution = withSwitchedOffNote(
+    await resolveAfterListingLoad(cache.ensureListing, options, () =>
+      options.market === undefined
+        ? resolveUnqualified(reachable, options, preferred)
+        : resolveExplicit(markets, { ...options, market: options.market })
+    ),
+    markets.filter((market) => skipped.includes(market.manifest.id)),
+    options
+  )
 
   if (isConclusive(resolution)) {
     resolutions.set(key, resolution)
   }
 
   return resolution
-}
-
-interface ResolutionScope {
-  readonly preferred: MarketRef | undefined
-  readonly skipped: readonly MarketRef[]
-}
-
-// Every field that changes the answer is part of the key, so the cache never serves a wider one.
-function buildResolutionKey(options: ResolveMarketOptions, scope: ResolutionScope): string {
-  const parts = [
-    options.within === undefined ? '' : `in:${[...options.within].sort().join(',')}`,
-    options.detection ?? '',
-    options.operatorRead === true ? 'read' : '',
-    scope.preferred === undefined ? '' : `held:${scope.preferred}`,
-    scope.skipped.length === 0 ? '' : `off:${scope.skipped.join(',')}`,
-  ]
-  const name = options.market === undefined ? options.ticker : `${options.market}/${options.ticker}`
-
-  return parts.every((part) => part === '') ? name : `${parts.join('|')}|${name}`
 }
 
 /** A detector that threw and a market whose universe has not been refreshed both answer "not
@@ -251,10 +240,11 @@ async function resolve(
     ...(options.detection === 'stored' ? [] : await detectEach(possible, 'fetched', options)),
   ]
   const matches = matchedDetections(detections)
-  const caveats = detections.flatMap((entry) => entry.caveats)
 
   if (matches.length === 0) {
-    return unresolved(options.ticker, missCaveats(detections), searchedIn(markets, options))
+    const misses = missCaveats(detections, options)
+
+    return unresolved(options.ticker, misses, searchedIn(markets, options))
   }
 
   const [first] = matches
@@ -270,7 +260,7 @@ async function resolve(
     ticker: options.ticker,
     candidates,
     caveats: [
-      ...caveats,
+      ...detections.flatMap((entry) => entry.caveats),
       {
         code: 'market.ticker-ambiguous',
         detail: { ticker: options.ticker, markets: candidates.join(', ') },
@@ -398,14 +388,20 @@ function uncheckedMarketCaveats(
 }
 
 /** A market never refreshed says nothing about a ticker another market's stored listing checked and
- *  missed, so "run /refresh" is the answer only while no listing has been checked. */
-function missCaveats(detections: readonly MarketDetectionEntry[]): readonly Caveat[] {
+ *  missed, so the miss is the answer once a listing has been checked. An operator read keeps the
+ *  empty market's caveat: it waits for that listing to load before calling the name unknown. */
+function missCaveats(
+  detections: readonly MarketDetectionEntry[],
+  options: ResolveMarketOptions
+): readonly Caveat[] {
   const caveats = detections.flatMap((entry) => entry.caveats)
   const isListingChecked = detections.some(
     (entry) => entry.detection.kind === 'no-match' && entry.detection.listingChecked === true
   )
 
-  return isListingChecked ? caveats.filter((caveat) => caveat.code !== UNIVERSE_EMPTY) : caveats
+  return isListingChecked && options.operatorRead !== true
+    ? caveats.filter((caveat) => caveat.code !== UNIVERSE_EMPTY)
+    : caveats
 }
 
 // One detector throwing must not fail resolution for the others: it becomes "does not match" plus a

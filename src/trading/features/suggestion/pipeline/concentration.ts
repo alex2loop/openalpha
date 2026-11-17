@@ -18,6 +18,7 @@ import { etfHeadroomPctNav } from '@/trading/features/portfolio/folds/policy'
 import { recentRoundTripsOf } from '@/trading/features/suggestion/pipeline/round-trip'
 import { buildInstrumentKey, ETF_KIND, isSameInstrument } from '@/trading/kernel/instrument'
 import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
+import { costAfterDividends } from '@/trading/markets/cost'
 
 /** Room under the sector cap, counting what the book already holds there. A market that files this
  *  name under no sector states no exposure to weigh, so the cap cannot bind — the position and
@@ -194,11 +195,13 @@ function roundTripHistoryOf(
  *  by - so it is attached separately rather than gating what the ledger already knows. */
 export function heldPositionOf(
   context: SuggestionPortfolioContext,
-  instrument: InstrumentRef
+  instrument: InstrumentRef,
+  dividendTax?: number
 ): HeldPosition | undefined {
   const held = toHeldPosition(
     toCurrentCycles(context.book.book.positions, context.minimumSizes),
-    instrument
+    instrument,
+    dividendTax
   )
 
   if (held === undefined || isUntradeableResidue(context, instrument, held.units)) {
@@ -220,7 +223,8 @@ export function heldPositionOf(
  *  total of zero returns nothing rather than dividing per position. */
 export function toHeldPosition(
   positions: readonly Omit<Position, 'venue'>[],
-  instrument: InstrumentRef
+  instrument: InstrumentRef,
+  dividendTax?: number
 ): HeldPosition | undefined {
   const held = positions.filter((entry) => isSameInstrument(entry.instrument, instrument))
   const units = held.reduce((sum, entry) => sum + entry.quantity, 0)
@@ -246,7 +250,8 @@ export function toHeldPosition(
   return {
     units,
     // Quantity-weighted by construction: the basis of every venue over the units of all of them.
-    unitCostNative: held.reduce((sum, entry) => sum + entry.costBasisNative, 0) / units,
+    unitCostNative: sumOf(held, 'costBasisNative') / units,
+    ...afterDividendsField(held, units, dividendTax),
     settledUnits,
     openLotCount: open.length,
     ...(firstAcquiredAt === undefined ? {} : { firstAcquiredAt }),
@@ -255,6 +260,31 @@ export function toHeldPosition(
     ...(soldUnits > 0 ? { soldUnits } : {}),
     ...(openedOn === undefined ? {} : { openedOn }),
   }
+}
+
+type SummedField = 'costBasisNative' | 'costBasisBase' | 'dividendsNative' | 'dividendsBase'
+
+function afterDividendsField(
+  held: readonly Omit<Position, 'venue'>[],
+  units: number,
+  dividendTax: number | undefined
+): Pick<HeldPosition, 'unitCostAfterDividendsNative'> {
+  const whole = {
+    quantity: units,
+    costBasisNative: sumOf(held, 'costBasisNative'),
+    costBasisBase: sumOf(held, 'costBasisBase'),
+    dividendsNative: sumOf(held, 'dividendsNative'),
+    dividendsBase: sumOf(held, 'dividendsBase'),
+  }
+  const afterDividends = costAfterDividends(whole, dividendTax)
+
+  return afterDividends === undefined
+    ? {}
+    : { unitCostAfterDividendsNative: afterDividends.unitCostNative }
+}
+
+function sumOf(held: readonly Omit<Position, 'venue'>[], field: SummedField): number {
+  return held.reduce((sum, entry) => sum + entry[field], 0)
 }
 
 /** The day the holding as it stands opened: its oldest buy on any venue. */

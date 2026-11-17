@@ -21,6 +21,7 @@ import { renderEntryFields } from '@/trading/features/ledger/fields'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
 import { isSameInstrument, toIdHandle } from '@/trading/kernel/instrument'
+import { costAfterDividends } from '@/trading/markets/cost'
 import {
   formatCount,
   formatQuantity,
@@ -247,6 +248,8 @@ export function renderBookAfter(
       : renderPositionAfter(locale, {
           venue: subject.venue,
           board: boardOf(subject.instrument, quoteConventions),
+          dividendTax: quoteConventions.get(subject.instrument.market)?.dividendTax,
+          isDividend: result.entry.transaction.kind === 'dividend',
           ...(position === undefined ? {} : { position }),
         })),
     ...(result.kind === 'recorded'
@@ -275,6 +278,8 @@ interface TickerQuote {
 interface PositionAfter {
   readonly venue: VenueRef
   readonly board: TickerQuote
+  readonly dividendTax: number | undefined
+  readonly isDividend: boolean
   /** Absent once the row closed the venue's holding out. */
   readonly position?: Position
 }
@@ -289,7 +294,9 @@ function renderPositionAfter(locale: Locale, after: PositionAfter): readonly str
   const venue = renderVenueName(locale, after.venue)
 
   if (position === undefined || position.quantity <= 0) {
-    return [`${INDENT[1]}${t(locale, 'trading.render.ledger.positionClosed', { ticker, venue })}`]
+    const key = after.isDividend ? 'dividendUnheld' : 'positionClosed'
+
+    return [`${INDENT[1]}${t(locale, `trading.render.ledger.${key}`, { ticker, venue })}`]
   }
 
   const quotedIn = {
@@ -298,13 +305,22 @@ function renderPositionAfter(locale: Locale, after: PositionAfter): readonly str
     ...(board.display === undefined ? {} : { display: board.display }),
   }
 
+  const afterDividends = costAfterDividends(position, after.dividendTax)
+  const cost = afterDividends?.unitCostNative ?? position.costBasisNative / position.quantity
+
   return [
-    `${INDENT[1]}${t(locale, 'trading.render.ledger.positionAfter', {
-      ticker,
-      venue,
-      quantity: formatQuantity(locale, position.quantity),
-      cost: formatQuotedPrice(locale, position.costBasisNative / position.quantity, quotedIn),
-    })}`,
+    `${INDENT[1]}${t(
+      locale,
+      afterDividends === undefined
+        ? 'trading.render.ledger.positionAfter'
+        : 'trading.render.ledger.positionAfterDividends',
+      {
+        ticker,
+        venue,
+        quantity: formatQuantity(locale, position.quantity),
+        cost: formatQuotedPrice(locale, cost, quotedIn),
+      }
+    )}`,
   ]
 }
 

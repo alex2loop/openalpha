@@ -161,7 +161,7 @@ From here on, lines starting with `/` go into the page's command box or into `op
 
 The first `/refresh` is slow because there is a lot to fetch; later ones are much quicker. Keep the window or page open while it runs.
 
-**4. Say how much risk you want and record the money you have.** Type `/setup` and answer a few questions: how much risk you can take and the markets you trade. Then record the money you hold at each place; how much each suggestion buys is worked out from this book, so don't skip it. It is only a record on your machine: OpenAlpha does not connect to your brokerage account and moves no money. Swap the amounts and dates in the examples for yours; dates are year-month-day, amounts are written without separators. Open the section for the market you trade:
+**4. Say how much risk you want and record the money you have.** Type `/setup` and answer a few questions: how much risk you can take and the markets you trade. `/profile` shows which markets are on and how to switch another on. Then record the money you hold at each place; how much each suggestion buys is worked out from this book, so don't skip it. It is only a record on your machine: OpenAlpha does not connect to your brokerage account and moves no money. Swap the amounts and dates in the examples for yours; dates are year-month-day, amounts are written without separators. Open the section for the market you trade:
 
 <details open>
 <summary><b>Vietnamese stocks</b></summary>

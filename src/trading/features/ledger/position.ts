@@ -30,6 +30,8 @@ export interface MutablePosition {
   costBasisBase: number
   costBasisFeesNative: number
   costBasisFeesBase: number
+  dividendsNative: number
+  dividendsBase: number
   /** Units sold in the cycle currently open. Reset when a buy reopens the position from flat. */
   cycleSoldQuantity: number
   cycleBuys: PositionBuy[]
@@ -82,6 +84,8 @@ export function clearFlatPosition(position: MutablePosition): void {
   position.costBasisBase = 0
   position.costBasisFeesNative = 0
   position.costBasisFeesBase = 0
+  position.dividendsNative = 0
+  position.dividendsBase = 0
 }
 
 /** FIFO consumption of open lot *quantities*. Lots exist to track settlement timing; cost basis is

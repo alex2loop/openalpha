@@ -151,14 +151,12 @@ function buildNpmManifest(registryName: string): Record<string, unknown> {
   }
 }
 
+// npm shows one page to every reader, so it takes the default locale; the repository README it
+// links to carries the other languages.
 function buildNpmReadme(): string {
-  const sections = LOCALES.map((locale) => {
-    const text = buildLocalizedText(locale)
+  const text = buildLocalizedText(DEFAULT_LOCALE)
 
-    return `${text.description}\n\n${text.long_description}`
-  })
-
-  return `# ${BRAND.display}\n\n${sections.join('\n\n')}\n`
+  return `# ${BRAND.display}\n\n${text.description}\n\n${text.long_description}\n`
 }
 
 async function writeMcpBundle(launcher: string): Promise<void> {

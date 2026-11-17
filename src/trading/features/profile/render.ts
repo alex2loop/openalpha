@@ -48,6 +48,8 @@ const PROFILE_COLUMNS: readonly SegmentColumn[] = Object.freeze([
 
 interface ProfileTextOptions extends LimitOptions {
   readonly homeSegment?: PortfolioSegment | undefined
+  /** Segments a venue holds: only those can be switched back on, so only those are named off. */
+  readonly heldSegments: ReadonlySet<string>
 }
 
 /** The allocation policy and the caps are what `/rebalance` measures every gap against, so a profile
@@ -97,15 +99,20 @@ function renderAllocation(
   options: ProfileTextOptions
 ): readonly (readonly string[])[] {
   const disabled = disabledSegments(profile.caps)
+  const switchable = [...disabledSegments(profile.caps, options.heldSegments)]
 
   return [
-    renderSegmentBlock(locale, segmentBlockOf(locale, profile, disabled), options.context),
+    renderSegmentBlock(
+      locale,
+      segmentBlockOf(locale, profile, { disabled, switchable }),
+      options.context
+    ),
     renderHomeOff(locale, options.homeSegment, disabled),
   ]
 }
 
 /** A home market switched off leaves the brief with no calls on its own board, so the profile says
- *  so and names the command, rather than listing it among the other switched-off segments. */
+ *  so in a line of its own, beside the switched-off list. */
 function renderHomeOff(
   locale: Locale,
   homeSegment: PortfolioSegment | undefined,
@@ -124,23 +131,21 @@ function renderHomeOff(
 }
 
 /** Targets are the superset: `seedTargets` seeds every segment there, cash included, while caps seed
- *  only the ones a ceiling can bind. A switched-off segment leaves the rows and is named once under
- *  them. */
+ *  only the ones a ceiling can bind. A switched-off segment leaves the rows; one the operator can
+ *  switch back on is named once under them. */
 function segmentBlockOf(
   locale: Locale,
   profile: UserProfile,
-  disabled: ReadonlySet<string>
+  off: { readonly disabled: ReadonlySet<string>; readonly switchable: readonly string[] }
 ): SegmentBlock {
-  const rows = enabledTargets(profile.segmentTargets, disabled).map(([segment, target]) =>
+  const rows = enabledTargets(profile.segmentTargets, off.disabled).map(([segment, target]) =>
     toSegmentRow(locale, segmentInputOf(profile, segment, target))
   )
 
   return {
     columns: PROFILE_COLUMNS,
     rows,
-    disabled: [...disabled].map((segment) =>
-      renderDeclaredValue(locale, `trading.segment.${segment}`)
-    ),
+    disabled: off.switchable,
     pinned: Object.keys(profile.pinnedTargets).map((segment) =>
       renderDeclaredValue(locale, `trading.segment.${segment}`)
     ),

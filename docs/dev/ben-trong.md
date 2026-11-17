@@ -669,11 +669,12 @@ Dưới `mcp serve`, mô hình của client đã kết nối đứng thay chuỗ
   được liệt kê thành `model_requests`.
 - Cả hai nửa của thời gian chờ một yêu cầu đều được ghi log (`mcp.request_viewed`,
   `mcp.request_answered`). `serveMcp` xả hết các công việc trước khi kho lưu trữ đóng.
-- Khi thư mục dữ liệu không có dịch vụ nền nào đang chạy (`liveDaemonPid`), `startMarketSweeps` chạy nền
-  `refreshMarketsInUse` (`trading/wiring/loop.ts`, dùng chung với phần duy trì của bản web): một
+- `startMarketSweeps` chạy nền `refreshMarketsInUse` (`trading/wiring/loop.ts`, dùng chung với phần duy trì
+  của bản web): khi thư mục dữ liệu không có dịch vụ nền nào đang sống (`liveDaemonPid`), một
   `createPeriodicPass` lúc khởi động và mỗi `MARKET_SWEEP_INTERVAL_MS` (một giờ; lượt chạy bỏ qua dữ liệu
   còn mới), cộng thêm một lượt sau mỗi `profile_saved` (khai báo ở
-  `trading/wiring/composition/registration.ts`). Lượt thêm không xếp hàng sau lượt đang chạy: bộ điều
+  `trading/wiring/composition/registration.ts`). Lượt thêm chạy cả khi dịch vụ nền đang sống, vì dịch vụ
+  nền là tiến trình khác và không nghe được lần lưu của tiến trình này. Nó không xếp hàng sau lượt đang chạy: bộ điều
   phối làm mới cho nó nhập vào thị trường đang tải dở, nên chỉ thị trường mới dùng mới phải tải. Khi dừng,
   mọi lượt bị hủy và được chờ xong trước khi xả công việc; lỗi chỉ được ghi log `mcp.refresh_failed`,
   không làm dừng server. Ghi sổ giao dịch không phát sự kiện nào; thị trường của nó được tải ở lượt hằng
