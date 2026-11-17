@@ -7,6 +7,17 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.5] - 2026-11-17
+
+Ask for a price before a market's list of names has loaded and OpenAlpha now waits a few seconds for it and answers, instead of saying it doesn't know the name. This works everywhere: in the terminal, chat apps, the web and AI apps.
+> Hỏi giá khi danh sách mã của thị trường chưa tải xong thì OpenAlpha giờ chờ vài giây để tải rồi trả lời, thay vì báo không biết mã. Áp dụng ở mọi nơi: terminal, ứng dụng chat, bản web và ứng dụng AI.
+
+### Fixed
+
+- A price or suggestion asked for in a stock market whose list of names has not loaded yet waits for it, up to about half a minute, then answers. Naming the market (`/price equity-us:AAPL`) loads it even while that market is switched off. Recording a trade never waits.
+- When a list still has not loaded, the message says it is loading or its source didn't answer, and how to retry, instead of telling you to run `/refresh` first.
+- `mcp serve` beside a running background service now loads a market the assistant switches on at once, instead of at the service's next scheduled refresh.
+
 ## [1.8.4] - 2026-11-17
 
 Through an AI app, a market you switch on or a name you start watching now has prices within seconds, with no restart, and a session the app keeps open for days keeps getting each new close.
