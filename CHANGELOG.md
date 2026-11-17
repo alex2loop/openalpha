@@ -7,6 +7,31 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.1] - 2026-11-17
+
+A round of fixes. Crypto fills on a US-home book are dated on your day, refusals and market figures print in the right currency and unit, and the brief reads the session that actually settled. In the web app you can now pick which agent or model answers, and a run that stops without a reply says why.
+> Một đợt sửa lỗi. Lệnh crypto khớp trên sổ nhà Mỹ được ghi theo ngày của bạn, câu từ chối và số liệu thị trường in đúng tiền tệ và đơn vị, bản tin đọc đúng phiên đã chốt. Trên ứng dụng web, bạn giờ chọn được agent hoặc mô hình trả lời, và lượt chạy dừng mà không có câu trả lời sẽ cho biết lý do.
+
+### Changed
+
+- The web app can pick the agent that answers (`/agent <id>`) and the model (`/model <selector>`), as Telegram and Zalo can; the terminal still picks them with `chat --agent`.
+- `/v1/ohlcv` and `/v1/price-chart` answer `unavailable` with a sentence for a market with no price history of its own, such as SJC gold, instead of `not_found`.
+- The Vietnam index price history tries vietcap-chart before entrade when vndirect does not answer.
+- The test button for a model provider is now counted in your AI spend, under `provider-test`.
+
+### Fixed
+
+- A fill is dated on its market's day, never later than your book's: a crypto fill made in the US evening is booked on the day it is in New York, in `/record sync`, order fills and stop exits.
+- A refused order prints each cap in its own currency, never a VND figure labelled USDT.
+- The leader's share of a sector, session times (now printed in your clock), Vietnam index levels in `/watchlist`, `/market` and alert questions, and the session high and low given to the assistant use the right units.
+- The brief counts its AI cost after the debates, reads the session that settled rather than the calendar day, no longer prints the monthly scorecard twice after an update, keeps each market's stories apart, and reads a missing foreign-flow figure as missing rather than zero.
+- A second opinion on a name you do not hold no longer carries notes about your book.
+- The `/record` line a suggestion offers carries the day the trade can happen.
+- Theme scores: stale commodity readings are left out, a theme keeps its earlier sectors when the screen could not be read, and crowding can read "undecided" when one signal is missing.
+- On the office page: a halted run shows its reason instead of an empty card, `/SUGGEST` and `/suggest` are the same command, "Add to it" refuses a `/` line, a mouse wheel that scrolls by lines zooms like one that scrolls by pixels, today's boards follow your own day, a failed digest read keeps the last one, and the file autosave keeps a change made while a copy was being written.
+- OpenRouter prices stay current whichever feed refresh fetched them, the spend ceiling reserves enough for models that always reason, and a local model is free only for that model, not for every model of its provider.
+- An approval answered with a choice it did not offer is refused, and an alert handed back mid-send keeps its attempt count.
+
 ## [1.8.0] - 2026-11-16
 
 US names now show their next earnings date and warn that the price can gap on the report, risky 8-K filings are flagged, and a buy is held after a bankruptcy filing or a warning that past accounts cannot be relied on. `/overview` and the US brief show market breadth and distribution days. `/reflect` shows how far calls ran for and against you before they closed. The brief now opens with your home market.
