@@ -1169,3 +1169,9 @@ và chạy tiếp thay vì dừng cả phiên. Kỹ năng được ghi vào `~/.
 opencode và Kilo Code mặc định cắt một server cục bộ sau 5-10 giây, nên với chúng mục cấu hình còn đặt
 `timeout` của server và `experimental.mcp_timeout` thành gấp đôi mức 45 giây mà một lời gọi được phục vụ
 chờ trước khi trả lời `working`. `--skill-dir` đổi thư mục kỹ năng.
+
+Mỗi bản phát hành còn kèm `openalpha.mcpb`, một tiện ích cho ứng dụng Claude trên macOS và Windows.
+Tiện ích này không chứa bản OpenAlpha nào: nó chạy bản bạn đã cài, nên hãy cài OpenAlpha trước, rồi mở
+tệp bằng ứng dụng Claude. Nó chỉ có một mục cài đặt là chỗ đặt chương trình; mặc định là chỗ script cài
+đặt đặt vào (`~/.local/bin`). OpenAlpha cũng có trên MCP Registry, nên các ứng dụng trợ lý và danh bạ
+đọc registry sẽ tìm thấy nó ở đó.

@@ -498,6 +498,8 @@ openalpha mcp install      # or --host codex, cursor, vscode, gemini, muse, open
 
 Suggestions written that way are scored separately in `/reflect` under `client:<model>`, and orders are never placed from there. Details: [docs/en/dev/extending.md](docs/en/dev/extending.md)
 
+On the Claude app for macOS or Windows: once OpenAlpha is installed, download `openalpha.mcpb` from [Releases](https://github.com/alex2loop/openalpha/releases/latest) and open it with Claude.
+
 </details>
 
 <details>
