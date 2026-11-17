@@ -255,8 +255,13 @@ jobs:
         with:
           node-version: 24
 
+      # The registry refuses a version npm does not serve yet, and npm takes up to a minute or so
+      # to serve a new one, so the job ends only once it does.
       - name: Publish the npm launcher
         working-directory: dist/npm
+        env:
+          NPM_SERVE_TIMEOUT_SECONDS: 300
+          NPM_SERVE_POLL_SECONDS: 10
         run: |
           spec="$(jq -r '.name + "@" + .version' package.json)"
           if npm view "$spec" version > /dev/null 2>&1; then
@@ -264,10 +269,20 @@ jobs:
             exit 0
           fi
           npm publish --provenance --access public
+          deadline=$((SECONDS + NPM_SERVE_TIMEOUT_SECONDS))
+          until npm view "$spec" version > /dev/null 2>&1; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::npm does not serve $spec ${NPM_SERVE_TIMEOUT_SECONDS}s after publishing"
+              exit 1
+            fi
+            sleep "$NPM_SERVE_POLL_SECONDS"
+          done
+          echo "npm serves $spec"
 
   # Lists the release on the MCP Registry, which directories such as Glama mirror; it runs only
-  # after npm succeeded. A failure leaves the Release intact, and "Re-run failed jobs" retries only
-  # this job while registry-files lasts; a version the registry already lists is skipped.
+  # once npm serves the launcher's version. A failure leaves the Release intact, and "Re-run failed
+  # jobs" retries only this job while registry-files lasts; a version the registry already lists is
+  # skipped.
   registry:
     needs: [build, publish, npm]
     runs-on: ubuntu-latest
