@@ -97,7 +97,7 @@ export async function buildPositionsInLoss(context: BriefContext): Promise<Brief
   ])
 }
 
-/** Holdings worth less than was paid for them. */
+/** Holdings worth less than their cost. */
 function losingPositions(book: BookSummary): readonly BookPositionSummary[] {
   return book.positions.filter((position) => position.valueBase < position.costBase)
 }

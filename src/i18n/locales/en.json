@@ -5755,6 +5755,7 @@
     "render.ledger.duplicate": "An identical row is already recorded ({handle}). If you did not trade this twice, delete one with /delete {handle}.",
     "render.ledger.duplicateReceipt": "An identical row was already recorded ({handle}). Tell the operator and ask before removing either - only they know whether they traded this twice.",
     "render.ledger.positionClosed": "{ticker} at {venue} is closed - nothing left to sell there",
+    "render.ledger.dividendUnheld": "You hold no {ticker} at {venue}, so this dividend lowers no cost. If you picked the wrong venue, fix this row.",
     "render.ledger.refold": "This change re-prices the whole book, so earlier readings move with it.",
     "render.ledger.syncRecordedOne": "Recorded {count} fill from {venue}.",
     "render.ledger.syncRecorded": "Recorded {count} fills from {venue}.",

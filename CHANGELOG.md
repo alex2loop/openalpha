@@ -14,7 +14,7 @@ Ask for a price before a market's list of names has loaded and OpenAlpha now wai
 
 ### Changed
 
-- A holding that earned cash dividends you recorded shows its cost after dividends, the way a Vietnamese broker does: what you paid with fees, less the dividend grossed back up to what was declared before the 5% tax. The suggestion report, `/portfolio`, the line after `/record` and the office page's ticker card all show it and measure that holding's profit and loss from it, and the report keeps what you paid beside it. `[trading.markets.<id>] dividend_tax` sets the withholding rate; US shares keep the cost paid unless one is set. NAV, the book's total profit and loss and realized profit are unchanged.
+- A holding that earned cash dividends you recorded shows its cost after dividends, the way a Vietnamese broker does: what you paid with fees, less the dividend grossed back up to what was declared before the 5% tax. The suggestion report, `/portfolio`, the line after `/record` and the office page's ticker card all show it and measure that holding's profit and loss from it, and the report keeps what you paid beside it. `[trading.markets.<id>] dividend_tax` sets the withholding rate; US shares keep the cost paid unless one is set. The brief counts a holding as in loss against the same cost, and a dividend recorded at a venue that holds none of that name says it lowers no cost. NAV, the book's total profit and loss and realized profit are unchanged.
 - The suggestion report says "your cost, fees included" instead of "you bought at", since the figure always held the buy fee.
 
 ### Fixed

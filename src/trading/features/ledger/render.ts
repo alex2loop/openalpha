@@ -249,6 +249,7 @@ export function renderBookAfter(
           venue: subject.venue,
           board: boardOf(subject.instrument, quoteConventions),
           dividendTax: quoteConventions.get(subject.instrument.market)?.dividendTax,
+          isDividend: result.entry.transaction.kind === 'dividend',
           ...(position === undefined ? {} : { position }),
         })),
     ...(result.kind === 'recorded'
@@ -278,6 +279,7 @@ interface PositionAfter {
   readonly venue: VenueRef
   readonly board: TickerQuote
   readonly dividendTax: number | undefined
+  readonly isDividend: boolean
   /** Absent once the row closed the venue's holding out. */
   readonly position?: Position
 }
@@ -292,7 +294,9 @@ function renderPositionAfter(locale: Locale, after: PositionAfter): readonly str
   const venue = renderVenueName(locale, after.venue)
 
   if (position === undefined || position.quantity <= 0) {
-    return [`${INDENT[1]}${t(locale, 'trading.render.ledger.positionClosed', { ticker, venue })}`]
+    const key = after.isDividend ? 'dividendUnheld' : 'positionClosed'
+
+    return [`${INDENT[1]}${t(locale, `trading.render.ledger.${key}`, { ticker, venue })}`]
   }
 
   const quotedIn = {
