@@ -182,7 +182,8 @@ phải chuỗi rẻ hơn có thể làm sai số liệu.
 
 Dưới `openalpha mcp serve`, mô hình của client đã kết nối trả lời cho mọi agent, nên `[[models]]` không
 được đọc và không cần khóa. Chỉ các nhóm tra theo tên, như `decisions`, còn dùng cấu hình, và nhóm nào
-thiếu khóa thì bị bỏ qua thay vì làm hỏng khởi động.
+thiếu khóa thì bị bỏ qua thay vì làm hỏng khởi động. Nó cũng chạy được khi chưa có `config.toml` nào, với
+các giá trị mặc định.
 
 #### Chọn mô hình theo việc
 
