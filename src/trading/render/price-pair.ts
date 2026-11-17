@@ -35,7 +35,7 @@ export interface PricePair extends PriceReadings {
    *  comparing against. Undated: a cost basis is an average over lots, so no single day owns it. */
   readonly unitCost?: number
   /** `unitCost` is after the cash dividends the units earned, so its row says so. */
-  readonly costAfterDividends?: true
+  readonly isAfterDividends?: true
   readonly currency?: CurrencyCode
   /** The measure the price is per, where the surface knows its market. A weight is not implied by
    *  the ticker, so a gold row says which one it is quoted per. */
@@ -200,7 +200,7 @@ function unitCostRow(locale: Locale, pair: PricePair): readonly PriceRow[] {
     {
       label: t(
         locale,
-        pair.costAfterDividends === true
+        pair.isAfterDividends === true
           ? 'trading.render.price.costAfterDividendsLabel'
           : 'trading.render.price.costLabel'
       ),

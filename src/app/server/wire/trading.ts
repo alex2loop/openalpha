@@ -186,14 +186,14 @@ export interface AbsolutePositionWire {
   /** The buy price in the market's own currency, fees included; absent at quantity 0. */
   readonly unitCostNative?: number
   /** The cost after the dividends the units earned, as a broker shows it; P/L measures from it. */
-  readonly afterDividends?: { readonly unitCostNative: number; readonly costBasisBase: number }
+  readonly costAfterDividends?: { readonly unitCostNative: number; readonly costBasisBase: number }
   /** The mark the value stands on, in the market's own currency; absent while the position is
    *  unpriced. */
   readonly price?: number
   /** The day of the first buy since the position last opened from flat; absent at quantity 0. */
   readonly heldSince?: string
   readonly marketValueBase?: number
-  /** Fees held out. `marketValueBase` less `afterDividends.costBasisBase`, else less this, is
+  /** Fees held out. `marketValueBase` less `costAfterDividends.costBasisBase`, else less this, is
    *  exactly the `unrealizedPnlBase` beside it. */
   readonly investedBase: number
   readonly unrealizedPnlBase?: number

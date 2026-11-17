@@ -28,7 +28,7 @@ export function Unrealized({ book }: { readonly book: TradingPortfolioResponse }
  *  move to print. */
 export function toMovePercent(position: AbsolutePositionWire): number | undefined {
   const { unrealizedPnlBase } = position
-  const basis = position.afterDividends?.costBasisBase ?? position.investedBase
+  const basis = position.costAfterDividends?.costBasisBase ?? position.investedBase
 
   return unrealizedPnlBase === undefined || basis <= 0
     ? undefined

@@ -178,7 +178,7 @@ interface HoldingCost {
   /** What the holding's profit and loss is measured from, in the book's currency. */
   readonly basisBase: number
   /** The cost is after the cash dividends the units earned, so its label says so. */
-  readonly afterDividends?: true
+  readonly isAfterDividends?: true
 }
 
 /** Fee-bearing, as the broker app shows it: the entry fee is part of what the holding has to clear,
@@ -186,11 +186,15 @@ interface HoldingCost {
  *  way its own market quotes, so a crypto cost reads in USD per coin rather than as billions of the
  *  book's currency. `foldBook` drops positions at or below dust, so it never divides by zero. */
 function holdingCostOf(position: Holding, convention: QuoteConvention | undefined): HoldingCost {
-  const after = costAfterDividends(position, convention?.dividendTax)
+  const afterDividends = costAfterDividends(position, convention?.dividendTax)
 
-  return after === undefined
+  return afterDividends === undefined
     ? { native: position.costBasisNative / position.quantity, basisBase: position.costBasisBase }
-    : { native: after.unitCostNative, basisBase: after.costBasisBase, afterDividends: true }
+    : {
+        native: afterDividends.unitCostNative,
+        basisBase: afterDividends.costBasisBase,
+        isAfterDividends: true,
+      }
 }
 
 interface UnpricedParts {
@@ -207,7 +211,7 @@ function renderUnpricedPosition(
 ): readonly string[] {
   const { display, cost } = parts
   const key =
-    cost.afterDividends === undefined
+    cost.isAfterDividends === undefined
       ? 'trading.render.portfolio.unpricedDetail'
       : 'trading.render.portfolio.unpricedDetailAfterDividends'
 
@@ -308,7 +312,7 @@ function renderPriceLines(
     {
       timezone: board.context.timezone,
       unitCost: board.cost.native,
-      ...(board.cost.afterDividends === undefined ? {} : { costAfterDividends: true }),
+      ...(board.cost.isAfterDividends === undefined ? {} : { isAfterDividends: true }),
       currency: board.currency,
       ...(previousClose === undefined
         ? {}

@@ -264,8 +264,6 @@ export function toHeldPosition(
 
 type SummedField = 'costBasisNative' | 'costBasisBase' | 'dividendsNative' | 'dividendsBase'
 
-/** Only where the caller knows the market's withholding rate: without it the figure would be what
- *  landed rather than what was declared, a cost no broker shows. */
 function afterDividendsField(
   held: readonly Omit<Position, 'venue'>[],
   units: number,
@@ -278,9 +276,11 @@ function afterDividendsField(
     dividendsNative: sumOf(held, 'dividendsNative'),
     dividendsBase: sumOf(held, 'dividendsBase'),
   }
-  const after = dividendTax === undefined ? undefined : costAfterDividends(whole, dividendTax)
+  const afterDividends = costAfterDividends(whole, dividendTax)
 
-  return after === undefined ? {} : { unitCostAfterDividendsNative: after.unitCostNative }
+  return afterDividends === undefined
+    ? {}
+    : { unitCostAfterDividendsNative: afterDividends.unitCostNative }
 }
 
 function sumOf(held: readonly Omit<Position, 'venue'>[], field: SummedField): number {

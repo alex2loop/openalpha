@@ -290,7 +290,7 @@ function toPositionWire(
     ...(position.position.quantity > 0
       ? { unitCostNative: position.position.costBasisNative / position.position.quantity }
       : {}),
-    ...(afterDividends === undefined ? {} : { afterDividends }),
+    ...(afterDividends === undefined ? {} : { costAfterDividends: afterDividends }),
     ...(heldSince === undefined ? {} : { heldSince }),
     investedBase: position.position.costBasisBase,
   }
