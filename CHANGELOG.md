@@ -7,6 +7,22 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.2] - 2026-11-17
+
+OpenAlpha is now listed on the official MCP Registry, so AI apps that read it can find and add it. Each release carries an extension for the Claude app, and the `openalpha-mcp` npm package starts OpenAlpha from apps that install servers with `npx`. `mcp serve` no longer needs a config file to start.
+> OpenAlpha giờ có trên MCP Registry chính thức, nên các ứng dụng AI đọc registry tìm và thêm được nó. Mỗi bản phát hành kèm một tiện ích cho ứng dụng Claude, và package npm `openalpha-mcp` chạy OpenAlpha từ các ứng dụng cài server bằng `npx`. `mcp serve` không còn cần tệp cấu hình mới khởi động được.
+
+### Added
+
+- `openalpha.mcpb` on every release: an extension for the Claude app on macOS and Windows. Open it with the Claude app; it starts the OpenAlpha you installed, from `~/.local/bin` unless you point its install folder setting elsewhere.
+- The `openalpha-mcp` npm package for apps that install MCP servers with `npx` (`npx -y openalpha-mcp`). It also starts the OpenAlpha you installed, and reads `OPENALPHA_INSTALL_DIR` when you installed it somewhere else.
+- OpenAlpha is listed on the MCP Registry as `io.github.alex2loop/openalpha`; directories such as Glama and PulseMCP mirror it.
+
+### Changed
+
+- `mcp serve`, `mcp surface` and `mcp install` work before `openalpha onboard`: until a `config.toml` exists, the defaults apply.
+- The server entry `mcp install` prints names your data folder, and your config file only once it exists.
+
 ## [1.8.1] - 2026-11-17
 
 A round of fixes. Crypto fills on a US-home book are dated on your day, refusals and market figures print in the right currency and unit, and the brief reads the session that actually settled. In the web app you can now pick which agent or model answers, and a run that stops without a reply says why.
@@ -981,6 +997,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.2
 [1.7.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.7.0
 [1.6.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.3
 [1.6.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.2
