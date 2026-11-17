@@ -225,8 +225,8 @@ function renderUnpricedPosition(
 type PricedPosition = Extract<ValuedPosition, { readonly kind: 'priced' }>
 
 /** What the holding has done and how old it is, then what leaving it costs on its own line, so the
- *  exit levels never share a line with the return. What it cost to open is quantity × the unit
- *  cost on the rows above, so the row does not restate it. */
+ *  exit levels never share a line with the return. The unit cost sits on the rows above, so the
+ *  row does not restate what it cost to open. */
 function positionFactLines(
   locale: Locale,
   valued: PricedPosition,

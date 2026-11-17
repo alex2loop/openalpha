@@ -101,13 +101,14 @@ type DividendBearing = Pick<
 >
 
 /** The cost the way a broker states it: what landed is grossed up to what was declared at the
- *  market's withholding rate before it comes off. Absent when the units earned none, and when their
- *  dividends paid the holding back in full, where the cost paid is the only one left to state. */
+ *  market's withholding rate before it comes off. Absent on a market that states no rate, whose
+ *  brokers keep the cost paid; when the units earned none; and when their dividends paid the holding
+ *  back in full, where the cost paid is the only one left to state. */
 export function costAfterDividends(
   position: DividendBearing,
-  dividendTax = 0
+  dividendTax: number | undefined
 ): CostAfterDividends | undefined {
-  if (position.dividendsNative <= 0) {
+  if (dividendTax === undefined || position.dividendsNative <= 0) {
     return undefined
   }
 

@@ -102,7 +102,7 @@ export function draftInputFor(input: DraftPlanInput): DraftInput {
 
 function heldFields(input: DraftPlanInput): Pick<DraftInput, 'held'> {
   const { instrument, market } = input.resolution
-  const held = heldPositionOf(input.context, instrument, market.manifest.dividendTax ?? 0)
+  const held = heldPositionOf(input.context, instrument, market.manifest.dividendTax)
 
   return held === undefined ? {} : { held }
 }

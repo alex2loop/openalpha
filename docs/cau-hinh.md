@@ -971,9 +971,10 @@ hình quyết định cái gì chạy và khi nào, cộng ba thứ thuộc quy�
   chính sách của thị trường, không phải một khóa cấu hình.
 - **Thuế trừ vào cổ tức.** `[trading.markets.<id>] dividend_tax` (từ 0 đến dưới 1) là phần cổ tức tiền
   mặt bị khấu trừ trước khi về tài khoản. Giá vốn sau cổ tức quy số bạn ghi về lại số trước thuế theo
-  thuế suất này, để khớp với app công ty chứng khoán. Cổ phiếu Việt Nam mặc định 0.05, các thị trường
-  khác là 0. Nó không đổi điểm số, NAV hay tổng của sổ, chỉ đổi giá vốn từng mã và lãi/lỗ tính từ
-  giá vốn đó.
+  thuế suất này, để khớp với app công ty chứng khoán. Cổ phiếu Việt Nam mặc định 0.05. Cổ phiếu Mỹ
+  không có mặc định, vì công ty chứng khoán Mỹ giữ nguyên giá vốn bạn đã trả; đặt khóa này cho
+  `equity-us` thì giá vốn sau cổ tức mới bật ở đó. Chỉ hai thị trường cổ phiếu đọc khóa này. Nó không
+  đổi điểm số, NAV hay tổng của sổ, chỉ đổi giá vốn từng mã và lãi/lỗ tính từ giá vốn đó.
 
 **Lịch giao dịch theo luật, với hai thiết lập.** Giờ phiên và ngày cuối tuần nằm trong mã. Các ngày
 nghỉ được tính từ Bộ luật Lao động cho năm nào cũng được, nên không có danh sách nào để bạn phải cập
