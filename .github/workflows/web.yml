@@ -1,8 +1,9 @@
 name: web
 
 # Deploys the web edition and the homepage to Cloudflare as static assets, from the tag the release
-# workflow just published and only while that tag is the latest release. It is separate from the
-# release workflow and never bumps a version or writes to the repository.
+# workflow just published and only while that tag is the latest release. The release workflow
+# starts it the moment the Release is out, before its npm and registry jobs. It is separate from
+# the release workflow and never bumps a version or writes to the repository.
 #
 # It stays idle until the operator has added what a deploy needs: the repository variables
 # WEB_APP_URL (the address of the web app, which the homepage links to) and SITE_URL (the
@@ -18,10 +19,6 @@ name: web
 # deploy/package.json and deploy/bun.lock. The Environment carries the required reviewers and lets
 # only main (where a run after a release starts) and v* tags (a run by hand on a tag) deploy.
 on:
-  workflow_run:
-    workflows: [release]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -34,7 +31,6 @@ concurrency:
 
 jobs:
   plan:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
       deploy: ${{ steps.plan.outputs.deploy }}
@@ -46,8 +42,6 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Decide
         id: plan
