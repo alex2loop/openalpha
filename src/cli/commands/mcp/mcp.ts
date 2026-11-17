@@ -20,6 +20,7 @@ import type { McpJobReply, McpJobs, McpSurface, ToolApproval } from '@/engine/ap
 import { createCommand, createGroup } from '@/cli/command'
 import { createMcpApproval, hasFormElicitation } from '@/cli/commands/mcp/approval'
 import { mcpInstallCommand } from '@/cli/commands/mcp/install'
+import { MCP_COMMAND_NEEDS } from '@/cli/commands/mcp/needs'
 import { toCallToolResult } from '@/cli/commands/mcp/reply'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { resolveMcpJobs, resolveMcpSurface } from '@/cli/services'
@@ -60,14 +61,14 @@ interface SurfaceEntry {
 const mcpServeCommand: Command = createCommand({
   name: 'serve',
   summary: { key: 'cliHelp.mcpServeSummary' },
-  needs: { modelSource: 'client' },
+  needs: MCP_COMMAND_NEEDS,
   run: serveMcp,
 })
 
 const mcpSurfaceCommand: Command = createCommand({
   name: 'surface',
   summary: { key: 'cliHelp.mcpSurfaceSummary' },
-  needs: { modelSource: 'client' },
+  needs: MCP_COMMAND_NEEDS,
   run: showMcpSurface,
 })
 
