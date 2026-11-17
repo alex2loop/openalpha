@@ -7,6 +7,17 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.4] - 2026-11-17
+
+Through an AI app, a market you switch on or a name you start watching now has prices within seconds, with no restart, and a session the app keeps open for days keeps getting each new close.
+> Qua ứng dụng AI, thị trường bạn vừa bật hay mã bạn vừa theo dõi giờ có giá sau vài giây mà không cần mở lại app, và phiên app giữ mở nhiều ngày vẫn nhận giá đóng cửa của từng phiên mới.
+
+### Fixed
+
+- `mcp serve` with no background service running loads a market as soon as the assistant switches it on or watches a name in it. Before, that market stayed without a list of names until the app was restarted.
+- `mcp serve` with no background service running refreshes the markets you use every hour, not only as it starts.
+- The assistant no longer tells you to run `/refresh`, which the AI app does not have, while a market is still loading.
+
 ## [1.8.3] - 2026-11-17
 
 AI apps that use OpenAlpha without the background service now get Vietnam stock prices from the first start: `mcp serve` loads the market data itself instead of waiting for a refresh nobody runs.
