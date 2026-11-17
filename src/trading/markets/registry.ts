@@ -1,5 +1,7 @@
+import type { TtlCache } from '@/core/utils/collections'
 import type { MarketRef, PortfolioSegment, Region } from '@/trading/kernel/instrument'
 import type { DetectInstrumentOptions, MarketDetection } from '@/trading/markets/detection'
+import type { EnsureListing } from '@/trading/markets/listing-miss'
 import type { ReadOperatorUse } from '@/trading/markets/operator-use'
 import type { Market, MarketRegistry, MarketResolution } from '@/trading/markets/types'
 import { ConfigError } from '@/core/errors'
@@ -11,15 +13,18 @@ import { createRegistrationPhase } from '@/trading/registry-lifecycle'
 const BOUNDARY = 'market'
 const RESOLUTION_CACHE_MAXIMUM_ENTRIES = 512
 const RESOLUTION_CACHE_TTL_MS = 300_000
-export function createMarketRegistry(use: ReadOperatorUse = nothingUsed): MarketRegistry {
+const NO_LISTING_LOAD: EnsureListing = () => Promise.resolve([])
+
+/** `ensureListing` is bound late, by whoever owns the refresh: the registry exists before it. */
+export function createMarketRegistry(
+  use: ReadOperatorUse = nothingUsed,
+  ensureListing: EnsureListing = NO_LISTING_LOAD
+): MarketRegistry {
   const phase = createRegistrationPhase<Market>(BOUNDARY)
   const ownership = new Map<string, MarketRef>()
   const segments = new Map<PortfolioSegment, MarketRef>()
   const regionOwners = new Map<Region, Market>()
-  const resolutions = ttlCache<string, MarketResolution>(
-    RESOLUTION_CACHE_TTL_MS,
-    RESOLUTION_CACHE_MAXIMUM_ENTRIES
-  )
+  const lookup = { use, ensureListing, resolutions: createResolutionCache() }
 
   return {
     register(market) {
@@ -60,7 +65,7 @@ export function createMarketRegistry(use: ReadOperatorUse = nothingUsed): Market
     find: (ref) => phase.find(ref),
     regionOwner: (region) => regionOwners.get(region) ?? null,
     list: phase.entries,
-    resolve: (options) => resolveCached({ markets: phase.entries(), resolutions, use }, options),
+    resolve: (options) => resolveCached({ ...lookup, markets: phase.entries() }, options),
     regions: () => unique(phase.entries().map((market) => market.manifest.region)),
     segments: () => {
       phase.entries()
@@ -68,6 +73,10 @@ export function createMarketRegistry(use: ReadOperatorUse = nothingUsed): Market
       return [...segments.keys()]
     },
   }
+}
+
+function createResolutionCache(): TtlCache<string, MarketResolution> {
+  return ttlCache(RESOLUTION_CACHE_TTL_MS, RESOLUTION_CACHE_MAXIMUM_ENTRIES)
 }
 
 function claimRegion(owners: Map<Region, Market>, market: Market): void {

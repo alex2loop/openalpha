@@ -36,9 +36,9 @@ export function unsupported(
   return { ...base, reason: tokenized ? 'tokenized-equity' : 'ticker-not-supported' }
 }
 
-// A market with no stored universe has never been refreshed, and /refresh is the step that helps
-// even when another market's detector failed beside it: after the refresh, a failure left over
-// reads as the provider's.
+// A market with no stored universe is still loading or its source did not answer, which a later
+// refresh settles even when another market's detector failed beside it: after the refresh, a
+// failure left over reads as the provider's.
 function unavailableReasonOf(
   resolution: Extract<MarketResolution, { readonly kind: 'unavailable' }>
 ): UnsupportedResult['reason'] {

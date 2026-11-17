@@ -560,8 +560,8 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # `openalpha mcp install --host <app>` prints the server entry in that app's format
 # and writes the OpenAlpha skill into that app's skills folder (--skill-dir moves it).
 # mcp serve also starts before this file exists, on the defaults. When no daemon is running, it
-# refreshes the markets in use as it starts, every hour, and as soon as you switch a market on
-# or watch a name, so its data does not go stale.
+# refreshes the markets in use as it starts and every hour, so its data does not go stale. A
+# market you switch on or a name you watch through it loads at once, daemon or not.
 
 
 # ---- MCP servers ------------------------------------------------------------

@@ -1,3 +1,4 @@
+import type { Caveat } from '@/trading/kernel/caveat'
 import type { SessionHours } from '@/trading/kernel/config'
 import type { FactorId } from '@/trading/kernel/factor'
 import type {
@@ -231,6 +232,10 @@ export interface MarketDataService {
   /** The registered market refs, for the same reason: a surface that names the valid set in its
    *  input schema stops a caller guessing, and only this service can enumerate it. */
   markets(): readonly MarketRef[]
+  /** Starts or joins a market's first load and waits, within its budget, until its first kind lands
+   *  (the listing, in a stock market). A market already loaded answers at once with its stale notes;
+   *  nothing is refetched. */
+  ensureListing(market: MarketRef, signal: AbortSignal): Promise<readonly Caveat[]>
   /** How a market prints a price - what it quotes in, the measure it quotes per, and its board
    *  convention where it has one. A renderer cannot reach the registry, and only the registry
    *  knows any of the three. */

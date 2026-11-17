@@ -654,11 +654,12 @@ Under `mcp serve` the connected client's model stands in for the provider chain:
   are listed as `model_requests`.
 - Both halves of a request's wait are logged (`mcp.request_viewed`, `mcp.request_answered`). `serveMcp`
   drains the jobs before the store closes.
-- With no live daemon for the data dir (`liveDaemonPid`), `startMarketSweeps` runs
-  `refreshMarketsInUse` (`trading/wiring/loop.ts`, shared with the web edition's upkeep) in the
-  background: a `createPeriodicPass` at start and every `MARKET_SWEEP_INTERVAL_MS` (an hour; a pass
+- `startMarketSweeps` runs `refreshMarketsInUse` (`trading/wiring/loop.ts`, shared with the web
+  edition's upkeep) in the background: while no daemon is live for the data dir (`liveDaemonPid`), a
+  `createPeriodicPass` at start and every `MARKET_SWEEP_INTERVAL_MS` (an hour; a pass
   skips fresh kinds), plus one extra pass on every `profile_saved` (declared in
-  `trading/wiring/composition/registration.ts`). The extra pass is not queued behind a running one:
+  `trading/wiring/composition/registration.ts`). The extra pass runs even beside a live daemon, which
+  is another process and never hears this one's save. It is not queued behind a running one:
   the refresh coordinator joins a market already in flight, so only a newly used market fetches.
   Stop aborts every pass and awaits them before the jobs drain; a failure is logged as
   `mcp.refresh_failed` and never stops the server. A ledger write emits no event; its market loads

@@ -1160,10 +1160,11 @@ Khi không có dịch vụ nền OpenAlpha nào đang chạy, `mcp serve` tự g
 mà không bắt trợ lý phải chờ: nó làm mới các thị trường bạn theo dõi lúc khởi động, rồi mỗi giờ một lần, nên
 dù app giữ phiên mở nhiều ngày, trợ lý vẫn thấy giá đóng cửa của từng phiên mới. Khi trợ lý bật một thị trường
 hay thêm một mã vào danh sách theo dõi, thị trường đó được tải ngay, kể cả khi một lượt làm mới dài hơn đang
-chạy. Ở lần khởi động đầu, danh sách mã của từng thị trường về trong vài giây, còn lịch sử giá về dần trong
-vài phút sau đó, nên câu hỏi đặt ngay những giây đầu có thể được báo là danh sách mã đang tải. Giao dịch bạn
-ghi ở một thị trường chưa theo dõi sẽ được tải ở lượt làm mới hằng giờ kế tiếp. Khi dịch vụ nền đang chạy,
-việc này đã có nó lo, nên `mcp serve` để yên.
+chạy. Hỏi giá ở thị trường chưa có danh sách mã thì câu hỏi chờ danh sách về, tối đa khoảng nửa phút, thay vì
+báo không biết mã; lịch sử giá về dần trong vài phút sau đó. Giao dịch bạn ghi ở một thị trường chưa theo dõi
+sẽ được tải ở lượt làm mới kế tiếp. Khi dịch vụ nền đang chạy, việc giữ dữ liệu mới đã có nó lo nên `mcp serve`
+để yên, nhưng thị trường trợ lý vừa bật thì `mcp serve` vẫn tự tải, vì dịch vụ nền chỉ tới được nó ở lượt làm
+mới theo lịch kế tiếp.
 
 `--host` chọn ứng dụng: `claude-code` (mặc định), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, hoặc `agents` cho vị trí Agent Skills trung tính

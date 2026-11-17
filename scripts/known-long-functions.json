@@ -140,7 +140,7 @@
     "src/trading/markets/gold/market.ts#createGoldMarket": 42,
     "src/trading/markets/gold/overview.ts#runGoldOverview": 49,
     "src/trading/markets/levels.ts#buildLevels": 50,
-    "src/trading/markets/registry.ts#createMarketRegistry": 47,
+    "src/trading/markets/registry.ts#createMarketRegistry": 44,
     "src/trading/sources/adapters/binance/futures.ts#loadFunding": 55,
     "src/trading/sources/adapters/vndirect/market-read.ts#createMarketRead": 53,
     "src/trading/sources/registry.ts#failoverSources": 41,
