@@ -5755,7 +5755,7 @@
     "render.ledger.duplicate": "Đã có một dòng y hệt trong sổ ({handle}). Nếu bạn không giao dịch hai lần, hãy xóa một dòng bằng /delete {handle}.",
     "render.ledger.duplicateReceipt": "Đã có một dòng y hệt trong sổ ({handle}). Báo cho người dùng và hỏi trước khi xóa dòng nào - chỉ họ biết có giao dịch hai lần hay không.",
     "render.ledger.positionClosed": "{ticker} tại {venue} đã đóng - không còn gì để bán ở đó",
-    "render.ledger.dividendUnheld": "Bạn không giữ {ticker} tại {venue}, nên khoản cổ tức này không trừ vào giá vốn nào. Nếu ghi nhầm sàn, hãy sửa lại dòng này.",
+    "render.ledger.dividendUnheld": "Bạn đang không giữ {ticker} ở {venue}, nên khoản cổ tức này chưa trừ vào giá vốn nào. Nếu ghi nhầm sàn, bạn sửa lại dòng này là được.",
     "render.ledger.refold": "Thay đổi này tính lại toàn bộ sổ, nên các số liệu cũ cũng thay đổi theo.",
     "render.ledger.syncRecordedOne": "Đã ghi {count} lệnh khớp từ {venue}.",
     "render.ledger.syncRecorded": "Đã ghi {count} lệnh khớp từ {venue}.",
