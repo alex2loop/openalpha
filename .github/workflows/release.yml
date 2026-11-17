@@ -2,8 +2,8 @@ name: release
 
 # A push that sets a new package.json version publishes it: the gates run, the binaries are built
 # and checked, each is started on a machine of its kind, and only then are the tag and the GitHub
-# Release created with them attached, the MCP launcher published to npm and the release listed on
-# the MCP Registry. Run it by hand to retry a release whose gates failed, or with dry_run to
+# Release created with them attached, the web workflow started on that Release, the MCP launcher
+# published to npm and the release listed on the MCP Registry. Run it by hand to retry a release whose gates failed, or with dry_run to
 # rehearse every step but the publish.
 on:
   push:
@@ -17,7 +17,7 @@ on:
         default: false
 
 # Declared per job instead of here: only the publish job writes, and it needs `contents: write`
-# for the tag and the Release.
+# for the tag and the Release; the web job may only start the web workflow.
 permissions:
   contents: read
 
@@ -231,6 +231,22 @@ jobs:
           case "$TAG" in *-*) prerelease="--prerelease" ;; esac
           gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md $prerelease \
             dist/openalpha-* dist/SHA256SUMS dist/*.mcpb CHANGELOG.md
+
+  # Starts the web deploy as soon as the Release is out, so it waits on neither npm nor the registry.
+  # A workflow_dispatch is the one event GITHUB_TOKEN may start another workflow with; the web
+  # workflow holds the Cloudflare secrets, so this job holds none.
+  web:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Start the web deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run web.yml --ref main
 
   # Publishes the npm launcher the registry lists for apps that install with npx. npm takes it by
   # trusted publishing (OIDC, no token), set up on npmjs.com after the package's first hand-made
