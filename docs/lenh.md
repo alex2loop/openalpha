@@ -1157,7 +1157,9 @@ chưa có `config.toml` thì các giá trị mặc định được dùng, và s
 `onboard` đã ghi ra.
 
 Khi không có dịch vụ nền OpenAlpha nào đang chạy, `mcp serve` tự giữ dữ liệu thị trường của mình luôn mới:
-lúc khởi động, nó làm mới một lượt các thị trường bạn theo dõi mà không bắt trợ lý phải chờ. Ở lần khởi động đầu,
+lúc khởi động, nó làm mới một lượt các thị trường bạn theo dõi mà không bắt trợ lý phải chờ, và làm lại mỗi khi
+trợ lý lưu hồ sơ của bạn, nên thị trường bạn vừa bật hay mã bạn vừa theo dõi được tải ngay khi lượt làm mới
+đang chạy (nếu có) xong; ở lần khởi động đầu, lượt đó mất vài phút. Ở lần khởi động đầu,
 danh sách mã của từng thị trường về trong vài giây, còn lịch sử giá về dần trong vài phút sau đó, nên câu hỏi
 đặt ngay những giây đầu có thể được báo là danh sách mã đang tải. Khi dịch vụ nền đang chạy, việc
 này đã có nó lo, nên `mcp serve` để yên.

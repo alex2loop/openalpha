@@ -1173,10 +1173,13 @@ once one exists. Then it writes the skill file the app reads.
 `onboard` writes it.
 
 When no OpenAlpha is running in the background, `mcp serve` keeps its own market data fresh: as it
-starts, it refreshes the markets you follow once, without making the assistant wait. On a first start
-it fetches each market's list of names within seconds and the price history over the next few minutes,
-so a question asked in the very first moments may be told the list is still loading. When the
-background service is running, it already does this and `mcp serve` leaves it alone.
+starts, it refreshes the markets you follow once, without making the assistant wait, and again
+whenever the assistant saves your profile, so a market you switch on or a name you start watching
+loads as soon as any refresh already running ends (on a first start, that is the few minutes the
+first one takes). On a first start it fetches each market's list of names within seconds and the
+price history over the next few minutes, so a question asked in the very first moments may be told
+the list is still loading. When the background service is running, it already does this and
+`mcp serve` leaves it alone.
 
 `--host` picks the app: `claude-code` (the default), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, or `agents` for the neutral Agent Skills

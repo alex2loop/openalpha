@@ -669,11 +669,13 @@ Dưới `mcp serve`, mô hình của client đã kết nối đứng thay chuỗ
   được liệt kê thành `model_requests`.
 - Cả hai nửa của thời gian chờ một yêu cầu đều được ghi log (`mcp.request_viewed`,
   `mcp.request_answered`). `serveMcp` xả hết các công việc trước khi kho lưu trữ đóng.
-- Khi thư mục dữ liệu không có dịch vụ nền nào đang chạy (`liveDaemonPid`), `serveMcp` chạy nền một lượt
-  `refreshMarketsInUse` (`trading/wiring/loop.ts`, dùng chung với phần duy trì của bản web), nên lần
-  khởi động đầu nạp danh sách mã đã lưu của từng thị trường, các lần sau làm mới những loại dữ liệu đã cũ. Lượt
-  này được hủy và chờ xong trước khi xả công việc; lỗi chỉ được ghi log `mcp.refresh_failed`, không làm dừng
-  server.
+- Khi thư mục dữ liệu không có dịch vụ nền nào đang chạy (`liveDaemonPid`), `serveMcp` chạy nền
+  `refreshMarketsInUse` (`trading/wiring/loop.ts`, dùng chung với phần duy trì của bản web) lúc khởi động
+  và lại sau mỗi `profile_saved` (`startMarketSweeps`), nên lần khởi động đầu nạp danh sách mã đã lưu của
+  từng thị trường, các lần sau làm mới những loại dữ liệu đã cũ, còn nhóm vừa bật hay mã vừa theo dõi được
+  tải thị trường của nó ngay. Mỗi lúc chỉ chạy một lượt; các lần lưu trong lúc đang chạy gộp thành một lượt
+  nữa. Lượt đang chạy được hủy và chờ xong trước khi xả công việc; lỗi chỉ được ghi log
+  `mcp.refresh_failed`, không làm dừng server.
 
 Mọi phiên chạy MCP mang `audience: 'operator'` (`RunOptions` sang `ToolInvocationContext`); các phiên chạy
 khác là `agent`. Dưới `operator`, các công cụ đề xuất giữ `units` và `portfolio_rebalance` đọc
