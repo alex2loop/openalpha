@@ -6759,7 +6759,7 @@
   },
   "mcpBundle": {
     "description": "AI research analyst for VN stocks, gold and crypto. It suggests; you decide.",
-    "longDescription": "Uses the {brand} already installed on this computer, so install it first: {installUrl}. Your AI app's own model does the thinking; {brand} needs no AI key of its own here.",
+    "longDescription": "Uses the {brand} installed on this computer, so install or update it to the latest release first: {installUrl}. Your AI app's own model does the thinking; {brand} needs no AI key of its own here.",
     "binaryTitle": "{brand} program",
     "binaryDescription": "Where the install script put {brand}. Change it only if you installed it somewhere else.",
     "binaryMissing": "{brand} is not at {path}. Install it ({installUrl}) or point this extension at where it is."

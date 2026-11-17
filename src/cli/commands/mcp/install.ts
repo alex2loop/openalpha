@@ -11,7 +11,7 @@ import { createCommand } from '@/cli/command'
 import { buildHostAnalyst } from '@/cli/commands/mcp/analyst'
 import { buildAddCommand, buildHostConfig } from '@/cli/commands/mcp/host-config'
 import { DEFAULT_MCP_HOST, MCP_HOST_IDS, resolveMcpHost } from '@/cli/commands/mcp/hosts'
-import { MCP_COMMAND_NEEDS } from '@/cli/commands/mcp/needs'
+import { MCP_COMMAND_NEEDS, MCP_SERVE_ARGV } from '@/cli/commands/mcp/serve-contract'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { flagString } from '@/cli/parsing/args'
 import { buildSelfCommand, resolveConfigPath, resolveMcpSurface } from '@/cli/services'
@@ -23,7 +23,6 @@ import { t } from '@/i18n'
 
 const SKILL_FILE_NAME = 'SKILL.md'
 const AGENT_FILE_EXTENSION = '.md'
-const MCP_SERVE_ARGV = ['mcp', 'serve']
 
 export const mcpInstallCommand: Command = createCommand({
   name: 'install',

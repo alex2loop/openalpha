@@ -58,7 +58,7 @@ function toExecutablePath(path: string): string {
 }
 
 function reportMissing(path: string, detail?: string): void {
-  const lines = MISSING_MESSAGE_LINES.map((line) => line.replaceAll(PATH_PLACEHOLDER, path))
+  const lines = MISSING_MESSAGE_LINES.map((line) => line.replaceAll(PATH_PLACEHOLDER, () => path))
   const detailLines = detail === undefined ? [] : [detail]
 
   process.stderr.write(`${[...lines, ...detailLines].join('\n')}\n`)

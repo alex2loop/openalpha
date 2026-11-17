@@ -1187,7 +1187,7 @@ sets the server `timeout` and `experimental.mcp_timeout` to twice the 45 s a ser
 answering `working`. `--skill-dir` overrides the skill folder.
 
 Every release also carries `openalpha.mcpb`, an extension for the Claude app on macOS and Windows.
-It holds no copy of OpenAlpha: it starts the one you installed, so install OpenAlpha first, then open
-the file with the Claude app. Its one setting is where the program is; the default is where the
+It holds no copy of OpenAlpha: it starts the one you installed, so install or update OpenAlpha to the
+latest release first, then open the file with the Claude app. Its one setting is where the program is; the default is where the
 install script puts it (`~/.local/bin`). OpenAlpha is also listed on the MCP Registry, so assistants
 and directories that read the registry find it there.

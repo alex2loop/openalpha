@@ -6759,7 +6759,7 @@
   },
   "mcpBundle": {
     "description": "Trợ lý AI phân tích cổ phiếu Việt Nam, vàng và crypto. Mình đề xuất, bạn quyết định.",
-    "longDescription": "Dùng {brand} đã cài sẵn trên máy này, nên hãy cài trước: {installUrl}. Mô hình AI của chính ứng dụng trợ lý làm phần suy nghĩ; ở đây {brand} không cần key AI riêng.",
+    "longDescription": "Dùng {brand} đã cài trên máy này, nên hãy cài hoặc cập nhật lên bản phát hành mới nhất trước: {installUrl}. Mô hình AI của chính ứng dụng trợ lý làm phần suy nghĩ; ở đây {brand} không cần khóa AI riêng.",
     "binaryTitle": "Chương trình {brand}",
     "binaryDescription": "Nơi script cài đặt đã đặt {brand}. Chỉ đổi khi bạn cài nó ở chỗ khác.",
     "binaryMissing": "Không thấy {brand} ở {path}. Hãy cài nó ({installUrl}) hoặc trỏ tiện ích này tới chỗ đã cài."

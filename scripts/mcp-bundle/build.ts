@@ -6,6 +6,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
 import type { Locale } from '@/core/types/locale'
+import { MCP_SERVE_ARGV } from '@/cli/commands/mcp/serve-contract'
 import { BRAND } from '@/core/brand'
 import { LOCALES } from '@/core/types/locale'
 import { t } from '@/i18n'
@@ -19,7 +20,7 @@ const BUNDLE_PATH = resolve(OUT_DIR, `${BRAND.name}.mcpb`)
 const SERVER_JSON_PATH = resolve(OUT_DIR, 'server.json')
 const LAUNCHER_SOURCE = resolve(import.meta.dir, 'launch.ts')
 const MCPB_BIN = resolve(ROOT, 'node_modules/.bin/mcpb')
-const LAUNCHER_PATH = 'server/launch.js'
+const LAUNCHER_PATH = 'server/launch.cjs'
 const MANIFEST_FILE = 'manifest.json'
 const RESOURCES_DIR = 'mcpb-resources'
 const MANIFEST_VERSION = '0.3'
@@ -28,7 +29,6 @@ const LOCALE_TAGS = { en: 'en-US', vi: 'vi-VN' } as const satisfies Record<Local
 // Where install.sh and install.ps1 put the binary by default.
 const INSTALL_DIR = '.local/bin'
 const INSTALL_URL = `${BRAND.repository}#readme`
-const SERVE_ARGS = ['mcp', 'serve'] as const
 const PLATFORMS = ['darwin', 'win32', 'linux'] as const
 const SERVER_SCHEMA_URL =
   'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json'
@@ -85,7 +85,7 @@ async function stageBundle(): Promise<void> {
   }
 }
 
-// CommonJS: the host's Node runs a `.js` file outside any package as a script, not a module.
+// CommonJS in a `.cjs` file: the host's Node loads it as a script wherever the bundle is unpacked.
 async function buildLauncher(): Promise<string> {
   const lines = LOCALES.map((locale) =>
     t(locale, 'mcpBundle.binaryMissing', {
@@ -126,7 +126,7 @@ function buildManifest(): Record<string, unknown> {
       entry_point: LAUNCHER_PATH,
       mcp_config: {
         command: 'node',
-        args: [`${MCPB_DIRNAME}/${LAUNCHER_PATH}`, MCPB_BINARY_SETTING, ...SERVE_ARGS],
+        args: [`${MCPB_DIRNAME}/${LAUNCHER_PATH}`, MCPB_BINARY_SETTING, ...MCP_SERVE_ARGV],
       },
     },
     user_config: {
