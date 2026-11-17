@@ -6058,7 +6058,7 @@
     "render.suggestion.holdLevelsIntroHeldWithheld": "Exit plan for your holding, measured from today's price:",
     "render.suggestion.holdLevelsIntroHeldFund": "Where to take another look at this fund, measured from your cost:",
     "render.suggestion.holdLevelsIntroHeldFundWithheld": "Where to take another look at this fund, measured from today's price:",
-    "render.suggestion.holdLevelsIntroHeldReduce": "Holding {ticker}, the mark to watch against your cost of {unitCost}:",
+    "render.suggestion.holdLevelsIntroHeldReduce": "Holding {ticker}, the mark to watch against your {costLabel} of {unitCost}:",
     "render.suggestion.holdLevelsIntroHeldReduceWithheld": "Holding {ticker}, the mark to watch from today's price:",
     "render.suggestion.holdLevelsBookRisk": "If it falls to that stop, the position gives back {risk} of your book from today's value - still no loss on what you paid.",
     "render.suggestion.holdLevelsBookRiskWithheld": "If it falls to that stop, the position gives back {risk} of your book from today's value.",

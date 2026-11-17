@@ -6058,7 +6058,7 @@
     "render.suggestion.holdLevelsIntroHeldWithheld": "Kế hoạch thoát cho vị thế đang giữ, tính từ giá hiện tại:",
     "render.suggestion.holdLevelsIntroHeldFund": "Các mức nên xem lại quỹ này, tính từ giá vốn của bạn:",
     "render.suggestion.holdLevelsIntroHeldFundWithheld": "Các mức nên xem lại quỹ này, tính từ giá hiện tại:",
-    "render.suggestion.holdLevelsIntroHeldReduce": "Giữ {ticker}, mốc theo dõi tính từ giá vốn {unitCost}:",
+    "render.suggestion.holdLevelsIntroHeldReduce": "Giữ {ticker}, mốc theo dõi tính từ {costLabel} {unitCost}:",
     "render.suggestion.holdLevelsIntroHeldReduceWithheld": "Giữ {ticker}, mốc theo dõi tính từ giá hiện tại:",
     "render.suggestion.holdLevelsBookRisk": "Nếu giá về mức cắt lỗ đó, vị thế giảm tương đương {risk} tổng tài sản so với giá trị hiện tại - tính theo giá vốn thì vẫn không lỗ.",
     "render.suggestion.holdLevelsBookRiskWithheld": "Nếu giá về mức cắt lỗ đó, vị thế giảm tương đương {risk} tổng tài sản so với giá trị hiện tại.",

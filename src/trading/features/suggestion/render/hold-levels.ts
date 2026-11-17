@@ -74,6 +74,12 @@ function heldLevelLines(input: HeldLevelsInput): readonly string[] {
   if (input.isReduce && standing === undefined) {
     return declinedSaleLines(locale, {
       ticker: input.suggestion.instrument.ticker,
+      costLabel: t(
+        locale,
+        held.unitCostAfterDividendsNative === undefined
+          ? 'trading.render.price.costLabel'
+          : 'trading.render.price.costAfterDividendsLabel'
+      ),
       unitCost: formatPriceIn(locale, cost, quoted),
       exits: levelParams(locale, { ...input.levels, reference }, quoted),
       withheld,
@@ -378,6 +384,7 @@ function stopProximityLines(
 
 interface DeclinedSaleInput {
   readonly ticker: Ticker
+  readonly costLabel: string
   readonly unitCost: string
   readonly exits: Record<string, string>
   readonly withheld: ReturnType<typeof withheldSuffix>
@@ -388,10 +395,10 @@ interface DeclinedSaleInput {
  *  holder still has. The target below the market is left out: it reads as a stop to a holder, and
  *  nothing is armed there. */
 function declinedSaleLines(locale: Locale, input: DeclinedSaleInput): readonly string[] {
-  const { ticker, unitCost, exits, withheld } = input
+  const { ticker, costLabel, unitCost, exits, withheld } = input
 
   return [
-    `${INDENT[1]}${t(locale, `trading.render.suggestion.holdLevelsIntroHeldReduce${withheld}`, { ticker, unitCost })}`,
+    `${INDENT[1]}${t(locale, `trading.render.suggestion.holdLevelsIntroHeldReduce${withheld}`, { ticker, costLabel, unitCost })}`,
     `${INDENT[2]}${t(locale, 'trading.render.suggestion.holdLevelsRowHeldReduceStop', exits)}`,
   ]
 }

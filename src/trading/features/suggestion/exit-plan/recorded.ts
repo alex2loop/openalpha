@@ -71,14 +71,10 @@ async function planRecordedEntry(
   }
 
   const settled = resolveSettledDay(market.manifest.calendar, now)
-  const held = toHeldPosition(await deps.holdingsAt({ now, signal }), instrument)
+  const holdings = await deps.holdingsAt({ now, signal })
+  const held = toHeldPosition(holdings, instrument, market.manifest.dividendTax)
   const [standing, series, board] = await Promise.all([
-    deps.store.findLatestExitPlan({
-      market: instrument.market,
-      ticker: instrument.ticker,
-      ...heldSinceOf(held),
-      signal,
-    }),
+    deps.store.findLatestExitPlan({ ...instrument, ...heldSinceOf(held), signal }),
     bars.run({ instrument, asOf: settled, now, sessions: LEVEL_BARS_SESSIONS, signal }),
     readBoard(market, { ...options, settled }),
   ])
