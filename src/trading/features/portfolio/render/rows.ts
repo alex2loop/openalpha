@@ -58,7 +58,7 @@ export interface BookDisplay {
    *  by rather than in isolation. */
   readonly segmentCaps?: Readonly<Record<PortfolioSegment, RiskCapSet>>
   /** Segments a venue holds: only those can be switched back on, so only those are named off. */
-  readonly heldSegments?: ReadonlySet<string>
+  readonly heldSegments: ReadonlySet<string>
   /** Per instrument key, the smallest order any venue holding it accepts. */
   readonly minimumSizes?: ReadonlyMap<string, number>
   /** The weight each segment prints at. Apportioned once for the whole message, because a segment

@@ -47,7 +47,7 @@ export function renderAllocationSection(
             display
           )
         ),
-        disabled: [...disabledSegments(display.segmentCaps, display.heldSegments ?? new Set())],
+        disabled: [...disabledSegments(display.segmentCaps, display.heldSegments)],
         legend: 'trading.render.segment.legendPortfolio',
       },
       display.context

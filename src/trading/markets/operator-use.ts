@@ -46,9 +46,17 @@ export function withSwitchedOffNote(
   options: ResolveMarketOptions
 ): MarketResolution {
   const possible = skipped.filter((market) => market.candidacy(options.ticker) === 'possible')
+  // A stored listing that names the ticker settles it; only a fetched match may be someone else's.
+  const confirmed =
+    resolution.kind === 'resolved' && resolution.market.manifest.detection === 'stored'
   const [first] = possible
 
-  if (first === undefined || options.market !== undefined || options.operatorRead !== true) {
+  if (
+    first === undefined ||
+    confirmed ||
+    options.market !== undefined ||
+    options.operatorRead !== true
+  ) {
     return resolution
   }
 

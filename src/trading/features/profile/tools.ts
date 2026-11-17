@@ -63,7 +63,7 @@ function createProfileViewTool(profiles: AgentProfile): ToolDefinition {
   return createTool({
     name: 'profile_view',
     description:
-      'Returns the saved investor profile: risk level, horizon, goal, watchlist, and position caps, plus switchedOff: the segments switched off, which only profile_segment switches back on. Use it before any suitability, sizing, or hold-or-sell answer, and before asking the operator for a fact it may already hold. Takes no input; use profile_update to change it.',
+      'Returns the saved investor profile: risk level, horizon, goal, watchlist, and position caps, plus switchedOff: the segments switched off, which profile_segment switches back on. Use it before any suitability, sizing, or hold-or-sell answer, and before asking the operator for a fact it may already hold. Takes no input; use profile_update to change it.',
     inputSchema: noInput,
     capability: 'read',
     presentation: { label: 'Profile', emoji: '🪪' },
