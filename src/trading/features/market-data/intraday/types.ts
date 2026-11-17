@@ -48,7 +48,7 @@ export interface IntradayRow {
   readonly market: MarketRef
   readonly price?: number
   readonly changePct?: number
-  /** Absent together with `price`: a row whose quote never came back has no currency to report. */
+  /** Absent with `price` when the quote never came back, and on a level, which denominates in no currency. */
   readonly currency?: CurrencyCode
   readonly observed?: QuoteFreshness
   /** The settled close `price` moved from, so a row states both readings rather than one. */

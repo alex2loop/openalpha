@@ -4,9 +4,10 @@ import type { ToolDefinition } from '@/core/tool'
 import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { QuoteView } from '@/trading/kernel/market/market-capability'
+import type { SessionSoFar } from '@/trading/kernel/market/market-data'
 import type { PriceWriter } from '@/trading/kernel/surface/agent-json'
 import { createTool } from '@/core/tool'
-import { toAgentJson, writtenQuote } from '@/trading/kernel/surface/agent-json'
+import { toAgentJson, writtenQuote, writtenSession } from '@/trading/kernel/surface/agent-json'
 import { instrumentQueryInput, type MarketSchema } from '@/trading/kernel/surface/surface'
 import { formatInstant } from '@/trading/render/datetime'
 import { formatScaledPrice } from '@/trading/render/money'
@@ -59,14 +60,29 @@ function agentQuoteView(view: QuoteView, writer: QuoteWriter): unknown {
   const { locale, timezone } = writer
   const price: PriceWriter = (value) => formatScaledPrice(locale, value, view)
   const { display: _display, sector: _sector, quote, previousClose, observed, ...rest } = view
-  const { observedAt: _observedAt, ...pricedQuote } = quote
+  const { observedAt: _observedAt, session, ...pricedQuote } = quote
 
   return {
     ...rest,
     observed: { ...observed, observedAt: formatInstant(locale, observed.observedAt, timezone) },
-    quote: writtenQuote(pricedQuote, price),
+    quote: {
+      ...writtenQuote(pricedQuote, price),
+      ...(session === undefined ? {} : { session: agentSession(session, price, writer) }),
+    },
     ...(previousClose === undefined
       ? {}
       : { previousClose: { ...previousClose, price: price(previousClose.price) } }),
+  }
+}
+
+/** The session's start is an instant like `observedAt`, so it is written in the operator's zone. */
+function agentSession(session: SessionSoFar, price: PriceWriter, writer: QuoteWriter): unknown {
+  const { fromAt, ...recorded } = session
+
+  return {
+    ...writtenSession(recorded, price),
+    ...(fromAt === undefined
+      ? {}
+      : { fromAt: formatInstant(writer.locale, fromAt, writer.timezone) }),
   }
 }

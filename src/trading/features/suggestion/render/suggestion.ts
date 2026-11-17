@@ -233,6 +233,7 @@ function renderBodyBlocks(
       locale,
       suggestion,
       venues: view.recordVenues ?? [],
+      ...(view.recordDay === undefined ? {} : { recordDay: view.recordDay }),
       ...(view.quote === undefined ? {} : { quote: view.quote }),
     }),
   ]

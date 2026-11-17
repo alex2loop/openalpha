@@ -18,7 +18,7 @@ import { followBudget } from '@/app/server/feed/budget'
 import { followFills } from '@/app/server/feed/fills'
 import { followPreferences } from '@/app/server/feed/memory'
 import { followNotices } from '@/app/server/feed/notices'
-import { createPendingFeed } from '@/app/server/feed/pending'
+import { createPendingFeed, type PendingApproval } from '@/app/server/feed/pending'
 import { followProfile } from '@/app/server/feed/profile'
 import { toProgressWire } from '@/app/server/feed/progress'
 import { followRoles } from '@/app/server/feed/roles'
@@ -43,8 +43,8 @@ const LIVE_PROGRESS_MIN_INTERVAL_MS = 250
 
 export interface LiveFeed {
   snapshot(): LiveSnapshotWire
-  /** The raw channel an approval was asked on, or undefined for a request id the feed does not hold. */
-  pendingOrigin(requestId: string): string | undefined
+  /** An approval still waiting, or undefined for a request id the feed does not hold. */
+  pendingApproval(requestId: string): PendingApproval | undefined
   /** The last command answers, newest first; empty after a restart. */
   board(): readonly BoardEntryWire[]
   stop(): void
@@ -97,7 +97,7 @@ export function createLiveFeed(deps: LiveFeedDeps): LiveFeed {
         tasks: deps.tasks.list(),
       }
     },
-    pendingOrigin: pending.originOf,
+    pendingApproval: pending.approvalOf,
     board: board.list,
     stop: () => {
       for (const off of offs) {

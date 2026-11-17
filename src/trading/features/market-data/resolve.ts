@@ -202,11 +202,42 @@ export function unsupportedCapability(caveats: readonly Caveat[] = []): SourceUn
   return unavailable('unsupported', [], caveats)
 }
 
+/** A market whose bars are another instrument's tape (VN gold's are world gold in USD) has no
+ *  series of its own to answer with, and says so rather than looking like an unknown name. */
+export const REFERENCE_BARS_ONLY: readonly Caveat[] = Object.freeze([
+  { code: 'market-data.reference-bars-only' },
+])
+
 /** The only instant-to-day conversion: the market that owns the calendar performs it, so no
  *  surface invents a UTC or local day rule. It takes an instant and nothing else — a caller that
  *  could hand it a day could date a suggestion to a day the choice was not made on. */
 export function resolveDay(market: Market, now: number): TradingDay {
   return market.manifest.calendar.dayAt(now)
+}
+
+/** A venue fill's day: its market's, never past the book's. A UTC market's day runs ahead of a home
+ *  region west of it, and the ledger neither takes nor folds a row dated after its own today. */
+export function resolveFillDay(
+  market: Market,
+  filledAt: number,
+  book: { dayAt(at: number): TradingDay }
+): TradingDay {
+  const day = resolveDay(market, filledAt)
+  const bookDay = book.dayAt(filledAt)
+
+  return day > bookDay ? bookDay : day
+}
+
+/** The day a fill in `session` will be booked under: dated at the instant it can first trade, now
+ *  or the session's open, so a hint written tonight for tomorrow's session names tomorrow. */
+export function resolveSessionFillDay(
+  market: Market,
+  session: TradingDay,
+  input: { readonly now: number; readonly book: { dayAt(at: number): TradingDay } }
+): TradingDay {
+  const tradesAt = Math.max(input.now, market.manifest.calendar.sessionOpenAt(session))
+
+  return resolveFillDay(market, tradesAt, input.book)
 }
 
 /** Today, for a book or a view that spans markets: the market that owns the region dates it.

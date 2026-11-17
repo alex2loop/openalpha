@@ -30,6 +30,9 @@ const DRAG_PX = 6
 const LONG_PRESS_MS = 550
 // A wheel's travel per zoom step; a trackpad's small deltas add up to one.
 const WHEEL_STEP_PX = 100
+// A wheel that reports its travel in lines (Firefox) or pages: what each stands for in pixels.
+const WHEEL_LINE_PX = 40
+const WHEEL_PAGE_PX = 800
 // Up and down pan this far, and Shift with left or right; left and right alone step through the
 // people.
 const ARROW_PAN_PX = 48
@@ -271,14 +274,16 @@ function endPress(input: InputState): void {
 function onWheel(input: InputState, event: WheelEvent): void {
   event.preventDefault()
 
-  const isSideways = event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)
+  const deltaX = wheelPixels(event, event.deltaX)
+  const deltaY = wheelPixels(event, event.deltaY)
+  const isSideways = event.shiftKey || Math.abs(deltaX) > Math.abs(deltaY)
 
   if (isSideways) {
-    panBy(-(event.shiftKey ? event.deltaY : event.deltaX), event.shiftKey ? 0 : -event.deltaY)
+    panBy(-(event.shiftKey ? deltaY : deltaX), event.shiftKey ? 0 : -deltaY)
     return
   }
 
-  input.wheelPx += event.deltaY
+  input.wheelPx += deltaY
 
   if (Math.abs(input.wheelPx) < WHEEL_STEP_PX) {
     return
@@ -286,6 +291,18 @@ function onWheel(input: InputState, event: WheelEvent): void {
 
   zoomBy(input.wheelPx < 0 ? 1 : -1, toWorldPoint(input, event))
   input.wheelPx = 0
+}
+
+// The travel of one wheel axis in pixels, whatever unit the browser reports it in.
+function wheelPixels(event: WheelEvent, delta: number): number {
+  switch (event.deltaMode) {
+    case event.DOM_DELTA_LINE:
+      return delta * WHEEL_LINE_PX
+    case event.DOM_DELTA_PAGE:
+      return delta * WHEEL_PAGE_PX
+    default:
+      return delta
+  }
 }
 
 // A right-click (or the browser's own long-press menu) on a person opens their ring instead.

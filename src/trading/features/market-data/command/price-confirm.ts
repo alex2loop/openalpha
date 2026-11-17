@@ -16,7 +16,7 @@ const CONFIRM_TOKEN = 'confirm'
 
 interface PriceConfirmSurface {
   readonly command: string
-  readonly marketData: Pick<MarketDataService, 'quoteConvention'>
+  readonly marketData: Pick<MarketDataService, 'instrumentQuoteConvention'>
 }
 
 /** Runs a write whose price or name the operator typed, handing it the arguments without a trailing
@@ -35,7 +35,7 @@ export async function runWithPriceConfirm(
       : await write(ctx, 'unconfirmed')
   } catch (err: unknown) {
     if (err instanceof PriceUnconfirmedError) {
-      return renderPriceConfirm(ctx, err, surface)
+      return await renderPriceConfirm(ctx, err, surface)
     }
 
     if (err instanceof InstrumentUnlistedError && err.operator !== undefined) {
@@ -46,14 +46,18 @@ export async function runWithPriceConfirm(
   }
 }
 
-function renderPriceConfirm(
+async function renderPriceConfirm(
   ctx: SlashContext,
   err: PriceUnconfirmedError,
   surface: PriceConfirmSurface
-): SlashResult {
+): Promise<SlashResult> {
   const { locale } = ctx
-  const { market } = err.instrument
-  const convention = surface.marketData.quoteConvention(market)
+  const { market, ticker } = err.instrument
+  const convention = await surface.marketData.instrumentQuoteConvention({
+    ticker,
+    market,
+    signal: ctx.signal,
+  })
   const question = t(locale, 'errors.priceFarFromMarket', {
     ticker: err.instrument.ticker,
     price: priceIn(locale, err.price, convention),

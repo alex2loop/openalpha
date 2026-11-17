@@ -9,7 +9,11 @@ import type {
 } from '@/trading/features/market-data/types'
 import type { Candle } from '@/trading/kernel/market/market-data'
 import type { SourceResult } from '@/trading/kernel/source/source-result'
-import { resolveInstrument, unsupportedCapability } from '@/trading/features/market-data/resolve'
+import {
+  REFERENCE_BARS_ONLY,
+  resolveInstrument,
+  unsupportedCapability,
+} from '@/trading/features/market-data/resolve'
 import { available } from '@/trading/kernel/source/source-result'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { NAME_VOLUME_SESSIONS } from '@/trading/markets/name-readings'
@@ -132,16 +136,18 @@ async function readSettledBars(
   }
 
   const { market, instrument } = resolved
-  const result =
-    market.manifest.referenceBarsOnly === true
-      ? undefined
-      : await market.capabilities.bars?.run({
-          instrument,
-          sessions,
-          asOf: resolveSettledDay(market.manifest.calendar, options.now),
-          now: options.now,
-          signal: options.signal,
-        })
+
+  if (market.manifest.referenceBarsOnly === true) {
+    return unsupportedCapability(REFERENCE_BARS_ONLY)
+  }
+
+  const result = await market.capabilities.bars?.run({
+    instrument,
+    sessions,
+    asOf: resolveSettledDay(market.manifest.calendar, options.now),
+    now: options.now,
+    signal: options.signal,
+  })
 
   return result ?? unsupportedCapability()
 }

@@ -2,13 +2,12 @@ import { computed, type ReadonlySignal } from '@preact/signals'
 import { useEffect } from 'preact/hooks'
 
 import type { MarketWire } from '@/app/server/wire/market'
-import { COMMAND_PREFIX, isFinished, thread } from '@/web/state/chat'
+import { COMMAND_PREFIX, commandWordOf, isFinished, thread } from '@/web/state/chat'
 import { onCommandFinished } from '@/web/state/events'
 import { isCommandRun, runs } from '@/web/state/live'
 import { knownMarkets } from '@/web/state/market'
 import { quietCommands, sendQuiet } from '@/web/state/quiet-command'
 
-const WORD_BREAK = /\s+/
 // A command's run is named without the slash.
 const REFRESH_NAME = 'refresh'
 const REFRESH_COMMAND = `${COMMAND_PREFIX}${REFRESH_NAME}`
@@ -48,5 +47,5 @@ export function useRereadAfterRefresh(reread: () => void): void {
 }
 
 function isRefreshLine(text: string): boolean {
-  return text.trim().split(WORD_BREAK)[0] === REFRESH_COMMAND
+  return commandWordOf(text) === REFRESH_COMMAND
 }

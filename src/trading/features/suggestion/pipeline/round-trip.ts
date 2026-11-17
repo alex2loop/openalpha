@@ -5,6 +5,7 @@ import type { Stage, StageDecision, StageInput } from '@/trading/markets/stage'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { lowerBand } from '@/trading/kernel/conviction'
 import { isSameInstrument } from '@/trading/kernel/instrument'
+import { isBookCall } from '@/trading/kernel/operator/focus'
 import { loweredDecision, STAGE_PASS } from '@/trading/markets/stage'
 
 const ROUND_TRIP_STAGE_ID = 'round-trip'
@@ -59,7 +60,7 @@ export function createRoundTripStage(): Stage {
 function evaluate(input: StageInput): StageDecision {
   const { suggestion } = input
 
-  if (suggestion.action !== 'buy') {
+  if (suggestion.action !== 'buy' || !isBookCall(suggestion)) {
     return STAGE_PASS
   }
 

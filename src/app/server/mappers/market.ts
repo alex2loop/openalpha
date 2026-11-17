@@ -44,7 +44,12 @@ import type {
 } from '@/trading/api'
 import { toFlowBalanceWire } from '@/app/server/mappers/flow-balance'
 import { toSectorTurnoverWire } from '@/app/server/mappers/sector-turnover'
-import { toCaveatWires, toDealerBoardWire, toInstrumentWire } from '@/app/server/mappers/trading'
+import {
+  percent,
+  toCaveatWires,
+  toDealerBoardWire,
+  toInstrumentWire,
+} from '@/app/server/mappers/trading'
 import {
   changeAgainstClose,
   MACRO_SCORE_RANGE,
@@ -113,6 +118,7 @@ function toSessionWire({ session, day }: MarketView): MarketSessionWire | undefi
     ...(closeAuction === undefined ? {} : { closeAuction }),
     today: day.today,
     tradesToday: day.tradesToday,
+    ...(day.todayAt === undefined ? {} : { todayAt: day.todayAt }),
     nextTradingDay: day.nextTradingDay,
     phase: day.phase,
   }
@@ -267,7 +273,7 @@ function toLeaderWire(leader: OverviewLeader): OverviewLeaderWire {
   return {
     instrument: toInstrumentWire(leader.instrument),
     value: leader.value,
-    ...(leader.sharePct === undefined ? {} : { sharePct: leader.sharePct }),
+    ...(leader.sharePct === undefined ? {} : { sharePct: percent(leader.sharePct) }),
     ...(leader.changePct === undefined ? {} : { changePct: leader.changePct }),
   }
 }

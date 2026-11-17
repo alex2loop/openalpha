@@ -1,7 +1,7 @@
 import type { SocialWriteRow } from '@/core/types/social'
 import type { RequestContext, RequestDeps, RequestRefusal } from '@/social/request/checks'
 import type { SocialHttpResponse } from '@/social/request/send'
-import { ToolError } from '@/core/errors'
+import { assertNotAborted, isAbortError, ToolError } from '@/core/errors'
 import { HttpRequestError, parseRetryAfterMs } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { stripControls } from '@/core/utils/text'
@@ -56,6 +56,9 @@ export async function executeRequest(
   const { input, apiKey } = context
   let response: SocialHttpResponse
 
+  // An abort before the dial sent nothing; only one during the send leaves the outcome unknown.
+  assertNotAborted(signal)
+
   try {
     response = await sendSocialRequest(
       {
@@ -69,9 +72,14 @@ export async function executeRequest(
       signal
     )
   } catch (err: unknown) {
-    // A 3xx, a 5xx, an oversize body and a timeout are all a `ToolError`; an abort is not.
+    // A 3xx, a 5xx, an oversize body and a timeout are all a `ToolError`; an abort is not, but a
+    // write cut off mid-flight may still have landed, so the duplicate guard and the cap count it.
     if (err instanceof ToolError) {
       return await unansweredReply(deps, context, err)
+    }
+
+    if (isAbortError(err) && context.label !== 'read') {
+      await recordUncertainWrite(deps, context)
     }
 
     throw err
@@ -91,18 +99,21 @@ async function unansweredReply(
     return { kind: 'text', text }
   }
 
-  const now = deps.now()
+  await recordUncertainWrite(deps, context)
 
+  return { kind: 'text', text, maybeLive: true }
+}
+
+/** Logged, never thrown: the reply to the caller matters more than the bookkeeping. */
+async function recordUncertainWrite(deps: RequestDeps, context: RequestContext): Promise<void> {
   try {
-    await deps.store.recordWrite(toWriteRow(context, now))
+    await deps.store.recordWrite(toWriteRow(context, deps.now()))
   } catch (storeErr: unknown) {
     deps.logger.error('social.uncertain_write_record_failed', {
       network: context.input.network,
       err: formatErrForLog(storeErr),
     })
   }
-
-  return { kind: 'text', text, maybeLive: true }
 }
 
 // A refusal before the dial (host vetting) never reached the network. A 4xx or a 3xx answer says the

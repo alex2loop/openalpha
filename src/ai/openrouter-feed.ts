@@ -4,7 +4,7 @@ import type { ModelReasoningCapability, ReasoningEffortLevel } from '@/ai/reason
 import type { ModelPrice } from '@/ai/types'
 import type { Logger } from '@/core/logging/logger'
 import { withBareTails } from '@/ai/cost/bare-tails'
-import { PriceRowSchema, toModelPrice } from '@/ai/cost/openrouter-prices'
+import { cacheOpenRouterPrices, PriceRowSchema, toModelPrice } from '@/ai/cost/openrouter-prices'
 import { keylessGetWithSignal } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_HOUR } from '@/core/utils/time'
@@ -47,7 +47,7 @@ const EFFORT_MAP: Record<string, ReasoningEffortLevel | undefined> = {
   // xhigh, max, none: deliberately unmapped, so a list of only those pins the model to what it can do
 }
 
-const MANDATORY_EFFORTS: readonly ReasoningEffortLevel[] = ['low', 'medium', 'high']
+export const MANDATORY_EFFORTS: readonly ReasoningEffortLevel[] = ['low', 'medium', 'high']
 
 let cached: readonly unknown[] | undefined
 let inflight: Promise<readonly unknown[]> | undefined
@@ -76,6 +76,9 @@ function loadRawRows(logger: Logger): Promise<readonly unknown[]> {
 
       if (fetched) {
         cached = rows
+        // Whichever loader triggered the refresh, the price cache follows it: a later due-check
+        // sees the moved `refreshAtMs` and would never refresh prices itself.
+        cacheOpenRouterPrices(toPriceMap(rows))
       }
 
       refreshAtMs = startedAtMs + (fetched ? FEED_TTL_MS : FEED_RETRY_COOLDOWN_MS)
@@ -125,8 +128,9 @@ export function loadOpenRouterCapabilities(
   return loadRawRows(logger).then(toCapabilityMap)
 }
 
-export function loadOpenRouterPrices(logger: Logger): Promise<ReadonlyMap<string, ModelPrice>> {
-  return loadRawRows(logger).then(toPriceMap)
+/** Resolves once the feed is loaded; its prices are already in the price cache. */
+export function loadOpenRouterPrices(logger: Logger): Promise<void> {
+  return loadRawRows(logger).then(() => undefined)
 }
 
 /** Model ids whose routed endpoints enforce a JSON schema server-side. */

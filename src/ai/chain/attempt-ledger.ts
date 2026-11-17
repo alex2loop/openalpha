@@ -12,7 +12,7 @@ import type {
 import type { OnStreamEvent, TokenUsage } from '@/core/stream-events'
 import { streamWithIdleTimeout } from '@/ai/chain/stream-watchdog'
 import { loadOpenRouterCapabilities, loadOpenRouterStructuredOutputs } from '@/ai/openrouter-feed'
-import { resolveReasoning, widenedMaxTokens } from '@/ai/reasoning/resolve'
+import { resolveSourceReasoning, widenedMaxTokens } from '@/ai/reasoning/resolve'
 import { attemptUsageOf, LLMError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { estimateTextTokens } from '@/core/stream-events'
@@ -104,16 +104,9 @@ export async function runProviderAttempt(input: RunProviderAttemptInput): Promis
   const [capabilities, structuredOutputModels] = await routedCapabilities(input.entry)
   const capability = capabilities?.get(input.entry.model)
   const structuredOutputs = structuredOutputModels?.has(input.entry.model)
-  const reasoningResolution = resolveReasoning({
-    model: input.entry.model,
+  const reasoningResolution = resolveSourceReasoning(input.entry, {
     requested: reasoningMode,
     maxTokens: entryReq.maxTokens,
-    ...(input.entry.provider.reasoning === undefined
-      ? {}
-      : { family: input.entry.provider.reasoning }),
-    ...(input.entry.reasoningRequired === undefined
-      ? {}
-      : { reasoningRequired: input.entry.reasoningRequired }),
     ...(capability === undefined ? {} : { capability }),
   })
   const entry: ChainEntry = {

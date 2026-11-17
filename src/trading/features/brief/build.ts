@@ -179,8 +179,9 @@ export async function findOrBuildBrief(
 
   // Read once: the request wants the day before for its deltas, and the story step wants it for
   // the stories still open. A same-day rebuild reads the same row, so it rebuilds the same result.
-  const previous = await previousSnapshot(deps, input)
-  const request = buildRequest(deps, { ...input, profile, previous })
+  const reading = await previousReading(deps, input)
+  const { previous } = reading
+  const request = buildRequest(deps, { ...input, ...reading, profile })
 
   input.progress?.('trading.progress.brief.sections')
   const built = await capability.run(request)
@@ -339,17 +340,22 @@ function codeOf(caveat: BriefSectionResult['caveats'][number]): string {
 /** What the reader saw before this day, for the sections that report a change since: a same-day
  *  rebuild must not take its own earlier snapshot for the previous one. Unreadable is absent for
  *  the same reason a reused one is: this build rebuilding is the point, and a snapshot written in a
- *  vocabulary it no longer speaks must not fail the run that would replace it. */
-async function previousSnapshot(
+ *  vocabulary it no longer speaks must not fail the run that would replace it. Its scorecard month
+ *  is read even then, so a render-version bump does not print the monthly scorecard twice. */
+async function previousReading(
   deps: BriefBuildDeps,
   input: BriefBuildInput
-): Promise<BriefSnapshot | null> {
+): Promise<{ readonly previous: BriefSnapshot | null; readonly scorecardMonth?: string }> {
+  const options = { before: input.asOf, authoredLocale: input.locale, signal: input.signal }
+
   try {
-    return await deps.store.findPrevious({
-      before: input.asOf,
-      authoredLocale: input.locale,
-      signal: input.signal,
-    })
+    const previous = await deps.store.findPrevious(options)
+    const scorecardMonth =
+      previous === null
+        ? await deps.store.findPreviousScorecardMonth(options)
+        : previous.scorecardMonth
+
+    return { previous, ...(scorecardMonth === undefined ? {} : { scorecardMonth }) }
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
@@ -357,13 +363,15 @@ async function previousSnapshot(
 
     deps.logger.warn('trading.brief_previous_unreadable', { err: formatErrForLog(err) })
 
-    return null
+    return { previous: null }
   }
 }
 
 interface RequestInput extends BriefBuildInput {
   readonly profile: UserProfile | null
   readonly previous: BriefSnapshot | null
+  /** The month the scorecard last printed in, read even where the snapshot above is not. */
+  readonly scorecardMonth?: string
 }
 
 function buildRequest(deps: BriefBuildDeps, input: RequestInput): MarketBriefRequest {
@@ -385,7 +393,7 @@ function buildRequest(deps: BriefBuildDeps, input: RequestInput): MarketBriefReq
     // "Since your last brief" is the previous snapshot's instant; a user's first brief falls back
     // to the configured lookback rather than reporting every event ever recorded.
     activitySince: previous?.createdAt ?? input.now - policy.activityLookbackMs,
-    scorecardShownThisMonth: previous?.scorecardMonth === monthOf(input.asOf),
+    scorecardShownThisMonth: input.scorecardMonth === monthOf(input.asOf),
     channel: LOCAL_CHANNEL_ID,
     billingSessionId: input.billingSessionId ?? null,
     ...(input.parentRunId === undefined ? {} : { parentRunId: input.parentRunId }),

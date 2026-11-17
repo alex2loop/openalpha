@@ -35,7 +35,6 @@ import {
   rejectionsFor,
   stageOrder,
 } from '@/trading/features/order/prepare'
-import { quotedInFor } from '@/trading/features/order/render'
 import { adapterFor } from '@/trading/features/order/routing'
 import { resolveSellableQuantities } from '@/trading/features/order/sellable'
 import {
@@ -170,6 +169,7 @@ async function bookCapRefusals(deps: OrderServiceDeps, input: ExecuteInput): Pro
     side: staged.side,
     orderType: staged.orderType,
     notional: prepared.notional,
+    currency: prepared.currency,
     notionalBase: prepared.notionalBase,
     hasStopLoss: staged.stopLoss !== undefined,
     venue: prepared.venue,
@@ -189,11 +189,7 @@ async function bookCapRefusals(deps: OrderServiceDeps, input: ExecuteInput): Pro
     ...(prepared.instrumentKind === undefined ? {} : { instrumentKind: prepared.instrumentKind }),
   })
 
-  return {
-    rejections,
-    breaches,
-    quotedIn: quotedInFor(prepared, deps.quoteConvention(prepared.instrument.market)),
-  }
+  return { rejections, breaches }
 }
 
 /** Written before the order leaves, so a process that dies while the exchange holds it leaves a

@@ -23,7 +23,7 @@ import {
   agentMacro,
   type MacroPayloadOptions,
 } from '@/trading/features/market-data/tools/macro-risk'
-import { fractionToPct, toAgentJson } from '@/trading/kernel/surface/agent-json'
+import { fractionToPct, toAgentJson, writtenSession } from '@/trading/kernel/surface/agent-json'
 import { noInput } from '@/trading/kernel/surface/surface'
 import { formatFlow, formatSignedFlow, renderProvidedValue } from '@/trading/render/format'
 import { formatPrice, formatScaledPrice } from '@/trading/render/money'
@@ -269,9 +269,7 @@ function toLive(live: LiveIndexReading, price: PriceWriter): Record<string, unkn
   return {
     ...live,
     price: price(live.price),
-    ...(session === undefined
-      ? {}
-      : { session: { ...session, high: price(session.high), low: price(session.low) } }),
+    ...(session === undefined ? {} : { session: writtenSession(session, price) }),
   }
 }
 

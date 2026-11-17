@@ -52,7 +52,10 @@ type Editor = Pick<PortfolioService, 'update' | 'remove'>
 
 interface EditCommandDeps {
   readonly portfolio: Editor
-  readonly marketData: Pick<MarketDataService, 'quoteConvention' | 'trailsStop' | 'boardLot'>
+  readonly marketData: Pick<
+    MarketDataService,
+    'boardLot' | 'instrumentQuoteConvention' | 'quoteConvention' | 'trailsStop'
+  >
   readonly costs: TradingCosts
   readonly ledger: Pick<LedgerStore, 'findById' | 'listIdsMatching'>
 }

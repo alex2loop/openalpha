@@ -1,6 +1,9 @@
 import {
   canStop,
+  commandWordOf,
+  commandWordsOf,
   isFinished,
+  isSteerable,
   type SavedPreference,
   steer,
   stopTurn,
@@ -23,10 +26,11 @@ import { isLevelInstrument } from '@/web/state/market'
 import { canRemember, toAttributeName } from '@/web/state/memory'
 import { state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
+import { haltTextOf } from '@/web/text/halt'
 import { formatClock } from '@/web/text/time'
 import { MS_PER_SECOND } from '@/web/text/time-units'
 import { tr } from '@/web/text/tr'
-import { commandWordOf, commandWordsOf, resolveCommandLink } from '@/web/ui/chat/command-link'
+import { resolveCommandLink } from '@/web/ui/chat/command-link'
 import { RememberThis, ReplyText } from '@/web/ui/chat/history-message'
 import { QueuedCard } from '@/web/ui/chat/queued-card'
 import { isResearchTurn, ResearchReportLink, ResearchSteps } from '@/web/ui/chat/research-steps'
@@ -83,6 +87,7 @@ function AnswerCard({ turn }: { readonly turn: Turn }) {
         isProse={turn.byAgent === true}
         scope={isResearchTurn(turn) ? turn.localId : undefined}
       />
+      {turn.haltCode !== undefined && <p class="chat-caution">{haltTextOf(turn.haltCode)}</p>}
       <SteerLine turn={turn} />
       <PreferenceLines preferences={turn.preferences} />
       {isFinished(turn) ? <FinishedFoot turn={turn} /> : <RunningActions turn={turn} />}
@@ -219,7 +224,7 @@ function RunningActions({ turn }: { readonly turn: Turn }) {
         </Button>
       )}
       {turn.kind === 'ask' && (
-        <Button size="small" disabled={typed === ''} onClick={() => addNote(turn, typed)}>
+        <Button size="small" disabled={!isSteerable(typed)} onClick={() => addNote(turn, typed)}>
           {tr('ui.office.chat.addNote')}
         </Button>
       )}

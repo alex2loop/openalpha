@@ -4,8 +4,7 @@ import { readBlock } from '@/web/state/block'
 import { homeMarket, isTradingPhase, overviewBlock, selectOverview } from '@/web/state/market'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
-import { formatClock, zoneParts } from '@/web/text/time'
-import { MINUTES_PER_HOUR } from '@/web/text/time-units'
+import { formatClock } from '@/web/text/time'
 import { tr } from '@/web/text/tr'
 import { selectBoard } from '@/web/ui/today/blocks/market-section'
 
@@ -13,6 +12,13 @@ const WEEKDAY_PARTS: Intl.DateTimeFormatOptions = Object.freeze({
   weekday: 'long',
   timeZone: 'UTC',
 })
+
+type SessionHoursAt = NonNullable<MarketSessionWire['todayAt']>
+
+type SessionClockKey =
+  | 'ui.office.today.session.closesAt'
+  | 'ui.office.today.session.reopensAt'
+  | 'ui.office.today.session.opensAt'
 
 interface SessionStatus {
   readonly status: string
@@ -45,22 +51,26 @@ export function SessionLine() {
 function statusOf(market: MarketWire, session: MarketSessionWire): SessionStatus {
   // The exchange that keeps the hours, else the market's own name.
   const name = { market: session.exchange ?? market.segmentLabel }
+  const hours = session.todayAt
 
   switch (session.phase) {
     case 'open':
       return {
         status: tr('ui.office.today.session.open', name),
-        detail: tr('ui.office.today.session.closesAt', { time: session.close }),
+        ...detailAt('ui.office.today.session.closesAt', hours?.close),
       }
     case 'break':
       return {
         status: tr('ui.office.today.session.break', name),
-        detail: tr('ui.office.today.session.reopensAt', { time: breakEndOf(session) }),
+        ...detailAt(
+          'ui.office.today.session.reopensAt',
+          hours === undefined ? undefined : breakEndOf(hours)
+        ),
       }
     case 'pre-open':
       return {
         status: tr('ui.office.today.session.preOpen', name),
-        detail: tr('ui.office.today.session.opensAt', { time: session.open }),
+        ...detailAt('ui.office.today.session.opensAt', hours?.open),
       }
     case 'post-close':
       return { status: tr('ui.office.today.session.closed', name) }
@@ -74,18 +84,30 @@ function statusOf(market: MarketWire, session: MarketSessionWire): SessionStatus
   }
 }
 
-// The break the market is in now: the first that has not ended on its clock.
-function breakEndOf(session: MarketSessionWire): string {
-  const now = zoneParts(Date.now(), session.timeZone).minute
-  const ends = (session.breaks ?? []).map((pause) => pause.to)
+// The end of the break the market is in now: the first that has not ended.
+function breakEndOf(hours: SessionHoursAt): number {
+  const now = Date.now()
+  const ends = (hours.breaks ?? []).map((pause) => pause.to)
 
-  return ends.find((end) => toMinutes(end) > now) ?? ends.at(-1) ?? session.open
+  return ends.find((end) => end > now) ?? ends.at(-1) ?? hours.open
+}
+
+// A clock reads on the operator's zone; without the instant or the zone the line names no time.
+function detailAt(key: SessionClockKey, at: number | undefined): { readonly detail?: string } {
+  const time = operatorClock(at)
+
+  return time === undefined ? {} : { detail: tr(key, { time }) }
+}
+
+function operatorClock(at: number | undefined): string | undefined {
+  const timeZone = state.value?.timeZone
+
+  return at === undefined || timeZone === undefined ? undefined : formatClock(at, timeZone)
 }
 
 // While it trades, the time the board was read; once it is closed, its closing prices.
 function pricedText(session: MarketSessionWire): string | undefined {
   const board = selectBoard(selectOverview('home'))
-  const timeZone = state.value?.timeZone
 
   if (board === undefined) {
     return undefined
@@ -94,17 +116,15 @@ function pricedText(session: MarketSessionWire): string | undefined {
   if (!isTradingPhase(session.phase)) {
     const time =
       board.asOf === session.today
-        ? session.close
-        : `${formatDay(locale.value, board.asOf)} ${session.close}`
+        ? operatorClock(session.todayAt?.close)
+        : formatDay(locale.value, board.asOf)
 
-    return tr('ui.office.today.session.closingPrices', { time })
+    return time === undefined ? undefined : tr('ui.office.today.session.closingPrices', { time })
   }
 
-  const { readAt } = readBlock(overviewBlock)
+  const time = operatorClock(readBlock(overviewBlock).readAt)
 
-  return readAt === undefined || timeZone === undefined
-    ? undefined
-    : tr('ui.office.today.session.pricedAt', { time: formatClock(readAt, timeZone) })
+  return time === undefined ? undefined : tr('ui.office.today.session.pricedAt', { time })
 }
 
 // `YYYY-MM-DD` as "Thứ Ba 27/10": both page languages read the day first.
@@ -117,10 +137,4 @@ function formatWeekday(day: string): string {
     day: date,
     month,
   })
-}
-
-function toMinutes(clock: string): number {
-  const [hours = 0, minutes = 0] = clock.split(':').map(Number)
-
-  return hours * MINUTES_PER_HOUR + minutes
 }

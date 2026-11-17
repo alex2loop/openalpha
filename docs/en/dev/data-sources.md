@@ -264,12 +264,12 @@ every HOSE index, so a board sweep's failures must not black out the series the 
 `vndirect-index` is the first provider an index reaches. Measured 2026-11-03: its closes were identical to `vps` over 953 sessions
 (VNINDEX, VN30) and to `vietcap-chart` and `vps` over the whole 280-session window on all ten indices read (VNINDEX, VN30, VN100,
 VNMIDCAP, VNDIAMOND, VNX50, VNFINLEAD, VNFINSELECT, VNSHINE, VNMITECH), so a provider switch fires no `restatementOf`. VNINDEX runs
-back to 2017-08 (2,294 sessions). `entrade` is behind it because it answers wrongly without failing: its stored closes for VN100
+back to 2017-08 (2,294 sessions). `vietcap-chart` is the next provider because it matched everywhere. Its `to` bound includes a
+bar stamped at exactly that second and rounds up otherwise, and its daily series carries today's still-forming bar, so the adapter
+drops anything past the settled day instead of trusting the bound. `entrade` is behind it because it answers wrongly without failing: its stored closes for VN100
 and VNMITECH disagreed with all three others on 22 sessions each (2026-04-01 to 2026-06-09), and its stored VNINDEX and VN30 volumes sat 8% from
 `vndirect-index`'s on average (up to 84%). It still charts some indices at the depths this tree
-reads, and answers `invalid symbol` for the rest, so the route falls through. `vietcap-chart` is fourth. Its `to` bound includes a
-bar stamped at exactly that second and rounds up otherwise, and its daily series carries today's still-forming bar, so the adapter
-drops anything past the settled day instead of trusting the bound.
+reads, and answers `invalid symbol` for the rest, so the route falls through.
 
 **`vndirect-index` registers under its own id**, so an index outage cannot open the breaker the share kinds' bars share, nor a
 share sweep's failures the one an index needs. Same host, separate breaker. Provider facts the adapter owns:
@@ -288,7 +288,7 @@ share sweep's failures the one an index needs. Same host, separate breaker. Prov
   measuring, which the transport's retry covers.
 - Stored index volume keeps the `entrade` basis on held days until `/refresh equity-vn force` re-bases the window, so `market_bars` can show both bases meanwhile.
 
-`vps` is last. With `entrade` declining them, the ETF benchmarks VNDIAMOND, VNFINLEAD, VNFINSELECT, VNMIDCAP, VNSHINE and VNX50
+`vps` is last. With `entrade` declining them (it charts the four headline indices only), the ETF benchmarks VNDIAMOND, VNFINLEAD, VNFINSELECT, VNMIDCAP, VNSHINE and VNX50
 still had `vietcap-chart` and `vps` behind `vndirect-index`, so no single refusal takes them out. VPS Securities' feed carries them 707 sessions deep against vietcap's 673, every
 close identical over 125 sessions measured. Provider facts the adapter owns: the feed spells VNMIDCAP `VNMID`, and its `to` bound
 rounds **up** to the day, so the settled day is applied to the parsed candles rather than trusted to the query. Its turnover is

@@ -18,11 +18,10 @@ import { readPricePart, readValuationPart } from '@/trading/features/themes/chai
 import { readAccountsPart, readHeadlinesPart } from '@/trading/features/themes/chain/company-reads'
 import { guardChainRead } from '@/trading/features/themes/chain/context'
 import { toEvidenceItems } from '@/trading/features/themes/evidence/bundle'
-
-/** Ben-David et al.: thematic names were already overvalued when attention arrived. Both high
- *  together are crowded. */
-const CROWDED_EXCESS_RETURN = 0.3
-const CROWDED_PE_PERCENTILE = 80
+import {
+  CROWDED_EXCESS_RETURN,
+  CROWDED_PE_PERCENTILE,
+} from '@/trading/features/themes/score/policy'
 
 export interface CompanyFacts {
   readonly ticker: Ticker

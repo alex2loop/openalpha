@@ -34,16 +34,17 @@ export const SOURCE_ROUTES: SourceRouteTable = Object.freeze({
   bars: {
     'equity-us': [sourceId('nasdaq')],
     // vndirect declines an index outright, so `vndirect-index` is the first provider an index
-    // reaches: its closes matched vps over 953 sessions and vietcap-chart and the stored entrade
-    // series over 120, on every index measured, from the deepest history and with no frozen bar.
-    // entrade charts only the four headline indices and freezes a newest bar, so it stands behind;
-    // the ETF benchmarks it declines reach vietcap-chart, then vps, last because its turnover counts
-    // matched orders only.
+    // reaches: its closes matched vps over 953 sessions and vietcap-chart over the whole 280-session
+    // window, on every index measured, from the deepest history and with no frozen bar.
+    // vietcap-chart follows because it matched everywhere; entrade answers wrongly without failing
+    // (closes off on 22 sessions of VN100 and VNMITECH, volumes 8% off) and charts only the four
+    // headline indices, so it stands behind. vps is last because its turnover counts matched orders
+    // only.
     'equity-vn': [
       sourceId('vndirect'),
       sourceId('vndirect-index'),
-      sourceId('entrade'),
       sourceId('vietcap-chart'),
+      sourceId('entrade'),
       sourceId('vps'),
     ],
     crypto: [

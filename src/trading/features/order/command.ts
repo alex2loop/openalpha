@@ -237,7 +237,7 @@ async function runStage(
   const prepared = await deps.order.prepare({ request, now, signal: ctx.signal })
 
   if (prepared.rejections.length > 0) {
-    return rejected(deps, ctx.locale, prepared)
+    return rejected(ctx.locale, prepared)
   }
 
   const staged = await deps.order.stage({
@@ -284,7 +284,7 @@ async function runConfirm(
   }
 
   if (outcome.kind === 'rejected') {
-    return rejected(deps, ctx.locale, outcome.prepared)
+    return rejected(ctx.locale, outcome.prepared)
   }
 
   const { staged, prepared, executed } = outcome
@@ -368,18 +368,13 @@ async function runSetExit(
   }
 }
 
-function rejected(deps: TradeCommandDeps, locale: Locale, prepared: PreparedOrder): SlashResult {
-  const quotedIn = quotedInFor(
-    prepared,
-    deps.marketData.quoteConvention(prepared.instrument.market)
-  )
-
+function rejected(locale: Locale, prepared: PreparedOrder): SlashResult {
   return {
     kind: 'message',
     messages: [
       {
         key: CAP_REJECTED,
-        values: { reasons: renderCapRejections(locale, prepared.rejections, quotedIn) },
+        values: { reasons: renderCapRejections(locale, prepared.rejections) },
       },
     ],
   }

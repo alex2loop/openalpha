@@ -100,8 +100,8 @@ The model chain. The first entry is the primary, the rest are fallbacks.
 | `reasoning_required` | bool | `false` | Set it when the endpoint rejects a "reasoning off" request (OpenRouter answers 400). A router cannot tell from the model name. |
 | `cost_input_per_m` | number >= 0 | catalog price | Input USD per million tokens. Set together with `cost_output_per_m`. |
 | `cost_output_per_m` | number >= 0 | catalog price | Output USD per million tokens. Set together with `cost_input_per_m`. |
-| `cost_cache_read_per_m` | number >= 0 | - | Cache-read price, when you set explicit pricing. |
-| `cost_cache_write_per_m` | number >= 0 | - | Cache-write price, when you set explicit pricing. |
+| `cost_cache_read_per_m` | number >= 0 | - | Cache-read price, when you set explicit pricing. Left out, cache reads bill at `cost_input_per_m`. |
+| `cost_cache_write_per_m` | number >= 0 | - | Cache-write price, when you set explicit pricing. Left out, cache writes bill at `cost_input_per_m`. |
 
 Two entries with the same provider and model need different `alias` values.
 
@@ -270,7 +270,7 @@ cap are in [Cost and budgets](budgets.md).
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `language` | string | from `region`: `vi`, or `en` with `region = "us"` | `en` or `vi`. The one language every reply, brief and alert is written in; the investment profile has none of its own. |
-| `timezone` | string | host zone (`UTC` if none) | IANA name, for example `Asia/Ho_Chi_Minh`. New cron jobs snapshot this value unless `--tz` overrides it; interval schedules reject `--tz`. |
+| `timezone` | string | host zone (`UTC` if none) | IANA name, for example `Asia/Ho_Chi_Minh`. Every clock a reply or the page prints reads in it, a market's opening hours included. New cron jobs snapshot this value unless `--tz` overrides it; interval schedules reject `--tz`. |
 | `currency` | string | `VND` | ISO 4217 code (three capital letters). Trading's base currency; `onboard` asks it on first setup and writes it here. Fixed once your book has a profile: a later change is refused, and `doctor` names the mismatch on its `database` row. |
 | `region` | string | `vn` | Home region: `vn` or `us`. `us` makes US stocks and ETFs the home market; pair it with `currency = "USD"`, which cannot change after the first profile is saved, start from a fresh data directory, and see [`config.minimal.us.toml`](../../config.minimal.us.toml). US company accounts also need `SEC_CONTACT_EMAIL`, set by `onboard` or `key set`. A region needs a venue that trades its main market, so `global` (world gold, read for reference only) is refused. Its market is the default board, and a first profile seeds only its national segments plus crypto. |
 

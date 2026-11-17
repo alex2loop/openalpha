@@ -35,11 +35,17 @@ const RECORD_COMMAND = 'record'
 const USAGE: 'slash.tradingRecordUsage' = 'slash.tradingRecordUsage'
 const CONFIRM_ACTION = 'confirm'
 
-type Recorder = Pick<PortfolioService, 'record' | 'remove' | 'previewRecord' | 'recordVenues'>
+type Recorder = Pick<
+  PortfolioService,
+  'record' | 'remove' | 'previewRecord' | 'recordVenues' | 'dayAt'
+>
 
 interface RecordCommandDeps extends FxStageDeps, VenueSyncDeps {
   readonly portfolio: Recorder
-  readonly marketData: Pick<MarketDataService, 'quoteConvention' | 'trailsStop' | 'boardLot'>
+  readonly marketData: Pick<
+    MarketDataService,
+    'boardLot' | 'instrumentQuoteConvention' | 'quoteConvention' | 'trailsStop'
+  >
   readonly costs: TradingCosts
   readonly defaultRegion: Region
 }

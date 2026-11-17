@@ -1,6 +1,6 @@
 import type { Locale } from '@/core/types/locale'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
-import type { VenueRef } from '@/trading/kernel/instrument'
+import type { TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { QuoteConvention } from '@/trading/render/money'
 import { t } from '@/i18n'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
@@ -18,6 +18,8 @@ interface RecordHintInput {
   readonly suggestion: StoredSuggestion
   /** Every venue that holds the suggestion's market, so the hint can name where the fill will sit. */
   readonly venues: readonly VenueRef[]
+  /** The day the fill will be booked under, which the ledger accepts. */
+  readonly recordDay?: TradingDay
   readonly quote?: QuoteConvention
 }
 
@@ -34,6 +36,7 @@ export function renderRecordHint(input: RecordHintInput): readonly string[] {
     !isBookCall(suggestion) ||
     suggestion.units === undefined ||
     currency === undefined ||
+    input.recordDay === undefined ||
     venues.length === 0
   ) {
     return []
@@ -44,8 +47,7 @@ export function renderRecordHint(input: RecordHintInput): readonly string[] {
   const venue = venues.join(VENUE_ALTERNATIVE_SEPARATOR)
   const units = formatCommandNumber(suggestion.units)
   const entry = formatCommandNumber(suggestion.entry)
-  const day = suggestion.orderSession ?? suggestion.at
-  const command = `/record ${side} ${venue} ${instrument} ${units} ${entry} ${currency} ${day}`
+  const command = `/record ${side} ${venue} ${instrument} ${units} ${entry} ${currency} ${input.recordDay}`
   const key = isBoardScaled(input.quote?.display) ? 'recordHintBoard' : 'recordHint'
 
   return [`${INDENT[1]}${t(locale, `trading.render.suggestion.${key}`, { command, currency })}`]

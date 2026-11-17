@@ -1,6 +1,6 @@
 import type { CapRejection, OrderSide, OrderType } from '@/trading/features/order/types'
 import type { OrderPolicy } from '@/trading/kernel/config'
-import type { VenueRef } from '@/trading/kernel/instrument'
+import type { CurrencyCode, VenueRef } from '@/trading/kernel/instrument'
 import type { TradeCost } from '@/trading/markets/cost'
 import { cashDrawMultiple } from '@/trading/markets/cost'
 
@@ -9,8 +9,10 @@ interface CapInput {
   readonly side: OrderSide
   /** Estimated notional in the market's quote currency. */
   readonly notional: number
+  readonly currency: CurrencyCode
   /** The same notional converted to the book's base currency. */
   readonly notionalBase: number
+  readonly baseCurrency: CurrencyCode
   readonly orderType: OrderType
   readonly cost?: TradeCost
   readonly availableCashBase: number
@@ -41,7 +43,12 @@ export function validateOrderCaps(input: CapInput): readonly CapRejection[] {
   }
 
   if (policy.maximumStakeQuote > 0 && input.notional > policy.maximumStakeQuote) {
-    rejections.push({ code: 'stake', limit: policy.maximumStakeQuote, actual: input.notional })
+    rejections.push({
+      code: 'stake',
+      limit: policy.maximumStakeQuote,
+      actual: input.notional,
+      currency: input.currency,
+    })
   }
 
   if (
@@ -64,6 +71,7 @@ export function validateOrderCaps(input: CapInput): readonly CapRejection[] {
       limit: input.availableCashBase,
       actual: cashNeeded,
       venue: input.venue,
+      currency: input.baseCurrency,
     })
   }
 

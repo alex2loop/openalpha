@@ -4,6 +4,7 @@ import type { WatchlistDropReason } from '@/trading/kernel/screen-codes'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
 import { factorComposite } from '@/trading/kernel/factor'
 import { absent, omitted, ready } from '@/trading/markets/brief-sections'
+import { resolveSettledDay } from '@/trading/markets/calendar'
 import { judgedSupervisionCaveats } from '@/trading/markets/equity-vn/evidence/supervision'
 import { type CrossSection, scoreNameFactors } from '@/trading/markets/equity-vn/factors/factors'
 import {
@@ -100,9 +101,10 @@ function currentGateCode(
 
 const DELTA_BOARD_SIZE = 10
 
-/** Yesterday's board and today's, both from `boardTickers`, so the delta can never disagree with
- *  the screen it explains. The two-slot cache keeps yesterday's pass resident while today's screen
- *  runs, so neither evicts the other. */
+/** Today's board against the one a session before the newest settled one, both from
+ *  `boardTickers`, so the delta can never disagree with the screen it explains. Before the open
+ *  today's board stands on that settled session, so the day before the calendar day would be the
+ *  same board. The two-slot cache keeps both passes resident, so neither evicts the other. */
 export async function buildScreenDelta(context: VnBriefContext): Promise<BriefSectionResult> {
   const today = context.board
 
@@ -110,8 +112,8 @@ export async function buildScreenDelta(context: VnBriefContext): Promise<BriefSe
     return absent('screen-delta', [{ code: 'market-data.universe-empty' }])
   }
 
-  const previousDay = context.calendar.addTradingDays(context.request.asOf, -1)
-  const previous = await context.boardAt(previousDay)
+  const settledDay = resolveSettledDay(context.calendar, context.request.now)
+  const previous = await context.boardAt(context.calendar.addTradingDays(settledDay, -1))
   const todayBoard = boardTickers(today)
   const previousBoard = boardTickers(previous)
   const entered = [...todayBoard].filter((entry) => !previousBoard.has(entry))

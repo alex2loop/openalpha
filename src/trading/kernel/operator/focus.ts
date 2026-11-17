@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import type { AgentId, BrandTag } from '@/core/ids'
 import type { ToolInvocationContext } from '@/core/tool'
-import type { HoldReasonCode } from '@/trading/kernel/caveat'
+import type { Caveat, CaveatCode, HoldReasonCode } from '@/trading/kernel/caveat'
 import type { MarketRef, PortfolioSegment } from '@/trading/kernel/instrument'
 import type {
   InvestmentGoal,
@@ -51,6 +51,30 @@ const BOOK_STATE_HOLD_REASONS: ReadonlySet<HoldReasonCode> = new Set<HoldReasonC
   'no-rebalance-needed',
   'evidence-sold',
   'recorded-entry',
+])
+
+/** Notes written from the operator's own trades, size and cash. A second opinion carries no size, so
+ *  none of these may be shown beside it. */
+const BOOK_STATE_CAVEAT_CODES: ReadonlySet<CaveatCode> = new Set<CaveatCode>([
+  'suggestion.averaging-down',
+  'suggestion.averaging-down-net',
+  'suggestion.dividend-amount-unknown',
+  'suggestion.recent-exit',
+  'suggestion.round-trip-churn',
+  'suggestion.open-risk-unplanned',
+  'suggestion.size-limited-by-risk',
+  'suggestion.size-limited-by-open-risk',
+  'suggestion.size-limited-by-position-cap',
+  'suggestion.size-limited-by-sector',
+  'suggestion.size-limited-by-etf',
+  'suggestion.size-limited-by-segment',
+  'suggestion.size-limited-by-cash',
+  'suggestion.size-limited-by-liquidity',
+  'suggestion.size-scaled-by-regime',
+  'suggestion.size-realized-scale',
+  'suggestion.size-unavailable',
+  'suggestion.size-fx-unavailable',
+  'suggestion.size-segment-uncapped',
 ])
 
 type ParsedFocus = z.infer<typeof FOCUS_SCHEMA>
@@ -208,6 +232,11 @@ export function withoutBookHoldReasons(
   codes: readonly HoldReasonCode[]
 ): readonly HoldReasonCode[] {
   return codes.filter((code) => !BOOK_STATE_HOLD_REASONS.has(code))
+}
+
+/** The notes a second opinion may show: the book's own are dropped. */
+export function withoutBookCaveats(caveats: readonly Caveat[]): readonly Caveat[] {
+  return caveats.filter((caveat) => !BOOK_STATE_CAVEAT_CODES.has(caveat.code))
 }
 
 interface RootAgentFocus {

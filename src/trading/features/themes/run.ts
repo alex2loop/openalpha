@@ -396,8 +396,12 @@ function toShownSnapshot(id: ThemeId, history: readonly ThemeSnapshot[]): readon
   return [{ id, snapshot: { ...last, reads }, chainRun: before.run }]
 }
 
+/** The sector step never ran for any theme when the chain could not reach the screen. */
 function isSectorStepFailed(run: ThemeRun, id: ThemeId): boolean {
-  return run.notes.some((note) => note.level === 'sector' && note.themeId === id)
+  return (
+    run.gaps.includes('screen') ||
+    run.notes.some((note) => note.level === 'sector' && note.themeId === id)
+  )
 }
 
 function mergeReads(snapshots: readonly ThemeSnapshot[]): ThemeRunReads {

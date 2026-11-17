@@ -174,7 +174,8 @@ interface FileAutosave {
 
 /** Writes a full copy to a swap file that replaces the target when it closes, so a tab closed
  *  mid-write leaves the old copy or the new one, never half of each. The copy is written after a
- *  debounce, and at once when the tab goes to the background. */
+ *  debounce, and at once when the tab goes to the background. Only a failed write marks the data
+ *  changed, so a change made while a copy was being written stays marked. */
 function createFileAutosave(options: FileAutosaveOptions): FileAutosave {
   const lifetime = new AbortController()
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -184,22 +185,20 @@ function createFileAutosave(options: FileAutosaveOptions): FileAutosave {
   const save = (): Promise<void> => {
     clearTimeout(timer)
     isDirty = false
-    tail = tail.then(async () => {
-      isDirty = !(await writeCopy(options))
-    })
+    tail = tail
+      .then(() => writeCopy(options))
+      .then((ok) => {
+        isDirty = isDirty || !ok
+      })
 
     return tail
   }
 
-  document.addEventListener(
-    'visibilitychange',
-    () => {
-      if (document.visibilityState === 'hidden' && isDirty && !isStopped) {
-        save().catch(options.onFailed)
-      }
-    },
-    { signal: lifetime.signal }
-  )
+  onTabHidden(lifetime.signal, () => {
+    if (isDirty && !isStopped) {
+      save().catch(options.onFailed)
+    }
+  })
 
   return {
     schedule() {
@@ -219,6 +218,18 @@ function createFileAutosave(options: FileAutosaveOptions): FileAutosave {
       await (isDirty ? save() : tail)
     },
   }
+}
+
+function onTabHidden(lifetime: AbortSignal, run: () => void): void {
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.visibilityState === 'hidden') {
+        run()
+      }
+    },
+    { signal: lifetime }
+  )
 }
 
 async function writeCopy(options: FileAutosaveOptions): Promise<boolean> {

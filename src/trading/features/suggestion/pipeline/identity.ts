@@ -27,6 +27,7 @@ import {
 import { buildSuggestionId, isInconclusive } from '@/trading/features/suggestion/types'
 import { isEvidenceReduceReason } from '@/trading/kernel/caveat'
 import { strategyId } from '@/trading/kernel/instrument'
+import { isBookCall } from '@/trading/kernel/operator/focus'
 import { voidPrice } from '@/trading/markets/levels'
 import { exitPriceOf } from '@/trading/markets/stored-quote'
 
@@ -306,6 +307,10 @@ async function resolveStanding(
  *  only matters to a row decided on them - a buy sized from cash, a sale under the plan's own
  *  reasons, a hold sized against NAV and cash or a plan sale under one lot - so only those say so. */
 function bookChangeCaveat(suggestion: StoredSuggestion, change: BookChange): Caveat | undefined {
+  if (!isBookCall(suggestion)) {
+    return undefined
+  }
+
   if (change === 'instrument' && suggestion.action !== 'hold') {
     return { code: 'suggestion.position-changed' }
   }

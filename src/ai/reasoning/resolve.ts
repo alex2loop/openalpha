@@ -4,6 +4,7 @@ import type {
   ReasoningResolution,
   ResolveReasoningInput,
 } from '@/ai/reasoning/core'
+import type { ModelReasoningCapability } from '@/ai/reasoning/effort'
 import type { ReasoningMode } from '@/core/llm'
 import { exact, reasoningBudgetOf, reasoningEffortOf, unknownResolution } from '@/ai/reasoning/core'
 import { clampReasoningEffort } from '@/ai/reasoning/effort'
@@ -26,6 +27,34 @@ import {
 } from '@/ai/reasoning/families'
 
 export type { ReasoningReplayProtocol, ReasoningResolution } from '@/ai/reasoning/core'
+
+interface ReasoningSource {
+  readonly model: string
+  readonly provider: { readonly reasoning?: ReasoningFamily }
+  readonly reasoningRequired?: boolean | undefined
+}
+
+/** The one place a configured model and a request mode become a `ReasoningResolution`: the attempt
+ *  and the pre-flight cost ceiling both ask it. */
+export function resolveSourceReasoning(
+  source: ReasoningSource,
+  request: {
+    readonly requested: ReasoningMode
+    readonly maxTokens: number
+    readonly capability?: ModelReasoningCapability
+  }
+): ReasoningResolution {
+  return resolveReasoning({
+    model: source.model,
+    requested: request.requested,
+    maxTokens: request.maxTokens,
+    ...(source.provider.reasoning === undefined ? {} : { family: source.provider.reasoning }),
+    ...(source.reasoningRequired === undefined
+      ? {}
+      : { reasoningRequired: source.reasoningRequired }),
+    ...(request.capability === undefined ? {} : { capability: request.capability }),
+  })
+}
 
 export function resolveReasoning(input: ResolveReasoningInput): ReasoningResolution {
   const family = input.family

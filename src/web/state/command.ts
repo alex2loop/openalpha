@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
-import { COMMAND_PREFIX, isFinished, sendMessage, thread } from '@/web/state/chat'
+import { COMMAND_PREFIX, commandWordsOf, isFinished, sendMessage, thread } from '@/web/state/chat'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { isCommandRun, runs } from '@/web/state/live'
 import { quietCommands } from '@/web/state/quiet-command'
@@ -166,7 +166,7 @@ function send(text: string): boolean {
 }
 
 function isBookWrite(text: string): boolean {
-  const [command = '', action] = text.trim().split(WHITESPACE_RE)
+  const [command = '', action] = commandWordsOf(text)
 
   if (command === PROFILE_COMMAND) {
     return action !== undefined && action !== PROFILE_SHOW_ACTION

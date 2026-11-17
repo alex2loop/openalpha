@@ -12,7 +12,7 @@ import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { buildVenueFillKey } from '@/trading/features/ledger/sync'
-import { resolveDay, resolveInstrument } from '@/trading/features/market-data/resolve'
+import { resolveFillDay, resolveInstrument } from '@/trading/features/market-data/resolve'
 import { announceFill, toMirrorNumbers } from '@/trading/features/order/mirror'
 import { adapterFor } from '@/trading/features/order/routing'
 import { OrderError } from '@/trading/features/order/types'
@@ -26,7 +26,7 @@ const EXIT_MISSING_GRACE_MS = 300_000
 interface ExitTickDeps {
   readonly venues: VenueRegistry
   readonly resting: RestingExitStore
-  readonly portfolio: Pick<PortfolioService, 'record' | 'positionsAt'>
+  readonly portfolio: Pick<PortfolioService, 'record' | 'positionsAt' | 'dayAt'>
   readonly markets: MarketRegistry
   readonly batchSize: number
   readonly logger: Logger
@@ -291,7 +291,7 @@ async function mirrorFill(
     signal,
   })
   const booked = toExitFill(exit, fill, {
-    at: resolveDay(resolution.market, fill.filledAt),
+    at: resolveFillDay(resolution.market, fill.filledAt, deps.portfolio),
     currency: resolution.market.manifest.currency,
     numbers,
   })

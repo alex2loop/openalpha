@@ -4,7 +4,7 @@ import type {
   StagedOrderWire,
 } from '@/app/server/wire/orders'
 import { clearPlaceAnswer, type PlaceAnswer, placeAnswer } from '@/web/state/orders'
-import { formatQuantity } from '@/web/text/figures'
+import { formatMoney, formatQuantity } from '@/web/text/figures'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { toFailureText, tr } from '@/web/text/tr'
 import { toVenueName } from '@/web/text/venue'
@@ -93,12 +93,12 @@ function fillText({ fill, order }: Executed): string {
   }
 }
 
-// An open-trades cap counts positions; every other cap measures money in the order's market.
+// A money cap is printed in its own currency; an open-trades cap counts positions.
 function rejectionText(order: StagedOrderWire, rejection: CapRejectionWire): string {
   const figure = (value: number): string =>
-    rejection.code === 'openTrades'
+    rejection.currency === undefined
       ? formatQuantity(value)
-      : formatMarketPrice(order.instrument.market, value)
+      : formatMoney(value, rejection.currency)
 
   return tr(`ui.office.orders.rejected.${rejection.code}`, {
     limit: figure(rejection.limit),

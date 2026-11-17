@@ -11,6 +11,7 @@ import type {
   PortfolioService,
   RebalanceForm,
   ReduceVerdicts,
+  SizedValuedBook,
   ValuedBook,
 } from '@/trading/features/portfolio/types'
 import type { PortfolioViewDeps, ValuedContext } from '@/trading/features/portfolio/view'
@@ -108,28 +109,13 @@ export function createPortfolioService(deps: PortfolioServiceDeps): PortfolioSer
     historyAbsolute: (options) => deps.ledger.listPage(options),
 
     async viewRelative(options) {
-      const valued = await valuedBookFor(deps, options)
-      const minimumSizes = await minimumSizesByInstrument(
-        deps.venues,
-        valued.book.positions,
-        options.signal
-      )
+      const { valued, minimumSizes } = await sizedBookFor(deps, options)
 
       return toRelativeView(valued, minimumSizes)
     },
 
     viewAbsolute: (options) => valuedBookFor(deps, options),
-
-    async viewAbsoluteSized(options) {
-      const valued = await valuedBookFor(deps, options)
-      const minimumSizes = await minimumSizesByInstrument(
-        deps.venues,
-        valued.book.positions,
-        options.signal
-      )
-
-      return { valued, minimumSizes }
-    },
+    viewAbsoluteSized: (options) => sizedBookFor(deps, options),
 
     viewAbsoluteWithKinds: async (options) => {
       const { valued, instruments } = await valuedFor(deps, options)
@@ -142,6 +128,7 @@ export function createPortfolioService(deps: PortfolioServiceDeps): PortfolioSer
 
       return book.positions
     },
+    dayAt: (at) => resolveAsOf(deps, at),
     reconcile: (options) => reconcileBook(deps, options),
 
     assess: (options) => assessHoldings(deps, options),
@@ -435,6 +422,20 @@ function kindsOf(
   }
 
   return kinds
+}
+
+async function sizedBookFor(
+  deps: PortfolioServiceDeps,
+  options: PortfolioAtOptions
+): Promise<SizedValuedBook> {
+  const valued = await valuedBookFor(deps, options)
+  const minimumSizes = await minimumSizesByInstrument(
+    deps.venues,
+    valued.book.positions,
+    options.signal
+  )
+
+  return { valued, minimumSizes }
 }
 
 function resolveAsOf(deps: PortfolioServiceDeps, now: number): TradingDay {

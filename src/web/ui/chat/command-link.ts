@@ -1,6 +1,7 @@
 import type { InstrumentKind } from '@/app/server/wire/vocab'
 import type { MessageKey } from '@/i18n'
 import { openBook } from '@/web/state/book'
+import { commandWordsOf } from '@/web/state/chat'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -12,7 +13,6 @@ import { openTradeDialog } from '@/web/ui/dialogs/trade-dialog'
 import { togglePopover } from '@/web/ui/kit/popover'
 import { openReader } from '@/web/ui/reader/reader'
 
-const WORD_BREAK = /\s+/
 // `market:ticker` names the market when two claim a ticker.
 const MARKET_SEPARATOR = ':'
 // `/screen 20`: how many rows the board prints. Any number is an option, never a ticker: the CLI
@@ -53,16 +53,6 @@ const COMMAND_LINKS: Readonly<Record<string, LinkBuilder>> = Object.freeze({
   '/refresh': (_args, runId) => linkRun('ui.office.common.seeKeeper', runId),
   '/suggest': (_args, runId) => linkMeeting(runId),
 })
-
-/** The words of a line, the command first. */
-export function commandWordsOf(text: string): readonly string[] {
-  return text.trim().split(WORD_BREAK)
-}
-
-/** The first word of a line: the command it names, slash included. */
-export function commandWordOf(text: string): string {
-  return commandWordsOf(text)[0] ?? ''
-}
 
 /** The link for the command `text` starts with; none for a question or an unlisted command.
  *  `runId` is the run that answered it, for a link into the office. */

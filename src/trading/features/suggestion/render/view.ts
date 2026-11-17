@@ -7,7 +7,7 @@ import type {
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 import type { FactorAttribution } from '@/trading/kernel/factor'
-import type { BoardLotPolicy, VenueRef } from '@/trading/kernel/instrument'
+import type { BoardLotPolicy, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { TradeCost } from '@/trading/markets/cost'
 import type { RenderContext } from '@/trading/render/format'
 import type { QuoteConvention } from '@/trading/render/money'
@@ -32,6 +32,8 @@ export interface SuggestionTextInput {
   /** Every venue that holds the suggestion's market, so the record hint can name where the fill
    *  will sit. */
   readonly recordVenues?: readonly VenueRef[]
+  /** The day the record hint dates the fill. */
+  readonly recordDay?: TradingDay
   /** The latest resolved call on this name, for the line that says what the last one did. Absent
    *  on a first call, which has no record to stand on. */
   readonly previous?: ResolvedActionableSuggestion

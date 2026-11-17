@@ -3,8 +3,9 @@ import type { MarketRef } from '@/trading/kernel/instrument'
 import type { QuoteBoard, QuoteBoardItem } from '@/trading/kernel/market/market-capability'
 import type { QuoteFreshness } from '@/trading/kernel/market/market-data'
 import type { RenderContext } from '@/trading/render/format'
-import type { QuoteConvention } from '@/trading/render/money'
+import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
 import { t } from '@/i18n'
+import { isLevelKind } from '@/trading/kernel/instrument'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
   formatCount,
@@ -15,7 +16,7 @@ import {
 import { renderQuoteFreshness } from '@/trading/render/freshness'
 import { INDENT, joinSections, renderEmptyLine, renderSectionTitle } from '@/trading/render/layout'
 import { renderMarketBlocks, toMarketBlocks } from '@/trading/render/market-blocks'
-import { formatQuotedPrice, quotedInOf, renderBoardScaleNotes } from '@/trading/render/money'
+import { formatPriceIn, quotedInOf, renderBoardScaleNotes } from '@/trading/render/money'
 import { quoteBoardMoveOf } from '@/trading/render/price-pair'
 
 /** The board convention each row's own market quotes in: a quoteBoard spans markets, so one display for
@@ -72,14 +73,22 @@ function boardScaleLines(
   options: QuoteRenderOptions
 ): readonly string[] {
   const quotes = items.flatMap((item) => {
-    const convention = options.quoteConventions?.get(item.market)
+    const { display } = quotedFieldsOf(item, options)
 
-    return convention?.display === undefined
-      ? []
-      : [{ market: item.market, currency: item.currency, display: convention.display }]
+    return display === undefined ? [] : [{ market: item.market, currency: item.currency, display }]
   })
 
   return renderBoardScaleNotes(locale, quotes).map((note) => `${INDENT[1]}${note}`)
+}
+
+/** A level prints bare: it has no currency and no board scale to divide by, whatever its market
+ *  quotes its names in. */
+function quotedFieldsOf(item: QuoteBoardItem, options: QuoteRenderOptions): Partial<QuotedIn> {
+  if (isLevelKind(item.kind)) {
+    return {}
+  }
+
+  return { currency: item.currency, ...quotedInOf(options.quoteConventions?.get(item.market)) }
 }
 
 /** A separate key per shape rather than one with an empty `{change}`: a market that publishes no
@@ -91,10 +100,7 @@ function rowLine(
 ): string {
   const shared = {
     ticker: item.ticker.padEnd(row.tickerWidth),
-    last: formatQuotedPrice(locale, item.last, {
-      currency: item.currency,
-      ...quotedInOf(row.options.quoteConventions?.get(item.market)),
-    }),
+    last: formatPriceIn(locale, item.last, quotedFieldsOf(item, row.options)),
     observed: renderQuoteFreshness(locale, rowFreshness(item), {
       timezone: row.options.context.timezone,
     }),

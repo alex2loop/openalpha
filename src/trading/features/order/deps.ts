@@ -35,7 +35,7 @@ export interface OrderServiceDeps {
   readonly settings: OrderSettingsStore
   readonly portfolio: Pick<
     PortfolioService,
-    'record' | 'viewAbsolute' | 'viewAbsoluteSized' | 'positionsAt'
+    'record' | 'viewAbsolute' | 'viewAbsoluteSized' | 'positionsAt' | 'dayAt'
   >
   readonly markets: MarketRegistry
   readonly policy: OrderPolicy

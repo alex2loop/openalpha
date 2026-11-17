@@ -213,18 +213,13 @@ export function renderOrderLine(locale: Locale, request: OrderRequest): string {
   })
 }
 
-/** Every reason the caps gave, in one line the operator can act on. A limit and the reading that
- *  broke it are both money, so both print through the market's own convention. */
-export function renderCapRejections(
-  locale: Locale,
-  rejections: readonly CapRejection[],
-  quotedIn: QuotedIn
-): string {
+/** Every reason the caps gave, in one line the operator can act on. */
+export function renderCapRejections(locale: Locale, rejections: readonly CapRejection[]): string {
   const reasons = rejections
     .map((rejection) =>
       t(locale, `trading.order.cap.${rejection.code}`, {
-        limit: capText({ locale, rejection, quotedIn }, rejection.limit),
-        actual: capText({ locale, rejection, quotedIn }, rejection.actual),
+        limit: capText(locale, rejection, rejection.limit),
+        actual: capText(locale, rejection, rejection.actual),
         ...(rejection.venue === undefined
           ? {}
           : { venue: renderVenueName(locale, rejection.venue) }),
@@ -245,17 +240,11 @@ export function renderCapRejections(
   ].join('\n')
 }
 
-interface CapContext {
-  readonly locale: Locale
-  readonly rejection: CapRejection
-  readonly quotedIn: QuotedIn
-}
-
-/** An open-position cap counts positions; every other cap measures money. */
-function capText(context: CapContext, value: number): string {
-  return context.rejection.code === 'openTrades'
-    ? formatQuantity(context.locale, value)
-    : formatQuotedPrice(context.locale, value, context.quotedIn)
+/** A money cap is printed in its own currency; an open-position cap counts positions. */
+function capText(locale: Locale, rejection: CapRejection, value: number): string {
+  return rejection.currency === undefined
+    ? formatQuantity(locale, value)
+    : formatMoney(locale, value, rejection.currency)
 }
 
 interface UnmirroredContext {

@@ -236,6 +236,10 @@ function sessionLine(context: { readonly input: DebateInput; readonly market: Ma
     return `SESSION: open today, ${session}; an order placed now trades in today's session.`
   }
 
+  if (phase === 'pre-open') {
+    return `SESSION: not open yet, opens today, ${session}; an order placed now trades at today's open.`
+  }
+
   return `SESSION: closed now. The next session an order can trade in is ${session}; time the entry for that session and never call it today's.`
 }
 

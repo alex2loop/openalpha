@@ -57,7 +57,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 | Annual accounts, earnings releases, flagged 8-K items, insider purchases | `sec-data` (reads the ticker map and Form 4 filings from SEC's other host, `sec`) |
 | **VN equities** | |
 | Live price | `vndirect`, `vietcap-chart`, `entrade` |
-| Daily history | `vndirect`, `vndirect-index`, `entrade`, `vietcap-chart`, `vps` |
+| Daily history | `vndirect`, `vndirect-index`, `vietcap-chart`, `entrade`, `vps` |
 | Stock list; fundamentals, events, flows, analyst recommendations, valuation ratios | `vndirect` |
 | Live board and foreign room | `vndirect`, `vietcap-board` |
 | Financial statements (full years and quarters) | `vietcap-statements` |
@@ -98,7 +98,7 @@ A provider that failed on its most recent call, or is paused (see [When a provid
 What the less obvious ones do:
 
 - `vndirect` leads VN prices because its row is written while the market trades.
-  - It does not serve indices. An index price goes to `vietcap-chart`. Index history goes to `vndirect-index`, then `entrade`, then `vietcap-chart`.
+  - It does not serve indices. An index price goes to `vietcap-chart`. Index history goes to `vndirect-index`, then `vietcap-chart`, then `entrade`.
   - `vndirect-index` is the broker's index history, kept apart from `vndirect` so an outage in one does not pause the other. It carries every index the daemon reads, from years back, and its closes matched the other providers' on every index measured.
   - `vps` is last. It exists for the ETF benchmark indices (VNDIAMOND, VNX50 and the like) that `entrade` does not serve, so one refusal does not take them all out.
   - `vps-board` is VPS's price board, a second host from `vps`. It backs `vietcap` for the VN30 and VN100 membership lists, and answers only when its VN30 names all sit inside its VN100 list. Its VN100 list ran behind when measured, so it can answer nothing, and the tiers already stored then stand.

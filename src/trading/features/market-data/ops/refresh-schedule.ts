@@ -30,7 +30,7 @@ export function refreshAnchorsForMarket(market: Market, now: number): readonly R
   const calendar = market.manifest.calendar
   const today = calendar.dayAt(now)
   const first = calendar.isTradingDay(today) ? today : calendar.addTradingDays(today, 1)
-  const days = [first, calendar.addTradingDays(first, 1)]
+  const days = [calendar.addTradingDays(first, -1), first, calendar.addTradingDays(first, 1)]
 
   const anchors: readonly RefreshAnchor[] = days.flatMap((day) => [
     { kind: 'tape-final' as const, at: calendar.tapeFinalAt(day), day },
@@ -42,8 +42,9 @@ export function refreshAnchorsForMarket(market: Market, now: number): readonly R
   return [...anchors].filter((anchor) => anchor.at > now).sort((left, right) => left.at - right.at)
 }
 
-/** Tape-settle instants for today's and the next session, plus the open-lead warm-up for a market
- *  that has an open. Two sessions are enough: the earliest future anchor always falls inside them. */
+/** Tape-settle instants for the previous, current and next session, plus the open-lead warm-up for a
+ *  market that has an open. The previous session counts because a continuous market's tape settles
+ *  after the day rolls over; three sessions are enough: the earliest future anchor falls inside them. */
 function sessionAnchors(market: Market, now: number): readonly number[] {
   return refreshAnchorsForMarket(market, now).map((anchor) => anchor.at)
 }

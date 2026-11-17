@@ -220,6 +220,13 @@ export function sessionPhase(calendar: TradingCalendar, now: number): SessionPha
   return state === 'closed' ? 'break' : state
 }
 
+/** A session's hours as instants, so a surface can print them on the operator's clock. */
+interface SessionInstants {
+  readonly open: number
+  readonly close: number
+  readonly breaks?: readonly { readonly from: number; readonly to: number }[]
+}
+
 /** A market's own day at one instant: the date on its clock, whether it trades, the next day it
  *  does, and where the session stands. */
 export interface MarketDay {
@@ -229,22 +236,35 @@ export interface MarketDay {
   readonly phase: SessionPhase
   /** Today's hours, which end early on a shortened session. */
   readonly hours?: SessionHours
+  /** Today's hours as instants; absent on a day it does not trade. */
+  readonly todayAt?: SessionInstants
 }
 
 export function resolveMarketDay(calendar: TradingCalendar, now: number): MarketDay {
   const today = calendar.dayAt(now)
+  const tradesToday = calendar.isTradingDay(today)
+  const hours = calendar.hoursOn(today)
 
   return {
     today,
-    tradesToday: calendar.isTradingDay(today),
+    tradesToday,
     nextTradingDay: calendar.addTradingDays(today, 1),
     phase: sessionPhase(calendar, now),
-    ...optionalHours(calendar.hoursOn(today)),
+    ...(hours === undefined ? {} : { hours }),
+    ...(tradesToday && hours !== undefined ? { todayAt: sessionInstants(today, hours) } : {}),
   }
 }
 
-function optionalHours(hours: SessionHours | undefined): { readonly hours?: SessionHours } {
-  return hours === undefined ? {} : { hours }
+function sessionInstants(day: TradingDay, hours: SessionHours): SessionInstants {
+  const at = (time: string): number => resolveLocalTimeAt(day, time, hours.timezone)
+
+  return {
+    open: at(hours.open),
+    close: at(hours.close),
+    ...(hours.breaks === undefined
+      ? {}
+      : { breaks: hours.breaks.map((pause) => ({ from: at(pause.from), to: at(pause.to) })) }),
+  }
 }
 
 /** The session an order placed at `now` fills in: today until the close, the next trading day after

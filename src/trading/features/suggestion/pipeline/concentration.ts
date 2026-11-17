@@ -116,8 +116,16 @@ function headroomOf(capPctNav: number, heldWeightPctNav: number | undefined): nu
   return Math.max(0, capPctNav - (heldWeightPctNav ?? 0))
 }
 
+/** Zero for a sector the valued book does not hold; absent when the book has no NAV, because its
+ *  sector weights are not computed then and a share of nothing is not zero. */
 function heldSectorWeight(context: SuggestionPortfolioContext, sector: string): number | undefined {
-  return context.book.sectorValues.find((value) => value.sector === sector)?.weightPctNav
+  const { navBase, sectorValues } = context.book
+
+  if (navBase === undefined) {
+    return undefined
+  }
+
+  return sectorValues.find((value) => value.sector === sector)?.weightPctNav ?? 0
 }
 
 function heldSegmentWeight(
@@ -142,6 +150,7 @@ export function exposureOf(input: ExposureInput): BookExposure {
   const { context, sector } = input
   const held = heldPositionOf(context, input.instrument)
   const roundTrips = roundTripHistoryOf(context, input.instrument, input.since)
+  const sectorPctNav = sector === undefined ? undefined : heldSectorWeight(context, sector)
 
   return {
     ...(held === undefined ? {} : { held }),
@@ -151,7 +160,7 @@ export function exposureOf(input: ExposureInput): BookExposure {
       : {
           sector: {
             name: sector,
-            pctNav: heldSectorWeight(context, sector) ?? 0,
+            ...(sectorPctNav === undefined ? {} : { pctNav: sectorPctNav }),
             capPctNav: context.profile.maximumSectorPctNav,
           },
         }),

@@ -406,8 +406,7 @@ export interface PortfolioService {
   /** The relative plan plus each row's `units`, for the operator's own MCP client: the quantity a
    *  broker order needs, never an order value or the book's money. */
   rebalanceWithUnits(options: RebalanceOptions): Promise<RebalancePlanResult>
-  /** Operator-only, like the other absolute reads: it carries the order value and unit count an
-   *  agent must never see. */
+  /** Operator-only: it carries the order value and unit count an agent must never see. */
   rebalanceAbsolute(options: RebalanceOptions): Promise<AbsoluteRebalancePlan>
   historyAbsolute(options: LedgerPageOptions): Promise<Page<LedgerEntry, LedgerEntryId>>
   viewAbsolute(options: PortfolioAtOptions): Promise<ValuedBook>
@@ -422,6 +421,7 @@ export interface PortfolioService {
     readonly instrumentKinds: ReadonlyMap<string, InstrumentKind>
   }>
   positionsAt(options: PortfolioAtOptions): Promise<readonly Position[]>
+  dayAt(at: number): TradingDay
   /** The book held against each venue's own balances. Read-only; a venue with no balance feed, or
    *  no credentials, answers `unsupported`. */
   reconcile(options: PortfolioAtOptions): Promise<readonly VenueReconciliation[]>

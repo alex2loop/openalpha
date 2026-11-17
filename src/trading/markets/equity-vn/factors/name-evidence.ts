@@ -134,8 +134,9 @@ interface NameFlowReads {
   /** The net over the aligned sessions the ratio averaged. */
   readonly foreignNet?: WindowSum
   readonly proprietaryNet?: WindowSum
-  /** The net over the newest flow sessions, aligned to a bar or not. */
-  readonly foreignNet20: number
+  /** The net over the newest flow sessions inside the last bar sessions of the window, aligned to a
+   *  bar or not. `null` where no such session carries the figure. */
+  readonly foreignNet20: number | null
   /** `null` where no session carries the figure, so an unreported desk never reads as a quiet one. */
   readonly proprietaryFlow20: number | null
   /** Every flow after the name's newest bar day, plus the last few at or before it: the market's
@@ -258,6 +259,7 @@ function toLastBar(bars: readonly BarRecord[]): LastBar | undefined {
 
 function toFlowReads(reads: NameReads, aligned: readonly AlignedFlow[]): NameFlowReads {
   const { bars, flows } = reads
+  const recentFlows = flowsSince(flows, bars.at(-FLOW_DEVIATION_SESSIONS)?.candle.at)
 
   return {
     ...definedOnly({
@@ -266,10 +268,19 @@ function toFlowReads(reads: NameReads, aligned: readonly AlignedFlow[]): NameFlo
       foreignNet: foreignNetFlow(aligned),
       proprietaryNet: proprietaryNetFlow(aligned),
     }),
-    foreignNet20: netFlowValue(flows, FLOW_DEVIATION_SESSIONS),
-    proprietaryFlow20: proprietaryFlowValue(flows, FLOW_DEVIATION_SESSIONS),
+    foreignNet20: netFlowValue(recentFlows, FLOW_DEVIATION_SESSIONS),
+    proprietaryFlow20: proprietaryFlowValue(recentFlows, FLOW_DEVIATION_SESSIONS),
     flowTail: toFlowTail(flows, bars.at(-1)?.candle.at),
   }
+}
+
+/** A stalled feed must not pass its last rows off as the newest sessions: only flows from the
+ *  window's first bar session on count. A flow newer than the newest bar still counts. */
+function flowsSince(
+  flows: readonly FlowSnapshot[],
+  firstDay: TradingDay | undefined
+): readonly FlowSnapshot[] {
+  return firstDay === undefined ? flows : flows.filter((flow) => flow.at >= firstDay)
 }
 
 function toFlowTail(

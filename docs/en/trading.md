@@ -74,7 +74,7 @@ A fixed route table decides which source serves a scope, and in what order. Heal
 | `mexc` | crypto bars and quotes for names neither `binance` nor `bybit` list | no |
 | `coingecko` | last fallback for the crypto board; the only source that looks up one symbol past every board; the rate a settlement coin trades at against a fiat; the dong's FX history as USDT's price in dong, behind `yahoo` | `COINGECKO_API_KEY` (optional) |
 | `vndirect` | VN instruments, bars, fundamentals, events, flows, foreign room, street recommendations, VN macro, daily commodity prices, VN news | no |
-| `vndirect-index` | levels for the indices the daemon reads: the daily history, ahead of `entrade` and `vietcap-chart`; kept apart from `vndirect` so an index outage does not pause the share bars | no |
+| `vndirect-index` | levels for the indices the daemon reads: the daily history, ahead of `vietcap-chart` and `entrade`; kept apart from `vndirect` so an index outage does not pause the share bars | no |
 | `entrade` | VN quotes and bars; behind `vietcap-chart` for a quote on a level, behind `vndirect-index` for index bars (it charts only the four headline indices) | no |
 | `vietcap` | VN index basket membership (`vn30`, `vn100`) and per-name trade sides | no |
 | `vps-board` | VN index basket membership, behind `vietcap`; it answers only when its VN30 names all sit inside its VN100 list | no |
@@ -723,7 +723,8 @@ With a Vietnam or US home, the brief opens with one **market story**, found by c
 back at earlier ones.
 
 - **The look back** checks the watch conditions of a story told on an earlier session against today's
-  figures, and says whether the story held.
+  figures, and says whether the story held. It covers only stories the current home market told, so
+  after you switch home, the earlier market's stories are not scored.
 - **The story** names one thing the home market did that is out of the ordinary. It has a hook,
   the figures behind it, a reading marked as inference, what could make that reading wrong, and what
   to watch next.
@@ -762,7 +763,6 @@ A brief reads in this order:
 | Macro backdrop | `regime-shift` `macro` `world-markets` `deposit-rate` `macro-headlines` `economy-headlines` |
 | Per market | `market-prices` `market-quotes` `market-board` `breadth` `range` `sector-rotation` `foreign-desk-flow` `proprietary-flow` `derivatives` `premium` `leaders` `leaders-24h` `movers-session` `movers-24h` `sentiment` `basis` `fx` `index-review` `events` `recent` `headlines` |
 | Per market, `/overview <market>` only | `reading` `tape` `turnover` `sector-turnover` `market-cap` `taker-flow` `etf-flows` `positioning` `disclosures` |
-| Watchlist | `watchlist-leading` `watchlist-dropped` `screen-delta` |
 | Actions | `cost` `suggestions` `cross-asset-suggestions` `next-actions` `discipline` |
 
 On `/overview equity-vn` the Vietnam block adds two readings the brief does not carry. **Who bought, who sold** splits one session's net buying and selling over the HOSE and HNX boards into foreign investors, proprietary desks and everyone else (the exact opposite of the other two). It anchors on the newest session the proprietary figures cover and says so when that session is earlier than the settled one. **Where the money traded, by sector** (`sector-turnover`) lists the five sectors with the most traded value, each with its share of the session's market total (the shares add up to less than the whole, because some names carry no sector) and its multiple of its own 20-session average once earlier sessions exist.

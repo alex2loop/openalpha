@@ -5,7 +5,12 @@ import type {
 } from '@/trading/features/themes/evidence/deps'
 import type { EvidenceDraft } from '@/trading/features/themes/types'
 import { PRESS_SERIES, REPORT_SERIES } from '@/trading/features/market-data/macro-extract/catalogue'
-import { formatFigure, toDayBefore, toLookbacks } from '@/trading/features/themes/evidence/series'
+import {
+  formatFigure,
+  isStale,
+  toDayBefore,
+  toLookbacks,
+} from '@/trading/features/themes/evidence/series'
 import {
   INTERBANK_TENORS,
   interbankSeriesId,
@@ -16,7 +21,7 @@ import { utcDayOf } from '@/trading/sources/rows/normalization'
 
 /** A report series is stale once a period and the office's month and a half of lag have passed
  *  since its last figure, which is one report missed by about five weeks. */
-const MONTHLY_STALE_DAYS = 75
+export const MONTHLY_STALE_DAYS = 75
 const QUARTERLY_STALE_DAYS = 137
 const YEAR_DAYS = 366
 /** The year-ago point is a year before the latest reading, not before today, so the window also
@@ -94,7 +99,7 @@ async function readMacroSeries(
 
   return {
     draft: { kind: 'macro', origin: series.id, text, day: latest.day },
-    stale: series.staleDays !== undefined && latest.day < toDayBefore(today, series.staleDays),
+    stale: series.staleDays !== undefined && isStale(latest.day, today, series.staleDays),
   }
 }
 

@@ -60,5 +60,10 @@ function roundTripRows(history: RoundTripHistory | undefined): readonly string[]
 }
 
 function capRow(label: string, exposure: CapExposure): string {
-  return `- ${label} ${exposure.name}: ${promptPercent(exposure.pctNav)} held, cap ${promptPercent(exposure.capPctNav)}`
+  const weight =
+    exposure.pctNav === undefined
+      ? 'share of book unknown'
+      : `${promptPercent(exposure.pctNav)} held`
+
+  return `- ${label} ${exposure.name}: ${weight}, cap ${promptPercent(exposure.capPctNav)}`
 }

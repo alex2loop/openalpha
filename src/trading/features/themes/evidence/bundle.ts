@@ -13,6 +13,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { readMacro } from '@/trading/features/themes/evidence/macro'
 import { readCommodities, readSectors } from '@/trading/features/themes/evidence/market'
 import { readNews } from '@/trading/features/themes/evidence/news'
+import { HARD_EVIDENCE_KINDS } from '@/trading/features/themes/score/policy'
 import { EVIDENCE_KINDS, NEWS_CAPPED_GAP } from '@/trading/features/themes/types'
 
 const EVIDENCE_ID_PREFIX: Readonly<Record<EvidenceKind, string>> = Object.freeze({
@@ -25,8 +26,6 @@ const EVIDENCE_ID_PREFIX: Readonly<Record<EvidenceKind, string>> = Object.freeze
   price: 'P',
   headlines: 'H',
 })
-/** Hard data can found a theme; a headline or a price move alone cannot. */
-const HARD_EVIDENCE_KINDS: ReadonlySet<EvidenceKind> = new Set(['macro', 'commodity'])
 const EVIDENCE_KIND_BY_PREFIX: ReadonlyMap<string, EvidenceKind> = new Map(
   EVIDENCE_KINDS.map((kind) => [EVIDENCE_ID_PREFIX[kind], kind])
 )

@@ -5,6 +5,7 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
+import type { PortfolioService } from '@/trading/features/portfolio/types'
 import type { RenderView } from '@/trading/features/suggestion/render/view'
 import type { SuggestionReportDeps } from '@/trading/features/suggestion/report'
 import type { SuggestionService } from '@/trading/features/suggestion/suggestion'
@@ -14,10 +15,12 @@ import type {
   SuggestionRunResult,
 } from '@/trading/features/suggestion/types'
 import type { DebateMode } from '@/trading/kernel/config'
-import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
+import type { InstrumentRef, MarketRef, TradingDay } from '@/trading/kernel/instrument'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
+import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { renderAiLabel } from '@/i18n'
+import { resolveSessionFillDay } from '@/trading/features/market-data/resolve'
 import { renderSuggestionText } from '@/trading/features/suggestion/render/suggestion'
 import { renderBatchVerdicts } from '@/trading/features/suggestion/render/verdict'
 import { resolveRenderView, storedOf } from '@/trading/features/suggestion/report'
@@ -80,6 +83,8 @@ interface SuggestCommandDeps extends SuggestionReportDeps {
   readonly coverage: StopsCoverage
   readonly marketData: SuggestionReportDeps['marketData'] & Pick<MarketDataService, 'markets'>
   readonly profiles: SuggestionReportDeps['profiles']
+  readonly portfolio: Pick<PortfolioService, 'dayAt'>
+  readonly markets: Pick<MarketRegistry, 'find'>
   readonly venues: VenueRegistry
 }
 
@@ -299,7 +304,8 @@ async function renderRun(
   completed: { readonly result: SuggestionRunResult; readonly mode: DebateMode | null }
 ): Promise<SlashResult> {
   const { result, mode } = completed
-  const market = storedOf(result)?.instrument.market
+  const stored = storedOf(result)
+  const market = stored?.instrument.market
   // Detail follows the depth the operator typed, never the one the run ended at: a book-hold runs
   // lean on its own, and that cost decision must not shorten what the operator reads.
   const view = await resolveRenderView(deps, {
@@ -319,11 +325,32 @@ async function renderRun(
           ...view,
           result,
           operatorFigures: 'shown',
+          ...recordDayOf(deps, stored),
           ...(market === undefined ? {} : venueFields(deps.venues, market)),
         }),
       ],
     ]),
   }
+}
+
+function recordDayOf(
+  deps: SuggestCommandDeps,
+  stored: StoredSuggestion | undefined
+): { readonly recordDay?: TradingDay } {
+  if (stored === undefined || stored.action === 'hold') {
+    return {}
+  }
+
+  const market = deps.markets.find(stored.instrument.market)
+
+  return market === null
+    ? {}
+    : {
+        recordDay: resolveSessionFillDay(market, stored.orderSession ?? stored.at, {
+          now: Date.now(),
+          book: deps.portfolio,
+        }),
+      }
 }
 
 /** Every venue holding the market, manual ones included, because a ledger row names the custodian

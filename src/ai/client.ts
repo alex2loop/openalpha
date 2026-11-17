@@ -11,7 +11,7 @@ import { IDENTITY_ENV } from '@/ai/auth/cloud/identity'
 import { buildUnknownProviderMessage, findProviderById, requiresApiKey } from '@/ai/catalog'
 import { createProviderChain } from '@/ai/chain/provider-chain'
 import { createConfiguredPricing } from '@/ai/cost/pricing'
-import { resolveReasoning } from '@/ai/reasoning/resolve'
+import { resolveSourceReasoning } from '@/ai/reasoning/resolve'
 import { MissingEnvError, OperatorConfigError } from '@/core/config/operator-errors'
 import { DEFAULT_MAX_TOKENS } from '@/core/stream-events'
 
@@ -256,15 +256,10 @@ function toChainEntry(input: ChainEntryInput): ChainEntry {
     ...(model.reasoningRequired === undefined
       ? {}
       : { reasoningRequired: model.reasoningRequired }),
-    reasoningResolution: resolveReasoning({
-      model: model.model,
-      requested: model.reasoningMode,
-      maxTokens: model.maxTokens ?? DEFAULT_MAX_TOKENS,
-      ...(provider.reasoning === undefined ? {} : { family: provider.reasoning }),
-      ...(model.reasoningRequired === undefined
-        ? {}
-        : { reasoningRequired: model.reasoningRequired }),
-    }),
+    reasoningResolution: resolveSourceReasoning(
+      { model: model.model, provider, reasoningRequired: model.reasoningRequired },
+      { requested: model.reasoningMode, maxTokens: model.maxTokens ?? DEFAULT_MAX_TOKENS }
+    ),
     ...(model.providerRouting === undefined ? {} : { providerRouting: model.providerRouting }),
     ...(model.maxTokens === undefined ? {} : { maxTokens: model.maxTokens }),
     ...(model.ttftTimeoutMs === undefined ? {} : { ttftTimeoutMs: model.ttftTimeoutMs }),

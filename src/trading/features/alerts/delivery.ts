@@ -221,7 +221,8 @@ async function disableUndeliverable(
 }
 
 /** Cleanup, not delivery: a failed release is logged and its lease left to expire, because masking
- *  the abort with a storage error would turn shutdown into a task failure. */
+ *  the abort with a storage error would turn shutdown into a task failure. The first of `claimed`
+ *  is the alert whose delivery had started. */
 async function releaseRemaining(
   deps: AlertDeliveryDeps,
   input: {
@@ -230,9 +231,14 @@ async function releaseRemaining(
     readonly now: number
   }
 ): Promise<void> {
-  for (const alert of input.claimed) {
+  for (const [position, alert] of input.claimed.entries()) {
     try {
-      await deps.store.release({ alertId: alert.id, leaseToken: input.leaseToken, now: input.now })
+      await deps.store.release({
+        alertId: alert.id,
+        leaseToken: input.leaseToken,
+        now: input.now,
+        wasAttempted: position === 0,
+      })
     } catch (err: unknown) {
       deps.logger.warn('trading.alert_release_failed', {
         alertId: alert.id,

@@ -4,7 +4,7 @@ import type { ProviderModelId } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
 import { findProviderById, providerById } from '@/ai/catalog'
 import { modelsdevPriceOf } from '@/ai/cost/modelsdev-prices'
-import { cacheOpenRouterPrices, openRouterPriceOf } from '@/ai/cost/openrouter-prices'
+import { openRouterPriceOf } from '@/ai/cost/openrouter-prices'
 import { isOpenRouterFeedDue, loadOpenRouterPrices } from '@/ai/openrouter-feed'
 import { ConfigError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -56,9 +56,12 @@ export function cacheRatesOf(price: ModelPrice): CacheRates {
   }
 }
 
+/** `freeKeys` holds a provider id that bills nothing wherever it runs, or a `provider/model` pair
+ *  served from a loopback address: one local entry must not make the same provider's remote
+ *  models free. */
 export function createPricing(
   overrides: ReadonlyMap<string, ModelPrice>,
-  localProviders: ReadonlySet<string> = new Set()
+  freeKeys: ReadonlySet<string> = new Set()
 ): Pricing {
   const snapshot = new Map<string, ModelPrice>()
 
@@ -68,7 +71,7 @@ export function createPricing(
 
   return Object.freeze({
     priceOf(id: ProviderModelId): ModelPriceResolution {
-      return resolvePrice(snapshot, localProviders, id)
+      return resolvePrice(snapshot, freeKeys, id)
     },
     ready: () => Promise.resolve(),
   })
@@ -76,13 +79,13 @@ export function createPricing(
 
 // Override (boot-set `${provider}/${model}`) → subscription (oauth_subscription provider, always
 // free) → OpenRouter live feed → models.dev vendored snapshot → conservative fallback. The qualified
-// key lets two providers sharing a model name resolve distinct prices; a loopback provider (ollama, a
+// key lets two providers sharing a model name resolve distinct prices; a loopback entry (ollama, a
 // local proxy, …) bills nothing, so it never reaches a feed. A provider id absent from the catalog (a
 // typo in `[[models]] provider`) degrades to "not a subscription provider" and falls through the rest
 // of the chain, same as `catalogBaseUrl` below — this file's convention is to degrade, never throw.
 function resolvePrice(
   overrides: ReadonlyMap<string, ModelPrice>,
-  localProviders: ReadonlySet<string>,
+  freeKeys: ReadonlySet<string>,
   id: ProviderModelId
 ): ModelPriceResolution {
   const qualifiedKey = toQualifiedModelKey(id)
@@ -100,7 +103,7 @@ function resolvePrice(
     return { price: FREE_PRICE, source: 'openrouter' }
   }
 
-  if (localProviders.has(id.provider)) {
+  if (isFree(freeKeys, id)) {
     return { price: FREE_PRICE, source: 'local' }
   }
 
@@ -127,7 +130,7 @@ export function createConfiguredPricing(
   billsNothing: ReadonlySet<string> = new Set()
 ): Pricing {
   const overrides = new Map<string, ModelPrice>()
-  const localProviders = new Set(billsNothing)
+  const freeKeys = new Set(billsNothing)
 
   for (const entry of models) {
     const qualifiedKey = toQualifiedModelKey(entry)
@@ -138,13 +141,13 @@ export function createConfiguredPricing(
     }
 
     if (isLocalProvider(entry)) {
-      localProviders.add(entry.provider)
+      freeKeys.add(qualifiedKey)
     }
   }
 
-  const pricing = createPricing(overrides, localProviders)
+  const pricing = createPricing(overrides, freeKeys)
 
-  if (models.every((entry) => localProviders.has(entry.provider))) {
+  if (models.every((entry) => isFree(freeKeys, entry))) {
     return pricing
   }
 
@@ -183,7 +186,7 @@ function refreshOpenRouterPrices(logger: Logger): void {
 // best-effort: a lookup before this resolves falls through to models.dev/fallback for that call
 // only. One shared single-flight fetch per process.
 function warmOpenRouterPrices(logger: Logger): Promise<void> {
-  return loadOpenRouterPrices(logger).then(cacheOpenRouterPrices, (err: unknown) => {
+  return loadOpenRouterPrices(logger).catch((err: unknown) => {
     logger.warn('pricing.feed_warm_failed', { err: formatErrForLog(err) })
   })
 }
@@ -272,6 +275,10 @@ function isOpenRouterFreeModel(id: ProviderModelId): boolean {
     id.provider === OPENROUTER_PROVIDER &&
     (id.model === OPENROUTER_FREE_MODEL || id.model.endsWith(OPENROUTER_FREE_SUFFIX))
   )
+}
+
+function isFree(freeKeys: ReadonlySet<string>, id: ProviderModelId): boolean {
+  return freeKeys.has(id.provider) || freeKeys.has(toQualifiedModelKey(id))
 }
 
 function toQualifiedModelKey(id: ProviderModelId): string {

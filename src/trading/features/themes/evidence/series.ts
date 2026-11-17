@@ -52,6 +52,11 @@ export function toDayBefore(day: string, days: number): TradingDay {
   return toDayAfter(day, -days)
 }
 
+/** Whether a reading dated `day` is older than `staleDays` as of `today`. */
+export function isStale(day: string, today: string, staleDays: number): boolean {
+  return day < toDayBefore(today, staleDays)
+}
+
 function toDayAfter(day: string, days: number): TradingDay {
   return utcDayOf(Date.parse(`${day}T00:00:00Z`) + days * MS_PER_DAY)
 }

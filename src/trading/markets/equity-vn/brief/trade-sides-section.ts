@@ -1,11 +1,12 @@
-import type { Ticker } from '@/trading/kernel/instrument'
+import type { Ticker, TradingDay } from '@/trading/kernel/instrument'
 import type {
   BriefAggressorSide,
   BriefSectionResult,
   BriefSectionRow,
 } from '@/trading/kernel/operator/brief-section'
 import type { VnBriefContext } from '@/trading/markets/equity-vn/brief/vn-context'
-import { absent, omitted, ready } from '@/trading/markets/brief-sections'
+import { absent, ready } from '@/trading/markets/brief-sections'
+import { resolveSettledDay } from '@/trading/markets/calendar'
 import { RELATIVE_VOLUME_SESSIONS, VN_MARKET_REF } from '@/trading/markets/equity-vn/policy'
 import { aggressorBalance } from '@/trading/markets/equity-vn/tape/trade-sides'
 
@@ -21,18 +22,14 @@ interface AggressorRow {
 }
 
 /** Most sold-into first: a name the operator holds that was distributed yesterday is the row that
- *  changes what they do this morning, and a name that was bought is not news. */
+ *  changes what they do this morning, and a name that was bought is not news. The sweep stores the
+ *  settled session, which before the open is not the calendar day. */
 export async function buildTradeSides(context: VnBriefContext): Promise<BriefSectionResult> {
-  if (!context.calendar.isTradingDay(context.request.asOf)) {
-    return omitted('trade-sides')
-  }
-
-  const rows = await readRows(context)
+  const day = resolveSettledDay(context.calendar, context.request.now)
+  const rows = await readRows(context, day)
 
   if (rows.length === 0) {
-    return absent('trade-sides', [
-      { code: 'market-data.trade-sides-empty', detail: { day: context.request.asOf } },
-    ])
+    return absent('trade-sides', [{ code: 'market-data.trade-sides-empty', detail: { day } }])
   }
 
   return ready(
@@ -47,10 +44,13 @@ export async function buildTradeSides(context: VnBriefContext): Promise<BriefSec
 /** Whatever the sweep recorded for the session, rather than a name list of this section's own. The
  *  sweep already decides which names it can reach - holdings and the watchlist - and a second list
  *  here would drift from it silently. One indexed read, so a single name cannot fail the section. */
-async function readRows(context: VnBriefContext): Promise<readonly AggressorRow[]> {
+async function readRows(
+  context: VnBriefContext,
+  day: TradingDay
+): Promise<readonly AggressorRow[]> {
   const stored = await context.deps.marketDataStore.listTradeSidesDay({
     market: VN_MARKET_REF,
-    day: context.request.asOf,
+    day,
     signal: context.request.signal,
   })
 
