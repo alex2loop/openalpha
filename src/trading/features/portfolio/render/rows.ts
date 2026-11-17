@@ -57,6 +57,8 @@ export interface BookDisplay {
   /** Per-segment caps, so an allocation row is read against the limit its weight will be measured
    *  by rather than in isolation. */
   readonly segmentCaps?: Readonly<Record<PortfolioSegment, RiskCapSet>>
+  /** Segments a venue holds: only those can be switched back on, so only those are named off. */
+  readonly heldSegments?: ReadonlySet<string>
   /** Per instrument key, the smallest order any venue holding it accepts. */
   readonly minimumSizes?: ReadonlyMap<string, number>
   /** The weight each segment prints at. Apportioned once for the whole message, because a segment

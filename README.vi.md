@@ -162,7 +162,7 @@ Từ đây, các dòng bắt đầu bằng `/` gõ vào ô câu lệnh của tra
 
 Lần đầu `/refresh` lâu vì phải tải nhiều; những lần sau nhanh hơn nhiều. Trong lúc chờ, cứ để cửa sổ hoặc trang đó mở.
 
-**4. Khai khẩu vị và ghi số tiền bạn có.** Gõ `/setup` rồi trả lời vài câu: mức rủi ro chịu được và thị trường bạn chơi. Sau đó ghi số tiền bạn có ở từng nơi; đề xuất mua bao nhiêu đều tính từ sổ này, nên đừng bỏ qua. Đây chỉ là sổ ghi chép trên máy: OpenAlpha không nối vào tài khoản chứng khoán và không chuyển tiền thật. Thay số tiền và ngày trong ví dụ bằng của bạn; ngày viết theo kiểu năm-tháng-ngày, số tiền viết liền không dấu chấm. Mở mục thị trường bạn chơi:
+**4. Khai khẩu vị và ghi số tiền bạn có.** Gõ `/setup` rồi trả lời vài câu: mức rủi ro chịu được và thị trường bạn chơi. `/profile` cho biết thị trường nào đang bật và cách bật thêm. Sau đó ghi số tiền bạn có ở từng nơi; đề xuất mua bao nhiêu đều tính từ sổ này, nên đừng bỏ qua. Đây chỉ là sổ ghi chép trên máy: OpenAlpha không nối vào tài khoản chứng khoán và không chuyển tiền thật. Thay số tiền và ngày trong ví dụ bằng của bạn; ngày viết theo kiểu năm-tháng-ngày, số tiền viết liền không dấu chấm. Mở mục thị trường bạn chơi:
 
 <details open>
 <summary><b>Cổ phiếu Việt Nam</b></summary>

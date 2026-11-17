@@ -37,6 +37,7 @@ const IDENTICAL_ALLOWED: ReadonlySet<string> = new Set([
   'trading.order.prompt.line',
   'trading.render.refresh.records',
   'trading.render.segment.cell',
+  'trading.render.segment.named',
   'trading.intraday.header',
   'trading.intraday.index.row',
   'trading.intraday.index.rowChange',

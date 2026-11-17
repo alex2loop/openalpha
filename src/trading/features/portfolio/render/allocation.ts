@@ -47,7 +47,9 @@ export function renderAllocationSection(
             display
           )
         ),
-        disabled: namesOf(locale, disabledSegments(display.segmentCaps)),
+        disabled: [...disabledSegments(display.segmentCaps)].filter(
+          (segment) => display.heldSegments?.has(segment) === true
+        ),
         legend: 'trading.render.segment.legendPortfolio',
       },
       display.context
@@ -87,10 +89,6 @@ function toSegmentRow(locale: Locale, segment: PrintedSegment, display: BookDisp
       ...(cap === undefined ? {} : { mark: cap.maximumSegmentPctNav }),
     },
   }
-}
-
-function namesOf(locale: Locale, segments: ReadonlySet<string>): readonly string[] {
-  return [...segments].map((segment) => renderDeclaredValue(locale, `trading.segment.${segment}`))
 }
 
 /** The sector fold the book already computes, capped and ranked by weight, as a sub-block of the

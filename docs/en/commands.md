@@ -1183,6 +1183,12 @@ the background service is running, it keeps the markets fresh and `mcp serve` le
 but still loads a market the assistant switches on, since the service would only reach it at its
 next scheduled refresh.
 
+A market you have switched off is not searched when you name a ticker without its market. The
+assistant still reads its prices when you name the market (for example `equity-us` for AAPL), and it
+asks before switching the market on, since that splits your target weights again. When you are just
+starting, it walks you through what `/setup` does in the chat: how much risk you take and which
+markets you trade.
+
 `--host` picks the app: `claude-code` (the default), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, or `agents` for the neutral Agent Skills
 location (`~/.agents/skills`). One skill body serves every app. Claude Desktop, Windsurf and Zed have

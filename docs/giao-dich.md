@@ -1149,7 +1149,7 @@ Tin chỉ đến khi OpenAlpha đang chạy nền (`openalpha start --background
 
 Dùng chat ngôn ngữ tự nhiên cho mọi thứ cú pháp gạch chéo không phủ: nến, tin tuyển chọn, sức mạnh ngành, dòng tiền ngoại, rà soát danh mục, bảng thành tích. Agent gọi các công cụ giao dịch có kiểu.
 
-Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán. Thị trường mà nhóm bạn đã tắt, và bạn không nắm giữ hay theo dõi mã nào ở đó, sẽ không được tìm khi gõ mã trần: `BTC` được hiểu là đồng coin, còn quỹ Mỹ cùng tên phải gõ `equity-us:BTC`. Vàng thế giới không phải nhóm bạn tắt nên `XAUUSD` vẫn đọc được.
+Bạn có thể bỏ thị trường khi mã chỉ khớp một thị trường. Nếu hai thị trường cùng nhận mã, đề xuất báo `ambiguous-market` và hỏi thị trường thay vì đoán. Thị trường mà nhóm bạn đã tắt, và bạn không nắm giữ hay theo dõi mã nào ở đó, sẽ không được tìm khi gõ mã trần: `BTC` được hiểu là đồng coin, còn quỹ Mỹ cùng tên phải gõ `equity-us:BTC`. Vàng thế giới không phải nhóm bạn tắt nên `XAUUSD` vẫn đọc được. Khi gõ mã trần mà không lấy được giá, câu trả lời nêu các nhóm đang tắt có thể có mã đó và hai cách để đọc: gõ kèm thị trường (`equity-us:AAPL`), hoặc bật nhóm đó lên.
 
 Một mã là cổ phiếu token hóa (cổ phiếu được bọc thành token) không bị đọc như tài sản crypto: `/suggest` trả lời nó là gì và nhờ bạn gõ đúng mã cổ phiếu gốc.
 
@@ -1567,7 +1567,7 @@ Cả hai trường này nhận từ 0,2 tới 1.
 
 - `horizon <nhóm> <short|long>`
 - `segment-target`, `segment-cap` và `position-cap`, mỗi cái nhận một nhóm và một phân số
-- `/profile enable|disable <nhóm>` bật hoặc tắt một nhóm
+- `/profile enable|disable <nhóm>` bật hoặc tắt một nhóm. `/profile` và `/portfolio` liệt kê các nhóm đang tắt kèm tên cần gõ, và câu lệnh để bật
 
 Một nhóm mà không sàn nào giao dịch thì luôn tắt, và lệnh bật nó bị từ chối. Hiện đó là vàng thế giới, được giữ lại vì giá của nó và vì mức chênh `gold-vn`.
 

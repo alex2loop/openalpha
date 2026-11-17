@@ -12,7 +12,7 @@ import type {
 } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { resolveAfterListingLoad, UNIVERSE_EMPTY } from '@/trading/markets/listing-miss'
-import { NOTHING_USED, unusedMarkets } from '@/trading/markets/operator-use'
+import { NOTHING_USED, unusedMarkets, withSwitchedOffNote } from '@/trading/markets/operator-use'
 import { buildResolutionKey } from '@/trading/markets/resolution-key'
 
 const INCONCLUSIVE_CODES: ReadonlySet<CaveatCode> = new Set([
@@ -59,10 +59,14 @@ export async function resolveCached(
     return cached
   }
 
-  const resolution = await resolveAfterListingLoad(cache.ensureListing, options, () =>
-    options.market === undefined
-      ? resolveUnqualified(reachable, options, preferred)
-      : resolveExplicit(markets, { ...options, market: options.market })
+  const resolution = withSwitchedOffNote(
+    await resolveAfterListingLoad(cache.ensureListing, options, () =>
+      options.market === undefined
+        ? resolveUnqualified(reachable, options, preferred)
+        : resolveExplicit(markets, { ...options, market: options.market })
+    ),
+    markets.filter((market) => skipped.includes(market.manifest.id)),
+    options
   )
 
   if (isConclusive(resolution)) {

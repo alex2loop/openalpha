@@ -56,7 +56,7 @@ export async function runQuote(
   }
 
   if (result.kind !== 'available') {
-    return result
+    return { ...result, caveats: [...result.caveats, ...resolved.unavailableCaveats] }
   }
 
   const observed = freshnessOf(

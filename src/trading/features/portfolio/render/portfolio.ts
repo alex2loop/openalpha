@@ -63,6 +63,8 @@ interface PortfolioRenderOptions {
   readonly profile: ProfileStamp
   /** Per-segment caps, so each allocation row is read against the limit its weight is measured by. */
   readonly segmentCaps?: Readonly<Record<PortfolioSegment, RiskCapSet>>
+  /** Segments a venue holds: only those can be switched back on, so only those are named off. */
+  readonly heldSegments?: ReadonlySet<string>
   /** Per instrument key, the kind the stored record files it under. A renderer cannot reach the
    *  store, so the command resolves one map for the whole book. */
   readonly instrumentKinds?: ReadonlyMap<string, InstrumentKind>
@@ -92,6 +94,7 @@ export function renderPortfolioText(
       ? {}
       : { quoteConventions: options.quoteConventions }),
     ...(options.segmentCaps === undefined ? {} : { segmentCaps: options.segmentCaps }),
+    ...(options.heldSegments === undefined ? {} : { heldSegments: options.heldSegments }),
     ...(options.instrumentKinds === undefined ? {} : { instrumentKinds: options.instrumentKinds }),
     ...(options.stopDistances === undefined ? {} : { stopDistances: options.stopDistances }),
     ...(options.restingStops === undefined ? {} : { restingStops: options.restingStops }),

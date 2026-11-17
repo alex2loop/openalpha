@@ -1140,7 +1140,7 @@ They arrive only while OpenAlpha runs in the background (`openalpha start --back
 
 Use natural-language chat for anything the slash grammar does not cover: bars, curated news, sector strength, foreign flow, portfolio review, track record. The agent calls the typed trading tools.
 
-You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing. A market whose segment you switched off, and where you hold or watch nothing, is not searched for a bare ticker: `BTC` reads as the coin, and the US fund of that name needs `equity-us:BTC`. World gold is never switched off by you, so `XAUUSD` stays readable.
+You may omit the market when a ticker resolves uniquely. If two markets claim it, the suggestion reports `ambiguous-market` and asks for the market instead of guessing. A market whose segment you switched off, and where you hold or watch nothing, is not searched for a bare ticker: `BTC` reads as the coin, and the US fund of that name needs `equity-us:BTC`. World gold is never switched off by you, so `XAUUSD` stays readable. When a bare ticker finds no price, the answer names the switched-off markets that could list it and the two ways in: type it with the market (`equity-us:AAPL`), or switch the segment on.
 
 A ticker that is a tokenized stock (a share wrapped as a token) is not read as a crypto asset: `/suggest` answers what it is and asks for the stock's own ticker.
 
@@ -1577,7 +1577,7 @@ Both fields take 0.2 to 1.
 
 - `horizon <segment> <short|long>`
 - `segment-target`, `segment-cap` and `position-cap`, each taking a segment and a fraction
-- `/profile enable|disable <segment>` turns a segment on or off
+- `/profile enable|disable <segment>` turns a segment on or off. `/profile` and `/portfolio` list the segments that are off with the name each one takes, and the command that switches one on
 
 A segment no venue trades stays off, and enabling it is refused. Today that is world gold, kept for its price and for the `gold-vn` premium.
 

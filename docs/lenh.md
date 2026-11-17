@@ -1166,6 +1166,11 @@ sẽ được tải ở lượt làm mới kế tiếp. Khi dịch vụ nền đ
 để yên, nhưng thị trường trợ lý vừa bật thì `mcp serve` vẫn tự tải, vì dịch vụ nền chỉ tới được nó ở lượt làm
 mới theo lịch kế tiếp.
 
+Thị trường bạn đã tắt sẽ không được tìm khi bạn gõ mã mà không kèm thị trường. Trợ lý vẫn đọc được giá ở đó
+khi bạn nói rõ thị trường (ví dụ `equity-us` cho AAPL), và sẽ hỏi bạn trước khi bật, vì bật một nhóm là chia
+lại tỷ trọng mục tiêu của bạn. Lúc mới bắt đầu, trợ lý dẫn bạn qua những gì `/setup` làm trong chat: bạn chịu
+rủi ro tới đâu và giao dịch những thị trường nào.
+
 `--host` chọn ứng dụng: `claude-code` (mặc định), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, hoặc `agents` cho vị trí Agent Skills trung tính
 (`~/.agents/skills`). Một thân kỹ năng phục vụ mọi ứng dụng. Claude Desktop, Windsurf và Zed không có thư

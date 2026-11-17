@@ -366,6 +366,8 @@ export type MarketResolution =
        *  already holds the record, and a segment's ETF ceiling is measured by it. */
       readonly instrumentKind?: InstrumentKind
       readonly caveats: readonly Caveat[]
+      /** What a read of the resolved name says only when it comes back empty. */
+      readonly unavailableCaveats?: readonly Caveat[]
     }
   | {
       readonly kind: 'market-not-registered'

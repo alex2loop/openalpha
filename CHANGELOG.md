@@ -16,12 +16,16 @@ Ask for a price before a market's list of names has loaded and OpenAlpha now wai
 
 - A holding that earned cash dividends you recorded shows its cost after dividends, the way a Vietnamese broker does: what you paid with fees, less the dividend grossed back up to what was declared before the 5% tax. The suggestion report, `/portfolio`, the line after `/record` and the office page's ticker card all show it and measure that holding's profit and loss from it, and the report keeps what you paid beside it. `[trading.markets.<id>] dividend_tax` sets the withholding rate; US shares keep the cost paid unless one is set. The brief counts a holding as in loss against the same cost, and a dividend recorded at a venue that holds none of that name says it lowers no cost. NAV, the book's total profit and loss and realized profit are unchanged.
 - The suggestion report says "your cost, fees included" instead of "you bought at", since the figure always held the buy fee.
+- `/profile` and `/portfolio` list the switched-off markets with the name each one takes and the command that switches one on. The chat's welcome line and the steps `onboard` prints after setup point to `/profile` and `/setup` instead of asking you to run `/refresh` first, since data now loads the first time you ask.
+- A bare ticker that finds no price names the switched-off markets that could list it, with the two ways in: `equity-us:AAPL`, or `/profile enable equity-us`. Through an AI app, the assistant offers the same and asks before switching a market on.
 
 ### Fixed
 
 - A price or suggestion asked for in a stock market whose list of names has not loaded yet waits for it, up to about half a minute, then answers. Naming the market (`/price equity-us:AAPL`) loads it even while that market is switched off. Recording a trade never waits.
 - When a list still has not loaded, the message says it is loading or its source didn't answer, and how to retry, instead of telling you to run `/refresh` first.
 - `mcp serve` beside a running background service now loads a market the assistant switches on at once, instead of at the service's next scheduled refresh.
+- Setting a segment's own target in `/profile` no longer moves its row down the table.
+- The `openalpha-mcp` package page on npm is in English only, and its description names US stocks too.
 
 ## [1.8.4] - 2026-11-17
 
