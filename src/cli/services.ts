@@ -36,6 +36,12 @@ export interface SelfCommand {
   readonly args: readonly string[]
 }
 
+interface SelfInvocation {
+  readonly dataDir: string
+  readonly configPath: string
+  readonly tail: readonly string[]
+}
+
 /** `process.execPath` is `bun` in a source run, so the entry file rides along. argv[1] is a virtual
  *  path inside a compiled binary, which only the source entry can be re-executed with, so the
  *  binary is left as its own entry. */
@@ -48,19 +54,21 @@ export function resolveSelfCommand(): SelfCommand {
   }
 }
 
+export async function buildSelfArgv(options: SelfInvocation): Promise<string[]> {
+  const { command, args } = await buildSelfCommand(options)
+
+  return [command, ...args]
+}
+
 /** The data dir is always named, and the config file whenever it exists, so a restart loads the same
  *  files whatever directory it runs from. A missing one stays unnamed: an explicit `--config` to a
  *  missing file is an error where the default one is simply absent. */
-export async function buildSelfArgv(options: {
-  readonly dataDir: string
-  readonly configPath: string
-  readonly tail: readonly string[]
-}): Promise<string[]> {
+export async function buildSelfCommand(options: SelfInvocation): Promise<SelfCommand> {
   const { command, args } = resolveSelfCommand()
   const hasConfig = await Bun.file(options.configPath).exists()
   const config = hasConfig ? ['--config', options.configPath] : []
 
-  return [command, ...args, '--data-dir', options.dataDir, ...config, ...options.tail]
+  return { command, args: [...args, '--data-dir', options.dataDir, ...config, ...options.tail] }
 }
 
 export function resolveChatDisplay(app: CliApp, agentId: AgentId): ChatDisplay {

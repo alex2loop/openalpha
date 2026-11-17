@@ -1149,8 +1149,12 @@ openalpha mcp install
 ```
 
 Câu lệnh này in ra câu lệnh thêm server của chính ứng dụng đó (nếu ứng dụng có), cộng với mục server theo đúng
-định dạng cấu hình của ứng dụng, trỏ đúng tới binary và tệp cấu hình mà server này thật sự chạy. Sau đó
-nó ghi tệp kỹ năng để ứng dụng đọc.
+định dạng cấu hình của ứng dụng, trỏ đúng tới binary và thư mục dữ liệu mà server này thật sự chạy, và tới
+tệp cấu hình khi đã có tệp đó. Sau đó nó ghi tệp kỹ năng để ứng dụng đọc.
+
+`mcp serve`, `mcp surface` và `mcp install` đều chạy được trước khi bạn chạy `openalpha onboard`: chừng nào
+chưa có `config.toml` thì các giá trị mặc định được dùng, và server tự đọc tệp đó ở lần khởi động sau khi
+`onboard` đã ghi ra.
 
 `--host` chọn ứng dụng: `claude-code` (mặc định), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, hoặc `agents` cho vị trí Agent Skills trung tính
@@ -1165,3 +1169,11 @@ và chạy tiếp thay vì dừng cả phiên. Kỹ năng được ghi vào `~/.
 opencode và Kilo Code mặc định cắt một server cục bộ sau 5-10 giây, nên với chúng mục cấu hình còn đặt
 `timeout` của server và `experimental.mcp_timeout` thành gấp đôi mức 45 giây mà một lời gọi được phục vụ
 chờ trước khi trả lời `working`. `--skill-dir` đổi thư mục kỹ năng.
+
+Mỗi bản phát hành còn kèm `openalpha.mcpb`, một tiện ích cho ứng dụng Claude trên macOS và Windows, và
+đăng `openalpha-mcp` lên npm cho các ứng dụng cài server MCP bằng `npx` (VS Code, Cursor và các ứng dụng
+khác đọc MCP Registry, nơi có OpenAlpha). Cả hai đều không chứa bản OpenAlpha nào: chúng chạy bản bạn đã
+cài, nên hãy cài hoặc cập nhật OpenAlpha lên bản phát hành mới nhất trước (các bản cũ hơn chỉ chạy `mcp
+serve` khi đã có `config.toml`). Chúng tìm nó trong thư mục mà script cài đặt dùng (`~/.local/bin`). Nếu
+bạn cài ở chỗ khác, đổi mục thư mục cài của tiện ích, hoặc đặt `OPENALPHA_INSTALL_DIR` trong biến môi
+trường của mục server chạy `npx -y openalpha-mcp`.

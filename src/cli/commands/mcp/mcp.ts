@@ -21,6 +21,7 @@ import { createCommand, createGroup } from '@/cli/command'
 import { createMcpApproval, hasFormElicitation } from '@/cli/commands/mcp/approval'
 import { mcpInstallCommand } from '@/cli/commands/mcp/install'
 import { toCallToolResult } from '@/cli/commands/mcp/reply'
+import { MCP_COMMAND_NEEDS } from '@/cli/commands/mcp/serve-contract'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
 import { resolveMcpJobs, resolveMcpSurface } from '@/cli/services'
 import { hint, style, warn } from '@/cli/ui/colors'
@@ -60,14 +61,14 @@ interface SurfaceEntry {
 const mcpServeCommand: Command = createCommand({
   name: 'serve',
   summary: { key: 'cliHelp.mcpServeSummary' },
-  needs: { modelSource: 'client' },
+  needs: MCP_COMMAND_NEEDS,
   run: serveMcp,
 })
 
 const mcpSurfaceCommand: Command = createCommand({
   name: 'surface',
   summary: { key: 'cliHelp.mcpSurfaceSummary' },
-  needs: { modelSource: 'client' },
+  needs: MCP_COMMAND_NEEDS,
   run: showMcpSurface,
 })
 

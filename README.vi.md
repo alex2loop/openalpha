@@ -499,6 +499,8 @@ openalpha mcp install      # hoặc --host codex, cursor, vscode, gemini, muse, 
 
 Đề xuất tạo theo cách này được chấm điểm riêng trong `/reflect` (dưới tên `client:<model>`), và cách này không bao giờ đặt được lệnh. Chi tiết: [docs/dev/mo-rong.md](docs/dev/mo-rong.md)
 
+Dùng ứng dụng Claude trên macOS hoặc Windows: cài bản OpenAlpha mới nhất xong, tải `openalpha.mcpb` ở trang [Releases](https://github.com/alex2loop/openalpha/releases/latest) rồi mở bằng Claude. Các ứng dụng cài máy chủ MCP từ MCP Registry sẽ thấy OpenAlpha ở đó và chạy nó bằng `npx -y openalpha-mcp`.
+
 </details>
 
 <details>

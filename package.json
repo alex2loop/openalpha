@@ -1,6 +1,6 @@
 {
   "name": "@openalpha/runtime",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "license": "MIT",
   "private": true,
   "productName": "OpenAlpha",
@@ -35,6 +35,7 @@
     "build:all": "bun run gen && bun build src/app/main.ts --compile --splitting --bytecode --format=esm --minify-syntax --minify-whitespace --target=bun-linux-x64 --outfile dist/openalpha-linux-x64 && bun build src/app/main.ts --compile --splitting --bytecode --format=esm --minify-syntax --minify-whitespace --target=bun-linux-arm64 --outfile dist/openalpha-linux-arm64 && bun build src/app/main.ts --compile --splitting --bytecode --format=esm --minify-syntax --minify-whitespace --target=bun-darwin-arm64 --outfile dist/openalpha-darwin-arm64 && bun build src/app/main.ts --compile --splitting --bytecode --format=esm --minify-syntax --minify-whitespace --target=bun-darwin-x64 --outfile dist/openalpha-darwin-x64 && bun build src/app/main.ts --compile --splitting --bytecode --format=esm --minify-syntax --minify-whitespace --target=bun-windows-x64 --outfile dist/openalpha-windows-x64.exe && bun build src/app/main.ts --compile --splitting --bytecode --format=esm --minify-syntax --minify-whitespace --target=bun-windows-arm64 --outfile dist/openalpha-windows-arm64.exe",
     "build:web": "bun run gen && bun scripts/build-web.ts",
     "build:site": "bun scripts/build-site.ts",
+    "build:mcp-bundle": "bun scripts/mcp-bundle/build.ts",
     "gen": "bun scripts/gen-migrations.ts",
     "migration:new": "bun scripts/new-migration.ts",
     "version:bump": "bun scripts/bump-version.ts",
@@ -61,6 +62,7 @@
     "bun": ">=1.3.0"
   },
   "devDependencies": {
+    "@anthropic-ai/mcpb": "2.1.2",
     "@biomejs/biome": "2.6.7",
     "@types/node": "26.6.6",
     "@types/pg": "8.23.1",

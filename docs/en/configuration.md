@@ -183,7 +183,8 @@ tier rather than a cheaper chain that could garble the figures.
 
 Under `openalpha mcp serve`, the connected client's model answers every agent, so `[[models]]` is not
 read and needs no key. Only tiers looked up by name, such as `decisions`, still use config, and a
-tier whose key is missing is skipped instead of failing boot.
+tier whose key is missing is skipped instead of failing boot. It also starts before any `config.toml`
+exists, on the defaults.
 
 #### Choosing a model per job
 

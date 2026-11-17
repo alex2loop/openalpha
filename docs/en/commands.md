@@ -1165,8 +1165,12 @@ openalpha mcp install
 ```
 
 It prints the app's own add command (where it has one), plus the server entry in the app's own config
-format, pointing at the binary and config file this server actually runs with. Then it writes the
-skill file the app reads.
+format, pointing at the binary and data folder this server actually runs with, and at the config file
+once one exists. Then it writes the skill file the app reads.
+
+`mcp serve`, `mcp surface` and `mcp install` all work before `openalpha onboard`: until a
+`config.toml` exists, the defaults apply, and the server picks the file up on its next start once
+`onboard` writes it.
 
 `--host` picks the app: `claude-code` (the default), `claude-desktop`, `codex`, `cursor`, `gemini`,
 `kilo-code`, `muse` (Muse Code), `opencode`, `vscode`, `windsurf`, `zed`, or `agents` for the neutral Agent Skills
@@ -1181,3 +1185,12 @@ warns and carries on instead of aborting the run. The skill goes to `~/.config/m
 opencode and Kilo Code time out a local server within 5-10 s by default, so for them the entry also
 sets the server `timeout` and `experimental.mcp_timeout` to twice the 45 s a served call waits before
 answering `working`. `--skill-dir` overrides the skill folder.
+
+Every release also carries `openalpha.mcpb`, an extension for the Claude app on macOS and Windows, and
+publishes `openalpha-mcp` on npm for the apps that install MCP servers with `npx` (VS Code, Cursor and
+the others that read the MCP Registry, where OpenAlpha is listed). Neither holds a copy of OpenAlpha:
+both start the one you installed, so install or update OpenAlpha to the latest release first (older
+releases start `mcp serve` only once a `config.toml` exists). They look for it in the folder the install
+script uses (`~/.local/bin`). If you installed it elsewhere, change the extension's install folder
+setting, or set `OPENALPHA_INSTALL_DIR` in the environment of the server entry that runs `npx -y
+openalpha-mcp`.

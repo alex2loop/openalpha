@@ -6756,5 +6756,13 @@
     "noSuchDraft": "Không có bản nháp {id} nào đang chờ. Xem danh sách bằng `/social drafts` hoặc `{brand} social drafts`.",
     "tooManyEndpoints": "Skill liệt kê hơn {max} endpoint, quá mức một mạng cần, nên chưa cài.",
     "tooManyFiles": "Skill liệt kê hơn {max} file, quá mức một skill cần, nên chưa cài."
+  },
+  "mcpBundle": {
+    "description": "Trợ lý AI phân tích cổ phiếu Việt Nam, vàng và crypto. Mình đề xuất, bạn quyết định.",
+    "longDescription": "Dùng {brand} đã cài trên máy này, nên hãy cài hoặc cập nhật lên bản phát hành mới nhất trước: {installUrl}. Mô hình AI của chính ứng dụng trợ lý làm phần suy nghĩ; ở đây {brand} không cần khóa AI riêng.",
+    "installDirTitle": "Thư mục cài {brand}",
+    "installDirDescription": "Thư mục mà script cài đặt đã đặt {brand} vào. Chỉ đổi khi bạn cài nó ở chỗ khác.",
+    "binaryMissing": "Không thấy {brand} ở {path}. Hãy cài nó ({installUrl}), hoặc trỏ mục thư mục cài ({env}) tới chỗ đã cài.",
+    "binaryUnstartable": "{brand} ở {path} không khởi động được: {reason}"
   }
 }

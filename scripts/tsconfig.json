@@ -27,6 +27,7 @@
     "./check-trading-locale.ts",
     "./check-vi-terminology.ts",
     "./evaluate-research-routing.ts",
+    "./mcp-bundle/*.ts",
     "./research-*.ts",
     "./research-*/**/*.ts",
     "./sdk-embedder-smoke.ts",

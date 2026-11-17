@@ -11,9 +11,10 @@ import { createCommand } from '@/cli/command'
 import { buildHostAnalyst } from '@/cli/commands/mcp/analyst'
 import { buildAddCommand, buildHostConfig } from '@/cli/commands/mcp/host-config'
 import { DEFAULT_MCP_HOST, MCP_HOST_IDS, resolveMcpHost } from '@/cli/commands/mcp/hosts'
+import { MCP_COMMAND_NEEDS, MCP_SERVE_ARGV } from '@/cli/commands/mcp/serve-contract'
 import { terminalErrorMessage } from '@/cli/error-output'
 import { flagString } from '@/cli/parsing/args'
-import { resolveConfigPath, resolveMcpSurface, resolveSelfCommand } from '@/cli/services'
+import { buildSelfCommand, resolveConfigPath, resolveMcpSurface } from '@/cli/services'
 import { hint, style } from '@/cli/ui/colors'
 import { BRAND } from '@/core/brand'
 import { expandHome } from '@/core/config/resolve'
@@ -26,7 +27,7 @@ const AGENT_FILE_EXTENSION = '.md'
 export const mcpInstallCommand: Command = createCommand({
   name: 'install',
   summary: { key: 'cliHelp.mcpInstallSummary', params: { brand: BRAND.display } },
-  needs: { modelSource: 'client' },
+  needs: MCP_COMMAND_NEEDS,
   spec: {
     flags: {
       host: { type: 'string', choices: MCP_HOST_IDS, describe: { key: 'cliHelp.flagMcpHost' } },
@@ -41,7 +42,7 @@ async function installIntoHost(args: ParsedArgs, app: CliApp): Promise<number> {
   const host = resolveMcpHost(resolveHostId(args))
   const skillDir = flagString(args, 'skillDir') ?? host.skill?.dir
 
-  printServerConfig(app, host, resolveServerCommand(app))
+  printServerConfig(app, host, await resolveServerCommand(app))
   app.out('')
   app.out(style.heading(t(locale, 'cli.mcpInstallSkillHeading')))
 
@@ -106,10 +107,12 @@ function isMcpHostId(value: string): value is McpHostId {
   return MCP_HOST_IDS.includes(value)
 }
 
-function resolveServerCommand(app: CliApp): SelfCommand {
-  const { command, args } = resolveSelfCommand()
-
-  return { command, args: [...args, 'mcp', 'serve', '--config', resolveConfigPath(app)] }
+function resolveServerCommand(app: CliApp): Promise<SelfCommand> {
+  return buildSelfCommand({
+    dataDir: app.config.paths.dataDir,
+    configPath: resolveConfigPath(app),
+    tail: MCP_SERVE_ARGV,
+  })
 }
 
 /** The app's own add command first where it has one: it writes the file itself, so nothing can be
