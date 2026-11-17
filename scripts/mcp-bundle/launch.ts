@@ -1,28 +1,30 @@
-// Runs inside the MCP bundle on the host app's own Node: it starts the installed binary with the
-// arguments the manifest passes and stays in front of it, so the host sees one server process.
+// The launcher of the MCP bundle and the npm package, run by the host app's own Node: it starts the
+// installed binary with `mcp serve` and stays in front of it, so the host sees one server process.
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 
-import { PATH_PLACEHOLDER } from './placeholder'
+import type { LauncherConfig } from './launcher-config'
+import { MCP_SERVE_ARGV } from '@/cli/commands/mcp/serve-contract'
+import { PATH_PLACEHOLDER } from './launcher-config'
 
-declare const MISSING_MESSAGE_LINES: readonly string[]
+declare const LAUNCHER_CONFIG: LauncherConfig
 
 const EXIT_FAILED = 1
 const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM'] as const
 const WINDOWS_EXECUTABLE_SUFFIX = '.exe'
 
-const [binaryPath = '', ...binaryArgs] = process.argv.slice(2)
+launch(resolveBinaryPath())
 
-launch(toExecutablePath(binaryPath), binaryArgs)
-
-function launch(path: string, args: readonly string[]): void {
+function launch(path: string): void {
   if (!existsSync(path)) {
     reportMissing(path)
 
     return
   }
 
-  const child = spawn(path, args, { stdio: 'inherit', windowsHide: true })
+  const child = spawn(path, MCP_SERVE_ARGV, { stdio: 'inherit', windowsHide: true })
   const forward = (signal: NodeJS.Signals): void => {
     child.kill(signal)
   }
@@ -46,19 +48,19 @@ function launch(path: string, args: readonly string[]): void {
   })
 }
 
-// The install scripts put `<name>.exe` on Windows, while the setting's default names no suffix.
-function toExecutablePath(path: string): string {
-  if (process.platform !== 'win32' || path.endsWith(WINDOWS_EXECUTABLE_SUFFIX)) {
-    return path
-  }
+// The install folder is the one the install scripts honor; an empty value means the default.
+function resolveBinaryPath(): string {
+  const installDir =
+    process.env[LAUNCHER_CONFIG.installDirEnv] || join(homedir(), LAUNCHER_CONFIG.defaultInstallDir)
+  const suffix = process.platform === 'win32' ? WINDOWS_EXECUTABLE_SUFFIX : ''
 
-  const windowsPath = `${path}${WINDOWS_EXECUTABLE_SUFFIX}`
-
-  return existsSync(windowsPath) ? windowsPath : path
+  return join(installDir, `${LAUNCHER_CONFIG.binaryName}${suffix}`)
 }
 
 function reportMissing(path: string, detail?: string): void {
-  const lines = MISSING_MESSAGE_LINES.map((line) => line.replaceAll(PATH_PLACEHOLDER, () => path))
+  const lines = LAUNCHER_CONFIG.missingMessageLines.map((line) =>
+    line.replaceAll(PATH_PLACEHOLDER, () => path)
+  )
   const detailLines = detail === undefined ? [] : [detail]
 
   process.stderr.write(`${[...lines, ...detailLines].join('\n')}\n`)
