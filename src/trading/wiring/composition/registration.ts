@@ -151,6 +151,15 @@ declare module '@/core/container' {
   }
 }
 
+declare module '@/core/events' {
+  interface BusEventMap {
+    /** This process wrote the operator's trading profile: watchlist, segments, targets or
+     *  exclusions. A page re-reads it and a daemonless `mcp serve` refreshes; nothing says what
+     *  changed. */
+    profile_saved: Record<string, never>
+  }
+}
+
 interface BuiltTrading {
   readonly services: TradingServices
   readonly contributions: TradingContributions
