@@ -7,6 +7,7 @@ import { createTool } from '@/core/tool'
 import { renderPatchText } from '@/trading/features/profile/render'
 import { SEGMENT_TOGGLES } from '@/trading/features/profile/types'
 import { portfolioSegment } from '@/trading/kernel/instrument'
+import { disabledSegments } from '@/trading/kernel/operator/profile'
 import { toAgentJson } from '@/trading/kernel/surface/agent-json'
 import { noInput } from '@/trading/kernel/surface/surface'
 import { renderDeclaredValue, SECTION_ICONS } from '@/trading/render/format'
@@ -62,7 +63,7 @@ function createProfileViewTool(profiles: AgentProfile): ToolDefinition {
   return createTool({
     name: 'profile_view',
     description:
-      'Returns the saved investor profile: risk level, horizon, goal, watchlist, and position caps. Use it before any suitability, sizing, or hold-or-sell answer, and before asking the operator for a fact it may already hold. Takes no input; use profile_update to change it.',
+      'Returns the saved investor profile: risk level, horizon, goal, watchlist, and position caps, plus switchedOff: the segments switched off, which only profile_segment switches back on. Use it before any suitability, sizing, or hold-or-sell answer, and before asking the operator for a fact it may already hold. Takes no input; use profile_update to change it.',
     inputSchema: noInput,
     capability: 'read',
     presentation: { label: 'Profile', emoji: '🪪' },
@@ -70,8 +71,9 @@ function createProfileViewTool(profiles: AgentProfile): ToolDefinition {
       const profile = await profiles.get({
         signal: ctx.signal,
       })
+      const held = new Set(profiles.heldSegments())
 
-      return toAgentJson(profile)
+      return toAgentJson({ ...profile, switchedOff: [...disabledSegments(profile.caps, held)] })
     },
   })
 }
@@ -84,7 +86,7 @@ function createProfileSegmentTool(profiles: AgentProfile): ToolDefinition {
   return createTool({
     name: 'profile_segment',
     description:
-      'Switch one portfolio segment on or off. Off means nothing in it is screened, sized or bought, and the other segments take over its target. Use it when the operator says which markets they trade; a new profile starts with its default segments on.',
+      'Switch one portfolio segment on or off. Off means nothing in it is screened, sized or bought, and the other segments take over its target; switching one on gives it caps and a target from the risk level, taken from the others, so say so first. Use it when the operator says which markets they trade; a new profile starts with its default segments on.',
     inputSchema: z.strictObject({
       action: z.enum(SEGMENT_TOGGLES).describe('enable switches the segment on, disable off.'),
       segment: z.string().describe(`The segment, one of: ${segments}.`),

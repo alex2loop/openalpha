@@ -99,7 +99,7 @@ function renderAllocation(
   options: ProfileTextOptions
 ): readonly (readonly string[])[] {
   const disabled = disabledSegments(profile.caps)
-  const switchable = [...disabled].filter((segment) => options.heldSegments.has(segment))
+  const switchable = [...disabledSegments(profile.caps, options.heldSegments)]
 
   return [
     renderSegmentBlock(

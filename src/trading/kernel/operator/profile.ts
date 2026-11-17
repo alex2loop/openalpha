@@ -64,13 +64,16 @@ export function isSegmentDisabled(caps: RiskCapSet): boolean {
 }
 
 /** Every segment the operator switched off. A noun phrase, not a predicate: the caller names them
- *  rather than testing one. A patch that carries no caps can tell nothing apart and names none. */
+ *  rather than testing one. A patch that carries no caps can tell nothing apart and names none.
+ *  `held` keeps only the segments a venue holds, the ones that can be switched back on: what an
+ *  operator is told is off never names world gold. */
 export function disabledSegments(
-  caps: Readonly<Record<PortfolioSegment, RiskCapSet>> | undefined
+  caps: Readonly<Record<PortfolioSegment, RiskCapSet>> | undefined,
+  held?: ReadonlySet<string>
 ): ReadonlySet<string> {
   return new Set(
     Object.entries(caps ?? {})
-      .filter(([, cap]) => isSegmentDisabled(cap))
+      .filter(([segment, cap]) => isSegmentDisabled(cap) && (held?.has(segment) ?? true))
       .map(([segment]) => segment)
   )
 }
