@@ -35,10 +35,9 @@ const fetchInputSchema = z.object({
     ),
 })
 
-// A URL the operator wrote or a network tool returned is reading. One the model put together, or a
-// header it chose, can carry what it read elsewhere in the run out to someone else, so the operator
-// is asked first. Past the run's quota every fetch asks, which bounds a page that walks the model
-// from link to link.
+// A URL the operator wrote or another network tool returned is reading. One the model put together,
+// a link on a page it fetched, or a header it chose can carry what it read elsewhere in the run out
+// to someone else, so the operator is asked first. Past the run's quota every fetch asks.
 function canFetchUnasked(input: unknown, context: CallApprovalContext): boolean {
   const parsed = fetchInputSchema.safeParse(input)
 

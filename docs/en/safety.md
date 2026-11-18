@@ -55,10 +55,11 @@ The third rule lets read-only work through. Listing scheduled jobs needs no appr
 does. Recalling memory needs none; storing or removing it does.
 
 Reading a web page works the same way. The agent opens a link you sent or one a search or news read
-brought back without asking. It asks first when it built or changed the link itself, adds its own
-headers, or has already read `[loop] max_unasked_fetches` pages in one run (10 by default). A page
-can hide instructions, and a link the agent puts together is how it would carry your holdings,
-profile or notes out to someone else, so that one is yours to approve. Text you forward into the
+brought back without asking. It asks first when it built or changed the link itself, follows a link
+from a page it read, adds its own headers, or has already read `[loop] max_unasked_fetches` pages
+in one run (10 by default). A page can hide instructions, and a link the agent puts together or
+picks off a page is how it would carry your holdings, profile or notes out to someone else, so
+that one is yours to approve. Text you forward into the
 chat counts as someone else's, not as a link you sent, and so does a task one agent hands another.
 These prompts offer no "remember".
 

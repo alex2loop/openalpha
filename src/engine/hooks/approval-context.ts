@@ -32,8 +32,14 @@ export function approvalContextFor(run: RunView, toolName: string): CallApproval
     config: run.env.config,
     callCount,
     hasSeen(text): boolean {
+      // A tool's own earlier results never vouch for its next call: a fetched page listing links
+      // would otherwise let the model walk it, or pick among them to signal what it read.
       seenTokens ??= tokensOf(
-        sourceTextOf(run.state.messages.history, run.env.tools, run.env.callDepth > 0)
+        sourceTextOf(
+          run.state.messages.history,
+          run.env.tools.filter((tool) => tool.name !== toolName),
+          run.env.callDepth > 0
+        )
       )
 
       return seenTokens.has(normalizeToken(text))

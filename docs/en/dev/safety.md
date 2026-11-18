@@ -21,7 +21,8 @@ blocked call never reaches the executor.
   - Its `CallApprovalContext`
     (`engine/hooks/approval-context.ts`) counts this tool's calls in the run and answers `hasSeen`
     against the operator's own words (forwarded `<pasted_content>` removed) and non-error results of
-    `net` tools, never text the model wrote.
+    other `net` tools, never text the model wrote nor the asking tool's own results (a fetched
+    page's links do not vouch for the next fetch).
   - `web_fetch` asks for a URL in neither, for extra headers, and past `[loop] max_unasked_fetches`.
 - **Remember.** `oneTimeApproval: true` on a tool offers no remember arm. `order_place` sets it with
   `requiresApproval: () => true`.
