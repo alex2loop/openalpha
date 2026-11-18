@@ -9,10 +9,9 @@ const NO_IGNORED: ReadonlySet<string> = new Set()
 // Longest stretch between `curl` and its pipe to a shell; unbounded, each `curl` rescans its line.
 const MAX_PIPE_DISTANCE = 120
 
-const INVISIBLE_UNICODE: ReadonlySet<number> = new Set([
-  0x200b, 0x200c, 0x200d, 0x2060, 0x2062, 0x2063, 0x2064, 0xfeff, 0x202a, 0x202b, 0x202c, 0x202d,
-  0x202e, 0x2066, 0x2067, 0x2068, 0x2069,
-])
+// Format characters (zero-width, bidi, the tag block) and the variation-selector supplement print
+// as nothing, yet a model reads them, so a hidden instruction rides them past every human reader.
+const INVISIBLE_RE = /\p{Cf}|[\u{E0100}-\u{E01EF}]/gu
 
 const XML_CONTENT_ESCAPE_RE = /[&<>]/g
 const XML_ATTR_ESCAPE_RE = /["&<>]/g
@@ -181,17 +180,17 @@ function collectMatches(input: MatchInput, sink: ScanSink): void {
 }
 
 function collectInvisible(text: string, severity: ThreatSeverity, sink: ScanSink): void {
-  for (let i = 0; i < text.length; i++) {
+  for (const match of text.matchAll(INVISIBLE_RE)) {
     if (isSinkFull(sink)) {
       return
     }
 
-    const cp = text.codePointAt(i)
+    const cp = match[0].codePointAt(0)
 
-    if (cp !== undefined && INVISIBLE_UNICODE.has(cp)) {
+    if (cp !== undefined) {
       pushFinding(sink, {
         pattern: formatCodePoint(cp),
-        excerpt: buildExcerpt(text, i, 0),
+        excerpt: buildExcerpt(text, match.index, 0),
         severity,
       })
     }
@@ -224,15 +223,7 @@ function flatten(s: string): string {
 }
 
 export function toVisibleText(s: string): string {
-  let out = ''
-  for (let i = 0; i < s.length; i++) {
-    const cp = s.codePointAt(i)
-
-    if (cp !== undefined && !INVISIBLE_UNICODE.has(cp)) {
-      out += s[i]
-    }
-  }
-  return out
+  return s.replace(INVISIBLE_RE, '')
 }
 
 /** `escapedContent` must already pass `escapeXml`: the caller caps the escaped body, so escaping here
