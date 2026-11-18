@@ -55,11 +55,12 @@ The third rule lets read-only work through. Listing scheduled jobs needs no appr
 does. Recalling memory needs none; storing or removing it does.
 
 Reading a web page works the same way. The agent opens a link you sent or one a search or news read
-brought back without asking. It asks first when it built or changed the link itself, adds its own
-headers, or has already read `[loop] max_unasked_fetches` pages in one run (10 by default). A page
-can hide instructions, and a link the agent puts together is how it would carry your holdings,
-profile or notes out to someone else, so that one is yours to approve. Text you forward into the
-chat counts as someone else's, not as a link you sent, and so does a task one agent hands another.
+brought back without asking. It asks first when it built or changed the link itself, follows a link
+from a page it read, adds its own headers, or has already read `[loop] max_unasked_fetches` pages
+in one run (10 by default). A page can hide instructions, and a link the agent puts together or
+picks off a page is how it would carry your holdings, profile or notes out to someone else, so
+that one is yours to approve. Text you forward into the chat counts as someone else's, not as a
+link you sent, and so does a task one agent hands another.
 These prompts offer no "remember".
 
 Approval does not replace permissions. The agent must already be allowed the tool, and the call must
@@ -218,6 +219,10 @@ Details of the scrub:
 - Keys with a vendor look (`sk-`, `tvly-`, `xai-`, `gsk_`, `AIza`, and similar) are redacted wherever they
   appear. A bare run of 32 to 128 letters and digits (a Serper or Mistral key) is redacted only right
   after the word `key`, `api` or `khóa`.
+- The value of every key the config reads (models, web search, exchanges, data sources, chat
+  channels) and the API token is redacted wherever it appears, whatever it looks like, and memory
+  refuses to store it. An MCP server's `${VAR}` values are not, since they also fill commands and
+  paths.
 - Text streamed to the app is scrubbed across chunk boundaries, so a secret split between two
   chunks is still caught. The stream holds back an unfinished word, header line or private-key block
   until it can judge it; past 512 characters it releases what it has.
@@ -293,8 +298,10 @@ Tool output is normalized before it re-enters the model's context:
 `web_fetch` reads at most 2 MiB of a page. A longer text page returns its start with
 `"truncated": true` rather than failing; a non-text response is still refused.
 
-Skill installation uses a stricter scan: prompt injection, shell payloads and invisible Unicode can
-block a skill outright.
+Skill installation uses a stricter scan: prompt injection, shell payloads and Unicode that hides text
+(zero-width characters, bidi overrides, tag characters) can block a skill outright. A headline or
+filing from a data source loses every invisible character before a model sees it; a tool result
+holding text-hiding characters reaches the model with a security notice.
 
 ### Plugins and channels
 

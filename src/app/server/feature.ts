@@ -13,7 +13,7 @@ import { attachAppSurface } from '@/app/server/push/notices'
 import { createDaemonSystemHost } from '@/app/server/routes/system-daemon'
 import { broadcast } from '@/app/server/ws/socket'
 import { describeCommand } from '@/commands/api'
-import { formatErrForLog } from '@/core/security/credentials'
+import { formatErrForLog, registerKnownSecret } from '@/core/security/credentials'
 import { bindLocale } from '@/i18n'
 
 // The HTTP/WS API: the last canonical provider (src/app/providers.ts); the daemon starts it only
@@ -33,6 +33,10 @@ async function startApiSurface(
   env: Readonly<Record<string, string | undefined>>
 ): Promise<ApiHandle> {
   const token = await ensureApiToken(app.config, env)
+
+  // The stored token is no configured variable, so boot's registration does not cover it.
+  registerKnownSecret(token)
+
   const live = startLiveFeed(app)
   let server: ApiHandle | undefined
   let detachAppSurface: (() => void) | undefined

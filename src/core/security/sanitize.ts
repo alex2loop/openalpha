@@ -9,10 +9,13 @@ const NO_IGNORED: ReadonlySet<string> = new Set()
 // Longest stretch between `curl` and its pipe to a shell; unbounded, each `curl` rescans its line.
 const MAX_PIPE_DISTANCE = 120
 
-const INVISIBLE_UNICODE: ReadonlySet<number> = new Set([
-  0x200b, 0x200c, 0x200d, 0x2060, 0x2062, 0x2063, 0x2064, 0xfeff, 0x202a, 0x202b, 0x202c, 0x202d,
-  0x202e, 0x2066, 0x2067, 0x2068, 0x2069,
-])
+// Characters that hide text or carry a hidden payload: zero-width, bidi overrides and isolates, the
+// tag block and the variation-selector supplement. A finding wherever they appear.
+const HIDING_RE =
+  /[\u200B\u200C\u2060\u2062-\u2064\u202A-\u202E\u2066-\u2069\uFEFF]|\u200D|[\u{E0000}-\u{E007F}]|[\u{E0100}-\u{E01EF}]/gu
+// Every format character prints as nothing, so text bound for a model drops them all, a soft hyphen
+// or a bidi mark included. U+FE0E/FE0F stay: emoji need them.
+const INVISIBLE_RE = /\p{Cf}|[\u{E0100}-\u{E01EF}]/gu
 
 const XML_CONTENT_ESCAPE_RE = /[&<>]/g
 const XML_ATTR_ESCAPE_RE = /["&<>]/g
@@ -117,7 +120,7 @@ export function scanOutput(text: string): readonly Threat[] {
 
   collectMatches({ text, patterns: INJECTION_PATTERNS }, sink)
   collectMatches({ text: flatten(text), patterns: INJECTION_PATTERNS }, sink)
-  collectInvisible(text, 'notice', sink)
+  collectHiding(text, 'notice', sink)
 
   return sink.findings
 }
@@ -140,7 +143,7 @@ export function scanSkill(
   const sink = createSink(MAX_THREAT_FINDINGS)
   const flat = flatten(text)
 
-  collectInvisible(text, 'block', sink)
+  collectHiding(text, 'block', sink)
 
   for (const patterns of [SHELL_PATTERNS, INJECTION_PATTERNS, LOCALE_PATTERNS]) {
     collectMatches({ text, patterns, severity: 'block' }, sink)
@@ -180,18 +183,18 @@ function collectMatches(input: MatchInput, sink: ScanSink): void {
   }
 }
 
-function collectInvisible(text: string, severity: ThreatSeverity, sink: ScanSink): void {
-  for (let i = 0; i < text.length; i++) {
+function collectHiding(text: string, severity: ThreatSeverity, sink: ScanSink): void {
+  for (const match of text.matchAll(HIDING_RE)) {
     if (isSinkFull(sink)) {
       return
     }
 
-    const cp = text.codePointAt(i)
+    const cp = match[0].codePointAt(0)
 
-    if (cp !== undefined && INVISIBLE_UNICODE.has(cp)) {
+    if (cp !== undefined) {
       pushFinding(sink, {
         pattern: formatCodePoint(cp),
-        excerpt: buildExcerpt(text, i, 0),
+        excerpt: buildExcerpt(text, match.index, 0),
         severity,
       })
     }
@@ -224,15 +227,7 @@ function flatten(s: string): string {
 }
 
 export function toVisibleText(s: string): string {
-  let out = ''
-  for (let i = 0; i < s.length; i++) {
-    const cp = s.codePointAt(i)
-
-    if (cp !== undefined && !INVISIBLE_UNICODE.has(cp)) {
-      out += s[i]
-    }
-  }
-  return out
+  return s.replace(INVISIBLE_RE, '')
 }
 
 /** `escapedContent` must already pass `escapeXml`: the caller caps the escaped body, so escaping here

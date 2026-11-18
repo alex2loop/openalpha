@@ -57,11 +57,12 @@ Quy tắc thứ ba để việc chỉ đọc đi thẳng. Liệt kê các việc
 thì phải hỏi. Gọi lại bộ nhớ thì không cần hỏi, ghi hay xóa thì phải hỏi.
 
 Đọc trang web cũng vậy. Agent mở luôn link bạn gửi hoặc link mà một lần tìm kiếm hay đọc tin mang về.
-Nó hỏi bạn trước khi tự ghép hay sửa link, tự thêm header, hoặc đã đọc quá `[loop] max_unasked_fetches`
-trang trong một phiên chạy (mặc định 10). Một trang web có thể giấu lệnh bên trong, và link do agent tự
-ghép chính là đường nó có thể mang danh mục, hồ sơ hay ghi chú của bạn ra ngoài, nên link đó phải để
-bạn duyệt. Đoạn bạn chuyển tiếp vào chat, hay việc một agent giao cho agent khác, đều được coi là lời của
-người khác, không tính là link bạn gửi.
+Nó hỏi bạn trước khi tự ghép hay sửa link, mở link nằm trong trang nó vừa đọc, tự thêm header,
+hoặc đã đọc quá `[loop] max_unasked_fetches` trang trong một phiên chạy (mặc định 10). Một trang web
+có thể giấu lệnh bên trong, và link do agent tự ghép hay tự chọn chính là đường nó có thể mang danh
+mục, hồ sơ hay ghi chú của bạn ra ngoài, nên link đó phải để bạn duyệt. Đoạn bạn chuyển tiếp vào
+chat, hay việc một agent giao cho agent khác, đều được coi là lời của người khác, không tính là link
+bạn gửi.
 Những lần hỏi này không có nút "nhớ".
 
 Phê duyệt **không** thay cho phân quyền. Agent phải vốn đã được phép dùng công cụ đó, và lời gọi phải
@@ -223,6 +224,9 @@ Chi tiết của việc lọc:
 - Key có dáng riêng của nhà cung cấp (`sk-`, `tvly-`, `xai-`, `gsk_`, `AIza` và tương tự) bị che ở bất kỳ
   đâu. Một đoạn trơn 32 đến 128 chữ và số (key Serper hay Mistral) chỉ bị che khi đứng ngay sau chữ
   `key`, `api` hoặc `khóa`.
+- Giá trị của mọi key mà cấu hình đọc (mô hình, tìm kiếm web, sàn, nguồn dữ liệu, kênh chat) và token
+  API bị che ở bất kỳ đâu, dù trông thế nào, và bộ nhớ không chịu lưu nó. Giá trị `${VAR}` của máy
+  chủ MCP thì không, vì chúng còn được dùng cho câu lệnh và đường dẫn.
 - Văn bản truyền theo luồng tới ứng dụng được lọc xuyên qua ranh giới giữa các đoạn, nên một bí mật bị
   cắt đôi giữa hai đoạn vẫn bị bắt. Luồng giữ lại từ đang dở, hoặc dòng tiêu đề hay khối khóa riêng
   đang dở, cho tới khi đủ để xét; quá 512 ký tự thì nhả những gì đang có.
@@ -299,8 +303,10 @@ qua như một lần đọc hỏng bình thường, phiên chạy vẫn đi ti�
 `web_fetch` đọc tối đa 2 MiB của một trang. Trang văn bản dài hơn trả về phần đầu kèm
 `"truncated": true` thay vì thất bại; phản hồi không phải văn bản vẫn bị từ chối.
 
-Khâu cài kỹ năng quét nghiêm hơn: tiêm prompt, payload shell và Unicode vô hình đều có thể chặn thẳng
-một kỹ năng.
+Khâu cài kỹ năng quét nghiêm hơn: tiêm prompt, payload shell và ký tự Unicode giấu chữ (ký tự rộng 0,
+ký tự đảo chiều bidi, ký tự tag) đều có thể chặn thẳng một kỹ năng. Tiêu đề tin hay hồ sơ từ nguồn
+dữ liệu được bỏ hết ký tự vô hình trước khi tới mô hình; kết quả công cụ có ký tự giấu chữ thì tới mô
+hình kèm một cảnh báo an toàn.
 
 ### Plugin và kênh
 

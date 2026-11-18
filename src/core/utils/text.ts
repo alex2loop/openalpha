@@ -30,6 +30,7 @@ const EDGE_BLANKS_RE = /^\n+|\n+$/g
 // Drops C0/C1 control characters (Unicode category Cc) and format controls (category Cf)
 // except newline and tab, which legitimate output may contain.
 const SURFACE_CONTROL_RE = /[\p{Cc}\p{Cf}]/gu
+const CONTROL_OR_SEPARATOR_RE = /[\p{Cc}\u2028\u2029]/gu
 const SLASH_COMMAND_NAME_RE = /^[a-z][a-z0-9]*$/
 const COMBINING_MARK_RE = /[\u0300-\u036f]/g
 const FENCE = '```'
@@ -397,17 +398,11 @@ function levenshtein(a: string, b: string): number {
   return prev[b.length] ?? 0
 }
 
-// Every C0/C1 control becomes a space, newline included, so the result is safe to drop into a
-// one-line label. `stripControls` above deletes them instead and keeps newlines — different act.
+// Every C0/C1 control and Unicode line or paragraph separator becomes a space, newline included, so
+// the result is safe to drop into a one-line label or prompt line. `stripControls` above deletes
+// controls instead and keeps newlines — different act.
 export function toSingleLine(value: string): string {
-  let result = ''
-
-  for (const char of value) {
-    const code = char.codePointAt(0) ?? 0
-    result += code <= 0x1f || (code >= 0x7f && code <= 0x9f) ? ' ' : char
-  }
-
-  return result
+  return value.replace(CONTROL_OR_SEPARATOR_RE, ' ')
 }
 
 /** Lower case without diacritics, `đ` as `d`: how a person types a Vietnamese name they mean to

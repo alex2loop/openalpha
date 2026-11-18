@@ -115,8 +115,8 @@ export interface ToolResult {
 }
 
 /** What a call-level approval check knows about the run: how many calls of this tool it has made,
- *  this one included, and whether text came from the operator or a network tool rather than from
- *  the model itself. */
+ *  this one included, and whether text came from the operator or another network tool rather than
+ *  from the model itself. */
 export interface CallApprovalContext {
   readonly config: ResolvedConfig
   readonly callCount: number

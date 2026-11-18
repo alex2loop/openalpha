@@ -35,10 +35,9 @@ const fetchInputSchema = z.object({
     ),
 })
 
-// A URL the operator wrote or a network tool returned is reading. One the model put together, or a
-// header it chose, can carry what it read elsewhere in the run out to someone else, so the operator
-// is asked first. Past the run's quota every fetch asks, which bounds a page that walks the model
-// from link to link.
+// A URL the operator wrote or another network tool returned is reading. One the model put together,
+// a link on a page it fetched, or a header it chose can carry what it read elsewhere in the run out
+// to someone else, so the operator is asked first. Past the run's quota every fetch asks.
 function canFetchUnasked(input: unknown, context: CallApprovalContext): boolean {
   const parsed = fetchInputSchema.safeParse(input)
 
@@ -56,7 +55,7 @@ function canFetchUnasked(input: unknown, context: CallApprovalContext): boolean 
 export const webFetchTool = createTool({
   name: 'web_fetch',
   description:
-    'Fetch an HTTPS resource with GET or HEAD and a bounded response size. GET reads text only and can extract raw text, Markdown, or plain text. Fetch a URL exactly as the operator or a search result gave it: one you build or change, or extra headers, waits for the operator to approve.',
+    'Fetch an HTTPS resource with GET or HEAD and a bounded response size. GET reads text only and can extract raw text, Markdown, or plain text. Fetch a URL exactly as the operator or a search result gave it: one you build or change, a link taken from a page you fetched, or extra headers, waits for the operator to approve.',
   inputSchema: fetchInputSchema,
   capability: 'net',
   requiresApproval: (input, context) => !canFetchUnasked(input, context),
