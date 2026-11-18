@@ -46,6 +46,9 @@ const WALK_SKIPPED_SECTIONS: ReadonlySet<string> = new Set([...CLI_ONLY_SECTIONS
 const SECRET_KEY_RE = /token|secret|password|api_key/i
 /** An MCP server's `env` table: every value in it is a literal the server reads. */
 const SECRET_TABLE_KEY = 'env'
+/** An MCP server's address, the only `url` key in the tree: a hosted server's key often rides in
+ *  its query. */
+const SECRET_URL_KEY = 'url'
 const PROVIDER_KEY_VARS: ReadonlyMap<string, string> = new Map(
   buildProviderCatalog().providers.map((provider) => [provider.id, provider.envVar])
 )
@@ -153,7 +156,7 @@ function toRedacted(value: unknown, isSecret: boolean): unknown {
 
 // `api_key_env` names a variable, not a secret.
 function isSecretKey(key: string): boolean {
-  return SECRET_KEY_RE.test(key) && !key.endsWith(KEY_VAR_SUFFIX)
+  return key === SECRET_URL_KEY || (SECRET_KEY_RE.test(key) && !key.endsWith(KEY_VAR_SUFFIX))
 }
 
 function mcpServerChanges(body: ConfigTree, disk: ConfigTree): readonly string[] {
