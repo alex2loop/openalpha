@@ -743,8 +743,8 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     trọng bạn nhập; vàng thế giới không sàn nào giữ nên luôn tắt. "Về mặc định" điền tỷ trọng mà
     khẩu vị rủi ro của bạn chia cho các nhóm đang đánh dấu (giữ tỷ trọng đã ghim); chỉ lưu khi bạn
     bấm Lưu.
-  - Ô sửa hiện mọi giá trị bí mật (giá trị `env` của máy chủ MCP, mọi token, secret, mật khẩu hay khóa
-    API ghi thẳng trong file) là `********`. Cứ để nguyên thì giá trị đã lưu được giữ.
+  - Ô sửa hiện mọi giá trị bí mật (giá trị `env` và địa chỉ của máy chủ MCP, mọi token, secret, mật
+    khẩu hay khóa API ghi thẳng trong file) là `********`. Cứ để nguyên thì giá trị đã lưu được giữ.
   - Một số mục chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong `config.toml`, vì chúng quyết định
     dịch vụ nền chạy gì, dùng file nào hay gửi khóa đi đâu: plugin, câu lệnh khởi chạy, tham số,
     `env`, địa chỉ và cách kết nối của máy chủ MCP, mọi khóa `*_env` cùng mọi mục khác ghi tên biến

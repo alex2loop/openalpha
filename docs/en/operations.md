@@ -754,8 +754,8 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     saves the shares you typed; world gold, which no exchange holds, stays off. "Reset to defaults"
     fills in the split your risk level gives the segments ticked now (pinned targets kept); it is
     saved only when you press Save.
-  - The editor shows each secret (an MCP server's `env` values, any token, secret, password or API key
-    written in the file) as `********`. Leave it as it is and the saved value stays.
+  - The editor shows each secret (an MCP server's `env` values and address, any token, secret,
+    password or API key written in the file) as `********`. Leave it as it is and the saved value stays.
   - Some fields change only from the CLI or in `config.toml` itself, because they decide what the
     daemon runs, which files it uses or where a key goes: plugins, an MCP server's command,
     arguments, `env`, address and transport, every `*_env` key and every other field naming an

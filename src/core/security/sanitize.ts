@@ -9,8 +9,8 @@ const NO_IGNORED: ReadonlySet<string> = new Set()
 // Longest stretch between `curl` and its pipe to a shell; unbounded, each `curl` rescans its line.
 const MAX_PIPE_DISTANCE = 120
 
-// Format characters (zero-width, bidi, the tag block) and the variation-selector supplement print
-// as nothing, yet a model reads them, so a hidden instruction rides them past every human reader.
+// Format characters (zero-width, bidi, the tag block) and the variation-selector supplement print as
+// nothing yet reach a model. U+FE0E/FE0F stay out: emoji need them.
 const INVISIBLE_RE = /\p{Cf}|[\u{E0100}-\u{E01EF}]/gu
 
 const XML_CONTENT_ESCAPE_RE = /[&<>]/g

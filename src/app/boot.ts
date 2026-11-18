@@ -26,7 +26,7 @@ import { createTradingNoticeSender } from '@/app/notice-sender'
 import { buildProviders } from '@/app/providers'
 import { assertSocialToolRules, createSocialProvider } from '@/app/social'
 import { hydrateStartupState, migrateStartupSchema } from '@/app/startup-state'
-import { keyEnvNames } from '@/cli/api'
+import { type KeyEnvGroup, keyEnvGroups } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { loadConfig } from '@/core/config/load'
 import { OperatorConfigError } from '@/core/config/operator-errors'
@@ -45,6 +45,9 @@ import { assertSpawnToolsRegistered } from '@/tools/api'
 import { createTradingRegistrationProvider, createTradingStoresProvider } from '@/trading/api'
 
 const BYTES_PER_KIB = 1024
+// MCP placeholders also fill a server's command and arguments (a path, a host), which are no keys;
+// and its requests are scanned for registered values, so a key in its url would refuse every call.
+const PLACEHOLDER_KEY_GROUP: KeyEnvGroup = 'mcp'
 
 // Allow-list, not a deny-list: an interpreter-hijack variable (NODE_OPTIONS, LD_PRELOAD,
 // PYTHONSTARTUP, …) is excluded by not being here, and so is every provider key.
@@ -327,7 +330,11 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
 // A bare key has no shape a pattern can find, so the scrubber and the memory gate catch a pasted or
 // echoed one only by its value.
 function registerConfiguredSecrets(config: ResolvedConfig, env: BootOptions['env']): void {
-  for (const name of keyEnvNames(config)) {
+  const names = Object.entries(keyEnvGroups(config))
+    .filter(([group]) => group !== PLACEHOLDER_KEY_GROUP)
+    .flatMap(([, entries]) => entries.map((entry) => entry.name))
+
+  for (const name of names) {
     const value = env[name]
 
     if (value !== undefined) {

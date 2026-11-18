@@ -224,6 +224,9 @@ Chi tiết của việc lọc:
 - Key có dáng riêng của nhà cung cấp (`sk-`, `tvly-`, `xai-`, `gsk_`, `AIza` và tương tự) bị che ở bất kỳ
   đâu. Một đoạn trơn 32 đến 128 chữ và số (key Serper hay Mistral) chỉ bị che khi đứng ngay sau chữ
   `key`, `api` hoặc `khóa`.
+- Giá trị của mọi key mà cấu hình đọc (mô hình, tìm kiếm web, sàn, nguồn dữ liệu, kênh chat) và token
+  API bị che ở bất kỳ đâu, dù trông thế nào, và bộ nhớ không chịu lưu nó. Giá trị `${VAR}` của máy
+  chủ MCP thì không, vì chúng còn được dùng cho câu lệnh và đường dẫn.
 - Văn bản truyền theo luồng tới ứng dụng được lọc xuyên qua ranh giới giữa các đoạn, nên một bí mật bị
   cắt đôi giữa hai đoạn vẫn bị bắt. Luồng giữ lại từ đang dở, hoặc dòng tiêu đề hay khối khóa riêng
   đang dở, cho tới khi đủ để xét; quá 512 ký tự thì nhả những gì đang có.

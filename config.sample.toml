@@ -573,6 +573,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # Its calls ask for approval; "remember" covers that exact call only, and a call
 # too long to show whole can be approved once, never remembered.
 # A server naming a ${VAR} that is unset is skipped with a warning; the rest connect.
+# The app's config page hides each server's env values and url.
 
 # [[mcp.servers]]
 # name = "filesystem"

@@ -69,7 +69,6 @@ cli:isRuntimeEnvName
 cli:isUpdateCheckEnabled
 cli:isVerbose
 cli:keyEnvGroups
-cli:keyEnvNames
 cli:lazyCommand
 cli:liveDaemon
 cli:loadEnvFile

@@ -219,6 +219,10 @@ Details of the scrub:
 - Keys with a vendor look (`sk-`, `tvly-`, `xai-`, `gsk_`, `AIza`, and similar) are redacted wherever they
   appear. A bare run of 32 to 128 letters and digits (a Serper or Mistral key) is redacted only right
   after the word `key`, `api` or `khóa`.
+- The value of every key the config reads (models, web search, exchanges, data sources, chat
+  channels) and the API token is redacted wherever it appears, whatever it looks like, and memory
+  refuses to store it. An MCP server's `${VAR}` values are not, since they also fill commands and
+  paths.
 - Text streamed to the app is scrubbed across chunk boundaries, so a secret split between two
   chunks is still caught. The stream holds back an unfinished word, header line or private-key block
   until it can judge it; past 512 characters it releases what it has.
