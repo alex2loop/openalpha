@@ -7,6 +7,22 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.6] - 2026-11-18
+
+A web page OpenAlpha reads can no longer send it on to a link of the page's choosing without asking you, and text you cannot see no longer reaches the analysts unnoticed. Your keys are now hidden in logs and tool results whatever they look like.
+> Trang web OpenAlpha đọc không còn tự dẫn nó sang link do trang chọn mà không hỏi bạn, và chữ vô hình không còn lọt tới các nhà phân tích mà không ai hay. Khóa của bạn giờ được che trong nhật ký và kết quả công cụ, dù trông thế nào.
+
+### Changed
+
+- Reading the web: the agent still opens a link you sent, or one a search or news read brought back, without asking. A link it picks off a page it has just read now waits for your approval, since a page can plant links that would carry what the agent read, such as the names you hold, to someone else.
+- The office page's config editor shows each MCP server's address as `********`, and `openalpha config show` masks it too, since a hosted server's key often sits in its address. Saving keeps the address from the file.
+
+### Fixed
+
+- Headlines, company events and other text from data sources lose every invisible character (soft hyphens, direction marks, Unicode tag characters) before a model reads them. Tag characters, which can carry hidden instructions, now count as text-hiding: a web page or tool result holding them reaches the model with a security notice, and a skill holding them is refused.
+- A line break inside a headline, a company event or a theme's evidence can no longer forge an extra line in what the analysts read, such as a fake evidence item for a theme claim to cite.
+- Every key your config reads (models, web search, exchanges, data sources, chat channels) and the API token are hidden in logs, errors and tool results, even a bare key with no name beside it, and memory refuses to store one. A key kept under its `OPENALPHA_` name counts too. An MCP server's `${VAR}` values do not, since they also fill commands and paths.
+
 ## [1.8.5] - 2026-11-17
 
 Ask for a price before a market's list of names has loaded and OpenAlpha now waits a few seconds for it and answers, instead of saying it doesn't know the name. Your cost on a holding that paid cash dividends now matches your broker's app.
@@ -1037,6 +1053,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.6
 [1.8.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.2
 [1.7.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.7.0
 [1.6.3]: https://github.com/alex2loop/openalpha/releases/tag/v1.6.3
