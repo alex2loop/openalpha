@@ -9,6 +9,7 @@ import type {
   ThemeRead,
 } from '@/trading/features/themes/types'
 import { sha256Hex } from '@/core/utils/hash'
+import { toSingleLine } from '@/core/utils/text'
 import { languageName } from '@/engine/api'
 import {
   MAXIMUM_CITATIONS,
@@ -128,8 +129,9 @@ export const THEME_PROMPT_VERSION = sha256Hex(
   ].join('\n')
 ).slice(0, PROMPT_VERSION_HEX)
 
+// One line per item: a line break in provider text would forge an item under an id of its own.
 function renderItems(items: readonly EvidenceItem[]): readonly string[] {
-  return items.map((item) => `${item.id} [${item.day}] ${item.text}`)
+  return items.map((item) => `${item.id} [${item.day}] ${toSingleLine(item.text)}`)
 }
 
 function renderBundle(bundle: ThemeBundle): string {

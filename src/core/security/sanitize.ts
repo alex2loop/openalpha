@@ -9,8 +9,12 @@ const NO_IGNORED: ReadonlySet<string> = new Set()
 // Longest stretch between `curl` and its pipe to a shell; unbounded, each `curl` rescans its line.
 const MAX_PIPE_DISTANCE = 120
 
-// Format characters (zero-width, bidi, the tag block) and the variation-selector supplement print as
-// nothing yet reach a model. U+FE0E/FE0F stay out: emoji need them.
+// Characters that hide text or carry a hidden payload: zero-width, bidi overrides and isolates, the
+// tag block and the variation-selector supplement. A finding wherever they appear.
+const HIDING_RE =
+  /[\u200B\u200C\u2060\u2062-\u2064\u202A-\u202E\u2066-\u2069\uFEFF]|\u200D|[\u{E0000}-\u{E007F}]|[\u{E0100}-\u{E01EF}]/gu
+// Every format character prints as nothing, so text bound for a model drops them all, a soft hyphen
+// or a bidi mark included. U+FE0E/FE0F stay: emoji need them.
 const INVISIBLE_RE = /\p{Cf}|[\u{E0100}-\u{E01EF}]/gu
 
 const XML_CONTENT_ESCAPE_RE = /[&<>]/g
@@ -116,7 +120,7 @@ export function scanOutput(text: string): readonly Threat[] {
 
   collectMatches({ text, patterns: INJECTION_PATTERNS }, sink)
   collectMatches({ text: flatten(text), patterns: INJECTION_PATTERNS }, sink)
-  collectInvisible(text, 'notice', sink)
+  collectHiding(text, 'notice', sink)
 
   return sink.findings
 }
@@ -139,7 +143,7 @@ export function scanSkill(
   const sink = createSink(MAX_THREAT_FINDINGS)
   const flat = flatten(text)
 
-  collectInvisible(text, 'block', sink)
+  collectHiding(text, 'block', sink)
 
   for (const patterns of [SHELL_PATTERNS, INJECTION_PATTERNS, LOCALE_PATTERNS]) {
     collectMatches({ text, patterns, severity: 'block' }, sink)
@@ -179,8 +183,8 @@ function collectMatches(input: MatchInput, sink: ScanSink): void {
   }
 }
 
-function collectInvisible(text: string, severity: ThreatSeverity, sink: ScanSink): void {
-  for (const match of text.matchAll(INVISIBLE_RE)) {
+function collectHiding(text: string, severity: ThreatSeverity, sink: ScanSink): void {
+  for (const match of text.matchAll(HIDING_RE)) {
     if (isSinkFull(sink)) {
       return
     }

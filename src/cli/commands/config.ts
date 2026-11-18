@@ -22,6 +22,9 @@ import { isPlainRecord } from '@/core/utils/collections'
 import { bindLocale, t } from '@/i18n'
 
 const MASKED = '[REDACTED]'
+/** An MCP server's address, the only `url` key in the config: a hosted server's key often rides in
+ *  its query, and its `${VAR}` is already filled in here. */
+const SECRET_URL_KEY = 'url'
 const FALLBACK_EDITOR = 'nano'
 
 const configCmdShow: Command = createCommand({
@@ -74,7 +77,7 @@ function maskedConfigText(config: ResolvedConfig): string {
 }
 
 function maskSensitiveValue(key: string, value: unknown): unknown {
-  return isSensitiveKey(key) ? MASKED : value
+  return isSensitiveKey(key) || key === SECRET_URL_KEY ? MASKED : value
 }
 
 function getConfigPath(args: ParsedArgs, app: CliApp): number {

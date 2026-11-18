@@ -1,5 +1,6 @@
 import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
 import type { MarketEvent, MarketEventKind } from '@/trading/kernel/market/market-event'
+import { toSingleLine } from '@/core/utils/text'
 import { MAXIMUM_SUMMARY_CHARS } from '@/trading/features/suggestion/pipeline/news-evidence'
 
 /** What a kind means where its name alone misleads: an ex-date that moves no price reads as a reset
@@ -62,5 +63,6 @@ function eventRow(event: MarketEvent): string {
   const notes = [detail, EVENT_NOTES[event.kind]].filter((note) => note !== undefined)
   const suffix = notes.length === 0 ? '' : ` (${notes.join('; ')})`
 
-  return `- ${event.at} ${event.kind}: ${event.title}${suffix}`
+  // A provider line break would forge a line of the prompt.
+  return toSingleLine(`- ${event.at} ${event.kind}: ${event.title}${suffix}`)
 }

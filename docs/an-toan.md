@@ -303,8 +303,10 @@ qua như một lần đọc hỏng bình thường, phiên chạy vẫn đi ti�
 `web_fetch` đọc tối đa 2 MiB của một trang. Trang văn bản dài hơn trả về phần đầu kèm
 `"truncated": true` thay vì thất bại; phản hồi không phải văn bản vẫn bị từ chối.
 
-Khâu cài kỹ năng quét nghiêm hơn: tiêm prompt, payload shell và Unicode vô hình đều có thể chặn thẳng
-một kỹ năng.
+Khâu cài kỹ năng quét nghiêm hơn: tiêm prompt, payload shell và ký tự Unicode giấu chữ (ký tự rộng 0,
+ký tự đảo chiều bidi, ký tự tag) đều có thể chặn thẳng một kỹ năng. Tiêu đề tin hay hồ sơ từ nguồn
+dữ liệu được bỏ hết ký tự vô hình trước khi tới mô hình; kết quả công cụ có ký tự giấu chữ thì tới mô
+hình kèm một cảnh báo an toàn.
 
 ### Plugin và kênh
 

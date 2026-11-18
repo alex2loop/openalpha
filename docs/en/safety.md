@@ -59,8 +59,8 @@ brought back without asking. It asks first when it built or changed the link its
 from a page it read, adds its own headers, or has already read `[loop] max_unasked_fetches` pages
 in one run (10 by default). A page can hide instructions, and a link the agent puts together or
 picks off a page is how it would carry your holdings, profile or notes out to someone else, so
-that one is yours to approve. Text you forward into the
-chat counts as someone else's, not as a link you sent, and so does a task one agent hands another.
+that one is yours to approve. Text you forward into the chat counts as someone else's, not as a
+link you sent, and so does a task one agent hands another.
 These prompts offer no "remember".
 
 Approval does not replace permissions. The agent must already be allowed the tool, and the call must
@@ -298,8 +298,10 @@ Tool output is normalized before it re-enters the model's context:
 `web_fetch` reads at most 2 MiB of a page. A longer text page returns its start with
 `"truncated": true` rather than failing; a non-text response is still refused.
 
-Skill installation uses a stricter scan: prompt injection, shell payloads and invisible Unicode can
-block a skill outright.
+Skill installation uses a stricter scan: prompt injection, shell payloads and Unicode that hides text
+(zero-width characters, bidi overrides, tag characters) can block a skill outright. A headline or
+filing from a data source loses every invisible character before a model sees it; a tool result
+holding text-hiding characters reaches the model with a security notice.
 
 ### Plugins and channels
 

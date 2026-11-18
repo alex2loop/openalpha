@@ -30,7 +30,7 @@ const EDGE_BLANKS_RE = /^\n+|\n+$/g
 // Drops C0/C1 control characters (Unicode category Cc) and format controls (category Cf)
 // except newline and tab, which legitimate output may contain.
 const SURFACE_CONTROL_RE = /[\p{Cc}\p{Cf}]/gu
-const LINE_BREAKING_RE = /[\p{Cc}\u2028\u2029]/gu
+const CONTROL_OR_SEPARATOR_RE = /[\p{Cc}\u2028\u2029]/gu
 const SLASH_COMMAND_NAME_RE = /^[a-z][a-z0-9]*$/
 const COMBINING_MARK_RE = /[\u0300-\u036f]/g
 const FENCE = '```'
@@ -402,7 +402,7 @@ function levenshtein(a: string, b: string): number {
 // the result is safe to drop into a one-line label or prompt line. `stripControls` above deletes
 // controls instead and keeps newlines — different act.
 export function toSingleLine(value: string): string {
-  return value.replace(LINE_BREAKING_RE, ' ')
+  return value.replace(CONTROL_OR_SEPARATOR_RE, ' ')
 }
 
 /** Lower case without diacritics, `đ` as `d`: how a person types a Vietnamese name they mean to

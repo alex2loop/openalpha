@@ -36,7 +36,11 @@ import { ConfigError } from '@/core/errors'
 import { DAEMON_REQUEST_SHAPE } from '@/core/http-client'
 import { REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/limits'
 import { createLoggerResource } from '@/core/logging/logger'
-import { formatErrForLog, registerKnownSecret } from '@/core/security/credentials'
+import {
+  formatErrForLog,
+  registerKnownSecret,
+  resolveCredential,
+} from '@/core/security/credentials'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
 import { probeHost } from '@/core/utils/reachability'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
@@ -335,7 +339,8 @@ function registerConfiguredSecrets(config: ResolvedConfig, env: BootOptions['env
     .flatMap(([, entries]) => entries.map((entry) => entry.name))
 
   for (const name of names) {
-    const value = env[name]
+    // As venues and sources read it: the name itself or its brand-prefixed twin.
+    const value = resolveCredential(env, name)
 
     if (value !== undefined) {
       registerKnownSecret(value)

@@ -307,10 +307,9 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
 - **`GET /v1/config`** returns the raw `config.toml` as JSON with every literal secret (each value of
   an MCP server's `env`, its `url`, which may carry a key, and any string under a key matching
   `token`, `secret`, `password` or `api_key` that is not a `*_env` variable name) replaced by
-  `redacted`, the placeholder the response
-  carries. `POST /v1/config` and `/v1/config/validate` put the file's value back wherever the body
-  still holds `redacted` (an array item is matched by its `name`, else its place); one the file has
-  no value for is `invalid_body` with `fields`. `version` is an opaque token for the file as read.
+  `redacted`, the placeholder the response carries. `POST /v1/config` and `/v1/config/validate` put
+  the file's value back wherever the body still holds `redacted` (an array item is matched by its
+  `name`, else its place); one the file has no value for is `invalid_body` with `fields`. `version` is an opaque token for the file as read.
   Both check the tree as boot does: a key variable the daemon's environment leaves unset is not a
   refusal, since the daemon starts without it and a key saved through `/v1/credentials` is read only
   after a restart.

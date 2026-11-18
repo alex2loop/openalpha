@@ -37,7 +37,7 @@ const BARE_KEY_BODY = '[A-Za-z0-9]{32,128}(?![A-Za-z0-9_-])'
 const BARE_KEY_RE = new RegExp(`(?<=${BARE_KEY_WORD}${BARE_KEY_GAP})${BARE_KEY_BODY}`, 'gi')
 
 const KNOWN_SECRET_MIN_CHARS = 8
-// Room for every key the config reads plus the API token, which the daemon registers at boot.
+// Room for every key the config reads and the API token.
 const KNOWN_SECRET_LIMIT = 64
 const KNOWN_SECRETS = new Set<string>()
 
@@ -212,10 +212,10 @@ export function scrubCredentials(input: string): string {
   return out
 }
 
-/** A value the host knows is a secret (a key the visitor pasted), scrubbed wherever it appears: the
- *  patterns above only know the shapes of vendors that have one. Process-wide on purpose, because
- *  every scrub site in the process must see it. The newest are kept; a value too short to be a key
- *  would shred ordinary text and is ignored. */
+/** A value the host knows is a secret (a key the config reads, the API token, a key the visitor
+ *  pasted), scrubbed wherever it appears: the patterns above only know the shapes of vendors that
+ *  have one. Process-wide on purpose, because every scrub site in the process must see it. The
+ *  newest are kept; a value too short to be a key would shred ordinary text and is ignored. */
 export function registerKnownSecret(value: string): void {
   if (value.length < KNOWN_SECRET_MIN_CHARS) {
     return

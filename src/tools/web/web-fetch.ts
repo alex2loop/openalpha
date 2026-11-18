@@ -55,7 +55,7 @@ function canFetchUnasked(input: unknown, context: CallApprovalContext): boolean 
 export const webFetchTool = createTool({
   name: 'web_fetch',
   description:
-    'Fetch an HTTPS resource with GET or HEAD and a bounded response size. GET reads text only and can extract raw text, Markdown, or plain text. Fetch a URL exactly as the operator or a search result gave it: one you build or change, or extra headers, waits for the operator to approve.',
+    'Fetch an HTTPS resource with GET or HEAD and a bounded response size. GET reads text only and can extract raw text, Markdown, or plain text. Fetch a URL exactly as the operator or a search result gave it: one you build or change, a link taken from a page you fetched, or extra headers, waits for the operator to approve.',
   inputSchema: fetchInputSchema,
   capability: 'net',
   requiresApproval: (input, context) => !canFetchUnasked(input, context),
