@@ -176,6 +176,12 @@ export function stripTrailingSource(title: string): string {
   return stripped === '' ? title : stripped
 }
 
+/** A provider's headline or abstract on one line, so it can never forge a line of the prompt that
+ *  quotes it. */
+export function toOneLine(text: string): string {
+  return text.replace(WHITESPACE, ' ').trim()
+}
+
 /** The raw strip, not `stripTrailingSource`: a title that is only the echo must key to `''` so the
  *  ranker drops it, where a displayed one falls back to the original rather than rendering empty. */
 export function normalizeTitle(title: string): string {

@@ -4,7 +4,7 @@ import type { AnalystRecommendation, NewsItem } from '@/trading/kernel/market/ma
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { isSourceFailed } from '@/trading/kernel/source/source-result'
-import { normalizeTitle, rankHeadlines } from '@/trading/markets/news'
+import { normalizeTitle, rankHeadlines, toOneLine } from '@/trading/markets/news'
 import { formatPrice } from '@/trading/render/money'
 
 export const MAXIMUM_EVIDENCE_NEWS_ITEMS = 8
@@ -136,7 +136,7 @@ function headlineRow(item: NewsItem, calendar: TradingCalendar): string {
 function headlineText(item: NewsItem, calendar: TradingCalendar): string {
   const day = calendar.dayAt(item.publishedAt)
 
-  return `${item.title.slice(0, MAXIMUM_HEADLINE_CHARS)} (${day}) ${item.url}`
+  return `${toOneLine(item.title).slice(0, MAXIMUM_HEADLINE_CHARS)} (${day}) ${item.url}`
 }
 
 /** The instrument's own coverage carries its abstract, because this is the text a claim is verified
@@ -145,7 +145,7 @@ function headlineText(item: NewsItem, calendar: TradingCalendar): string {
  *  nothing. */
 function evidenceRow(item: NewsItem, calendar: TradingCalendar): string {
   const head = headlineRow(item, calendar)
-  const summary = item.summary?.trim() ?? ''
+  const summary = toOneLine(item.summary ?? '')
 
   return summary === '' ? head : `${head}\n    ${summary.slice(0, MAXIMUM_SUMMARY_CHARS)}`
 }
