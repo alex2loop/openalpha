@@ -26,6 +26,7 @@ import { createTradingNoticeSender } from '@/app/notice-sender'
 import { buildProviders } from '@/app/providers'
 import { assertSocialToolRules, createSocialProvider } from '@/app/social'
 import { hydrateStartupState, migrateStartupSchema } from '@/app/startup-state'
+import { keyEnvNames } from '@/cli/api'
 import { BRAND } from '@/core/brand'
 import { loadConfig } from '@/core/config/load'
 import { OperatorConfigError } from '@/core/config/operator-errors'
@@ -35,7 +36,7 @@ import { ConfigError } from '@/core/errors'
 import { DAEMON_REQUEST_SHAPE } from '@/core/http-client'
 import { REACHABILITY_HOST, REACHABILITY_TIMEOUT_MS } from '@/core/limits'
 import { createLoggerResource } from '@/core/logging/logger'
-import { formatErrForLog } from '@/core/security/credentials'
+import { formatErrForLog, registerKnownSecret } from '@/core/security/credentials'
 import { ensurePrivateDirectory } from '@/core/security/private-files'
 import { probeHost } from '@/core/utils/reachability'
 import { WORKSPACES_DIR_NAME } from '@/engine/api'
@@ -304,6 +305,9 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
   })
   const { trading: tradingConfig, social: socialConfig } = resolveBootExtensions(config)
 
+  // Before the logger exists, so no record it writes can hold a key.
+  registerConfiguredSecrets(config, options.env)
+
   const check = await (options.bootGate ?? passThroughBootGate)({
     configPath,
     dataDir: config.paths.dataDir,
@@ -318,6 +322,18 @@ async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConf
   }
 
   return { config, configPath, tradingConfig, socialConfig }
+}
+
+// A bare key has no shape a pattern can find, so the scrubber and the memory gate catch a pasted or
+// echoed one only by its value.
+function registerConfiguredSecrets(config: ResolvedConfig, env: BootOptions['env']): void {
+  for (const name of keyEnvNames(config)) {
+    const value = env[name]
+
+    if (value !== undefined) {
+      registerKnownSecret(value)
+    }
+  }
 }
 
 /** Both directories boot owns, before the logger or the database exists. Each boundary is wrapped

@@ -37,7 +37,8 @@ const BARE_KEY_BODY = '[A-Za-z0-9]{32,128}(?![A-Za-z0-9_-])'
 const BARE_KEY_RE = new RegExp(`(?<=${BARE_KEY_WORD}${BARE_KEY_GAP})${BARE_KEY_BODY}`, 'gi')
 
 const KNOWN_SECRET_MIN_CHARS = 8
-const KNOWN_SECRET_LIMIT = 16
+// Room for every key the config reads plus the API token, which the daemon registers at boot.
+const KNOWN_SECRET_LIMIT = 64
 const KNOWN_SECRETS = new Set<string>()
 
 // Compiled once at module load; 'g' flag requires reset per-use via SECRET_PATTERNS_NONGLOBAL.
