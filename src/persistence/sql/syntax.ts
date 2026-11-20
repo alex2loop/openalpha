@@ -51,11 +51,16 @@ export function buildUpsert(param: Param, table: string, target: UpsertTarget): 
   )
 }
 
-export function buildInsert(param: Param, table: string, target: InsertTarget): string {
+interface InsertSyntax extends InsertTarget {
+  /** Engine clause between the column list and VALUES. */
+  readonly beforeValues?: string
+}
+
+export function buildInsert(param: Param, table: string, target: InsertSyntax): string {
   const { cols } = target
 
   return (
-    `INSERT INTO ${table} (${cols.join(', ')}) ` +
+    `INSERT INTO ${table} (${cols.join(', ')}) ${target.beforeValues ?? ''}` +
     `VALUES ${valuesClause(param, cols.length, target.rowCount)}`
   )
 }

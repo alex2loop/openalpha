@@ -127,6 +127,7 @@ interface DbTable {
   readonly name: string
   readonly pk: readonly string[]   // theo thứ tự khai báo; export phân trang theo nó
   readonly durable?: true          // chỉ còn nếu đã xuất; không danh mục nào tự suy ra
+  readonly identity?: string       // cột identity tự sinh; import ghi tường minh rồi đồng bộ lại bộ đếm
 }
 ```
 

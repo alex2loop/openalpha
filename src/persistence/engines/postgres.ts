@@ -18,6 +18,8 @@ const PG_IDLE_TXN_TIMEOUT_MS = 60_000
 const PG_SCHEMA_NAME_RE = /^[a-z_][a-z0-9_]{0,62}$/
 // Reset drops the whole schema; `public` is shared with whatever else lives in the database.
 const PG_SHARED_SCHEMA = 'public'
+// GENERATED ALWAYS refuses an explicit identity value without it.
+const PG_OVERRIDING_IDENTITY = 'OVERRIDING SYSTEM VALUE '
 
 function postgresParam(index: number): string {
   return `$${index}`
@@ -29,7 +31,16 @@ export const postgresDialect: Dialect = {
   param: postgresParam,
   paramList: (count, startAt) => paramList(postgresParam, count, startAt),
   upsert: (table, target) => buildUpsert(postgresParam, table, target),
-  insert: (table, target) => buildInsert(postgresParam, table, target),
+  insert: (table, target) =>
+    buildInsert(postgresParam, table, {
+      ...target,
+      beforeValues: target.explicitIdentity ? PG_OVERRIDING_IDENTITY : '',
+    }),
+  // An empty table leaves the counter at its first value: `is_called` false makes that value the
+  // next one handed out.
+  identityResync: (table, column) =>
+    `SELECT setval(pg_get_serial_sequence('${table}', '${column}'), COALESCE(MAX(${column}), 1), ` +
+    `MAX(${column}) IS NOT NULL) FROM ${table}`,
 }
 
 interface PostgresConnectionOptions {

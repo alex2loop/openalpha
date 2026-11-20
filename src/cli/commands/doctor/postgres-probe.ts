@@ -1,5 +1,6 @@
 import type { ResolvedStorageConfig } from '@/core/config/resolve'
 import type { Locale } from '@/core/types/locale'
+import type { Storage } from '@/core/types/storage'
 import type { Migration } from '@/persistence/api'
 import { silentLogger } from '@/core/logging/silent-logger'
 import { t } from '@/i18n'
@@ -9,9 +10,10 @@ import {
   POSTGRES_MIGRATIONS_TABLE_SQL,
 } from '@/persistence/api'
 import { openPersistence } from '@/persistence/node-api'
+import { PROFILE_CURRENCY_SQL } from '@/trading/api'
 
 import type { DoctorFinding, DoctorStatus } from './types'
-import { migrationFinding } from './local-probes'
+import { currencyMismatchDetail, migrationFinding } from './local-probes'
 
 interface MigrationRow {
   readonly id: string
@@ -21,18 +23,29 @@ interface TableRow {
   readonly name: string | null
 }
 
+interface ProfileCurrencyRow {
+  readonly base_currency: string
+}
+
+type PostgresStorageConfig = Extract<ResolvedStorageConfig, { readonly engine: 'postgres' }>
+
+interface PostgresProbeOptions {
+  readonly storage: PostgresStorageConfig
+  readonly migrations: readonly Migration[]
+  readonly locale: Locale
+  /** The `[locale] currency` the book must have been opened in. */
+  readonly currency?: string
+}
+
 interface PostgresDatabaseProbeOptions {
   readonly status: DoctorStatus
-  readonly storage: Extract<ResolvedStorageConfig, { readonly engine: 'postgres' }>
+  readonly storage: PostgresStorageConfig
   readonly detail: string
   readonly locale: Locale
 }
 
-export async function probePostgresDatabase(
-  storage: Extract<ResolvedStorageConfig, { readonly engine: 'postgres' }>,
-  migrations: readonly Migration[],
-  locale: Locale
-): Promise<DoctorFinding> {
+export async function probePostgresDatabase(options: PostgresProbeOptions): Promise<DoctorFinding> {
+  const { storage, migrations, locale } = options
   let opened: Awaited<ReturnType<typeof openPersistence>> | undefined
 
   try {
@@ -49,13 +62,16 @@ export async function probePostgresDatabase(
     }
 
     const applied = await opened.storage.query<MigrationRow>(MIGRATION_IDS_SQL)
-
-    return migrationProbe({
+    const migrated = migrationProbe({
       storage,
       migrations,
       applied,
       locale,
     })
+
+    return migrated.status === 'ok'
+      ? await currencyProbe(opened.storage, options, migrated)
+      : migrated
   } catch {
     return databaseProbe({
       status: 'fail',
@@ -70,8 +86,27 @@ export async function probePostgresDatabase(
   }
 }
 
+async function currencyProbe(
+  storage: Storage,
+  options: PostgresProbeOptions,
+  migrated: DoctorFinding
+): Promise<DoctorFinding> {
+  const rows = await storage.query<ProfileCurrencyRow>(PROFILE_CURRENCY_SQL)
+  const stored = rows[0]?.base_currency
+  const mismatch = currencyMismatchDetail(options.locale, options.currency, stored)
+
+  return mismatch === null
+    ? migrated
+    : databaseProbe({
+        status: 'fail',
+        storage: options.storage,
+        detail: mismatch,
+        locale: options.locale,
+      })
+}
+
 function migrationProbe(options: {
-  readonly storage: Extract<ResolvedStorageConfig, { readonly engine: 'postgres' }>
+  readonly storage: PostgresStorageConfig
   readonly migrations: readonly Migration[]
   readonly applied: readonly MigrationRow[]
   readonly locale: Locale

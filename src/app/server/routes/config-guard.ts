@@ -44,8 +44,8 @@ const PROVIDER_KEY_VAR = 'api_key_env'
 /** Sections the rules above already cover, so the walk does not report them twice. */
 const WALK_SKIPPED_SECTIONS: ReadonlySet<string> = new Set([...CLI_ONLY_SECTIONS, MCP_SECTION])
 const SECRET_KEY_RE = /token|secret|password|api_key/i
-/** An MCP server's `env` table: every value in it is a literal the server reads. */
-const SECRET_TABLE_KEY = 'env'
+/** An MCP server's `env` table and `args` list: every value in them is a literal it reads. */
+const SECRET_TABLE_KEYS: ReadonlySet<string> = new Set(['env', 'args'])
 /** An MCP server's address, the only `url` key in the tree: a hosted server's key often rides in
  *  its query. */
 const SECRET_URL_KEY = 'url'
@@ -146,7 +146,7 @@ function toRedacted(value: unknown, isSecret: boolean): unknown {
     return Object.fromEntries(
       Object.entries(value).map(([key, held]) => [
         key,
-        toRedacted(held, isSecret || key === SECRET_TABLE_KEY || isSecretKey(key)),
+        toRedacted(held, isSecret || SECRET_TABLE_KEYS.has(key) || isSecretKey(key)),
       ])
     )
   }

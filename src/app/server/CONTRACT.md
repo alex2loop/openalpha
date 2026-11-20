@@ -305,8 +305,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   error class (`auth` = key refused, `billing` = no credit, `rate`, `timeout`, `not_found`). A body
   naming `base_url` or `api_key_env` other than the primary model's is `invalid_body` with `fields`.
 - **`GET /v1/config`** returns the raw `config.toml` as JSON with every literal secret (each value of
-  an MCP server's `env`, its `url`, which may carry a key, and any string under a key matching
-  `token`, `secret`, `password` or `api_key` that is not a `*_env` variable name) replaced by
+  an MCP server's `env` and `args`, its `url`, which may carry a key, and any string under a key
+  matching `token`, `secret`, `password` or `api_key` that is not a `*_env` variable name) replaced by
   `redacted`, the placeholder the response carries. `POST /v1/config` and `/v1/config/validate` put
   the file's value back wherever the body still holds `redacted` (an array item is matched by its
   `name`, else its place); one the file has no value for is `invalid_body` with `fields`. `version` is an opaque token for the file as read.

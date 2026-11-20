@@ -33,6 +33,12 @@ interface ResultSink {
   readonly maxBytes: number
 }
 
+/** Who hears a tool's progress, and which tool a failure to deliver it is logged against. */
+interface ProgressTarget {
+  readonly observer: ToolExecutionObserver | undefined
+  readonly tool: string
+}
+
 export function coerceToolArgs(args: unknown): unknown {
   if (typeof args !== 'string') {
     return args ?? {}
@@ -68,6 +74,7 @@ export function createToolExecutor(deps: ToolExecutorDeps): ToolExecutor {
       const context = buildInvocationContext(run, deps, {
         callId: prepared.id,
         observer,
+        tool: tool.name,
         signal: guard.signal,
       })
 
@@ -198,16 +205,13 @@ function parseJsonOutput(content: string): unknown | undefined {
 }
 
 // Progress is advisory: a throwing observer must not fail the tool that reported.
-function reportProgress(
-  run: RunView,
-  observer: ToolExecutionObserver | undefined,
-  message: ProgressMessage
-): void {
+function reportProgress(run: RunView, target: ProgressTarget, message: ProgressMessage): void {
   try {
-    observer?.progress(message)
+    target.observer?.progress(message)
   } catch (err: unknown) {
     run.services.logger.warn('tool.progress_failed', {
-      tool: run.identity.agentId,
+      agentId: run.identity.agentId,
+      tool: target.tool,
       err: formatErrForLog(err),
     })
   }
@@ -223,13 +227,11 @@ function reportProgress(
 function buildInvocationContext(
   run: RunView,
   deps: ToolExecutorDeps,
-  options: {
+  options: ProgressTarget & {
     readonly callId: string
-    readonly observer: ToolExecutionObserver | undefined
     readonly signal: AbortSignal
   }
 ): ToolInvocationContext {
-  const { observer } = options
   const context: ToolInvocationContext = {
     callId: options.callId,
     userId: run.identity.userId,
@@ -262,7 +264,7 @@ function buildInvocationContext(
     ...(run.env.researchInteraction === undefined
       ? {}
       : { researchInteraction: run.env.researchInteraction }),
-    reportProgress: (message: ProgressMessage): void => reportProgress(run, observer, message),
+    reportProgress: (message: ProgressMessage): void => reportProgress(run, options, message),
   }
 
   // exactOptionalPropertyTypes: an absent chatId must stay absent, not be set to undefined.

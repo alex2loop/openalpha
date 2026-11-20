@@ -91,10 +91,13 @@ interface SnapshotLookupInput {
   readonly locale: Locale
   readonly profile: UserProfile | null
   readonly signal: AbortSignal
+  /** Where the day has no snapshot at all, the newest one stands in for it. A day's snapshot the
+   *  profile has moved past is never fallen back around: the older ones are just as stale. */
+  readonly orLatest?: boolean
 }
 
-/** `current` is the day's snapshot still answering today's question; `stale` is one the profile has
- *  moved past, which a caller must rebuild rather than fall back around; `absent` is no row at all. */
+/** `current` is the snapshot still answering today's question; `stale` is one the profile has moved
+ *  past, which a caller must rebuild rather than fall back around; `absent` is no row at all. */
 type SnapshotLookup =
   | { readonly kind: 'current'; readonly snapshot: BriefSnapshot }
   | { readonly kind: 'stale' }
@@ -127,11 +130,17 @@ async function readSnapshot(
   input: SnapshotLookupInput
 ): Promise<BriefSnapshot | null> {
   try {
-    return await deps.store.findExact({
+    const exact = await deps.store.findExact({
       asOf: input.asOf,
       authoredLocale: input.locale,
       signal: input.signal,
     })
+
+    if (exact !== null || input.orLatest !== true) {
+      return exact
+    }
+
+    return await deps.store.findLatest({ authoredLocale: input.locale, signal: input.signal })
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
@@ -341,21 +350,25 @@ function codeOf(caveat: BriefSectionResult['caveats'][number]): string {
  *  rebuild must not take its own earlier snapshot for the previous one. Unreadable is absent for
  *  the same reason a reused one is: this build rebuilding is the point, and a snapshot written in a
  *  vocabulary it no longer speaks must not fail the run that would replace it. Its scorecard month
- *  is read even then, so a render-version bump does not print the monthly scorecard twice. */
+ *  has its own lenient read and is taken whenever the snapshot is absent, unreadable included, so a
+ *  render-version bump does not print the monthly scorecard twice. */
 async function previousReading(
   deps: BriefBuildDeps,
   input: BriefBuildInput
 ): Promise<{ readonly previous: BriefSnapshot | null; readonly scorecardMonth?: string }> {
   const options = { before: input.asOf, authoredLocale: input.locale, signal: input.signal }
+  const previous = await orAbsent(deps, () => deps.store.findPrevious(options), null)
+  const scorecardMonth =
+    previous === null
+      ? await orAbsent(deps, () => deps.store.findPreviousScorecardMonth(options), undefined)
+      : previous.scorecardMonth
 
+  return { previous, ...(scorecardMonth === undefined ? {} : { scorecardMonth }) }
+}
+
+async function orAbsent<T>(deps: BriefBuildDeps, read: () => Promise<T>, absent: T): Promise<T> {
   try {
-    const previous = await deps.store.findPrevious(options)
-    const scorecardMonth =
-      previous === null
-        ? await deps.store.findPreviousScorecardMonth(options)
-        : previous.scorecardMonth
-
-    return { previous, ...(scorecardMonth === undefined ? {} : { scorecardMonth }) }
+    return await read()
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
@@ -363,7 +376,7 @@ async function previousReading(
 
     deps.logger.warn('trading.brief_previous_unreadable', { err: formatErrForLog(err) })
 
-    return { previous: null }
+    return absent
   }
 }
 

@@ -5,8 +5,9 @@ import { withoutPastedContent } from '@/core/security/pasted-content'
 import { unwrapToolResult } from '@/core/security/sanitize'
 import { textOf, toolCallsOf } from '@/core/utils/message'
 
-// A network tool's result is the outside world's text; any other tool's can echo what the model
-// wrote into its own arguments.
+// A built-in network tool's result is the outside world's text; any other tool's can echo what the
+// model wrote into its own arguments, and an external tool's or a stranger's text is not the
+// operator's reading.
 const SOURCE_CAPABILITY: Capability = 'net'
 
 // The operator writes `vnexpress.net/abc`; the model fetches `https://vnexpress.net/abc/`. A URL
@@ -99,9 +100,7 @@ function sourceTextOf(
   tools: readonly ToolDefinition[],
   delegated: boolean
 ): string {
-  const networkTools = new Set(
-    tools.filter((tool) => tool.capability === SOURCE_CAPABILITY).map((tool) => tool.name)
-  )
+  const networkTools = new Set(tools.filter(isVouchingTool).map((tool) => tool.name))
   const networkCallIds = new Set(
     history
       .flatMap((message) => toolCallsOf(message))
@@ -110,6 +109,14 @@ function sourceTextOf(
   )
 
   return history.map((message) => sourceOf(message, networkCallIds, delegated)).join('\n')
+}
+
+function isVouchingTool(tool: ToolDefinition): boolean {
+  return (
+    tool.capability === SOURCE_CAPABILITY &&
+    tool.isExternal !== true &&
+    tool.thirdPartyOutput !== true
+  )
 }
 
 function sourceOf(

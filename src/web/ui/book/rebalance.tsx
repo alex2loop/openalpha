@@ -17,9 +17,12 @@ import { BlockFrame } from '@/web/ui/today/block-frame'
 const REBALANCE_REFRESH_MS = 300_000
 
 /** Cân bằng lại: the segments against the levels the user set, then the gaps or steps the daemon
- *  words. An empty book has neither: there is nothing to be off a level, so it says how to start. */
+ *  words. A book with no holding and no NAV has neither: there is nothing to be off a level, so it
+ *  says how to start. A cash-only book has a NAV to weigh, so it is planned. */
 export function Rebalance() {
-  return heldPositions.value.length === 0 ? <EmptyBook /> : <HeldBook />
+  const nav = holdingsBlock.view.value.data?.navBase
+
+  return heldPositions.value.length === 0 && (nav ?? 0) <= 0 ? <EmptyBook /> : <HeldBook />
 }
 
 function EmptyBook() {

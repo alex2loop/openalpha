@@ -6,7 +6,7 @@ import { openBook } from '@/web/state/book'
 import { heldPositions, holdingsBlock, stopBreaches } from '@/web/state/market'
 import { formatMoney } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, hasBookFigures } from '@/web/ui/book/empty-actions'
 import { Unrealized } from '@/web/ui/book/unrealized'
 import { Button } from '@/web/ui/kit/button'
 import { PieIcon } from '@/web/ui/kit/icons'
@@ -39,7 +39,7 @@ function BookFigures({ book }: { readonly book: TradingPortfolioResponse }) {
   const held = heldPositions.value.length
   const breaches = stopBreaches.value.length
 
-  if (held === 0) {
+  if (!hasBookFigures(book)) {
     return (
       <>
         <p class="empty-note">{tr('ui.office.today.bookEmpty')}</p>
@@ -53,11 +53,13 @@ function BookFigures({ book }: { readonly book: TradingPortfolioResponse }) {
       <p class="meta">{tr('ui.office.today.bookNav')}</p>
       <p class="big-figure">{formatMoney(book.navBase, book.baseCurrency)}</p>
       <Unrealized book={book} />
-      <p class="meta">
-        {tr(pluralKey(held, 'ui.office.today.bookHeldOne', 'ui.office.today.bookHeld'), {
-          count: held,
-        })}
-      </p>
+      {held > 0 && (
+        <p class="meta">
+          {tr(pluralKey(held, 'ui.office.today.bookHeldOne', 'ui.office.today.bookHeld'), {
+            count: held,
+          })}
+        </p>
+      )}
       {breaches > 0 && (
         <p class="meta is-problem-text">
           {tr(

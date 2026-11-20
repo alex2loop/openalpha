@@ -115,8 +115,8 @@ export interface ToolResult {
 }
 
 /** What a call-level approval check knows about the run: how many calls of this tool it has made,
- *  this one included, and whether text came from the operator or another network tool rather than
- *  from the model itself. */
+ *  this one included, and whether text came from the operator or a built-in network tool rather
+ *  than from the model itself. */
 export interface CallApprovalContext {
   readonly config: ResolvedConfig
   readonly callCount: number
@@ -155,6 +155,9 @@ export interface ToolDefinition<I = unknown> {
   // Supplied by a source outside this codebase (an MCP server, an untrusted plugin). Subject to
   // the active approval policy like a dangerous capability, whatever its declared capability is.
   readonly isExternal?: boolean
+  // Its output is text strangers wrote (a post, a comment), so a URL in it never counts as seen by
+  // the operator, whatever the tool's capability.
+  readonly thirdPartyOutput?: true
   // Advertised to the model verbatim when set, instead of deriving one from inputSchema. MCP
   // servers own their arg schema; re-deriving it from a passthrough zod type would erase it.
   readonly jsonSchema?: Record<string, unknown>

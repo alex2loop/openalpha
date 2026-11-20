@@ -129,6 +129,7 @@ interface DbTable {
   readonly name: string
   readonly pk: readonly string[]   // declaration order; export pages on it
   readonly durable?: true          // survives only if exported; no catalog derives it
+  readonly identity?: string       // generated-identity column; import writes it, then resyncs the counter
 }
 ```
 

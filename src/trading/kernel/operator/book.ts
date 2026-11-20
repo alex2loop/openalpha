@@ -93,6 +93,8 @@ export interface CurrencyCash {
   readonly currency: CurrencyCode
   /** The day of its first inflow: a row dated before it was paid in the base. */
   readonly openedAt: TradingDay
+  /** The row of that inflow, which places it among the rows of its day. */
+  readonly openedBy: LedgerEntryId
   readonly amount: number
   readonly available: number
   readonly costBase: number

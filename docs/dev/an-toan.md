@@ -21,8 +21,10 @@ gọi bị chặn không bao giờ tới được bộ thực thi.
   - `CallApprovalContext`
     (`engine/hooks/approval-context.ts`) đếm số lần gọi công cụ đó trong phiên chạy và trả lời `hasSeen`
     dựa trên lời của chính người vận hành (đã bỏ phần `<pasted_content>` chuyển tiếp) và kết quả không
-    lỗi của các công cụ `net` khác, không bao giờ dựa trên chữ mô hình tự viết hay kết quả trước
-    đó của chính công cụ đang hỏi (link trong trang đã đọc không mở được lần đọc tiếp theo). Khớp
+    lỗi của các công cụ `net` dựng sẵn khác, không bao giờ dựa trên chữ mô hình tự viết, kết quả trước
+    đó của chính công cụ đang hỏi (link trong trang đã đọc không mở được lần đọc tiếp theo), hay đầu
+    ra của công cụ `isExternal` hoặc công cụ đặt `thirdPartyOutput: true` (`social_request`: bài người
+    lạ viết). Khớp
     là khớp trọn một token, scheme và host không phân biệt hoa thường; token giữ nguyên `()`, `,` và
     `;` nằm trong URL, còn dấu câu văn bản đặt quanh nó chỉ được cắt khỏi văn bản nguồn, không bao giờ
     khỏi URL mà mô hình yêu cầu.

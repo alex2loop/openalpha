@@ -11,6 +11,8 @@ export interface DbTable {
   /** Survives only if it was exported: the operator wrote it, or it records something that cannot
    *  be fetched again. Market data is absent because `refresh` re-derives every row of it. */
   readonly durable?: true
+  /** The generated-identity column, which `db import` writes explicitly and then resyncs. */
+  readonly identity?: string
 }
 
 const CORE_TABLES = [
@@ -25,7 +27,7 @@ const CORE_TABLES = [
   { name: 'social_drafts', pk: ['id'], durable: true },
   { name: 'pairings', pk: ['code'] },
   { name: 'jobs', pk: ['id'], durable: true },
-  { name: 'scheduler_runs', pk: ['id'] },
+  { name: 'scheduler_runs', pk: ['id'], identity: 'id' },
   // Durable: the operator set the trigger, and a job without it would read as a one-shot never due.
   { name: 'job_event_triggers', pk: ['job_id'], durable: true },
   { name: 'job_event_fires', pk: ['job_id', 'fire_key'] },

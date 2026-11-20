@@ -8,7 +8,7 @@ import {
   toneOfPercent,
 } from '@/web/text/figures'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, emptyBookKey, hasBookFigures } from '@/web/ui/book/empty-actions'
 import { PnlTotals } from '@/web/ui/book/pnl-totals'
 import { toMovePercent, Unrealized } from '@/web/ui/book/unrealized'
 import { CoinIcon } from '@/web/ui/kit/icons'
@@ -33,7 +33,7 @@ function PnlRows({ book }: { readonly book: TradingPortfolioResponse }) {
   const held = heldPositions.value
 
   // A book that sold everything still has what it made to show.
-  if (held.length === 0 && !hasLedgerFigures(book)) {
+  if (!hasBookFigures(book)) {
     return (
       <>
         <p class="empty-note">{tr(emptyBookKey())}</p>
@@ -58,10 +58,6 @@ function PnlRows({ book }: { readonly book: TradingPortfolioResponse }) {
       </div>
     </>
   )
-}
-
-function hasLedgerFigures(book: TradingPortfolioResponse): boolean {
-  return (book.netDepositsBase ?? 0) !== 0 || (book.realizedPnlBase ?? 0) !== 0
 }
 
 function PnlRow({

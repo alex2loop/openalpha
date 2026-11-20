@@ -12,4 +12,6 @@ export const sqliteDialect: Dialect = {
   paramList: (count, startAt) => paramList(sqliteParam, count, startAt),
   upsert: (table, target) => buildUpsert(sqliteParam, table, target),
   insert: (table, target) => buildInsert(sqliteParam, table, target),
+  // AUTOINCREMENT advances past an explicit id on its own.
+  identityResync: () => null,
 }

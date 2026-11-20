@@ -22,6 +22,7 @@ const COMPOSITE_PK_RE = /PRIMARY KEY\s*\(([^)]+)\)/i
 // Anchored per line and barred from crossing one, so the `CREATE TABLE <name> (` header cannot be
 // read as the key column of the definition that follows it.
 const INLINE_PK_RE = /^\s*([a-z_]+)\s+[^,\n]*?PRIMARY KEY/im
+const IDENTITY_RE = /^\s*([a-z_]+)\s+[^,\n]*?(?:AS IDENTITY|AUTOINCREMENT)/im
 
 interface MasterRow {
   readonly name: string
@@ -180,12 +181,18 @@ function parseCreateTable(sql: string): DbTable | null {
   }
 
   const inline = INLINE_PK_RE.exec(sql)
+  const identity = IDENTITY_RE.exec(sql)?.[1]
 
-  return inline?.[1] === undefined ? null : { name, pk: [inline[1]] }
+  if (inline?.[1] === undefined) {
+    return null
+  }
+
+  return identity === undefined ? { name, pk: [inline[1]] } : { name, pk: [inline[1]], identity }
 }
 
 function assertDeclaredMatchesRegistry(engine: string, declared: readonly DbTable[]): void {
   const listed = new Map(ALL_TABLES.map((table) => [table.name, table.pk]))
+  const identities = new Map(ALL_TABLES.map((table) => [table.name, table.identity]))
 
   for (const table of declared) {
     const pk = listed.get(table.name)
@@ -194,6 +201,10 @@ function assertDeclaredMatchesRegistry(engine: string, declared: readonly DbTabl
     assertState(
       pk !== undefined && pk.length === table.pk.length && pk.every((c, i) => c === table.pk[i]),
       `${table.name} primary key differs on ${engine}: registry [${pk?.join(', ')}], schema [${table.pk.join(', ')}]`
+    )
+    assertState(
+      identities.get(table.name) === table.identity,
+      `${table.name} identity column differs on ${engine}: registry [${identities.get(table.name) ?? ''}], schema [${table.identity ?? ''}]`
     )
   }
 

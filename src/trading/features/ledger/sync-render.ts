@@ -89,11 +89,13 @@ function renderMarketFxLines(
 ): readonly string[] {
   const counts = new Map<CurrencyCode, number>()
 
-  for (const { transaction } of entries) {
+  for (const entry of entries) {
+    const { transaction } = entry
+
     if ('conversion' in transaction && transaction.conversion.source === 'provider') {
       const { fromCurrency, toCurrency } = transaction.conversion
 
-      const ratePriced = book === undefined || fxRateUseOf(book, transaction) === 'asked'
+      const ratePriced = book === undefined || fxRateUseOf(book, entry) === 'asked'
 
       if (fromCurrency !== toCurrency && ratePriced) {
         counts.set(fromCurrency, (counts.get(fromCurrency) ?? 0) + 1)

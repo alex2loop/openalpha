@@ -5,7 +5,7 @@ import type { LedgerEntryId } from '@/trading/kernel/operator/book'
 import { ValidationError } from '@/core/errors'
 import { foldBook } from '@/trading/features/ledger/book'
 import { asksForFxRate, fxRateUseOf, namesFxRate } from '@/trading/features/ledger/fx-rate'
-import { orderLedger } from '@/trading/features/ledger/validate'
+import { orderLedgerBefore } from '@/trading/features/ledger/ordering'
 import { venueParam } from '@/trading/render/format'
 
 interface FxUsedDeps {
@@ -37,9 +37,9 @@ export async function assertFxRateUsed(
   }
 
   const entries = await deps.ledger.listAll(input.signal)
-  const others = entries.filter((entry) => entry.id !== replacing)
-  const book = foldBook(orderLedger(others), transaction.at, deps.baseCurrency)
-  const use = fxRateUseOf(book, transaction)
+  const row = { id: replacing, transaction }
+  const book = foldBook(orderLedgerBefore(entries, row), transaction.at, deps.baseCurrency)
+  const use = fxRateUseOf(book, row)
 
   if (use === 'asked' && unstated) {
     throw new ValidationError(`no rate stated for a ${transaction.currency} row`, {

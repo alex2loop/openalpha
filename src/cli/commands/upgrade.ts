@@ -224,7 +224,7 @@ async function recoverStoppedDaemon(app: CliApp, daemon: RunningDaemon | null): 
 }
 
 async function resumeDaemon(app: CliApp, change: DaemonSwitch): Promise<number> {
-  const daemon = restartableOrHint(app, change.daemon)
+  const daemon = restartableOrHint(app, change.daemon, change.version)
 
   if (daemon === null) {
     return 0
@@ -308,7 +308,7 @@ async function restartStaleDaemon(app: CliApp): Promise<number> {
   }
 
   if (!isRestartable(daemon)) {
-    printVersionMismatch(app)
+    printVersionMismatch(app, BRAND.version)
 
     return 0
   }
@@ -359,7 +359,7 @@ async function rollbackRelease(app: CliApp): Promise<number> {
   })
   app.out(success(t(locale, 'cli.upgradeRollbackDone')))
 
-  const restartable = restartableOrHint(app, daemon)
+  const restartable = restartableOrHint(app, daemon, null)
 
   return restartable === null ? 0 : await startBackgroundDaemon(app, restartable.configPath)
 }
@@ -440,8 +440,13 @@ function toPause(daemon: RunningDaemon | null): RunningDaemon | null {
 }
 
 /** The daemon to start again after a swap, or null after telling the operator how to move the one
- *  that ran onto the binary now in place. */
-function restartableOrHint(app: CliApp, daemon: RunningDaemon | null): RestartableDaemon | null {
+ *  that ran onto the binary now in place. `installed` is that binary's release, null when a
+ *  rollback restored one this command cannot read. */
+function restartableOrHint(
+  app: CliApp,
+  daemon: RunningDaemon | null,
+  installed: string | null
+): RestartableDaemon | null {
   if (daemon === null) {
     return null
   }
@@ -451,7 +456,7 @@ function restartableOrHint(app: CliApp, daemon: RunningDaemon | null): Restartab
   }
 
   if (toPause(daemon) === null) {
-    printVersionMismatch(app)
+    printVersionMismatch(app, installed)
   } else {
     app.out(
       hint(t(app.config.locale.language, 'cli.upgradeRestartDaemon', { command: START_COMMAND }))
@@ -466,13 +471,14 @@ async function recordUpdateState(app: CliApp, patch: Partial<UpdateState>): Prom
   await patchUpdateState(app.config.paths.dataDir, patch).catch(() => undefined)
 }
 
-function printVersionMismatch(app: CliApp): void {
+function printVersionMismatch(app: CliApp, installed: string | null): void {
+  const locale = app.config.locale.language
+
   app.err(
     hint(
-      t(app.config.locale.language, 'cli.statusDaemonVersionMismatch', {
-        installed: BRAND.version,
-        brand: BRAND.name,
-      })
+      installed === null
+        ? t(locale, 'cli.upgradeRollbackDaemonStale', { brand: BRAND.name })
+        : t(locale, 'cli.statusDaemonVersionMismatch', { installed, brand: BRAND.name })
     )
   )
 }

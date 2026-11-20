@@ -1,7 +1,8 @@
-import { basename, resolve as resolvePath } from 'node:path'
+import { resolve as resolvePath, win32 } from 'node:path'
 
 import { ToolError } from '@/core/errors'
 
+const WINDOWS_EXECUTABLE_RE = /\.(?:exe|cmd|bat|com)$/
 const BLOCKED_FILESYSTEM_RE = /^(?:format|mkfs(?:\.[a-z0-9_-]+)?)$/
 const BLOCKED_INTERPRETER_RE =
   /^(?:(?:python|ruby|perl|php|lua|luajit|tclsh|pypy|pypy3)(?:\d+(?:\.\d+)*)?|node(?:js)?|deno|[gmna]?awk|nc|ncat|netcat|socat|bun|osascript|rscript|r|rterm|jshell|julia|irb|iex|swift|php-cgi)$/
@@ -18,7 +19,9 @@ const BLOCKED_COMMAND_LAUNCHERS: ReadonlySet<string> = new Set([
   'bunx',
   'busybox',
   'chroot',
+  'cmd',
   'crontab',
+  'cscript',
   'csh',
   'dash',
   'doas',
@@ -36,13 +39,16 @@ const BLOCKED_COMMAND_LAUNCHERS: ReadonlySet<string> = new Set([
   'man',
   'mksh',
   'more',
+  'mshta',
   'nice',
   'nohup',
   'npx',
   'nsenter',
   'parallel',
   'pnpx',
+  'powershell',
   'prlimit',
+  'pwsh',
   'runuser',
   'screen',
   'scp',
@@ -64,6 +70,7 @@ const BLOCKED_COMMAND_LAUNCHERS: ReadonlySet<string> = new Set([
   'vi',
   'vim',
   'watch',
+  'wscript',
   'xargs',
   'zsh',
 ])
@@ -85,7 +92,7 @@ const EXIT_CODE_MEANINGS: Readonly<Record<string, Readonly<Record<number, string
   })
 
 export function assertCommandAllowed(command: string, args: readonly string[]): void {
-  const base = basename(command).toLowerCase()
+  const base = commandNameOf(command)
 
   if (BLOCKED_COMMAND_LAUNCHERS.has(base)) {
     throw new ToolError('invalid_input', `command launcher blocked: ${base}`)
@@ -113,7 +120,7 @@ export function interpretExitCode(command: string, exitCode: number): string | n
     return null
   }
 
-  const meanings = EXIT_CODE_MEANINGS[basename(command).toLowerCase()]
+  const meanings = EXIT_CODE_MEANINGS[commandNameOf(command)]
   return meanings?.[exitCode] ?? null
 }
 
@@ -127,4 +134,9 @@ function isRootRemoval(args: readonly string[]): boolean {
   }
 
   return args.some((arg) => ROOT_OPERAND_RE.test(arg) && resolvePath(arg) === '/')
+}
+
+// The name the blocklists read: a Windows path in either separator, no executable extension.
+function commandNameOf(command: string): string {
+  return win32.basename(command).toLowerCase().replace(WINDOWS_EXECUTABLE_RE, '')
 }

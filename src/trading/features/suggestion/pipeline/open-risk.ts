@@ -5,7 +5,7 @@ import type {
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import { heldPositionOf } from '@/trading/features/suggestion/pipeline/concentration'
-import { planStopOf } from '@/trading/features/suggestion/types'
+import { armsExit, planStopOf } from '@/trading/features/suggestion/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 
@@ -91,6 +91,11 @@ async function plannedStop(
 
   if (plan === null) {
     return undefined
+  }
+
+  // A review level arms no exit: it puts nothing at risk and leaves no gap, so it stands at the mark.
+  if (!armsExit(plan)) {
+    return mark
   }
 
   const stop = planStopOf(plan)

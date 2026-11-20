@@ -12,9 +12,9 @@ import { foldBook } from '@/trading/features/ledger/book'
 import { fxRateUseOf } from '@/trading/features/ledger/fx-rate'
 import { assertNameListed } from '@/trading/features/ledger/holdable'
 import { dayOf, validatorFor } from '@/trading/features/ledger/mutate'
+import { orderLedger, orderLedgerBefore } from '@/trading/features/ledger/ordering'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
 import { assertTradePrice } from '@/trading/features/ledger/trade-price'
-import { orderLedger } from '@/trading/features/ledger/validate'
 import { finalizeTransaction } from '@/trading/features/ledger/write'
 import { buildLedgerEntryId } from '@/trading/kernel/operator/book'
 
@@ -73,7 +73,7 @@ export async function previewRecord(
     (entry) => entry.id !== options.replacing
   )
   const candidate: LedgerEntry = {
-    id: buildLedgerEntryId(options.now),
+    id: options.replacing ?? buildLedgerEntryId(options.now),
     recordedAt: options.now,
     transaction,
   }
@@ -85,13 +85,14 @@ export async function previewRecord(
   const ordered = orderLedger(entries)
   const before = foldBook(ordered, dayOf(deps, options.now), deps.baseCurrency)
   const after = folded.book ?? before
-  const onItsDay = foldBook(ordered, transaction.at, deps.baseCurrency)
+  const row = { id: options.replacing, transaction }
+  const onItsDay = foldBook(orderLedgerBefore(entries, row), transaction.at, deps.baseCurrency)
 
   return {
     draft,
     fillSource,
     transaction,
     cashChangeBase: after.cashBase - before.cashBase,
-    fxRateApplies: fxRateUseOf(onItsDay, transaction) === 'asked',
+    fxRateApplies: fxRateUseOf(onItsDay, row) === 'asked',
   }
 }

@@ -31,6 +31,7 @@ export function createSocialRequestTool(service: () => SocialService): ToolDefin
         .describe('The JSON body, as the skill shows it.'),
     }),
     capability: 'net',
+    thirdPartyOutput: true,
     presentation: { label: 'Social request', emoji: '🌐', detailKeys: ['network', 'path'] },
     async execute(args, ctx): Promise<ToolResult> {
       // A delegated child runs with this agent's tools but a prompt its parent wrote, which may

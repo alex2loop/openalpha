@@ -11,7 +11,7 @@ import { PROFILE_CURRENCY_SQL } from '@/trading/api'
 
 import type { DoctorFinding, DoctorProbe, DoctorStatus, DoctorSurface } from './types'
 import { checkLabel, offlineKey } from './labels'
-import { migrationFinding } from './local-probes'
+import { currencyMismatchDetail, migrationFinding } from './local-probes'
 import { probePostgresDatabase } from './postgres-probe'
 
 const INTEGRITY_CHECK_SQL = 'PRAGMA integrity_check'
@@ -74,7 +74,12 @@ async function inspectDatabase(options: DatabaseProbeOptions): Promise<DoctorFin
     )
   }
 
-  return probePostgresDatabase(options.storage, options.migrations, locale)
+  return probePostgresDatabase({
+    storage: options.storage,
+    migrations: options.migrations,
+    locale,
+    ...(options.currency === undefined ? {} : { currency: options.currency }),
+  })
 }
 
 interface SqliteProbeOptions {
@@ -150,27 +155,15 @@ function integrityFinding(database: Database, path: string, locale: Locale): Doc
       )
 }
 
-/** The book's currency is fixed by its first profile; a `[locale] currency` edited since leaves
- *  every portfolio read refused, so the mismatch is named here before the operator meets it. */
 function currencyProbe(
   database: Database,
   options: SqliteProbeOptions,
   migrated: DoctorFinding
 ): DoctorFinding {
   const stored = database.query<ProfileCurrencyRow, []>(PROFILE_CURRENCY_SQL).get()?.base_currency
+  const mismatch = currencyMismatchDetail(options.locale, options.currency, stored)
 
-  if (options.currency === undefined || stored === undefined || stored === options.currency) {
-    return migrated
-  }
-
-  return databaseProbe(
-    'fail',
-    options.path,
-    t(options.locale, 'errors.configCurrencyLocked', {
-      currency: options.currency,
-      profileCurrency: stored,
-    })
-  )
+  return mismatch === null ? migrated : databaseProbe('fail', options.path, mismatch)
 }
 
 async function preflightDatabase(path: string, locale: Locale): Promise<DoctorFinding | null> {

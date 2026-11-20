@@ -18,7 +18,7 @@ import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { Book, ClosedRoundTrip } from '@/trading/kernel/operator/book'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { foldBook } from '@/trading/features/ledger/book'
-import { orderLedger } from '@/trading/features/ledger/validate'
+import { orderLedger } from '@/trading/features/ledger/ordering'
 import {
   closedRoundTripsOf,
   recentClosedRoundTrips,

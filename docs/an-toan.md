@@ -57,12 +57,12 @@ Quy tắc thứ ba để việc chỉ đọc đi thẳng. Liệt kê các việc
 thì phải hỏi. Gọi lại bộ nhớ thì không cần hỏi, ghi hay xóa thì phải hỏi.
 
 Đọc trang web cũng vậy. Agent mở luôn link bạn gửi hoặc link mà một lần tìm kiếm hay đọc tin mang về.
-Nó hỏi bạn trước khi tự ghép hay sửa link, mở link nằm trong trang nó vừa đọc, tự thêm header,
-hoặc đã đọc quá `[loop] max_unasked_fetches` trang trong một phiên chạy (mặc định 10). Một trang web
-có thể giấu lệnh bên trong, và link do agent tự ghép hay tự chọn chính là đường nó có thể mang danh
-mục, hồ sơ hay ghi chú của bạn ra ngoài, nên link đó phải để bạn duyệt. Đoạn bạn chuyển tiếp vào
-chat, hay việc một agent giao cho agent khác, đều được coi là lời của người khác, không tính là link
-bạn gửi.
+Nó hỏi bạn trước khi tự ghép hay sửa link, mở link nằm trong trang nó vừa đọc, lấy link từ bài đăng
+mạng xã hội hay công cụ MCP, tự thêm header, hoặc đã đọc quá `[loop] max_unasked_fetches` trang
+trong một phiên chạy (mặc định 10). Một trang web có thể giấu lệnh bên trong, và link do agent tự
+ghép hay tự chọn chính là đường nó có thể mang danh mục, hồ sơ hay ghi chú của bạn ra ngoài, nên
+link đó phải để bạn duyệt. Đoạn bạn chuyển tiếp vào chat, hay việc một agent giao cho agent khác,
+đều được coi là lời của người khác, không tính là link bạn gửi.
 Những lần hỏi này không có nút "nhớ".
 
 Phê duyệt **không** thay cho phân quyền. Agent phải vốn đã được phép dùng công cụ đó, và lời gọi phải

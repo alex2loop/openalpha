@@ -229,3 +229,18 @@ export function migrationFinding(locale: Locale, ledger: MigrationLedger): Docto
 
   return { status: 'ok', detail }
 }
+
+/** The book's currency is fixed by its first profile; a `[locale] currency` edited since leaves
+ *  every portfolio read refused, so the mismatch is named here before the operator meets it. Null
+ *  when they agree or either is unknown. */
+export function currencyMismatchDetail(
+  locale: Locale,
+  configured: string | undefined,
+  stored: string | undefined
+): string | null {
+  if (configured === undefined || stored === undefined || stored === configured) {
+    return null
+  }
+
+  return t(locale, 'errors.configCurrencyLocked', { currency: configured, profileCurrency: stored })
+}
