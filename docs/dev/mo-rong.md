@@ -527,7 +527,9 @@ openalpha plugin uninstall <id>
 
 Cài và cập nhật kiểm tra mã và kênh truyền của nguồn (id dự phòng của plugin không có manifest là tên kho
 của URL chuẩn hóa, không bao giờ là tên thư mục clone tạm), chép vào gốc plugin được quản lý, và không cho gỡ
-các mã đi kèm. Xem `openalpha plugin --help` để biết chính xác các cờ.
+các mã đi kèm. Nguồn từ xa chỉ nhận HTTPS: `git://`, `ssh://`, `git@`, `http://`, `file://` và `ext::` bị từ chối
+kèm tên. Nội dung được chép mà không đi theo liên kết, và bất kỳ symlink nào cũng làm việc cài bị từ chối;
+`plugin.toml` được đọc một lần, không đi theo liên kết, và đúng văn bản đã phân tích là văn bản được chép. Xem `openalpha plugin --help` để biết chính xác các cờ.
 
 ### Trình tự khởi động
 

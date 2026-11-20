@@ -22,7 +22,9 @@ blocked call never reaches the executor.
     (`engine/hooks/approval-context.ts`) counts this tool's calls in the run and answers `hasSeen`
     against the operator's own words (forwarded `<pasted_content>` removed) and non-error results of
     other `net` tools, never text the model wrote nor the asking tool's own results (a fetched
-    page's links do not vouch for the next fetch).
+    page's links do not vouch for the next fetch). A match is a whole token, the scheme and host
+    read without case; a token keeps the `()`, `,` and `;` inside a URL, and the punctuation prose
+    puts around it is trimmed off the source text only, never off the URL the model asks for.
   - `web_fetch` asks for a URL in neither, for extra headers, and past `[loop] max_unasked_fetches`.
 - **Remember.** `oneTimeApproval: true` on a tool offers no remember arm. `order_place` sets it with
   `requiresApproval: () => true`.

@@ -22,7 +22,10 @@ gọi bị chặn không bao giờ tới được bộ thực thi.
     (`engine/hooks/approval-context.ts`) đếm số lần gọi công cụ đó trong phiên chạy và trả lời `hasSeen`
     dựa trên lời của chính người vận hành (đã bỏ phần `<pasted_content>` chuyển tiếp) và kết quả không
     lỗi của các công cụ `net` khác, không bao giờ dựa trên chữ mô hình tự viết hay kết quả trước
-    đó của chính công cụ đang hỏi (link trong trang đã đọc không mở được lần đọc tiếp theo).
+    đó của chính công cụ đang hỏi (link trong trang đã đọc không mở được lần đọc tiếp theo). Khớp
+    là khớp trọn một token, scheme và host không phân biệt hoa thường; token giữ nguyên `()`, `,` và
+    `;` nằm trong URL, còn dấu câu văn bản đặt quanh nó chỉ được cắt khỏi văn bản nguồn, không bao giờ
+    khỏi URL mà mô hình yêu cầu.
   - `web_fetch` hỏi khi URL không nằm ở hai nguồn đó, khi có header thêm, và khi vượt
     `[loop] max_unasked_fetches`.
 - **Ghi nhớ.** `oneTimeApproval: true` trên công cụ thì không đưa ra lựa chọn ghi nhớ. `order_place`
