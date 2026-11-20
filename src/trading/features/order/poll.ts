@@ -79,7 +79,7 @@ async function pollOnce(
 
     return { consecutiveFailures: 0, ...(receipt === undefined ? {} : { receipt }) }
   } catch (err: unknown) {
-    if (input.signal.aborted || isAbortError(err)) {
+    if (isCallerAbort(input, err)) {
       throw err
     }
 
@@ -107,7 +107,8 @@ function isTerminal(state: OrderReceipt['state']): boolean {
 }
 
 /** Whatever filled between the last poll and the cancel is read back and booked; a cancel that
- *  fails leaves a live order the operator has to reconcile, and says so. */
+ *  fails leaves a live order the operator has to reconcile, and says so. An abort is the caller's
+ *  own to clean up. */
 async function cancelRemainder(
   deps: OrderServiceDeps,
   input: SubmitInput,
@@ -119,6 +120,10 @@ async function cancelRemainder(
   try {
     await input.venue.adapter.cancelOrder(lookup)
   } catch (err: unknown) {
+    if (isCallerAbort(input, err)) {
+      throw err
+    }
+
     deps.logger.error('order.remainder_cancel_failed', {
       clientOrderId: staged.clientOrderId,
       orderId,
@@ -143,4 +148,8 @@ async function cancelRemainder(
   })
 
   return receipt
+}
+
+function isCallerAbort(input: SubmitInput, err: unknown): boolean {
+  return input.signal.aborted || isAbortError(err)
 }
