@@ -205,7 +205,7 @@ async function skipPastOpenDay(deps: BriefServiceDeps, context: DeliveryContext)
       nextDeliveryDay: next.day,
     })
     // The only skip that tells: `skipStaleDay` moves straight to today, whose brief can still go
-    // out before the open, and runs into this one if it cannot. `markDelivered` is lease- and
+    // out before the open, and runs into this one if it cannot. `abandonDelivery` is lease- and
     // day-guarded, so one move sends at most one notice; a crash between the move and the send
     // loses it.
     await notifyDeliveryStopped({
@@ -225,7 +225,7 @@ function moveSchedule(
   context: DeliveryContext,
   next: ReturnType<typeof nextScheduled>
 ): Promise<boolean> {
-  return deps.deliveries.markDelivered({
+  return deps.deliveries.abandonDelivery({
     leaseToken: context.leaseToken,
     deliveryDay: context.subscription.deliveryDay,
     nextDeliveryDay: next.day,

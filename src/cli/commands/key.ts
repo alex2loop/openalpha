@@ -123,7 +123,10 @@ function renderUnreadName(app: CliApp, name: string, names: readonly string[]): 
   }
 
   // A plugin source names its key in code only boot loads, so the config's list cannot rule it out.
-  if (app.config.plugins.allowCode) {
+  // That code loads only when untrusted plugins are allowed too.
+  const { allowUntrusted, allowCode } = app.config.plugins
+
+  if (allowUntrusted && allowCode) {
     return t(locale, 'cli.keyNamePluginMay', { name })
   }
 

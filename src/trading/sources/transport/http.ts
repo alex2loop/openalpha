@@ -12,14 +12,19 @@ import type {
 import { formatErrForLog } from '@/core/security/credentials'
 import { createRequestCoalescer } from '@/trading/sources/coalesce'
 import { createSourceHealthLog } from '@/trading/sources/transport/health'
-import { createFailureReporter } from '@/trading/sources/transport/http-failure'
+import { createFailureReporter, toCaveatCode } from '@/trading/sources/transport/http-failure'
 import { createPacer } from '@/trading/sources/transport/pacer'
 import {
   buildEndpointMaps,
   prepareOutbound,
   resolveTarget,
 } from '@/trading/sources/transport/request-target'
-import { BREAKER_COOLDOWN_MS, mapFetchError, readWire } from '@/trading/sources/transport/wire'
+import {
+  BREAKER_COOLDOWN_MS,
+  claimWireOutcome,
+  mapFetchError,
+  readWire,
+} from '@/trading/sources/transport/wire'
 
 // Follow-up pages one fetch will chase. Hitting it yields a `source.truncated` caveat rather than
 // an unbounded loop against one provider.
@@ -84,6 +89,7 @@ export function createSourceHttp(
     logger,
     failures: createFailureReporter(logger),
     reads: createRequestCoalescer(),
+    recordedWires: new WeakSet(),
   }
 
   return {
@@ -226,25 +232,52 @@ async function sendRequest<T>(
     }
   }
 
-  const { text, fetchedAt, sentTick } = wire
+  const recordsHealth = claimWireOutcome(state, wire)
+
+  return readWireBody(state, { request, map, ...wire, recordsHealth })
+}
+
+/** One caller's read of a wire's body. Callers sharing a wire share one round trip, so only the one
+ *  holding `recordsHealth` counts its outcome toward the provider's health. */
+interface WireRead<T> {
+  readonly request: SourceRequest
+  readonly map: (text: string, fetchedAt: number) => T
+  readonly text: string
+  readonly fetchedAt: number
+  readonly sentTick: number
+  readonly recordsHealth: boolean
+}
+
+function readWireBody<T>(state: SourceHttpState, read: WireRead<T>): SentRequest<T> {
+  const { request, map, text, fetchedAt, sentTick, recordsHealth } = read
 
   try {
     const value = map(text, fetchedAt)
 
-    state.health.recordSuccess(request.sourceId, fetchedAt)
+    if (recordsHealth) {
+      state.health.recordSuccess(request.sourceId, fetchedAt)
+    }
 
     return { outcome: { kind: 'ok', value, fetchedAt }, sentTick }
   } catch (err: unknown) {
     // A body that is not JSON at all (a bot-check page, an HTML error) is the provider failing
     // while answering 200, so it counts against the breaker like any failed round trip.
     if (err instanceof SyntaxError) {
-      return { outcome: mapFetchError<T>(state, err, request), sentTick }
+      return {
+        outcome: recordsHealth
+          ? mapFetchError<T>(state, err, request)
+          : { kind: 'error', code: toCaveatCode(err) },
+        sentTick,
+      }
     }
 
     // A schema mismatch is valid JSON of the wrong shape, not a transport failure: the round trip
     // was healthy, and recording it against the breaker would let one kind's drift cool down every
     // other kind this provider serves. The reason is logged because the caveat cannot carry it.
-    state.health.recordSuccess(request.sourceId, fetchedAt)
+    if (recordsHealth) {
+      state.health.recordSuccess(request.sourceId, fetchedAt)
+    }
+
     state.logger.warn('trading.source_payload_rejected', {
       sourceId: request.sourceId,
       path: request.path,

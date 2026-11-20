@@ -11,8 +11,6 @@ import type {
   RescheduleBriefResult,
   ScheduledBriefDelivery,
 } from '@/trading/features/brief/types'
-import { isAbortError } from '@/core/errors'
-import { formatErrForLog } from '@/core/security/credentials'
 import { findCurrentSnapshot, findOrBuildBrief } from '@/trading/features/brief/build'
 import { deliverDue } from '@/trading/features/brief/delivery'
 import {
@@ -61,8 +59,9 @@ function build(deps: BriefServiceDeps, options: BuildBriefOptions): Promise<Brie
   })
 }
 
-/** The named day's brief when one exists, otherwise the most recent one — so a user who asks before
- *  the morning run still reads yesterday's rather than nothing. A snapshot this build can no longer
+/** The named day's brief when one exists, otherwise the most recent one built against the current
+ *  profile — so a user who asks before the morning run still reads yesterday's rather than nothing,
+ *  unless the profile has changed since. A snapshot this build can no longer
  *  read is absent rather than an error: the vocabulary it was written in is the store's problem, and
  *  taking a surface down over a derived artifact is worse than showing the empty state. */
 async function getLatest(
@@ -81,42 +80,15 @@ async function findLatestSnapshot(
   options: GetLatestBriefOptions
 ): Promise<BriefSnapshot | null> {
   const plan = resolvePlan(deps, options.region)
-  const day = resolveDay(plan.market, options.now)
-  const profile = await deps.profiles.find(options.signal)
-  const today = await findCurrentSnapshot(deps, {
-    asOf: day,
+  const found = await findCurrentSnapshot(deps, {
+    asOf: resolveDay(plan.market, options.now),
     locale: options.locale,
-    profile,
+    profile: await deps.profiles.find(options.signal),
+    orLatest: true,
     signal: options.signal,
   })
 
-  if (today.kind === 'current') {
-    return today.snapshot
-  }
-
-  // A snapshot the profile has moved past is never served, and the older one behind it would be
-  // just as stale: the caller builds instead. Only a day with no snapshot at all falls back.
-  if (today.kind === 'stale') {
-    return null
-  }
-
-  try {
-    return await deps.store.findLatest({
-      authoredLocale: options.locale,
-      signal: options.signal,
-    })
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw err
-    }
-
-    deps.logger.warn('trading.brief_snapshot_unreadable_read', {
-      asOf: day,
-      err: formatErrForLog(err),
-    })
-
-    return null
-  }
+  return found.kind === 'current' ? found.snapshot : null
 }
 
 async function reschedule(

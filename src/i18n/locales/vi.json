@@ -4031,6 +4031,7 @@
     "upgradeNotSwitched": "Mình vẫn đang chạy {current}, bản mới chưa được cài. Gõ `{command}` để xem lại nhé.",
     "upgradeRollbackSchemaFailed": "Cơ sở dữ liệu chưa được đưa về dạng bản trước đọc được, nên mình vẫn ở bản hiện tại. Khởi động lại bản này sẽ đưa cơ sở dữ liệu về đúng như cũ.",
     "upgradeRollbackDone": "Đã quay về phiên bản trước. Cấu hình vẫn như cũ.",
+    "upgradeRollbackDaemonStale": "Dịch vụ nền vẫn chạy bản bạn vừa rời. Chạy `{brand} stop` rồi `{brand} start --background` để dịch vụ nền chạy bản này.",
     "upgradeNoPrevious": "Chưa có phiên bản trước nào để quay về.",
     "upgradeConfirmLabel": "Cập nhật ngay",
     "upgradeWhileWorking": "Mình đang làm dở một việc, cập nhật bây giờ sẽ cắt ngang nó. Xong việc rồi bạn gõ lại `{command}` nhé.",

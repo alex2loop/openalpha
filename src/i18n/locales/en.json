@@ -4031,6 +4031,7 @@
     "upgradeNotSwitched": "I'm still on {current}; the new release didn't go in. Send `{command}` to check again.",
     "upgradeRollbackSchemaFailed": "The database wasn't taken back to what the previous release reads, so I stayed on this release. Starting it again brings the database up to date.",
     "upgradeRollbackDone": "You're back on the previous release. Your settings are as they were.",
+    "upgradeRollbackDaemonStale": "The daemon is still running the release you left. Run `{brand} stop`, then `{brand} start --background`, to run this one.",
     "upgradeNoPrevious": "There's no previous release to go back to yet.",
     "upgradeConfirmLabel": "Update now",
     "upgradeWhileWorking": "I'm in the middle of something, and updating now would cut it short. Send `{command}` again once it's done.",

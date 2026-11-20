@@ -29,6 +29,9 @@ export interface UpsertTarget {
 export interface InsertTarget {
   readonly cols: readonly string[]
   readonly rowCount: number
+  /** The columns include the table's generated identity, so an engine that refuses a value there
+   *  unless told to must be told. */
+  readonly explicitIdentity?: true
 }
 
 export interface Dialect {
@@ -42,6 +45,9 @@ export interface Dialect {
   paramList(count: number, startAt?: number): string
   upsert(table: string, target: UpsertTarget): string
   insert(table: string, target: InsertTarget): string
+  // The statement that moves the generated-identity counter past the rows an explicit-identity
+  // insert wrote, or null where the engine advances it on its own.
+  identityResync(table: string, column: string): string | null
 }
 export interface FtsHit {
   readonly key: string

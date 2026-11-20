@@ -17,6 +17,7 @@ import {
   currencyCashSpend,
 } from '@/trading/features/ledger/currency-cash'
 import { createFoldState } from '@/trading/features/ledger/fold-state'
+import { orderLedger } from '@/trading/features/ledger/ordering'
 import { closingOvershootOf, settledQuantityAt } from '@/trading/features/ledger/position'
 import { CASH_TXN_KINDS } from '@/trading/features/ledger/types'
 import { venueParam } from '@/trading/render/format'
@@ -51,21 +52,6 @@ interface LedgerValidationOptions {
   readonly today: TradingDay
   marketFor(market: MarketRef): MarketManifest | undefined
   venueFor(venue: VenueRef): VenueManifest | undefined
-}
-
-/** Chronological order, with entry id breaking ties within a day. Rows are editable, so an entry's
- *  day can move freely and the stored order is not the trading order — this is the one place that
- *  reconciles them, and every fold and replay goes through it. The id is a UUIDv7, so the tie-break
- *  is append order down to the millisecond and no finer; a batch minted from one clock read would
- *  need a real sequence. */
-export function orderLedger(entries: readonly LedgerEntry[]): readonly LedgerEntry[] {
-  return [...entries].sort(compareEntries)
-}
-
-function compareEntries(left: LedgerEntry, right: LedgerEntry): number {
-  const byDay = left.transaction.at.localeCompare(right.transaction.at)
-
-  return byDay === 0 ? left.id.localeCompare(right.id) : byDay
 }
 
 /** The pure callback the store runs inside its write transaction, against history reloaded inside

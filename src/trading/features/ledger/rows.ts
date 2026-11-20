@@ -210,7 +210,7 @@ function renderPageSummary(
     if ('conversion' in transaction) {
       hasCash = true
 
-      if (movesAtCurrencyCashCost(view.book, transaction)) {
+      if (movesAtCurrencyCashCost(view.book, entry)) {
         foreign ??= transaction.conversion.fromCurrency
       }
     }
@@ -234,9 +234,11 @@ function renderPageSummary(
 }
 
 /** A withdrawal of currency cash leaves at its average cost, like a row paid from it. */
-function movesAtCurrencyCashCost(book: Book, txn: LedgerTxn): boolean {
+function movesAtCurrencyCashCost(book: Book, entry: LedgerEntry): boolean {
+  const txn = entry.transaction
+
   return (
-    paysFromCurrencyCash(book, txn) ||
+    paysFromCurrencyCash(book, entry) ||
     (txn.kind === 'withdrawal' && txn.currency !== book.baseCurrency)
   )
 }

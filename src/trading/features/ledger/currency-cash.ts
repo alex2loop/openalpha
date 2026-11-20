@@ -1,7 +1,7 @@
 import type { FoldState, MutableCurrencyCash } from '@/trading/features/ledger/fold-state'
 import type { CashTxn, DividendTxn, LedgerTxn, TransferTxn } from '@/trading/features/ledger/types'
 import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
-import type { CurrencyCash } from '@/trading/kernel/operator/book'
+import type { CurrencyCash, LedgerEntryId } from '@/trading/kernel/operator/book'
 import { moveVenueCash } from '@/trading/features/ledger/fold-state'
 import { QUANTITY_EPSILON } from '@/trading/features/ledger/position'
 
@@ -84,10 +84,11 @@ export function spendCurrencyCash(cash: MutableCurrencyCash, amount: number): nu
  *  its average cost lands in realized P/L through `netDepositsBase`. */
 export function applyCurrencyCashTxn(
   state: FoldState,
-  txn: CashTxn | DividendTxn | TransferTxn
+  txn: CashTxn | DividendTxn | TransferTxn,
+  entryId: LedgerEntryId
 ): void {
   if (txn.kind === 'transfer') {
-    transferCurrencyCash(state, txn)
+    transferCurrencyCash(state, txn, entryId)
 
     return
   }
@@ -99,6 +100,7 @@ export function applyCurrencyCashTxn(
       venue: txn.venue,
       currency: txn.currency,
       at: txn.at,
+      entryId,
       amount: txn.amount,
       costBase,
     })
@@ -150,7 +152,7 @@ export function currencyCashAvailableBase(state: FoldState, venue: VenueRef): nu
   return total
 }
 
-function transferCurrencyCash(state: FoldState, txn: TransferTxn): void {
+function transferCurrencyCash(state: FoldState, txn: TransferTxn, entryId: LedgerEntryId): void {
   const source = currencyCashAt(state, txn.fromVenue, txn.currency)
   const leavingBase = source === undefined ? 0 : spendCurrencyCash(source, txn.amount + txn.fee)
   const feeBase = leavingBase * (txn.fee / (txn.amount + txn.fee))
@@ -160,6 +162,7 @@ function transferCurrencyCash(state: FoldState, txn: TransferTxn): void {
     venue: txn.venue,
     currency: txn.currency,
     at: txn.at,
+    entryId,
     amount: txn.amount,
     costBase: leavingBase - feeBase,
   })
@@ -171,6 +174,7 @@ function addCurrencyCash(
     venue: VenueRef
     currency: CurrencyCode
     at: TradingDay
+    entryId: LedgerEntryId
     amount: number
     costBase: number
   }
@@ -181,6 +185,7 @@ function addCurrencyCash(
     venue: inflow.venue,
     currency: inflow.currency,
     openedAt: inflow.at,
+    openedBy: inflow.entryId,
     amount: 0,
     available: 0,
     costBase: 0,

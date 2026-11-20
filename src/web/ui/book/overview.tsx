@@ -4,7 +4,7 @@ import { heldPositions, holdingsBlock } from '@/web/state/market'
 import { formatMoney } from '@/web/text/figures'
 import { segmentName } from '@/web/text/segment'
 import { tr } from '@/web/text/tr'
-import { EmptyBookActions, emptyBookKey } from '@/web/ui/book/empty-actions'
+import { EmptyBookActions, emptyBookKey, hasBookFigures } from '@/web/ui/book/empty-actions'
 import { HoldingsList } from '@/web/ui/book/holdings-list'
 import { SegmentBars } from '@/web/ui/book/segment-bars'
 import { Unrealized } from '@/web/ui/book/unrealized'
@@ -32,7 +32,9 @@ export function Overview() {
 }
 
 function OverviewBody({ book }: { readonly book: TradingPortfolioResponse }) {
-  if (heldPositions.value.length === 0) {
+  const held = heldPositions.value
+
+  if (!hasBookFigures(book)) {
     return (
       <>
         <p class="empty-note">{tr(emptyBookKey())}</p>
@@ -48,8 +50,12 @@ function OverviewBody({ book }: { readonly book: TradingPortfolioResponse }) {
         {segmentName('cash')} {formatMoney(book.cashBase, book.baseCurrency)}
       </p>
       <Unrealized book={book} />
-      <h3 class="sub-head">{tr('ui.office.book.holding')}</h3>
-      <HoldingsList positions={heldPositions.value} />
+      {held.length > 0 && (
+        <>
+          <h3 class="sub-head">{tr('ui.office.book.holding')}</h3>
+          <HoldingsList positions={held} />
+        </>
+      )}
       <h3 class="sub-head">{tr('ui.office.book.bySegment')}</h3>
       <SegmentBars shares={book.shares} />
     </>

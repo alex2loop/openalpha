@@ -53,7 +53,7 @@ export function renderEntryFields(
       ? renderSubjectTicker(locale, transaction)
       : [
           ...renderSubjectFields(locale, transaction, options.quoteConventions),
-          ...renderFxField(locale, transaction, options.book),
+          ...renderFxField(locale, entry, options.book),
         ]),
     ...(transaction.note === undefined
       ? []
@@ -62,14 +62,16 @@ export function renderEntryFields(
 }
 
 /** The rate a foreign row converted at, and whose it was. */
-function renderFxField(locale: Locale, txn: LedgerTxn, book: Book): readonly string[] {
+function renderFxField(locale: Locale, entry: LedgerEntry, book: Book): readonly string[] {
+  const txn = entry.transaction
+
   if (!('conversion' in txn) || txn.conversion.fromCurrency === txn.conversion.toCurrency) {
     return []
   }
 
   const { conversion } = txn
 
-  if (paysFromCurrencyCash(book, txn)) {
+  if (paysFromCurrencyCash(book, entry)) {
     return [renderField(locale, 'fxRatePaidFromCash', { currency: conversion.fromCurrency })]
   }
 

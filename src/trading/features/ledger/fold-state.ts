@@ -1,11 +1,17 @@
 import type { MutablePosition } from '@/trading/features/ledger/position'
 import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
-import type { PendingCash, SaleRecord, VenueCash } from '@/trading/kernel/operator/book'
+import type {
+  LedgerEntryId,
+  PendingCash,
+  SaleRecord,
+  VenueCash,
+} from '@/trading/kernel/operator/book'
 
 export interface MutableCurrencyCash {
   readonly venue: VenueRef
   readonly currency: CurrencyCode
   readonly openedAt: TradingDay
+  readonly openedBy: LedgerEntryId
   amount: number
   available: number
   costBase: number

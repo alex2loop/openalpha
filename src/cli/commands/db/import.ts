@@ -128,6 +128,7 @@ async function readInto(req: ImportRequest): Promise<number> {
       const columns = await tableColumns(tx, dialect, table)
 
       written.push(await importTable({ tx, dialect, table, columns, path: tableFile(dir, table) }))
+      await resyncIdentity(tx, dialect, table)
     }
 
     // An older export has no date the conversation list orders by, which would leave its chats out.
@@ -316,10 +317,31 @@ async function writeBatch(
   cols: readonly string[],
   batch: readonly (readonly unknown[])[]
 ): Promise<void> {
+  const { identity } = req.table
+  const target = { cols, rowCount: batch.length }
+  const writesIdentity = identity !== undefined && cols.includes(identity)
+
   await req.tx.execute(
-    req.dialect.insert(req.table.name, { cols, rowCount: batch.length }),
+    req.dialect.insert(
+      req.table.name,
+      writesIdentity ? { ...target, explicitIdentity: true } : target
+    ),
     batch.flat()
   )
+}
+
+// Rows written with their own ids leave a generated counter behind them, and the next runtime
+// insert would collide with one.
+async function resyncIdentity(tx: Transaction, dialect: Dialect, table: DbTable): Promise<void> {
+  if (table.identity === undefined) {
+    return
+  }
+
+  const resync = dialect.identityResync(table.name, table.identity)
+
+  if (resync !== null) {
+    await tx.query(resync)
+  }
 }
 
 /** Keyed, so the refusal reads in `[locale]` wherever it is printed. */

@@ -25,13 +25,10 @@ import { foldBook } from '@/trading/features/ledger/book'
 import { isResolvedDraft } from '@/trading/features/ledger/draft'
 import { assertFxRateUsed } from '@/trading/features/ledger/fx-used'
 import { assertHoldable, assertNameListed } from '@/trading/features/ledger/holdable'
+import { orderLedger } from '@/trading/features/ledger/ordering'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
 import { assertTradePrice } from '@/trading/features/ledger/trade-price'
-import {
-  assertLedgerValid,
-  assertVenuesKnown,
-  orderLedger,
-} from '@/trading/features/ledger/validate'
+import { assertLedgerValid, assertVenuesKnown } from '@/trading/features/ledger/validate'
 import {
   buildRequestFingerprint,
   finalizeTransaction,

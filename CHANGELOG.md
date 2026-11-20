@@ -7,6 +7,30 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.8] - 2026-11-20
+
+Editing a trade in another currency keeps the rate you paid, a book holding only cash shows its value and plan on the office page, and a fund's review level no longer shrinks suggested buys.
+> Sửa một giao dịch bằng ngoại tệ giờ giữ đúng tỷ giá bạn đã trả, sổ chỉ có tiền mặt hiện đủ giá trị và kế hoạch trên trang văn phòng, và mức xem lại của quỹ không còn làm nhỏ khối lượng mua được đề xuất.
+
+### Changed
+
+- A link that comes back from an MCP tool or a social post no longer opens without asking; only your own words and OpenAlpha's built-in network tools (search, news, market data) do.
+- `GET /v1/config` hides an MCP server's arguments, as `config show` already did.
+- `shell_exec` also refuses the Windows shells and script hosts (`cmd`, `powershell`, `pwsh`, `wscript`, `cscript`, `mshta`) and a blocked program named with `.exe`, `.cmd`, `.bat` or `.com`.
+- A brief from an earlier day stands in for today's only while your profile is unchanged since it was built; after an edit, `/brief` builds a fresh one.
+
+### Fixed
+
+- Editing a trade in another currency on a day when that currency also reached the venue later (a USDT deposit after a buy paid in VND) refused the rate you stated, and on the office page saved the day's market rate instead. The edit now keeps its place in the day and the rate you paid. The confirmation, `/ledger` and `/record sync` no longer call such a buy paid from held cash.
+- A held fund's review level counted as open risk, shrinking suggested buys, and could put the fund in the "no planned stop" warning. It now counts as neither.
+- The office page called a book holding only cash empty; it now shows the total, cash, segments and the rebalance plan.
+- `db import` into Postgres failed on scheduler history and left its counter behind; it now imports and resyncs it.
+- `doctor` checks the book's currency on Postgres too.
+- The monthly scorecard could print twice after an update changed the brief's layout; a brief day skipped after downtime is no longer recorded as sent.
+- `upgrade` names the version just installed in the restart hint, and after `--rollback` says to restart without naming one.
+- `key set` mentions plugin sources only when plugin code can load (`allow_untrusted` and `allow_code`).
+- A data source's health counts one request shared by several readers once.
+
 ## [1.8.7] - 2026-11-20
 
 A cash dividend paid in another currency now lowers that holding's cost, `/rebalance` again proposes the sale that brings a sector over its cap back down, and a leveraged US fund you hold is watched with a real stop.

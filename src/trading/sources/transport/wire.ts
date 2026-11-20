@@ -21,6 +21,8 @@ export interface WireState {
   readonly now: () => number
   readonly failures: FailureReporter
   readonly reads: RequestCoalescer
+  /** Wires whose health outcome a caller already recorded; an entry goes with its wire. */
+  readonly recordedWires: WeakSet<Wire>
 }
 
 // Network tuning, not operator judgment: a provider either answers inside these bounds or the
@@ -58,7 +60,7 @@ type Wire =
 
 /** One round trip per identical GET in flight, whoever asks: the macro gate reads the same series
  *  for each day a market scores against, and each read otherwise spent a call of the provider's
- *  quota. The wire is shared before pacing, so a joiner takes no token, and its failure counts
+ *  quota. The wire is shared before pacing, so a joiner takes no token, and its outcome counts
  *  against the breaker once. A POST body is not part of the key, so a POST is never merged. */
 export function readWire(state: WireState, input: WireRequest): Promise<Wire> {
   const { request } = input
@@ -70,6 +72,18 @@ export function readWire(state: WireState, input: WireRequest): Promise<Wire> {
   return state.reads.share(providerRequestKey(request), request.signal, (shared) =>
     fetchWire(state, { ...input, request: { ...request, signal: shared } })
   )
+}
+
+/** Callers sharing one wire share one round trip, so one health outcome: the first to ask records
+ *  it and every later caller of that wire is told not to. */
+export function claimWireOutcome(state: WireState, wire: Wire): boolean {
+  if (state.recordedWires.has(wire)) {
+    return false
+  }
+
+  state.recordedWires.add(wire)
+
+  return true
 }
 
 async function fetchWire(state: WireState, input: WireRequest): Promise<Wire> {
