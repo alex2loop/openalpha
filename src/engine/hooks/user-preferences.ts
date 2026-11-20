@@ -88,8 +88,16 @@ async function injectPrefs(memory: Memory, run: RunView, req: LLMRequest): Promi
 }
 
 async function extractPrefs(memory: Memory, run: RunView): Promise<void> {
-  // A stopped or timed-out run has no reply to learn from; asking the model now would only fail.
-  if (!isPreferenceEligibleRun(run) || run.state.turn === 0 || run.state.abort.signal.aborted) {
+  // A stopped or timed-out run has no reply to learn from; asking the model now would only fail. A
+  // generated prompt (a heartbeat tick, a workflow step) is text the engine composed, so reading it
+  // as the person's words would learn from text nobody typed. Injection still applies: the saved
+  // preferences shape its reply.
+  if (
+    !isPreferenceEligibleRun(run) ||
+    run.env.isPromptGenerated === true ||
+    run.state.turn === 0 ||
+    run.state.abort.signal.aborted
+  ) {
     return
   }
 
@@ -124,9 +132,10 @@ function isPreferenceEligibleRun(run: RunView): boolean {
   return run.env.persistence === 'enabled' && run.env.callDepth === 0
 }
 
-/** Only a run someone can answer asks about a change; a scheduled or piped run has nobody to ask. */
+/** Only a run someone can answer, about what they typed, asks about a change; a scheduled or piped
+ *  run has nobody to ask, and a generated prompt is not theirs to answer for. */
 function isAttendedRun(run: RunView): boolean {
-  return run.env.approvalMode !== 'unavailable'
+  return run.env.approvalMode !== 'unavailable' && run.env.isPromptGenerated !== true
 }
 
 /** Preference bookkeeping is optional work: a memory failure is logged and never fails the reply. */

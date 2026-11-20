@@ -1011,6 +1011,9 @@ default and tells you when nothing needs a fresh read.
 A buy needs `sl` by default. Set `require_stop_loss = false` under `[trading.orders]` to allow one
 without.
 
+A `venue:` prefix also picks the instrument on that venue's markets: `okx:SUI` is the coin even when a
+stored stock or fund shares the symbol.
+
 Bare `/trade` tells you what is outstanding: staged orders and their tokens, resting exits, positions
 nothing is guarding, and what the exchange took that your book is missing. It reaches no venue.
 

@@ -1522,7 +1522,7 @@ When any holding has no price, NAV is held back and the assessment carries `port
 `/portfolio nav [1m|3m|6m|1y|all]` (default `3m`) shows how the book has done over time. It is built from one snapshot a day:
 
 - **One snapshot a day.** After each `trading.refresh` pass the daemon values the book exactly as `/portfolio` does and keeps one row for the day; the last pass of the day wins. History starts when you upgrade. Nothing is rebuilt from the ledger, because stored VN closes are back-adjusted and ledger quantities are not.
-- **Time-weighted return.** A deposit or withdrawal moves the book's value without being a gain, so it comes out of the day it lands on. A dividend, fee or loss stays inside the return.
+- **Time-weighted return.** A deposit or withdrawal moves the book's value without being a gain, so it never counts as one. A deposit is taken to work from the start of its day and a withdrawal to leave at its end, so a large deposit is measured against what it joined rather than read as a return on the smaller book before it. A dividend, fee or loss stays inside the return. A day with nothing invested at all, that day's deposit included, holds the index.
 - **Drops from a peak.** The deepest drop and how far below the peak you sit today, both on the same index.
 - **A yardstick from your own target mix.** Each segment you gave a target earns its market's benchmark index, and cash earns nothing. A segment whose market has no benchmark is left out, and the rest are scaled back up to a whole; gold has none today. The reply names the parts.
   - If no segment you target has a benchmark, there is no yardstick, and the reply says so.
@@ -1878,7 +1878,7 @@ This is bookkeeping, not a transfer. It tells the ledger what you hold so the bo
 - Each label (`limit`, `tp`, `sl`, and `qty` on `/trade exit`) may appear once. A repeated one is refused with the usage line rather than keeping the last.
 - A buy needs `sl` by default. Set `require_stop_loss = false` under `[trading.orders]` to allow one without.
 
-The `venue:` prefix is optional and only needed when more than one venue could answer. Routing picks the single venue that can fill the order, narrows a sell to the venues actually holding a sellable parcel, and refuses anything else with the candidates named. It never picks one for you, because a real-money order must not depend on a default nobody re-reads. A sell is refused above what is settled and not guarded at the routed venue:
+The `venue:` prefix is optional and only needed when more than one venue could answer. Routing picks the single venue that can fill the order, narrows a sell to the venues actually holding a sellable parcel, and refuses anything else with the candidates named. It never picks one for you, because a real-money order must not depend on a default nobody re-reads. The prefix also decides which instrument the ticker means: `okx:SUI` looks `SUI` up among the markets OKX serves only, so a coin that shares its symbol with a stored stock or fund is read as the coin, even with the crypto segment switched off (a buy is then refused by that segment's zero ceiling, not as an unknown name). `/trade exit` and `/trade cancel` read the prefix the same way, and a staged order is confirmed against the venue it was routed to. A sell is refused above what is settled and not guarded at the routed venue:
 
 - above the settled parcel: `order.sell_unsettled`;
 - above the sellable share, where a resting exit has frozen coins at the exchange: `order.sell_guarded`.
@@ -1893,7 +1893,7 @@ The token is good for **five minutes**, is single-use, and is checked against a 
 
 Quote, drift and caps are re-run at confirm against a fresh quote, so a market that moved while you were reading is refused rather than filled at a price nobody checked. A limit order is held to the live quote and a market order to the quote it was staged at, both within `maximum_price_drift`.
 
-The cash cap counts the buy fee the routed venue's `fees` rate bills (a fee taken in the coin you buy adds nothing). On a market order it also adds the same drift again as room for the fill, so a buy sized to all the cash is refused rather than filled at the exchange and then unbookable. A sell is checked again at confirm against the quantity still free.
+The cash cap counts the buy fee the routed venue's `fees` rate bills (a fee taken in the coin you buy adds nothing). On a market order it also adds the same drift again as room for the fill, so a buy sized to all the cash is refused rather than filled at the exchange and then unbookable. The cash it measures is the cash the ledger would spend: a buy in a currency the venue holds as its own cash (see "Foreign cash at a venue") is covered by that cash alone, and a buy in the book's currency by the venue's book-currency cash, without its foreign cash. The refusal states the cash and the need in the currency that was measured: the order's own for the first, the book's for the second. A sell is checked again at confirm against the quantity still free.
 
 To remove a resting take-profit/stop-loss:
 

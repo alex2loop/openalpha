@@ -30,7 +30,12 @@ export {
   resolveModelHost,
 } from '@/ai/catalog'
 export { classifyModel } from '@/ai/classify'
-export { type CreateClientInput, createClient, missingKeyErrors } from '@/ai/client'
+export {
+  type CreateClientInput,
+  createClient,
+  missingKeyErrors,
+  withoutBorrowedKey,
+} from '@/ai/client'
 export { withClientModelJob } from '@/ai/client-model/job-context'
 export { cacheRatesOf, OPENROUTER_PROVIDER } from '@/ai/cost/pricing'
 export { listPricingHosts, loadOpenRouterToolSupport } from '@/ai/openrouter-feed'

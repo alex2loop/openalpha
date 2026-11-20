@@ -1,12 +1,25 @@
 import type { AssistantMessage, ContentBlock, LLMMessage } from '@/core/llm'
-import type { HookFn } from '@/engine/types/run'
+import type { AfterToolHook, HookFn, RunState } from '@/engine/types/run'
 import { unwrapToolResult } from '@/core/security/sanitize'
 import { textOf } from '@/core/utils/message'
-import { COMPACT_SUMMARY_PREAMBLE } from '@/engine/constants'
+import { CITE_TRUSTED_URLS_MAX, COMPACT_SUMMARY_PREAMBLE } from '@/engine/constants'
 
 const MD_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi
 const URL_RE = /https?:\/\/[^\s)\]]+(?:\([^)\s]*\))*/gi
 const URL_KEY_NAME_RE = /url$/i
+
+// The `...url` fields of this run's tool results, read as each result was produced: trimming the
+// history before a later call can cut a result into invalid JSON. Keyed on the run's own RunState
+// so it is collected with the run.
+const resultUrls = new WeakMap<RunState, Set<string>>()
+
+export const citeCheckAfterTool: AfterToolHook = async (run, _call, result) => {
+  const urls = resultUrlsFor(run.state)
+
+  if (urls.size < CITE_TRUSTED_URLS_MAX) {
+    addStructuredUrls(result.content, urls)
+  }
+}
 
 export const citeCheckHook: HookFn = async (run) => {
   const history = run.state.messages.history
@@ -22,7 +35,7 @@ export const citeCheckHook: HookFn = async (run) => {
     return
   }
 
-  const trusted = trustedUrls(history)
+  const trusted = trustedUrls(history, run.state)
   let stripped = 0
   const cleaned = replaceLinks(last.content, trusted, (count) => {
     stripped += count
@@ -74,8 +87,8 @@ function replaceMarkdownLinks(
   })
 }
 
-function trustedUrls(history: readonly LLMMessage[]): ReadonlySet<string> {
-  const urls = new Set<string>()
+function trustedUrls(history: readonly LLMMessage[], state: RunState): ReadonlySet<string> {
+  const urls = new Set(resultUrls.get(state))
 
   for (const msg of history) {
     if (msg.role === 'user' && !isCompactionSummary(msg)) {
@@ -86,6 +99,19 @@ function trustedUrls(history: readonly LLMMessage[]): ReadonlySet<string> {
   }
 
   return urls
+}
+
+function resultUrlsFor(state: RunState): Set<string> {
+  const existing = resultUrls.get(state)
+
+  if (existing !== undefined) {
+    return existing
+  }
+
+  const fresh = new Set<string>()
+  resultUrls.set(state, fresh)
+
+  return fresh
 }
 
 // A summary is model prose, and its URLs may have come from a fetched page.

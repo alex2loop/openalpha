@@ -7,6 +7,39 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.9] - 2026-11-20
+
+`/trade okx:SUI` now trades the coin even when a US stock shares the symbol, the order cash check counts USDT held at a venue the way the book does, and a key in `[model_defaults]` no longer reaches another vendor's server.
+> `/trade okx:SUI` giờ đặt lệnh đúng đồng coin kể cả khi trùng ký hiệu với cổ phiếu Mỹ, phần kiểm tra tiền mặt khi đặt lệnh tính USDT đang giữ ở sàn đúng như sổ, và khóa trong `[model_defaults]` không còn bị gửi tới máy chủ của hãng khác.
+
+### Changed
+
+- A key named in `[model_defaults]` is lent to an entry of another provider only when that provider is the same vendor (`openrouter-decisions` beside `openrouter`), whatever variable you named. Vertex and Azure entries now sign in with your cloud account instead of sending the router's key, a server on this machine gets no key, and another hosted provider needs its own `api_key_env`: without one, `doctor` names it and the entry is refused at start, where before its calls failed. A `[model_defaults]` that names no provider still lends its key to every entry.
+- `/portfolio nav` counts a deposit from the start of its day and a withdrawal at its end, so a deposit much larger than the book is no longer read as a return. Your history is recomputed on the next read; a book with no deposit or withdrawal reads as before.
+- Scheduled jobs, heartbeat ticks, workflow steps and a command's hand-off to an agent no longer learn preferences from their prompt, which is stored or composed rather than typed for that run. Saved preferences still shape their replies.
+- `shell_exec` refuses a blocked interpreter or launcher before it asks for your approval, not after.
+- A spawned helper no longer lists `memory_recall`, which could never find anything there.
+- A broken `HEARTBEAT.md` (a link, a pipe, too large or unreadable) is ignored as if missing and warned about once, not on every tick.
+- Web version: `/research`, and research asked for in chat, check the keys of both research models and the search key before any call; a model with no key of its own counts as ready when another model in its chain has one.
+
+### Fixed
+
+- `/trade spot`, `/trade exit` and `/trade cancel` with `okx:` or `binance:` looked the name up among stored stocks first, so a coin sharing a US or VN symbol (SUI, LINK, HDB...) was refused, and a cancel said no exit rested while one did. The venue now picks the market, crypto segment switched off included.
+- The order cash check counted a venue's USDT at its old cost together with its VND, so a USDT buy above the USDT held could pass and then fail to book, or an affordable one be refused. It now uses the cash the book would pay from, and says how short it is in that currency.
+- A take-profit or stop that filled between 19:00 and midnight New York time for a US-based book could fail to book until the next day; it now books at once without asking the exchange again.
+- Cancelling an OKX exit that had already triggered or been cancelled failed instead of closing it.
+- A Binance sell charged partly in the coin sold (BNB) booked too few coins as sold.
+- `/portfolio nav` could turn negative for good after a large same-day deposit followed by a loss.
+- A long chat trimmed a large tool result one step late, and a link the answer took from a trimmed result could be stripped as unverified. Results are now trimmed before every model call and their links still count.
+- Compacting a long run now gives the summary a shortened copy of older tool results instead of none, so facts they established are kept.
+- `/schedule run` cancelled from Telegram or the office page now stops the job.
+- One office page tab closing no longer stops a reply another tab started on the same conversation.
+- In a Telegram group, a photo or file whose caption mentions the bot is now answered.
+- A delegated helper that ended without acting reported an approval timeout; it now reports a failed run with the reason.
+- Web version: the "Change budget" button, which opened the model settings, is gone (the daily cap is fixed there), and a finished `/research` no longer makes a request that fails.
+- `plugin update` on a built-in plugin names the right reason.
+- Hardening: `HEARTBEAT.md` is opened without following a link and without waiting on a pipe.
+
 ## [1.8.8] - 2026-11-20
 
 Editing a trade in another currency keeps the rate you paid, a book holding only cash shows its value and plan on the office page, and a fund's review level no longer shrinks suggested buys.
@@ -1102,6 +1135,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.9
 [1.8.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.7
 [1.8.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.6
 [1.8.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.2

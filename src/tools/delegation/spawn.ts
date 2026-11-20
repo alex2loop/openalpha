@@ -42,7 +42,6 @@ const SPAWN_START_MESSAGE = 'Begin the brief now and report back.'
 const SPAWN_TOOL_NAMES: ReadonlySet<string> = new Set([
   'web_search',
   'web_fetch',
-  'memory_recall',
   'market_price',
   'market_bars',
   'market_overview',
@@ -137,7 +136,7 @@ interface SpawnedChild {
 export const spawnTool = createTool({
   name: SPAWN_TOOL_NAME,
   description:
-    "Start short-lived child agents that only read (web, market and news reads, memory) and report back. Use it when a question splits into independent reads, such as one company's dividends and its quarterly accounts; never for a single lookup. Send goal for one child, or items for one child per part, and put what they need in context. Send output_schema, a JSON Schema, to get each answer back as checked JSON. Each result is done, partial (cut off: what it had read so far) or failed. Code enforces how many may work at once, depth, quota, budget and time; stopping this run stops every child.",
+    "Start short-lived child agents that only read (web, market and news reads) and report back. Use it when a question splits into independent reads, such as one company's dividends and its quarterly accounts; never for a single lookup. Send goal for one child, or items for one child per part, and put what they need in context. Send output_schema, a JSON Schema, to get each answer back as checked JSON. Each result is done, partial (cut off: what it had read so far) or failed. Code enforces how many may work at once, depth, quota, budget and time; stopping this run stops every child.",
   inputSchema: spawnInput,
   capability: 'delegate',
   presentation: { label: 'Spawn child agents', emoji: '🧩', detailKeys: ['role'] },

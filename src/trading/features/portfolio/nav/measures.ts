@@ -1,7 +1,9 @@
 import type { NavPoint, NavSnapshot } from '@/trading/features/portfolio/nav/types'
 
-/** Time-weighted: a deposit or withdrawal moves NAV without being a gain, so it comes out of the
- *  day it lands on. A period that starts at or below zero has no return to chain. */
+/** Time-weighted: a deposit or withdrawal moves NAV without being a gain. A deposit works from the
+ *  start of its day and a withdrawal leaves at its end, so the day's step never turns negative and a
+ *  large deposit is not read as a return on the smaller book before it. A day that starts with
+ *  nothing invested holds the index. */
 export function toNavIndex(snapshots: readonly NavSnapshot[]): readonly NavPoint[] {
   const points: NavPoint[] = []
 
@@ -15,7 +17,10 @@ export function toNavIndex(snapshots: readonly NavSnapshot[]): readonly NavPoint
     }
 
     const flow = snapshot.netDepositsBase - prior.netDepositsBase
-    const step = prior.navBase > 0 ? (snapshot.navBase - flow) / prior.navBase : 1
+    const invested = prior.navBase + Math.max(flow, 0)
+    // A book emptied by a loss can fold to float dust just under zero; it ended at nothing.
+    const ended = Math.max(snapshot.navBase - Math.min(flow, 0), 0)
+    const step = invested > 0 ? ended / invested : 1
 
     points.push({ day: snapshot.day, navBase: snapshot.navBase, index: previous.index * step })
   }

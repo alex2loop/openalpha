@@ -11,12 +11,11 @@ import { formatCost } from '@/web/text/cost'
 import { formatRunName } from '@/web/text/run-name'
 import { formatClock } from '@/web/text/time'
 import { toFailureText, tr } from '@/web/text/tr'
-import { openCostDialog } from '@/web/ui/cost/cost-dialog'
+import { ChangeBudgetButton, openCostDialog } from '@/web/ui/cost/cost-dialog'
 import { formatSpent } from '@/web/ui/cost/spent'
 import { Button } from '@/web/ui/kit/button'
 import { Popover } from '@/web/ui/kit/popover'
 import { type LoadState, useLoad } from '@/web/ui/kit/use-load'
-import { openSettings } from '@/web/ui/settings/settings'
 
 import './cost.css'
 
@@ -79,9 +78,7 @@ function CostBody() {
             {tr('ui.office.cost.note', { percent: Math.round(view.caps.warnRatio * PERCENT) })}
           </p>
         )}
-        <Button size="small" onClick={() => openSettings('agents')}>
-          {tr('ui.office.cost.change')}
-        </Button>
+        <ChangeBudgetButton size="small" />
       </div>
     </>
   )

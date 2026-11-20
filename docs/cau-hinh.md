@@ -231,10 +231,15 @@ thắng. Nó nhận `provider`, `api_key_env`, `base_url`, `reasoning`, `max_tok
 `reasoning_required` và các khóa `cost_*` chỉ đặt theo từng mục.
 
 Mục nào ghi `provider` khác thì không nhận `base_url` và các khóa `provider_*`, vì chúng thuộc về nhà
-cung cấp của `[model_defaults]`. Mục đó vẫn nhận `api_key_env`, nhưng biến chưa đặt thì không phải lỗi:
-server chạy trên máy này không cần khóa, còn một endpoint khác của cùng nhà cung cấp
-(`openrouter-decisions` cạnh `openrouter`) dùng được luôn khóa của router. Nhà cung cấp hosted khác
-thì hãy ghi `api_key_env` riêng. `reasoning`, `max_tokens` và hai mốc hết giờ vẫn được thừa hưởng.
+cung cấp của `[model_defaults]`. Mục đó chỉ nhận `api_key_env` khi nhà cung cấp của nó cùng hãng với
+nhà cung cấp của `[model_defaults]`: `openrouter-decisions` cạnh `openrouter` dùng được luôn khóa của
+router, dù bạn đặt tên biến là gì. `[model_defaults]` không nêu nhà cung cấp nào thì cho mọi mục dùng
+khóa của nó. Với mọi nhà cung cấp khác, khóa thừa hưởng bị bỏ và mục được coi như không ghi khóa nào, nên nó
+không bao giờ tới nhà cung cấp khác, `base_url` tự đặt hay server trong mạng LAN. Nhà cung cấp cần khóa
+thì phải ghi `api_key_env` riêng trên mục (thiếu thì mục bị từ chối và `doctor` nêu tên); nhà cung cấp
+đăng nhập bằng tài khoản cloud (`vertex`, `azure-openai`, `azure-openai-responses`) dùng cách đăng nhập
+đó; server chạy trên máy này (`base_url` loopback, như Ollama hay LM Studio) không cần khóa. `reasoning`,
+`max_tokens` và hai mốc hết giờ vẫn được thừa hưởng.
 
 ### Agent `model_tier` (chỉ trong agent.toml)
 

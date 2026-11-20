@@ -2,14 +2,8 @@ import type { ProgressMessage } from '@/core/stream-events'
 import type { ToolCall, ToolResult } from '@/core/tool'
 import type { RunResultReason } from '@/core/types/run'
 import type { SessionQueue } from '@/core/types/session'
-import type {
-  McpToolInvocation,
-  McpToolInvoker,
-  RunIdentity,
-  RunOptions,
-  RunView,
-  ToolExecutionObserver,
-} from '@/engine/types/run'
+import type { McpToolInvocation, McpToolInvoker } from '@/engine/types/mcp'
+import type { RunIdentity, RunOptions, RunView, ToolExecutionObserver } from '@/engine/types/run'
 import type { RunOnceDeps } from '@/engine/types/run-deps'
 import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { RunHalted, ToolError } from '@/core/errors'

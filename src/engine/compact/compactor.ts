@@ -3,11 +3,15 @@ import type { SummarizerFn } from '@/engine/compact/summarizer'
 import type { Compactor, RunView } from '@/engine/types/run'
 import { LLMError, RunHalted } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { truncateUtf8HeadTail } from '@/core/utils/text'
 import { applyRepairSequence, groupMessages } from '@/engine/compact/message-repair'
 import {
   COMPACT_ELIDED_TOOL_RESULT,
   COMPACT_KEEP_RECENT_GROUPS,
   COMPACT_SUMMARY_PREAMBLE,
+  COMPACT_SUMMARY_TOOL_RESULT_MAX_BYTES,
+  COMPACT_SUMMARY_TOOL_RESULTS_TOTAL_MAX_BYTES,
+  DUPLICATE_TOOL_RESULT_PREFIX,
 } from '@/engine/constants'
 import { estimateTokens } from '@/engine/loop/limits'
 import { compactionRoomTokens } from '@/engine/loop/run-compaction'
@@ -56,7 +60,7 @@ export function createSummarizingCompactor(deps: CompactorDeps): Compactor {
       }
 
       try {
-        run.state.messages.replaceAll(await summarizePath(run, elided, deps))
+        run.state.messages.replaceAll(await summarizePath(run, history, deps))
 
         return
       } catch (err: unknown) {
@@ -116,15 +120,38 @@ async function callSummarizer(
 }
 
 // Thinking blocks are dropped: they are the most expensive part of the input and worthless
-// to a summarizer, and they must round-trip verbatim or not at all.
+// to a summarizer, and they must round-trip verbatim or not at all. A tool result is the fact the
+// summary must keep, so it is shortened, never stubbed, with the room shared across the real ones
+// (a stand-in for a result that is gone carries nothing to share it with).
 function buildSummaryInput(msgs: readonly LLMMessage[]): string {
+  const toolResultCount = msgs.filter(isRealToolResult).length
+  const resultCapBytes = Math.min(
+    COMPACT_SUMMARY_TOOL_RESULT_MAX_BYTES,
+    Math.floor(COMPACT_SUMMARY_TOOL_RESULTS_TOTAL_MAX_BYTES / Math.max(1, toolResultCount))
+  )
+
   return msgs
     .map((msg) => {
-      const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+      const text = bodyOf(msg)
+      const body = isRealToolResult(msg) ? truncateUtf8HeadTail(text, resultCapBytes) : text
 
-      return `[${msg.role}]: ${text}`
+      return `[${msg.role}]: ${body}`
     })
     .join('\n')
+}
+
+function isRealToolResult(msg: LLMMessage): boolean {
+  if (msg.role !== 'tool') {
+    return false
+  }
+
+  const text = bodyOf(msg)
+
+  return text !== COMPACT_ELIDED_TOOL_RESULT && !text.startsWith(DUPLICATE_TOOL_RESULT_PREFIX)
+}
+
+function bodyOf(msg: LLMMessage): string {
+  return typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
 }
 
 // The recent window is the last `keepGroups` assistant/tool groups, so a run driven by one user

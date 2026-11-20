@@ -114,6 +114,7 @@ function toHeartbeatRunOptions(options: {
   const { signal, session, run } = options
   const common: RunOnceOptions = {
     approvalMode: 'unavailable',
+    isPromptGenerated: true,
     parentSignal: signal,
     // The lease is sized from the outer value, so a task may only shorten it.
     maxDurationMs: Math.min(options.maxDurationMs, run?.maxDurationMs ?? options.maxDurationMs),

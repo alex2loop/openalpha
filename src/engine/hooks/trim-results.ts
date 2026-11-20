@@ -1,16 +1,18 @@
 import type { ContentBlock, LLMMessage } from '@/core/llm'
-import type { AfterToolHook } from '@/engine/types/run'
+import type { HookFn } from '@/engine/types/run'
 import { CHARS_PER_TOKEN } from '@/core/stream-events'
 import { hashString } from '@/core/utils/hash'
+import { truncateUtf8HeadTail } from '@/core/utils/text'
+import { DUPLICATE_TOOL_RESULT_PREFIX } from '@/engine/constants'
 
 const TOOL_TRIM_RATIO = 0.075
 const DEDUP_MIN_BYTES = 200
 const TOOL_ARGS_TRIM_BYTES = 500
-const TRUNCATE_MARKER = '...[truncated]'
 
-// afterTool: keep the live history from bloating on tool output. Three passes, cheapest first, and
-// the whole history is only rewritten when something actually changed.
-export const trimResultsHook: AfterToolHook = async (run) => {
+// beforeLLM: keep the prompt from bloating on tool output. Runs once the turn's tool results are in
+// the history, so the newest ones are trimmed before the next request. Three passes, cheapest first,
+// and the whole history is only rewritten when something actually changed.
+export const trimResultsHook: HookFn = async (run) => {
   const history = run.state.messages.history
 
   if (history.length === 0) {
@@ -28,10 +30,11 @@ function fastTrim(
   msgs: readonly LLMMessage[],
   contextWindow: number
 ): readonly LLMMessage[] | undefined {
-  // contextWindow is a token count; the cap below is a character length, so convert with the same
-  // ratio the estimator uses (engine/loop/limits.ts) rather than applying token units as characters.
-  const capChars = Math.floor(contextWindow * TOOL_TRIM_RATIO * CHARS_PER_TOKEN)
-  const capped = capToolResults(msgs, capChars)
+  // contextWindow is a token count; the cap below is a byte length, so convert with the ratio the
+  // estimator uses (engine/loop/limits.ts, one byte per character for plain text) rather than
+  // applying token units as bytes.
+  const capBytes = Math.floor(contextWindow * TOOL_TRIM_RATIO * CHARS_PER_TOKEN)
+  const capped = capToolResults(msgs, capBytes)
   const deduped = dedupByContentHash(capped.msgs)
   const shrunk = truncateOversizeArgs(deduped.msgs)
 
@@ -47,27 +50,26 @@ interface TrimPass {
   readonly changed: boolean
 }
 
-function capToolResults(msgs: readonly LLMMessage[], cap: number): TrimPass {
+function capToolResults(msgs: readonly LLMMessage[], capBytes: number): TrimPass {
   let changed = false
 
   const out = msgs.map((msg) => {
-    if (msg.role !== 'tool' || typeof msg.content !== 'string' || msg.content.length <= cap) {
+    if (msg.role !== 'tool' || typeof msg.content !== 'string') {
+      return msg
+    }
+
+    const content = truncateUtf8HeadTail(msg.content, capBytes)
+
+    if (content === msg.content) {
       return msg
     }
 
     changed = true
 
-    return { ...msg, content: capContent(msg.content, cap) }
+    return { ...msg, content }
   })
 
   return { msgs: out, changed }
-}
-
-// Head+tail window: a truncated result usually carries its signal at both ends, not the middle.
-function capContent(content: string, cap: number): string {
-  const half = Math.floor((cap - TRUNCATE_MARKER.length) / 2)
-
-  return `${content.slice(0, half)}${TRUNCATE_MARKER}${content.slice(-half)}`
 }
 
 // A tool re-called with the same args returns the same bytes; keep one copy and point at it.
@@ -92,7 +94,7 @@ function dedupByContentHash(msgs: readonly LLMMessage[]): TrimPass {
     if (previous !== undefined) {
       changed = true
 
-      return { ...msg, content: `[duplicate of toolcall_${previous}]` }
+      return { ...msg, content: `${DUPLICATE_TOOL_RESULT_PREFIX}toolcall_${previous}]` }
     }
 
     seen.set(hash, msg.toolCallId ?? 'unknown')

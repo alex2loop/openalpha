@@ -19,6 +19,9 @@ export interface ResolvedModel {
   readonly apiKey?: string
   /** The variable the key is read from, set or not. */
   readonly apiKeyEnv?: string
+  /** The `[model_defaults]` provider the key variable came from, when the entry names another one;
+   *  the client keeps the key only for a provider of the same vendor. */
+  readonly apiKeyLender?: string
   /** Set only by a deferred resolve: the chain refuses the call instead of the boot. */
   readonly missingEnv?: string
   readonly baseUrl?: string
@@ -57,7 +60,6 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
   const { entry, defaults, path } = input
   const provider = entry.provider ?? defaults?.provider
   const connection = connectionDefaults(entry, defaults)
-  const apiKeyEnv = entry.api_key_env ?? defaults?.api_key_env
   const baseUrl = entry.base_url ?? connection?.base_url
 
   if (provider === undefined) {
@@ -67,11 +69,6 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
       { path: [...path, 'provider'] }
     )
   }
-
-  const envKey = apiKeyEnv === undefined ? undefined : input.env[apiKeyEnv]
-  const apiKey = envKey === '' ? undefined : envKey
-  const missingEnv =
-    apiKey === undefined ? missingEnvOf(input, `model ${provider}/${entry.model}`) : undefined
 
   const selector = entry.alias ?? `${provider}${MODEL_SELECTOR_SEPARATOR}${entry.model}`
   const out: MutableModel = {
@@ -85,17 +82,7 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
     out.baseUrl = baseUrl
   }
 
-  if (apiKeyEnv !== undefined) {
-    out.apiKeyEnv = apiKeyEnv
-  }
-
-  if (missingEnv !== undefined) {
-    out.missingEnv = missingEnv
-  }
-
-  if (apiKey !== undefined) {
-    out.apiKey = apiKey
-  }
+  applyKey(out, input)
 
   if (entry.reasoning_required === true) {
     out.reasoningRequired = true
@@ -112,17 +99,46 @@ export function resolveModel(input: ResolveModelInput): ResolvedModel {
   return out
 }
 
+/** The key variable and what it holds, or the unset variable when the resolve defers it. */
+function applyKey(out: MutableModel, input: ResolveModelInput): void {
+  const { entry, defaults } = input
+  const apiKeyEnv = entry.api_key_env ?? defaults?.api_key_env
+
+  if (apiKeyEnv === undefined) {
+    return
+  }
+
+  const apiKey = input.env[apiKeyEnv]
+
+  out.apiKeyEnv = apiKeyEnv
+
+  const lender = keyLenderOf(entry, defaults)
+
+  if (lender !== undefined) {
+    out.apiKeyLender = lender
+  }
+
+  if (apiKey === undefined || apiKey === '') {
+    const missingEnv = missingEnvOf(input, apiKeyEnv, `model ${out.provider}/${out.model}`)
+
+    if (missingEnv !== undefined) {
+      out.missingEnv = missingEnv
+    }
+
+    return
+  }
+
+  out.apiKey = apiKey
+}
+
 /** The key variable an entry names but the environment leaves unset: thrown, or kept on the entry
  *  when the resolve defers it. */
-function missingEnvOf(input: ResolveModelInput, owner: string): string | undefined {
-  const { entry, defaults, path } = input
-  const apiKeyEnv = entry.api_key_env ?? defaults?.api_key_env
-  // A key borrowed from another provider's defaults is never required here: a local server needs
-  // none. A deferred resolve keeps it, and the client asks whether that provider needs it.
-  const borrowed =
-    entry.api_key_env === undefined && connectionDefaults(entry, defaults) === undefined
-
-  if (apiKeyEnv === undefined || input.apiKeyOptional === true) {
+function missingEnvOf(
+  input: ResolveModelInput,
+  apiKeyEnv: string,
+  owner: string
+): string | undefined {
+  if (input.apiKeyOptional === true) {
     return undefined
   }
 
@@ -130,11 +146,31 @@ function missingEnvOf(input: ResolveModelInput, owner: string): string | undefin
     return apiKeyEnv
   }
 
-  if (borrowed) {
+  // An inherited key is never required here: a server on this machine needs none, and the client
+  // asks whether the entry's provider does.
+  if (isInheritedKey(input.entry, input.defaults)) {
     return undefined
   }
 
-  throw new MissingEnvError(apiKeyEnv, owner, { path: [...path, 'api_key_env'], effect: 'model' })
+  throw new MissingEnvError(apiKeyEnv, owner, {
+    path: [...input.path, 'api_key_env'],
+    effect: 'model',
+  })
+}
+
+/** The `[model_defaults]` provider whose key an entry inherits; none when the defaults name no
+ *  provider, whose key is then every entry's. */
+function keyLenderOf(entry: RawModel, defaults: RawModelDefaults | undefined): string | undefined {
+  return isInheritedKey(entry, defaults) ? defaults?.provider : undefined
+}
+
+/** The entry names no key of its own and a provider the defaults do not name. */
+function isInheritedKey(entry: RawModel, defaults: RawModelDefaults | undefined): boolean {
+  return (
+    entry.api_key_env === undefined &&
+    entry.provider !== undefined &&
+    entry.provider !== defaults?.provider
+  )
 }
 
 /** The address and router preferences in `[model_defaults]` belong to its provider, so an entry

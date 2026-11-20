@@ -58,6 +58,7 @@ const telegramMessageSchema = z.object({
   text: z.string().optional(),
   caption: z.string().optional(),
   entities: z.array(telegramEntitySchema).optional(),
+  caption_entities: z.array(telegramEntitySchema).optional(),
   reply_to_message: z
     .object({
       message_id: z.number(),
@@ -230,7 +231,10 @@ function isAddressedToBot(
     return true
   }
 
-  return (m.entities ?? []).some((entity) => {
+  // Entity offsets index the field they came with: `text` when present, else the caption.
+  const entities = m.text === undefined ? m.caption_entities : m.entities
+
+  return (entities ?? []).some((entity) => {
     if (entity.type === MENTION_ENTITY_TYPE) {
       const handle = `@${identity.username?.toLowerCase() ?? ''}`
 

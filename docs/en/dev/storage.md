@@ -229,6 +229,13 @@ cannot run under the new route.
   `message-repair.ts` keeps each tool call with its result, drops orphans, de-duplicates by call
   id, and checks integrity before the next provider request. `engine/loop/run-compaction.ts` wires
   it into the run.
+- A pass first replaces tool results older than the last 10 assistant/tool groups with a stub and
+  stops there when the transcript then fits. Otherwise the older messages are summarized, with each
+  of those tool results shortened to a head+tail window (`COMPACT_SUMMARY_TOOL_RESULT_MAX_BYTES`
+  each, `COMPACT_SUMMARY_TOOL_RESULTS_TOTAL_MAX_BYTES` together, shared among the real results only,
+  not the stand-ins of an earlier pass) instead of stubbed, so the facts they established reach the
+  summary. A summary that fails for a reason other than the provider leaves
+  the stubbed transcript.
 - Summary calls are budgeted, priced and recorded as `compaction` attempts. A provider error inserts
   a truncation marker. A pass that leaves the transcript no smaller halts with `length_limit`.
 - `engine/loop/todo.ts` keeps the run's copy of the `todo_write` list outside the transcript and

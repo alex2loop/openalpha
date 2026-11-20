@@ -308,7 +308,9 @@ async function mirrorFill(
     return undefined
   }
 
-  await deps.portfolio.record({ ...booked, now, signal })
+  // The figures are the venue's own: asking it again would re-fetch this fill and replace the
+  // clamped fill day above with the market's unclamped one.
+  await deps.portfolio.record({ ...booked, fillSource: 'venue', now, signal })
 
   return booked
 }

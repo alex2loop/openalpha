@@ -1,6 +1,6 @@
 import type { MissingEnvError } from '@/core/config/operator-errors'
 import type { DegradedItem } from '@/core/container'
-import { missingKeyErrors } from '@/ai/api'
+import { missingKeyErrors, withoutBorrowedKey } from '@/ai/api'
 import { BRAND } from '@/core/brand'
 import { type ResolvedConfig, toMissingSearchKeyError } from '@/core/config/resolve'
 import { missingCredentials } from '@/core/security/credentials'
@@ -98,7 +98,9 @@ export function keyEnvGroups(
   config: ResolvedConfig
 ): Readonly<Record<KeyEnvGroup, readonly KeyEnvName[]>> {
   const trading = resolveTradingConfig({ extensions: config.extensions, locale: config.locale })
-  const models = [...config.models, ...Object.values(config.modelTiers).flat()]
+  const models = [...config.models, ...Object.values(config.modelTiers).flat()].map(
+    withoutBorrowedKey
+  )
   const { webSearch } = config
 
   return {

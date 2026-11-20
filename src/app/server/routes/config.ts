@@ -9,6 +9,7 @@ import type {
 } from '@/app/server/wire/config'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { FieldValidationError } from '@/core/field-errors'
+import { withoutBorrowedKey } from '@/ai/api'
 import { validateBootConfigTree } from '@/app/config-tree'
 import { buildProviderCatalog } from '@/app/server/cli/catalog'
 import { isApiExposed } from '@/app/server/exposure'
@@ -229,7 +230,7 @@ async function handleProviderTest(req: Request, ctx: ApiRouteContext): Promise<R
 
   assertSavedModel(await readJsonBody(req), {
     base_url: primary.baseUrl,
-    api_key_env: primary.apiKeyEnv,
+    api_key_env: withoutBorrowedKey(primary).apiKeyEnv,
   })
 
   const providerModel = { provider: primary.provider, model: primary.model }

@@ -67,7 +67,7 @@ export function createPortfolioReader(
         advice: advised.advice,
         regimes: advised.regimes,
         rateToBase,
-        reachableCashBase: reachableCashByMarket(deps.venues, book.book),
+        reachableCashBase: reachableCashByMarket(deps.venues, deps.markets, book.book),
         heldMarkets,
       }
     },

@@ -351,7 +351,10 @@ tasks:
 | `duplicate_window` | no | Suppress repeat notifications within this window, `1m` to `30d` |
 
 A file is capped at 65,536 bytes and 20 tasks. A `session` or `duplicate_window` line with an empty
-or invalid value **drops the task** rather than silently using a default.
+or invalid value **drops the task** rather than silently using a default. `HEARTBEAT.md` must be a
+regular file: a symlink, any other kind of file, one over the cap or one that cannot be read is
+ignored as if missing. One warning is logged until the problem changes or is fixed, and once more
+after a restart.
 
 ### What a run can do
 

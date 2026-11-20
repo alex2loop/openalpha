@@ -337,7 +337,7 @@ function buildAdvice(input: {
       ...(deps.rebalanceForm === undefined ? {} : { form: deps.rebalanceForm }),
       standingReduces: input.standingReduces,
       regimes: input.regimes,
-      reachableCashBase: reachableCashByMarket(deps.venues, valued.book),
+      reachableCashBase: reachableCashByMarket(deps.venues, deps.markets, valued.book),
       // No drift: a plan spends the expected fill; the order cap allows for the worst.
       buyCashMultiple: (market) => cashDrawMultiple(marketTradeCost(deps.config, market), 0),
     }),

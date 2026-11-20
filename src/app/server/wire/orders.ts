@@ -82,8 +82,8 @@ export interface CapRejectionWire {
   readonly limit: number
   readonly actual: number
   readonly venue?: string
-  /** What `limit` and `actual` are counted in: the market's currency for `stake`, the book's for
-   *  `cash`; absent on a count. */
+  /** What `limit` and `actual` are counted in: the market's currency for `stake`; for `cash` the
+   *  order's currency when the venue holds cash in it, else the book's; absent on a count. */
   readonly currency?: string
 }
 

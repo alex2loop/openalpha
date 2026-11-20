@@ -93,6 +93,7 @@ export type {
   UnrecordedSpend,
   UnrecordedSpendLoad,
 } from '@/engine/types/cost'
+export type { McpToolInvocation, McpToolInvoker } from '@/engine/types/mcp'
 export type {
   AfterLLMHook,
   AfterRunHook,
@@ -102,8 +103,6 @@ export type {
   HookFn,
   Hooks,
   LLMRequestModifier,
-  McpToolInvocation,
-  McpToolInvoker,
   ParentLink,
   PreparedToolCall,
   ResolvedRunLimits,
@@ -208,6 +207,8 @@ export { buildHostSkill } from '@/engine/mcp/skill'
 export { toAgentResearchResult } from '@/engine/research/agent-result'
 export {
   RESEARCH_CRAWLER_ID,
+  RESEARCH_HEAVY_MODEL_TIER,
+  RESEARCH_MODEL_TIER,
   RESEARCH_PLANNER_ID,
   RESEARCH_QUERY_MAX_CHARS,
 } from '@/engine/research/contracts'

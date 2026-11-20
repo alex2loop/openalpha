@@ -37,9 +37,10 @@ export function createClient(input: CreateClientInput): ProviderChain {
     )
   }
 
+  const models = input.models.map(withoutBorrowedKey)
   // An entry whose key is unset steps aside; with none left, every call names the variable to set.
-  const keyed = input.models.filter((model) => !isUnkeyed(model))
-  const [first] = input.models
+  const keyed = models.filter((model) => !isUnkeyed(model))
+  const [first] = models
 
   if (keyed.length === 0 && first !== undefined && isUnkeyed(first)) {
     return createUnkeyedChain(toMissingKeyError(first, input.configPath, 'model'))
@@ -78,10 +79,11 @@ export function missingKeyErrors(
   ]
 
   for (const chain of chains) {
-    const answers = chain.models.some((model) => !isUnkeyed(model))
+    const models = chain.models.map(withoutBorrowedKey)
+    const answers = models.some((model) => !isUnkeyed(model))
     const effect: KeyEffect = answers ? 'fallback' : 'model'
 
-    for (const [index, model] of chain.models.entries()) {
+    for (const [index, model] of models.entries()) {
       if (isUnkeyed(model) && byEnv.get(model.missingEnv)?.effect !== 'model') {
         byEnv.set(model.missingEnv, toMissingKeyError(model, [...chain.path, index], effect))
       }
@@ -91,9 +93,8 @@ export function missingKeyErrors(
   return [...byEnv.values()]
 }
 
-/** A key borrowed from another provider's defaults is reported unset as well; it only takes the
- *  entry out of the chain where the provider cannot answer without one. An unknown provider stays
- *  in, for `toChainEntry` to refuse by name. */
+/** An unset key only takes the entry out of the chain where the provider cannot answer without
+ *  one. An unknown provider stays in, for `toChainEntry` to refuse by name. */
 function isUnkeyed(model: ResolvedModel): model is UnkeyedModel {
   if (model.missingEnv === undefined) {
     return false
@@ -184,7 +185,7 @@ function assertSignIn(input: AssertEntryInput): void {
 
   if (model.apiKey === undefined && requiresApiKey(provider, baseUrl)) {
     throw new OperatorConfigError(
-      `model ${name}: api_key_env is required (on the entry or in [model_defaults])`,
+      `model ${name}: api_key_env is required (on the entry, or in [model_defaults] naming no other provider)`,
       { key: 'errors.configModelKeyEnvMissing', params: { model: name } },
       { path: [...configPath, 'api_key_env'] }
     )
@@ -209,33 +210,12 @@ function catalogProvider(
 }
 
 function toChainEntry(input: ChainEntryInput): ChainEntry {
-  const { model, logger, configPath } = input
-  const provider = catalogProvider(model, configPath)
+  const { logger, configPath } = input
+  const provider = catalogProvider(input.model, configPath)
+  const model = input.model
   const baseUrl = model.baseUrl ?? provider.baseUrl
 
-  if (baseUrl === '') {
-    throw new OperatorConfigError(
-      `model ${model.provider}/${model.model}: provider has no default endpoint — set [[models]] base_url`,
-      {
-        key: 'errors.configModelBaseUrlMissing',
-        params: { model: `${model.provider}/${model.model}` },
-      },
-      { path: [...configPath, 'base_url'] }
-    )
-  }
-
-  // At request time `new URL` throws a raw TypeError, which is not an LLMError and so escapes the
-  // chain's fallback classification entirely.
-  if (!URL.canParse(baseUrl)) {
-    throw new OperatorConfigError(
-      `model ${model.provider}/${model.model}: base_url '${baseUrl}' is not a valid URL`,
-      {
-        key: 'errors.configModelBaseUrlInvalid',
-        params: { model: `${model.provider}/${model.model}`, url: baseUrl },
-      },
-      { path: [...configPath, 'base_url'] }
-    )
-  }
+  assertBaseUrl(model, baseUrl, configPath)
 
   // A key the operator set wins over a cloud sign-in for the same provider.
   const credentials =
@@ -267,6 +247,66 @@ function toChainEntry(input: ChainEntryInput): ChainEntry {
       ? {}
       : { streamIdleTimeoutMs: model.streamIdleTimeoutMs }),
   }
+}
+
+function assertBaseUrl(
+  model: ResolvedModel,
+  baseUrl: string,
+  configPath: readonly (string | number)[]
+): void {
+  if (baseUrl === '') {
+    throw new OperatorConfigError(
+      `model ${model.provider}/${model.model}: provider has no default endpoint — set [[models]] base_url`,
+      {
+        key: 'errors.configModelBaseUrlMissing',
+        params: { model: `${model.provider}/${model.model}` },
+      },
+      { path: [...configPath, 'base_url'] }
+    )
+  }
+
+  // At request time `new URL` throws a raw TypeError, which is not an LLMError and so escapes the
+  // chain's fallback classification entirely.
+  if (!URL.canParse(baseUrl)) {
+    throw new OperatorConfigError(
+      `model ${model.provider}/${model.model}: base_url '${baseUrl}' is not a valid URL`,
+      {
+        key: 'errors.configModelBaseUrlInvalid',
+        params: { model: `${model.provider}/${model.model}`, url: baseUrl },
+      },
+      { path: [...configPath, 'base_url'] }
+    )
+  }
+}
+
+/** A key borrowed from another provider's `[model_defaults]` stays only with a provider of the same
+ *  vendor, one whose catalog reads the lender's key (`openrouter-decisions` beside `openrouter`),
+ *  whatever variable the operator named. Anywhere else the entry is read as naming no key, so the
+ *  borrowed one reaches no other vendor, host or sign-in. */
+export function withoutBorrowedKey(model: ResolvedModel): ResolvedModel {
+  if (model.apiKeyLender === undefined || isSameKeyVendor(model.provider, model.apiKeyLender)) {
+    return model
+  }
+
+  const {
+    apiKey: _key,
+    apiKeyEnv: _env,
+    missingEnv: _missing,
+    apiKeyLender: _lender,
+    ...own
+  } = model
+
+  return own
+}
+
+function isSameKeyVendor(provider: string, lender: string): boolean {
+  const catalogKey = findProviderById(provider)?.apiKeyEnv
+
+  return (
+    catalogKey !== undefined &&
+    catalogKey !== '' &&
+    catalogKey === findProviderById(lender)?.apiKeyEnv
+  )
 }
 
 function createUnkeyedChain(error: MissingEnvError): ProviderChain {

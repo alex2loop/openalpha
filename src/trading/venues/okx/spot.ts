@@ -344,6 +344,7 @@ async function cancelAlgo(deps: OkxTransportDeps, input: CancelExitInput): Promi
     path: CANCEL_ALGO_PATH,
     body: [{ instId: input.symbol, algoId: input.exitId }],
     signal: input.signal,
+    acceptedCodes: CANCEL_SETTLED_CODES,
   })
 }
 

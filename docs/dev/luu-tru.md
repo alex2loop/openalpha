@@ -224,6 +224,13 @@ nhắn nhận cho cuộc trò chuyện cũ không chạy nhầm dưới tuyến 
   `message-repair.ts` giữ mỗi lời gọi công cụ cùng kết quả của nó, bỏ mồ côi, loại trùng theo mã lời
   gọi, và kiểm tính toàn vẹn trước lần gọi nhà cung cấp kế tiếp. `engine/loop/run-compaction.ts` nối
   nó vào phiên chạy.
+- Một lần nén trước hết thay các kết quả công cụ cũ hơn 10 nhóm assistant/tool gần nhất bằng một dòng
+  thay thế và dừng ở đó nếu bản ghi đã vừa. Nếu chưa, các tin nhắn cũ được tóm tắt, với mỗi kết quả công
+  cụ đó được rút còn phần đầu và phần cuối (`COMPACT_SUMMARY_TOOL_RESULT_MAX_BYTES` mỗi kết quả,
+  `COMPACT_SUMMARY_TOOL_RESULTS_TOTAL_MAX_BYTES` tổng cộng, chia chỉ cho các kết quả thật, không tính
+  các dòng thay thế của lần nén trước) thay vì bị thay thế, để các dữ kiện chúng đã xác lập đi vào bản
+  tóm tắt. Một lần tóm tắt lỗi vì lý do khác ngoài nhà cung cấp sẽ để lại bản ghi đã thay
+  thế.
 - Các lời gọi tóm tắt có ngân sách, được tính giá và ghi như lần thử `compaction`. Lỗi nhà cung cấp thì
   chèn một dấu cắt ngắn. Một lần nén không làm bản ghi nhỏ đi thì dừng với `length_limit`.
 - `engine/loop/todo.ts` giữ bản sao danh sách `todo_write` của phiên chạy ngoài bản ghi hội thoại và

@@ -2,18 +2,14 @@ import type { BrowserKeyring } from '@/app/browser/keys'
 import type { BrowserRoot, OpenedRoot } from '@/app/browser/root'
 import type { ApiError } from '@/app/server/wire/errors'
 import type { ClientFrame } from '@/app/server/wire/socket'
-import type {
-  BrowserAiProvider,
-  DbOpenOutcome,
-  WorkerCall,
-  WorkerReply,
-} from '@/app/server/wire/worker'
+import type { DbOpenOutcome, WorkerCall, WorkerReply } from '@/app/server/wire/worker'
 import type { FrameSink } from '@/app/server/ws/frame-sink'
+import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import { type DbFileVerdict, toDbFileVerdict } from '@/app/browser/db-file'
-import { hasAiKey, hasSearchKey, readModelProvider, renderProviderName } from '@/app/browser/keys'
-import { renderSearchKeyNeeded } from '@/app/browser/research-gate'
+import { findMissingKeyProvider } from '@/app/browser/keys'
+import { renderModelKeyNeeded, researchRefusalOf } from '@/app/browser/research-gate'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
@@ -22,7 +18,6 @@ import { handleChatFrame } from '@/app/server/ws/frames'
 import { toLaneTag } from '@/app/server/ws/runs'
 import { commandHeadOf, RESEARCH_COMMAND } from '@/commands/api'
 import { formatErrForLog } from '@/core/security/credentials'
-import { bindLocale } from '@/i18n'
 import { StorageFullError } from '@/persistence/api'
 
 /** A request reaches the same route table the daemon serves; only the host of its URL is made up. */
@@ -388,7 +383,7 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
   const sink = createSink(ctx)
 
   if (frame.type === 'chat' || frame.type === 'steer') {
-    const refusal = keyRefusalOf(ctx, frame.message, readModelProvider(root.app.config))
+    const refusal = keyRefusalOf(ctx, frame.message, root.app.config)
 
     if (refusal !== undefined) {
       sink.send({
@@ -407,30 +402,26 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
 }
 
 // A line that calls the model with no key would fail, and `/research` with no search key would
-// plan a run whose every search comes back empty, so each is answered here, before any call.
+// plan a run whose every search comes back empty, so each is answered here, before any call. Other
+// commands read local data.
 function keyRefusalOf(
   ctx: BridgeContext,
   message: string,
-  provider: BrowserAiProvider
+  config: ResolvedConfig
 ): string | undefined {
-  const env = ctx.keyring.env()
+  const { keyring, state } = ctx
 
-  if (callsModel(message) && !hasAiKey(env, provider)) {
-    return bindLocale(ctx.state.locale).translate('errors.browserChatNeedsKey', {
-      provider: renderProviderName(ctx.state.locale, provider),
-    })
+  if (isResearchLine(message)) {
+    return researchRefusalOf(keyring, config, state.locale)
   }
 
-  return isResearchLine(message) && !hasSearchKey(env)
-    ? renderSearchKeyNeeded(ctx.state.locale)
-    : undefined
-}
+  if (message.trim().startsWith('/')) {
+    return undefined
+  }
 
-// Free text and `/research` call the model; every other command reads local data.
-function callsModel(message: string): boolean {
-  const line = message.trim()
+  const missing = findMissingKeyProvider(keyring.env(), config)
 
-  return !line.startsWith('/') || isResearchLine(line)
+  return missing === undefined ? undefined : renderModelKeyNeeded(state.locale, missing)
 }
 
 function isResearchLine(message: string): boolean {

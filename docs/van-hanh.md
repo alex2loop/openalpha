@@ -348,7 +348,10 @@ tasks:
 | `duplicate_window` | không | Chặn thông báo lặp trong cửa sổ này, từ `1m` tới `30d` |
 
 Một tệp tối đa 65.536 byte và 20 tác vụ. Dòng `session` hay `duplicate_window` mà giá trị rỗng hoặc
-không hợp lệ thì **cả tác vụ bị bỏ**, không lặng lẽ quay về mặc định.
+không hợp lệ thì **cả tác vụ bị bỏ**, không lặng lẽ quay về mặc định. `HEARTBEAT.md` phải là tệp thường:
+liên kết mềm, bất kỳ loại tệp nào khác, tệp vượt giới hạn hay tệp không đọc được đều bị bỏ qua như thể
+không có. Chỉ một cảnh báo được ghi vào log cho tới khi lỗi đổi sang loại khác hoặc được sửa, và thêm một
+lần sau mỗi lần khởi động lại.
 
 ### Một phiên chạy làm được gì
 

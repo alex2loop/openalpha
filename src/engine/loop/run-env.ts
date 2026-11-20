@@ -12,6 +12,7 @@ export function optionalEnvFields(
   | 'routingKey'
   | 'title'
   | 'subject'
+  | 'isPromptGenerated'
 > {
   return {
     ...(options.outputContract === undefined ? {} : { outputContract: options.outputContract }),
@@ -28,5 +29,6 @@ export function optionalEnvFields(
     ...(options.routingKey === undefined ? {} : { routingKey: options.routingKey }),
     ...(options.title === undefined ? {} : { title: options.title }),
     ...(options.subject === undefined ? {} : { subject: options.subject }),
+    ...(options.isPromptGenerated === undefined ? {} : { isPromptGenerated: true }),
   }
 }

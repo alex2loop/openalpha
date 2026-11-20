@@ -132,19 +132,31 @@ export function aiKeyVariable(provider: BrowserAiProvider): string {
   return findProviderById(provider)?.apiKeyEnv ?? ''
 }
 
-/** The AI provider a run needs a key for: the first model of `tier` when the visitor set that
- *  tier, else the main model's. */
-export function readModelProvider(
+/** The provider a call on `tiers` has no key for, or undefined when every tier is served; `undefined`
+ *  in `tiers`, or no tiers named, is the main model. A tier is served when some model of its chain holds a key, because
+ *  at call time an unkeyed entry steps aside and the chain falls back (a tier's entries, then the
+ *  main model; a tier the visitor left out is the main chain). The provider named is the first of
+ *  the first unserved chain, the key to ask for. */
+export function findMissingKeyProvider(
+  env: KeyEnv,
   config: Pick<ResolvedConfig, 'models' | 'modelTiers'>,
-  tier?: string
-): BrowserAiProvider {
-  const tierModel = tier === undefined ? undefined : config.modelTiers[tier]?.[0]
-  const named = (tierModel ?? config.models[0])?.provider
+  tiers: readonly (string | undefined)[] = [undefined]
+): BrowserAiProvider | undefined {
+  for (const tier of tiers) {
+    const chain = (tier === undefined ? undefined : config.modelTiers[tier]) ?? config.models
+    const providers = chain.map(({ provider }) =>
+      isAiProvider(provider) ? provider : DEFAULT_AI_PROVIDER
+    )
 
-  return BROWSER_AI_PROVIDERS.find((provider) => provider === named) ?? DEFAULT_AI_PROVIDER
+    if (!providers.some((provider) => hasAiKey(env, provider))) {
+      return providers[0] ?? DEFAULT_AI_PROVIDER
+    }
+  }
+
+  return undefined
 }
 
-export function hasAiKey(env: KeyEnv, provider: BrowserAiProvider): boolean {
+function hasAiKey(env: KeyEnv, provider: BrowserAiProvider): boolean {
   return env[aiKeyVariable(provider)] !== undefined
 }
 
