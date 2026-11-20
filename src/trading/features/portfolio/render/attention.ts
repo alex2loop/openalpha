@@ -43,15 +43,14 @@ function resolveStopState(distance: StopDistance): StopState {
 
 /** What needs acting on today, gathered above the rows. Only a stop already through or nearly so:
  *  a holding with no plan is a standing state its own row states, and naming every one of them here
- *  would restate the whole book under a heading that promises the exception. A fund's level is a
- *  point to review it, not an exit to act on, so no fund is named here. */
+ *  would restate the whole book under a heading that promises the exception. A review level is a
+ *  point to look again, not an exit to act on, so none is named here. */
 export function renderAttentionLines(
   locale: Locale,
-  distances: readonly StopDistance[],
-  isFund: (distance: StopDistance) => boolean
+  distances: readonly StopDistance[]
 ): readonly string[] {
   const urgent = distances
-    .filter((distance) => !isFund(distance))
+    .filter((distance) => !distance.review)
     .map(resolveStopState)
     .filter(isUrgent)
 
@@ -96,8 +95,6 @@ interface RiskSuffixInput {
   /** Who stands behind the stop at the venue. Absent where no venue holding the name could carry one,
    *  or where its stops could not be read, which is not the same claim as none being there. */
   readonly resting: StopCover | undefined
-  /** A fund's level is reviewed, never armed: it reads as a review level and no order is owed. */
-  readonly fund: boolean
   /** The row's own price, which the ladder places between the stop and the take-profit. */
   readonly price: {
     readonly at: number
@@ -120,7 +117,8 @@ export function riskFacts(input: RiskSuffixInput): readonly string[] {
     return []
   }
 
-  return input.fund
+  // A review level arms nothing, so no ladder or resting order is owed.
+  return distance.review
     ? [phrase]
     : [phrase, ...ladderFact(input), ...unplacedFact(locale, state, input.resting)]
 }
@@ -210,6 +208,7 @@ function isPlanned(state: StopState): boolean {
 
 function riskPhrase(input: RiskSuffixInput, state: StopState): string | undefined {
   const { locale } = input
+  const review = input.distance?.review === true
 
   switch (state.kind) {
     // Counted once under the block instead: repeated per row, it buries the rows that do carry a
@@ -219,15 +218,13 @@ function riskPhrase(input: RiskSuffixInput, state: StopState): string | undefine
     case 'breached':
       return t(
         locale,
-        input.fund
-          ? 'trading.render.portfolio.reviewBreached'
-          : 'trading.render.portfolio.stopBreached'
+        review ? 'trading.render.portfolio.reviewBreached' : 'trading.render.portfolio.stopBreached'
       )
     case 'near':
     case 'clear':
       return t(
         locale,
-        input.fund
+        review
           ? 'trading.render.portfolio.reviewDistance'
           : 'trading.render.portfolio.stopDistance',
         { pct: formatFixedFraction(locale, state.pct) }

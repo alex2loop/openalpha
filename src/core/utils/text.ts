@@ -1,4 +1,5 @@
 import { scrubCredentials } from '@/core/security/credentials'
+import { toVisibleText } from '@/core/security/sanitize'
 
 // An OSC payload ends at its terminator or the next ESC and is bounded to 4096 characters, so a
 // page of bare `ESC ]` stays linear.
@@ -27,9 +28,9 @@ const QUERY_TERM_RE = /[\p{L}\p{N}]{3,}/gu
 const CJK_CHAR_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u
 const TRAILING_WS_RE = /[ \t\r]+$/
 const EDGE_BLANKS_RE = /^\n+|\n+$/g
-// Drops C0/C1 control characters (Unicode category Cc) and format controls (category Cf)
-// except newline and tab, which legitimate output may contain.
-const SURFACE_CONTROL_RE = /[\p{Cc}\p{Cf}]/gu
+// C0/C1 control characters (Unicode category Cc), except newline and tab, which legitimate output
+// may contain. Format characters are `toVisibleText`'s.
+const SURFACE_CONTROL_RE = /\p{Cc}/gu
 const CONTROL_OR_SEPARATOR_RE = /[\p{Cc}\u2028\u2029]/gu
 const SLASH_COMMAND_NAME_RE = /^[a-z][a-z0-9]*$/
 const COMBINING_MARK_RE = /[\u0300-\u036f]/g
@@ -37,11 +38,19 @@ const FENCE = '```'
 const FENCE_RUN_RE = /`{3,}/g
 // Every class below leaves out the character that would start the next candidate (`<` or `[`), so
 // a scan from each start stops at the next one and a page of bare `<` or `[` stays linear.
-const ACTIVE_TAGS = ['script', 'style', 'iframe', 'object', 'embed'] as const
+const ACTIVE_TAGS = [
+  'script',
+  'style',
+  'iframe',
+  'object',
+  'embed',
+  'noscript',
+  'template',
+] as const
 const ACTIVE_OPEN_RE = new RegExp(`<(${ACTIVE_TAGS.join('|')})\\b[^<>]*>`, 'gi')
 // Global so `lastIndex` can start the search past the open tag; it is set before every use.
 const ACTIVE_CLOSE_RES: ReadonlyMap<string, RegExp> = new Map(
-  ACTIVE_TAGS.map((name) => [name, new RegExp(`</${name}>`, 'gi')])
+  ACTIVE_TAGS.map((name) => [name, new RegExp(`</${name}\\s*>`, 'gi')])
 )
 const HTML_TAG_RE = /<[^<>]+>/g
 const MARKDOWN_LINK_RE = /!?\[([^[\]]*)\]\([^[)]*\)/g
@@ -90,7 +99,9 @@ export function stripAnsi(text: string): string {
 }
 
 export function stripControls(text: string): string {
-  return text.replace(SURFACE_CONTROL_RE, (ch) => (ch === '\n' || ch === '\t' ? ch : ''))
+  return toVisibleText(text).replace(SURFACE_CONTROL_RE, (ch) =>
+    ch === '\n' || ch === '\t' ? ch : ''
+  )
 }
 
 /** Plain text from a fetched page: script-like blocks with their content, links reduced to their

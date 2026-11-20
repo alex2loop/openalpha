@@ -148,7 +148,7 @@ export function desiredWeights(input: AdviceInput, nav: number): DesiredWeights 
       continue
     }
 
-    const weights = weighSegment({ input, nav, segment, target, held, excluded, rooms })
+    const weights = weighSegment({ input, nav, segment, target, held, excluded, rooms, trims })
 
     for (const [key, weight] of weights.byInstrument) {
       byInstrument.set(key, weight)
@@ -172,6 +172,7 @@ interface WeighSegmentInput {
   readonly held: ReadonlyMap<string, number>
   readonly excluded: ReadonlySet<string>
   readonly rooms: RoomTracker
+  readonly trims: ReadonlyMap<string, CapTrim>
 }
 
 /** One segment's target split: the core and the held names it must reserve, then the score
@@ -217,7 +218,7 @@ function weighSegment(request: WeighSegmentInput): Omit<DesiredWeights, 'capTrim
     .filter((candidate) => !excluded.has(buildInstrumentKey(candidate.instrument)))
     .sort(compareCandidates)
   const distributed = distribute(eligible, openTarget, {
-    ceilingFor: ceilingsFor(input, request.nav, rooms),
+    ceilingFor: ceilingsFor(request),
     onAssign: (candidate, delta) => rooms.record(candidate, delta),
   })
 
@@ -421,10 +422,14 @@ function createRoomTracker(input: AdviceInput): RoomTracker {
   }
 }
 
-// The tightest of position, market, liquidity, sector, and ETF room.
-function ceilingsFor(input: AdviceInput, nav: number, rooms: RoomTracker): CeilingFor {
+// The tightest of position, market, liquidity, sector, and ETF room, and the weight a cap trim
+// brings a held name back to.
+function ceilingsFor(request: WeighSegmentInput): CeilingFor {
+  const { input, nav, rooms, trims } = request
+
   return (candidate, current) => {
     const caps = input.profile.caps[candidate.segment]
+    const trim = trims.get(buildInstrumentKey(candidate.instrument))
     const limits: readonly Ceiling[] = [
       {
         // A fund answers to the segment's ETF ceiling in place of the per-name cap, so a bind
@@ -439,6 +444,7 @@ function ceilingsFor(input: AdviceInput, nav: number, rooms: RoomTracker): Ceili
       { reason: 'liquidity', value: turnoverCapPctNav(candidate.averageDailyTurnoverBase, nav) },
       { reason: 'sector', value: rooms.roomFor(candidate, current) },
       { reason: 'etf', value: rooms.etfRoomFor(candidate, current) },
+      ...(trim === undefined ? [] : [{ reason: trim.limit, value: trim.toPctNav }]),
     ]
     const tightest = limits.reduce((best, limit) => (limit.value < best.value ? limit : best))
 

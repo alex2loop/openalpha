@@ -13,7 +13,8 @@ import { Skeleton } from '@/web/ui/kit/skeleton'
 import { toSafeHref } from '@/web/ui/markdown/inline'
 import { buildServerCommand } from '@/web/ui/settings/credentials/credential-row'
 
-const AUTH_LOGIN_COMMAND = 'auth login'
+const AUTH_LOGIN_COMMAND = 'auth login chatgpt'
+const AUTH_LOGOUT_COMMAND = 'auth logout chatgpt'
 // What `auth login` prints for an account whose token names no plan; `web` cannot import the CLI.
 const UNKNOWN_PLAN = 'unknown'
 
@@ -43,21 +44,22 @@ export function ChatgptCard({ status, providerName, onBack }: ChatgptCardProps) 
           <b>
             {joinInline([status.account ?? '', status.plan ?? ''].filter((part) => part !== ''))}
           </b>
-          <Button size="small" kind="destructive" onClick={() => askSignOut(onBack)}>
-            {tr('ui.office.chatgpt.signOut')}
-          </Button>
+          {isServerOnly.value ? (
+            <ServerCommand words={AUTH_LOGOUT_COMMAND} />
+          ) : (
+            <Button size="small" kind="destructive" onClick={() => askSignOut(onBack)}>
+              {tr('ui.office.chatgpt.signOut')}
+            </Button>
+          )}
         </div>
       </div>
     )
   }
 
   if (isServerOnly.value) {
-    const command = buildServerCommand(AUTH_LOGIN_COMMAND)
-
     return (
       <div class="setting-actions">
-        <code class="credential-command">{command}</code>
-        <CopyButton text={command} label={tr('ui.office.credentials.copy')} />
+        <ServerCommand words={AUTH_LOGIN_COMMAND} />
       </div>
     )
   }
@@ -69,6 +71,18 @@ export function ChatgptCard({ status, providerName, onBack }: ChatgptCardProps) 
         {tr('ui.office.chatgpt.signIn')}
       </Button>
     </div>
+  )
+}
+
+/** Behind `public_url` the account changes only on the server: the command to copy there. */
+function ServerCommand({ words }: { readonly words: string }) {
+  const command = buildServerCommand(words)
+
+  return (
+    <>
+      <code class="credential-command">{command}</code>
+      <CopyButton text={command} label={tr('ui.office.credentials.copy')} />
+    </>
   )
 }
 

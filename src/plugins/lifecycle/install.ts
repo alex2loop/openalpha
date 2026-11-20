@@ -1,3 +1,4 @@
+import type { Stats } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { cp, lstat, readdir, readFile, rename, rm, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
@@ -16,11 +17,12 @@ import { isBundledId } from '@/plugins/policy/trust'
 // Plugins are untrusted and their agents/skills/workflows become the agent's own instructions, so
 // the fetch has to be authenticated: SSH has no trust-store validation and plaintext HTTP is
 // rewritable by anyone on the path. HTTPS only.
-const DISALLOWED_GIT_TRANSPORT_RE = /^(ext::|file:\/\/|ssh:\/\/|git@|http:\/\/)/i
+const DISALLOWED_GIT_TRANSPORT_RE = /^(ext::|file:\/\/|ssh:\/\/|git:\/\/|git@|http:\/\/)/i
 const GIT_PREFIX_RE = /^git\+/
 const GIT_SUFFIX_RE = /\.git$/
 const REMOTE_SOURCE_RE = /^https:\/\//
 const REMOTE_METADATA_RE = /[?#]/
+const MANIFEST_FILE = 'plugin.toml'
 // An authority is what separates a remote source from a local path: a Windows drive letter parses
 // as a URL with scheme `c:`, and canonicalizing it as one would hand `resolve` a mangled path.
 const URL_AUTHORITY_RE = /^[a-z][a-z0-9+.-]*:\/\//i
@@ -79,6 +81,8 @@ async function installFetchedSource(
   source: string,
   canonicalSource: string
 ): Promise<InstallResult> {
+  await assertManifestNotSymlink(source)
+
   const manifest = await readInstallManifest(source)
   const id = resolveId(fallbackPluginId(source, canonicalSource), options.id, manifest)
   const target = assertPluginPath(id, options.pluginsDir)
@@ -108,6 +112,15 @@ async function installFetchedSource(
   }
 
   return { id, converted: 0, skipped: [] }
+}
+
+// Reading and rewriting the manifest follows a link, so assertNoSymlinks never sees one.
+async function assertManifestNotSymlink(source: string): Promise<void> {
+  const info = await lstat(join(source, MANIFEST_FILE)).catch(() => undefined)
+
+  if (info !== undefined) {
+    assertNotSymlink(info)
+  }
 }
 
 async function replacePlugin(paths: ReplacementPaths): Promise<void> {
@@ -330,11 +343,11 @@ async function copyPluginContent(
       await cp(join(source, name), join(target, name), { recursive: true, dereference: false })
     }
   }
-  if (await isPathPresent(join(source, 'plugin.toml'))) {
-    const manifestPath = join(source, 'plugin.toml')
+  if (await isPathPresent(join(source, MANIFEST_FILE))) {
+    const manifestPath = join(source, MANIFEST_FILE)
 
     await createPrivateFileAtomic({
-      path: join(target, 'plugin.toml'),
+      path: join(target, MANIFEST_FILE),
       content: await readFile(manifestPath, 'utf8'),
       validate: (content) => {
         parsePluginToml(content)
@@ -386,12 +399,16 @@ async function assertNoSymlinks(root: string): Promise<void> {
     const entryPath = join(root, entry.name)
     const info = await lstat(entryPath)
 
-    if (info.isSymbolicLink()) {
-      throw new ToolError('invalid_input', 'plugin content contains a symlink')
-    }
+    assertNotSymlink(info)
 
     if (info.isDirectory()) {
       await assertNoSymlinks(entryPath)
     }
+  }
+}
+
+function assertNotSymlink(info: Stats): void {
+  if (info.isSymbolicLink()) {
+    throw new ToolError('invalid_input', 'plugin content contains a symlink')
   }
 }

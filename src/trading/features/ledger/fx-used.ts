@@ -50,9 +50,10 @@ export async function assertFxRateUsed(
 
   if (named && !applies) {
     const venue = transaction.kind === 'transfer' ? transaction.fromVenue : transaction.venue
+    const isMarketPriced = transaction.kind === 'sell' || transaction.kind === 'dividend'
 
     throw new ValidationError(`${transaction.currency} row at ${venue} takes no exchange rate`, {
-      key: 'errors.ledgerFxPaidFromCash',
+      key: isMarketPriced ? 'errors.ledgerFxMarketPriced' : 'errors.ledgerFxPaidFromCash',
       params: { currency: transaction.currency, venue: venueParam(venue) },
     })
   }

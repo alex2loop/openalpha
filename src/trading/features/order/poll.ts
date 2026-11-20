@@ -2,6 +2,7 @@ import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { RoutedVenue } from '@/trading/features/order/routing'
 import type { OrderReceipt, StagedOrder } from '@/trading/features/order/types'
 import type { OrderLookup } from '@/trading/kernel/venue/spot-adapter'
+import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { sleep } from '@/core/utils/time'
 import { OrderError } from '@/trading/features/order/types'
@@ -64,7 +65,8 @@ interface PolledOrder {
 }
 
 /** Reports the first failure of a run and stays quiet after it: a provider that is down fails every
- *  attempt the same way, and twenty identical lines bury the one that explains them. */
+ *  attempt the same way, and twenty identical lines bury the one that explains them. An abort is no
+ *  failed lookup: it leaves at once for the caller's own abort handling. */
 async function pollOnce(
   deps: OrderServiceDeps,
   input: SubmitInput,
@@ -77,6 +79,10 @@ async function pollOnce(
 
     return { consecutiveFailures: 0, ...(receipt === undefined ? {} : { receipt }) }
   } catch (err: unknown) {
+    if (input.signal.aborted || isAbortError(err)) {
+      throw err
+    }
+
     const failures = state.consecutiveFailures + 1
 
     if (failures >= ORDER_POLL_FAILURE_LIMIT) {

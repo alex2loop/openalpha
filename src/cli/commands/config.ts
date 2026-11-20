@@ -6,10 +6,10 @@ import type { Locale } from '@/core/types/locale'
 import { buildUnknownProviderMessage, findProviderById } from '@/ai/api'
 import { createCommand, createGroup } from '@/cli/command'
 import { isEditorSet, openInEditor } from '@/cli/editor'
-import { editorFromEnv } from '@/cli/env'
+import { editorFromEnv, getEnv } from '@/cli/env'
 import { terminalErrorMessage, usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
-import { toMissingKeyErrors } from '@/cli/missing-keys'
+import { registerConfiguredSecrets, toMissingKeyErrors } from '@/cli/missing-keys'
 import { flagString } from '@/cli/parsing/args'
 import { resolveConfigPath } from '@/cli/services'
 import { fail, success, warn } from '@/cli/ui/colors'
@@ -25,6 +25,8 @@ const MASKED = '[REDACTED]'
 /** An MCP server's address, the only `url` key in the config: a hosted server's key often rides in
  *  its query, and its `${VAR}` is already filled in here. */
 const SECRET_URL_KEY = 'url'
+/** An MCP server's `env` table: every value in it is a literal the server reads. */
+const SECRET_TABLE_KEY = 'env'
 const FALLBACK_EDITOR = 'nano'
 
 const configCmdShow: Command = createCommand({
@@ -67,17 +69,24 @@ export const configCommand: Group = createGroup({
 })
 
 function showConfig(_args: ParsedArgs, app: CliApp): number {
-  app.out(maskedConfigText(app.config))
+  printRedacted(app, JSON.stringify(app.config, maskSecretSegment, 2))
 
   return 0
 }
 
-function maskedConfigText(config: ResolvedConfig): string {
-  return redact(JSON.stringify(config, maskSensitiveValue, 2))
+// The resolved config holds the values `${VAR}` placeholders were replaced with, and this process
+// never booted, so the scrubber learns them here.
+function printRedacted(app: CliApp, text: string): void {
+  registerConfiguredSecrets(app.config, getEnv())
+  app.out(redact(text))
 }
 
-function maskSensitiveValue(key: string, value: unknown): unknown {
-  return isSensitiveKey(key) || key === SECRET_URL_KEY ? MASKED : value
+function maskSecretSegment(key: string, value: unknown): unknown {
+  return isSecretSegment(key) ? MASKED : value
+}
+
+function isSecretSegment(segment: string): boolean {
+  return segment === SECRET_URL_KEY || segment === SECRET_TABLE_KEY || isSensitiveKey(segment)
 }
 
 function getConfigPath(args: ParsedArgs, app: CliApp): number {
@@ -97,11 +106,11 @@ function getConfigPath(args: ParsedArgs, app: CliApp): number {
   }
 
   // Any segment: a string under a sensitive parent ends in an array index that names nothing.
-  if (path.split('.').some(isSensitiveKey)) {
+  if (path.split('.').some(isSecretSegment)) {
     return usage(app, t(locale, 'cli.configSensitivePath', { path }))
   }
 
-  app.out(redact(formatValue(value)))
+  printRedacted(app, formatValue(value))
 
   return 0
 }
@@ -121,7 +130,7 @@ function readKey(node: unknown, key: string): unknown {
 }
 
 function formatValue(value: unknown): string {
-  return typeof value === 'string' ? value : JSON.stringify(value, maskSensitiveValue, 2)
+  return typeof value === 'string' ? value : JSON.stringify(value, maskSecretSegment, 2)
 }
 
 function printConfigPath(_args: ParsedArgs, app: CliApp): number {

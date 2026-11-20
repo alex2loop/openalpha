@@ -97,11 +97,16 @@ async function heldQuantities(
 }
 
 /** One bad row must not stop the page, and a batch against a down exchange must not write one
- *  identical error per row — so the failure is logged once here and the loop continues. */
+ *  identical error per row — so the failure is logged once here and the loop continues. Only an
+ *  abort ends the page: shutdown is no row's failure. */
 async function reconcileOne(deps: ExitTickDeps, exit: RestingExit, pass: TickPass): Promise<void> {
   try {
     await reconcile(deps, exit, pass)
   } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
     deps.logger.warn('order.exit_reconcile_failed', {
       exitClientId: exit.exitClientId,
       symbol: exit.symbol,

@@ -25,9 +25,10 @@ export function namesFxRate(draft: LedgerTxnDraftInput): boolean {
   )
 }
 
-/** Whether the rate changes what this row records. It does where money crosses between the base
- *  and the other currency: a deposit, a withdrawal, and a trade at a venue holding none of that
- *  currency. Spending or receiving currency cash the venue already holds is priced by its cost. */
+/** Whether a stated rate changes what this row records. It does where money crosses between the
+ *  base and the other currency: a deposit, a withdrawal, and a trade at a venue holding none of
+ *  that currency. Spending currency cash the venue already holds is priced by its cost; a sale
+ *  there, like every dividend, is valued at the day's market rate and takes none. */
 export function fxRateApplies(book: Book, txn: LedgerTxn): boolean {
   if (!('currency' in txn) || txn.currency === book.baseCurrency) {
     return false

@@ -687,7 +687,7 @@ mã tài khoản và thông tin gói đọc từ chính token. Token tự làm m
 Các lệnh `auth` không khởi động runtime và không cần tệp cấu hình. Không có cấu hình thì token nằm ở thư mục dữ liệu mặc
 định; dùng `--data-dir` để đặt chỗ khác.
 
-Trang văn phòng cũng đăng nhập được. Vào Cài đặt > Nhà cung cấp > "+ Thêm nhà cung cấp" > "Đăng nhập ChatGPT": trang hiện một mã và liên kết để nhập mã đó, rồi lưu đúng tệp đăng nhập ấy khi bạn xong. Đăng xuất ở đó sẽ hỏi bạn xác nhận một lần. Khi đã đặt `[api] public_url`, trang không đăng nhập được; hãy làm trên máy chủ bằng `openalpha auth login chatgpt`.
+Trang văn phòng cũng đăng nhập được. Vào Cài đặt > Nhà cung cấp > "+ Thêm nhà cung cấp" > "Đăng nhập ChatGPT": trang hiện một mã và liên kết để nhập mã đó, rồi lưu đúng tệp đăng nhập ấy khi bạn xong. Đăng xuất ở đó sẽ hỏi bạn xác nhận một lần. Khi đã đặt `[api] public_url`, trang không đăng nhập cũng không đăng xuất được; hãy làm trên máy chủ bằng `openalpha auth login chatgpt` hoặc `openalpha auth logout chatgpt`.
 
 Phiên chạy theo thuê bao được tính giá `$0`, với `pricing_subscription` làm nguồn giá. Số token vẫn được ghi và các giới
 hạn lượt, thời lượng vẫn áp, nhưng khoản chi đó không bao giờ tính vào hạn mức ngày, tháng hay mỗi phiên chạy.

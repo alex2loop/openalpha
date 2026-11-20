@@ -79,7 +79,7 @@ export {
   usage,
 } from '@/cli/error-output'
 export { preflightCommand, resolveCliCommands, resolveCommandPath, runCli } from '@/cli/main'
-export { type KeyEnvGroup, keyEnvGroups } from '@/cli/missing-keys'
+export { type KeyEnvGroup, keyEnvGroups, registerConfiguredSecrets } from '@/cli/missing-keys'
 export { formatArgIssue } from '@/cli/parsing/arg-issue'
 export { parseGlobalFlags } from '@/cli/parsing/global-flags'
 export { preBootApp } from '@/cli/preboot'

@@ -4,7 +4,7 @@ import { armsExit } from '@/trading/features/suggestion/types'
 import { floorToLot } from '@/trading/kernel/instrument'
 
 /** The first sale on a position already held: taken when earlier sales already banked the tranche,
- *  otherwise whole lots of what is left to bank - or the plan's share alone where no lot fits. */
+ *  otherwise whole lots of what is left to bank - or the share still owed where no lot fits. */
 type HeldFirstExit =
   | { readonly kind: 'taken'; readonly soldShare: number }
   | { readonly kind: 'sell'; readonly shareOfHeld: number; readonly units?: number }
@@ -70,9 +70,10 @@ export function heldFirstExitOf(
     return { kind: 'taken', soldShare }
   }
 
-  const units = lotSize === undefined ? 0 : floorToLot(banked * (held.units + sold) - sold, lotSize)
+  const owed = banked * (held.units + sold) - sold
+  const units = lotSize === undefined ? 0 : floorToLot(owed, lotSize)
 
   return units > 0
     ? { kind: 'sell', shareOfHeld: units / held.units, units }
-    : { kind: 'sell', shareOfHeld: banked }
+    : { kind: 'sell', shareOfHeld: owed / held.units }
 }

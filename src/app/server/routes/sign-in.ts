@@ -201,9 +201,10 @@ async function handleChatgptLogin(req: Request, ctx: ApiRouteContext): Promise<R
     return apiError('invalid_body')
   }
 
-  // A sign-in saves a token the daemon's model calls spend on, like a key.
-  if (await isExposedOnDisk(ctx)) {
-    return apiError('conflict', buildServerOnlyText(ctx, SERVER_ONLY_KEYS, { brand: BRAND.name }))
+  const refused = await refuseWhenExposed(ctx)
+
+  if (refused !== undefined) {
+    return refused
   }
 
   await startLogin(ctx.app, parsed.data.method)
@@ -213,11 +214,27 @@ async function handleChatgptLogin(req: Request, ctx: ApiRouteContext): Promise<R
 
 /** Signs out and cancels a sign-in in progress. The next model call reads the missing file. */
 async function handleChatgptLogout(_req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const refused = await refuseWhenExposed(ctx)
+
+  if (refused !== undefined) {
+    return refused
+  }
+
   jobs.get(ctx.app)?.controller.abort()
   jobs.delete(ctx.app)
   await createTokenFile(ctx.app.config.paths.dataDir, provider().id).clear()
 
   return json(await readStatus(ctx.app))
+}
+
+// A sign-in saves a token the daemon's model calls spend on, like a key, and a sign-out removes it:
+// where nobody at the page is known to be the operator, both happen on the server.
+async function refuseWhenExposed(ctx: ApiRouteContext): Promise<Response | undefined> {
+  if (!(await isExposedOnDisk(ctx))) {
+    return undefined
+  }
+
+  return apiError('conflict', buildServerOnlyText(ctx, SERVER_ONLY_KEYS, { brand: BRAND.name }))
 }
 
 const DECISION_BODY: z.ZodType<PairingDecisionBody> = z.object({

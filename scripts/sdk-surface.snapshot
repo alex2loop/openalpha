@@ -90,6 +90,7 @@ cli:readRestartFlags
 cli:readUpdateLine
 cli:readUpdateState
 cli:refreshUpdateState
+cli:registerConfiguredSecrets
 cli:removeEnvFileValue
 cli:reportKeyFile
 cli:resolveCliCommands

@@ -11,9 +11,11 @@ const SOURCE_CAPABILITY: Capability = 'net'
 
 // The operator writes `vnexpress.net/abc`; the model fetches `https://vnexpress.net/abc/`. A URL
 // counts as seen only when a whole token of the source text matches it once both lose the
-// scheme and the trailing slash, so a prefix of a seen URL never does.
+// scheme and the trailing slash and read the host in lower case (a path is case-sensitive), so a
+// prefix of a seen URL never does.
 const URL_TOKEN_RE = /[^\s<>"'`()[\]{},;]+/g
-const SCHEME_RE = /^https?:\/\//
+const SCHEME_RE = /^https?:\/\//i
+const HOST_RE = /^[^/?#]*/
 const TRAILING_RE = /[/.:!?]+$/
 
 // Per-run counts, keyed on the run's own RunState so they are collected with the run.
@@ -52,7 +54,10 @@ function tokensOf(sourceText: string): ReadonlySet<string> {
 }
 
 function normalizeToken(token: string): string {
-  return token.replace(SCHEME_RE, '').replace(TRAILING_RE, '')
+  return token
+    .replace(SCHEME_RE, '')
+    .replace(TRAILING_RE, '')
+    .replace(HOST_RE, (host) => host.toLowerCase())
 }
 
 // A delegated child's user message is the parent model's prompt, not the operator's text.

@@ -64,21 +64,23 @@ function emptyListingsOf(resolution: MarketResolution): readonly MarketRef[] {
   return [...new Set(markets)]
 }
 
-// A load that failed already logged why where it ran; the read answers from what is stored.
+// A load that failed already logged why where it ran; the read answers from what is stored, and one
+// market's failed load never costs another's note.
 async function ensureListingsQuietly(
   ensureListing: EnsureListing,
   markets: readonly MarketRef[],
   signal: AbortSignal
 ): Promise<readonly Caveat[]> {
-  try {
-    const notes = await Promise.all(markets.map((market) => ensureListing(market, signal)))
+  const settled = await Promise.allSettled(markets.map((market) => ensureListing(market, signal)))
+  const notes: Caveat[] = []
 
-    return notes.flat()
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw err
+  for (const result of settled) {
+    if (result.status === 'fulfilled') {
+      notes.push(...result.value)
+    } else if (signal.aborted || isAbortError(result.reason)) {
+      throw result.reason
     }
-
-    return []
   }
+
+  return notes
 }

@@ -254,11 +254,16 @@ async function findStandingBuy(
     return undefined
   }
 
-  return (await isOpenBuyLive(options, resolution, latest)) ? latest : undefined
+  const [live, change] = await Promise.all([
+    isOpenBuyLive(options, resolution, latest),
+    bookChangeOf(options, resolution, latest),
+  ])
+
+  return live && change !== 'instrument' ? withBookChange(latest, change) : undefined
 }
 
-/** Not traded since, the live quote between its stop and its void price, and no settled session
- *  since the call through the stop. Anything unread answers no, which runs a fresh call. */
+/** The live quote between its stop and its void price, and no settled session since the call
+ *  through the stop. Anything unread answers no, which runs a fresh call. */
 async function isOpenBuyLive(
   options: SuggestionRunOptions,
   resolution: Extract<MarketResolution, { readonly kind: 'resolved' }>,
@@ -271,14 +276,12 @@ async function isOpenBuyLive(
     return false
   }
 
-  const [quote, bars, change] = await Promise.all([
+  const [quote, bars] = await Promise.all([
     readQuote(options, resolution),
     readBarsSince(options, resolution, suggestion.at),
-    bookChangeOf(options, resolution, suggestion),
   ])
 
   return (
-    change !== 'instrument' &&
     quote?.kind === 'available' &&
     !isSetupVoid(suggestion, quote.value, minimumRiskReward) &&
     bars?.kind === 'available' &&
@@ -298,26 +301,25 @@ async function resolveStanding(
     withLevelCaveats(options, resolution, suggestion),
     bookChangeOf(options, resolution, suggestion),
   ])
-  const caveat = bookChangeCaveat(suggestion, change)
 
-  return caveat === undefined ? standing : withCaveat(standing, caveat)
+  return withBookChange(standing, change)
 }
 
 /** A trade on the name itself can invert its direction. Any other row moves NAV and cash, which
  *  only matters to a row decided on them - a buy sized from cash, a sale under the plan's own
  *  reasons, a hold sized against NAV and cash or a plan sale under one lot - so only those say so. */
-function bookChangeCaveat(suggestion: StoredSuggestion, change: BookChange): Caveat | undefined {
-  if (!isBookCall(suggestion)) {
-    return undefined
+function withBookChange(standing: StoredSuggestion, change: BookChange): StoredSuggestion {
+  if (!isBookCall(standing)) {
+    return standing
   }
 
-  if (change === 'instrument' && suggestion.action !== 'hold') {
-    return { code: 'suggestion.position-changed' }
+  if (change === 'instrument' && standing.action !== 'hold') {
+    return withCaveat(standing, { code: 'suggestion.position-changed' })
   }
 
-  return change !== 'none' && isReadOffTheBook(suggestion)
-    ? { code: 'suggestion.book-changed' }
-    : undefined
+  return change !== 'none' && isReadOffTheBook(standing)
+    ? withCaveat(standing, { code: 'suggestion.book-changed' })
+    : standing
 }
 
 function isReadOffTheBook(suggestion: StoredSuggestion): boolean {

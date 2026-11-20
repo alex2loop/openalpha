@@ -3,11 +3,12 @@ import type { StopDistanceOptions } from '@/trading/features/alerts/types'
 import type { Holding } from '@/trading/features/portfolio/types'
 import type { StopDistance } from '@/trading/kernel/operator/alert'
 import { findHoldingPlan, resolveMark } from '@/trading/features/alerts/exits'
-import { planStopOf, planTakeProfitOf } from '@/trading/features/suggestion/types'
+import { armsExit, planStopOf, planTakeProfitOf } from '@/trading/features/suggestion/types'
 import { buildInstrumentKey, ETF_KIND } from '@/trading/kernel/instrument'
 
 /** One pass over the book: each holding's stop from its latest exit plan, and how far the current
- *  mark sits from it. A caller that has already valued the book passes its own marks, which both
+ *  mark sits from it. A level is a review where the plan arms no exit; a holding with no plan reads
+ *  a fund's kind instead. A caller that has already valued the book passes its own marks, which both
  *  spares the quote and pins the distance to the price printed beside it; one that has none leaves
  *  them out and the market is asked. */
 export async function stopDistances(
@@ -21,7 +22,10 @@ export async function stopDistances(
   for (const holding of holdings) {
     const plan = await findHoldingPlan(deps.store, holding, options.signal)
     const stop = plan === null ? undefined : planStopOf(plan)
-    const review = kinds.get(buildInstrumentKey(holding.instrument)) === ETF_KIND
+    const review =
+      plan === null
+        ? kinds.get(buildInstrumentKey(holding.instrument)) === ETF_KIND
+        : !armsExit(plan)
 
     if (plan === null || stop === undefined) {
       distances.push({ instrument: holding.instrument, plan: 'none', review })
