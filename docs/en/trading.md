@@ -1389,9 +1389,9 @@ A deposit in a venue's quote currency, such as `/record deposit binance 1000 USD
   so rows the venue had paid in VND before it can then be refused. To move a venue from VND to USDT,
   withdraw the VND, then deposit the USDT with `fx`.
 - **The rate goes on the deposit, not the buy.** A buy, fee or transfer paid from USDT the venue
-  holds takes no rate, and neither does a sale there or any dividend, which is valued at that day's
-  market rate, so an `fx` on that row is refused with the reason rather than ignored. The P2P
-  rate you paid belongs on the USDT deposit.
+  holds takes no rate, so an `fx` on that row is refused with the reason rather than ignored. A sale
+  there or a dividend is valued at that day's market rate unless you state one. The P2P rate you
+  paid belongs on the USDT deposit.
 - **Withdrawing locks in the currency gain.** USDT leaves at its average cost, while net deposits fall
   by what it is worth that day. Deposit 1,000 at 26,600, withdraw 1,000 at 27,000, and the realized
   P/L is +400,000 VND with the cash back at 0.

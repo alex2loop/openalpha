@@ -12,7 +12,7 @@ import type {
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { App } from '@/core/container'
 import { authProviderByLoginName, awaitLoopbackCode, createTokenFile } from '@/ai/node-api'
-import { buildServerOnlyText, isApiExposed } from '@/app/server/exposure'
+import { buildServerOnlyText } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { isExposedOnDisk } from '@/app/server/routes/config'
 import { localeOf, parsePathId, readJsonBody } from '@/app/server/routes/params'
@@ -283,8 +283,8 @@ async function handlePairingDecision(req: Request, ctx: ApiRouteContext): Promis
   }
 
   // Behind `public_url` nobody at the page is known to be the operator, and an approval grants a
-  // chat access to the whole agent.
-  if (isApiExposed(ctx.app.config.api)) {
+  // chat access to the whole agent that outlasts the restart a saved `public_url` waits for.
+  if (await isExposedOnDisk(ctx)) {
     return apiError(
       'conflict',
       t(localeOf(ctx), 'errors.pairingApproveServerOnly', { brand: BRAND.name, code })

@@ -2,8 +2,7 @@ import type { LedgerTxn, LedgerTxnDraftInput, LedgerTxnKind } from '@/trading/fe
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 
-/** The kinds that spend currency cash at its cost. A deposit, withdrawal, sale or dividend is
- *  priced by the row's own rate. */
+/** The kinds that spend currency cash at its cost, so a rate stated on them prices nothing. */
 const PAID_FROM_CURRENCY_CASH: ReadonlySet<LedgerTxnKind> = new Set([
   'buy',
   'rights',
@@ -25,12 +24,11 @@ export function namesFxRate(draft: LedgerTxnDraftInput): boolean {
   )
 }
 
-/** Whether a stated rate changes what this row records. It does where money crosses between the
- *  base and the other currency: a deposit, a withdrawal, and a trade at a venue holding none of
- *  that currency. Spending currency cash the venue already holds is priced by its cost; a sale
- *  there, like every dividend, is valued at the day's market rate and takes none. */
+/** Whether the rate is one the operator paid, so the row asks for it: where money crosses between
+ *  the base and the other currency, a deposit, a withdrawal, and a trade at a venue holding none of
+ *  that currency. */
 export function fxRateApplies(book: Book, txn: LedgerTxn): boolean {
-  if (!('currency' in txn) || txn.currency === book.baseCurrency) {
+  if (!isForeignCurrencyRow(book, txn)) {
     return false
   }
 
@@ -48,15 +46,15 @@ export function fxRateApplies(book: Book, txn: LedgerTxn): boolean {
 /** A row paid out of the venue's currency cash: its base cost is that cash's average cost, not the
  *  row's rate. */
 export function paysFromCurrencyCash(book: Book, txn: LedgerTxn): boolean {
-  if (!('currency' in txn) || txn.currency === book.baseCurrency) {
-    return false
-  }
-
-  if (!PAID_FROM_CURRENCY_CASH.has(txn.kind)) {
+  if (!(isForeignCurrencyRow(book, txn) && PAID_FROM_CURRENCY_CASH.has(txn.kind))) {
     return false
   }
 
   return holdsCurrencyCash(book, txn)
+}
+
+function isForeignCurrencyRow(book: Book, txn: LedgerTxn): boolean {
+  return 'currency' in txn && txn.currency !== book.baseCurrency
 }
 
 /** Checked against the cash's opening day, since the book may be folded past the row. */

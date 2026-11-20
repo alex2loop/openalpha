@@ -852,9 +852,10 @@ Một `thị-trường:mã` mà danh sách đã lưu của thị trường đó 
 
 Dòng nạp, rút, và dòng mua, bán hay quyền mua ở sàn chưa giữ đồng tiền đó có thể kết thúc bằng
 `fx <giá>` hoặc `fx auto`. Đây là tỷ giá quy ra VND của đồng tiền ghi trên dòng đó, và chỉ dùng khi dòng
-ghi bằng đồng khác VND, ví dụ USDT. Các dòng còn lại bị từ chối kèm lý do: chuyển tiền, phí hay loss,
-dòng mua trả từ tiền tệ sàn đang giữ, và dòng bán ở sàn đó hay mọi dòng cổ tức, vì chúng được tính theo
-tỷ giá thị trường của ngày đó.
+ghi bằng đồng khác VND, ví dụ USDT. Dòng bán vào tiền tệ sàn đang giữ và dòng cổ tức được tính theo tỷ
+giá thị trường của ngày đó mà không hỏi lại, nhưng vẫn nhận tỷ giá bạn ghi, cho ngày nguồn tỷ giá không
+có số liệu. Chuyển tiền, phí hay loss, và dòng mua trả từ tiền tệ sàn đang giữ thì không dùng tỷ giá:
+`fx` ở đó bị từ chối kèm lý do.
 
 Gõ sai một ô (mã thiếu thị trường, ngày sai, số âm, `fx` không đọc được) thì dòng không được ghi.
 Câu trả lời nêu đúng ô đó cùng dạng nó cần, rồi nhắc gõ `/record` không kèm gì để xem đủ cú pháp. Sai

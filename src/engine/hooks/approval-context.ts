@@ -12,11 +12,15 @@ const SOURCE_CAPABILITY: Capability = 'net'
 // The operator writes `vnexpress.net/abc`; the model fetches `https://vnexpress.net/abc/`. A URL
 // counts as seen only when a whole token of the source text matches it once both lose the
 // scheme and the trailing slash and read the host in lower case (a path is case-sensitive), so a
-// prefix of a seen URL never does.
-const URL_TOKEN_RE = /[^\s<>"'`()[\]{},;]+/g
+// prefix of a seen URL never does. A source token keeps its parentheses, commas and semicolons
+// (`/wiki/Apple_(company)`); the prose around it is trimmed off the token's edges instead, never
+// off the URL the model asks for.
+const URL_TOKEN_RE = /[^\s<>"'`[\]{}]+/g
 const SCHEME_RE = /^https?:\/\//i
 const HOST_RE = /^[^/?#]*/
 const TRAILING_RE = /[/.:!?]+$/
+const PROSE_OPENING_RE = /^\(+/
+const PROSE_CLOSING_CHARS: ReadonlySet<string> = new Set(['/', '.', ':', '!', '?', ',', ';'])
 
 // Per-run counts, keyed on the run's own RunState so they are collected with the run.
 const callCounts = new WeakMap<RunState, Map<string, number>>()
@@ -50,7 +54,9 @@ export function approvalContextFor(run: RunView, toolName: string): CallApproval
 }
 
 function tokensOf(sourceText: string): ReadonlySet<string> {
-  return new Set((sourceText.match(URL_TOKEN_RE) ?? []).map(normalizeToken))
+  return new Set(
+    (sourceText.match(URL_TOKEN_RE) ?? []).map((token) => normalizeToken(trimProse(token)))
+  )
 }
 
 function normalizeToken(token: string): string {
@@ -58,6 +64,32 @@ function normalizeToken(token: string): string {
     .replace(SCHEME_RE, '')
     .replace(TRAILING_RE, '')
     .replace(HOST_RE, (host) => host.toLowerCase())
+}
+
+/** Drops the parentheses and punctuation prose puts around a URL, keeping a closing parenthesis
+ *  the URL opened itself, so `(see https://x.com/a_(b)).` reads as the URL alone. */
+function trimProse(text: string): string {
+  const token = text.replace(PROSE_OPENING_RE, '')
+  let unopened = countOf(token, ')') - countOf(token, '(')
+  let end = token.length
+
+  while (end > 0) {
+    const last = token.charAt(end - 1)
+
+    if (last === ')' && unopened > 0) {
+      unopened -= 1
+    } else if (!PROSE_CLOSING_CHARS.has(last)) {
+      break
+    }
+
+    end -= 1
+  }
+
+  return token.slice(0, end)
+}
+
+function countOf(text: string, char: string): number {
+  return text.split(char).length - 1
 }
 
 // A delegated child's user message is the parent model's prompt, not the operator's text.

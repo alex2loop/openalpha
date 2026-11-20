@@ -40,6 +40,9 @@ export async function assertFxRateUsed(
   const others = entries.filter((entry) => entry.id !== replacing)
   const book = foldBook(orderLedger(others), transaction.at, deps.baseCurrency)
   const applies = fxRateApplies(book, transaction)
+  // A sale into currency cash or a dividend converts nothing: it takes the day's market rate unless
+  // one is stated, which a day the provider has no rate for needs.
+  const accepted = applies || transaction.kind === 'sell' || transaction.kind === 'dividend'
 
   if (applies && unstated) {
     throw new ValidationError(`no rate stated for a ${transaction.currency} row`, {
@@ -48,12 +51,11 @@ export async function assertFxRateUsed(
     })
   }
 
-  if (named && !applies) {
+  if (named && !accepted) {
     const venue = transaction.kind === 'transfer' ? transaction.fromVenue : transaction.venue
-    const isMarketPriced = transaction.kind === 'sell' || transaction.kind === 'dividend'
 
     throw new ValidationError(`${transaction.currency} row at ${venue} takes no exchange rate`, {
-      key: isMarketPriced ? 'errors.ledgerFxMarketPriced' : 'errors.ledgerFxPaidFromCash',
+      key: 'errors.ledgerFxPaidFromCash',
       params: { currency: transaction.currency, venue: venueParam(venue) },
     })
   }

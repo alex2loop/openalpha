@@ -867,9 +867,10 @@ again with `confirm` at the end to book it as typed. `/update` asks only when it
 
 A deposit, a withdrawal, and a buy, sale or rights row at a venue holding none of that currency may end
 with `fx <rate>` or `fx auto`. It is the rate into VND for the row's currency, and only applies to a row
-in a currency other than VND, such as USDT. Any other row is refused with the reason: a transfer, fee
-or loss, a buy paid from currency cash the venue holds, and a sale there or any dividend, which is
-valued at that day's market rate.
+in a currency other than VND, such as USDT. A sale into currency cash the venue holds and a dividend
+are valued at that day's market rate without asking, and take a stated rate too, for a day the rate
+source has none. A transfer, fee or loss, and a buy paid from currency cash the venue holds, take no
+rate: an `fx` there is refused with the reason.
 
 A mistyped field (a ticker without its market, a bad date, a negative number, an unreadable `fx`)
 writes nothing. The reply names that field and the form it expects, then points at `/record` on its

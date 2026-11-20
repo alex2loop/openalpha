@@ -1,17 +1,18 @@
-import type { Stats } from 'node:fs'
+import type { FileHandle } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
-import { cp, lstat, readdir, readFile, rename, rm, stat } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { cp, lstat, open, readdir, rename, rm, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 
 import { BRAND } from '@/core/brand'
-import { ToolError, ValidationError } from '@/core/errors'
+import { isErrno, ToolError, ValidationError } from '@/core/errors'
 import { isPathId } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { createPrivateFileAtomic, ensurePrivateDirectory } from '@/core/security/private-files'
 import { cloneRemoteSource } from '@/plugins/lifecycle/clone'
 import { SOURCES_FILE } from '@/plugins/lifecycle/discover'
 import { toPluginError } from '@/plugins/policy/errors'
-import { type PluginManifest, parsePluginToml, readPluginManifest } from '@/plugins/policy/manifest'
+import { type PluginManifest, parsePluginToml } from '@/plugins/policy/manifest'
 import { isBundledId } from '@/plugins/policy/trust'
 
 // Plugins are untrusted and their agents/skills/workflows become the agent's own instructions, so
@@ -23,6 +24,7 @@ const GIT_SUFFIX_RE = /\.git$/
 const REMOTE_SOURCE_RE = /^https:\/\//
 const REMOTE_METADATA_RE = /[?#]/
 const MANIFEST_FILE = 'plugin.toml'
+const SYMLINK_REFUSAL = 'plugin content contains a symlink'
 // An authority is what separates a remote source from a local path: a Windows drive letter parses
 // as a URL with scheme `c:`, and canonicalizing it as one would hand `resolve` a mangled path.
 const URL_AUTHORITY_RE = /^[a-z][a-z0-9+.-]*:\/\//i
@@ -81,9 +83,8 @@ async function installFetchedSource(
   source: string,
   canonicalSource: string
 ): Promise<InstallResult> {
-  await assertManifestNotSymlink(source)
-
-  const manifest = await readInstallManifest(source)
+  const manifestText = await readManifestText(source)
+  const manifest = parseInstallManifest(manifestText)
   const id = resolveId(fallbackPluginId(source, canonicalSource), options.id, manifest)
   const target = assertPluginPath(id, options.pluginsDir)
 
@@ -104,7 +105,7 @@ async function installFetchedSource(
   const backup = join(dirname(target), `.backup-${randomUUID()}`)
 
   try {
-    await copyPluginContent(source, staging, canonicalSource)
+    await copyPluginContent(source, staging, { recordSource: canonicalSource, manifestText })
     await ensurePrivateDirectory(options.pluginsDir)
     await replacePlugin({ target, staging, backup })
   } finally {
@@ -114,12 +115,27 @@ async function installFetchedSource(
   return { id, converted: 0, skipped: [] }
 }
 
-// Reading and rewriting the manifest follows a link, so assertNoSymlinks never sees one.
-async function assertManifestNotSymlink(source: string): Promise<void> {
-  const info = await lstat(join(source, MANIFEST_FILE)).catch(() => undefined)
+// Read once without following a link: the copy writes the text parsed here, so a manifest swapped
+// for a link in between never reaches the plugin.
+async function readManifestText(source: string): Promise<string | undefined> {
+  let handle: FileHandle | undefined
 
-  if (info !== undefined) {
-    assertNotSymlink(info)
+  try {
+    handle = await open(join(source, MANIFEST_FILE), constants.O_RDONLY | constants.O_NOFOLLOW)
+
+    return await handle.readFile('utf8')
+  } catch (err: unknown) {
+    if (isErrno(err, 'ENOENT')) {
+      return undefined
+    }
+
+    if (isErrno(err, 'ELOOP')) {
+      throw new ToolError('invalid_input', SYMLINK_REFUSAL)
+    }
+
+    throw err
+  } finally {
+    await handle?.close()
   }
 }
 
@@ -279,14 +295,18 @@ function resolveId(fallback: string, override?: string, manifest?: PluginManifes
   return id
 }
 
-async function readInstallManifest(dir: string): Promise<PluginManifest | undefined> {
-  const result = await readPluginManifest(dir)
-
-  if (result.kind === 'invalid') {
-    throw new ToolError('invalid_input', `invalid plugin manifest: ${result.reason}`, result.cause)
+function parseInstallManifest(text: string | undefined): PluginManifest | undefined {
+  if (text === undefined) {
+    return undefined
   }
 
-  return result.kind === 'valid' ? result.manifest : undefined
+  try {
+    return parsePluginToml(text)
+  } catch (err: unknown) {
+    const reason = err instanceof Error ? err.message : 'unreadable manifest'
+
+    throw new ToolError('invalid_input', `invalid plugin manifest: ${reason}`, err)
+  }
 }
 
 // Canonicalize a plugin source so the recorded `.source` never carries credentials or a meaningless
@@ -330,11 +350,17 @@ function canonicalPluginSource(source: string): string {
   return resolve(source)
 }
 
-// `recordSource` is the canonical ref, not the temp clone (deleted in installPlugin's finally).
+interface CopiedRecords {
+  /** The canonical ref, not the temp clone (deleted in installPlugin's finally). */
+  readonly recordSource: string
+  /** The manifest as the install read and parsed it, absent when the plugin has none. */
+  readonly manifestText: string | undefined
+}
+
 async function copyPluginContent(
   source: string,
   target: string,
-  recordSource: string
+  records: CopiedRecords
 ): Promise<void> {
   await ensurePrivateDirectory(target)
   // dereference:false + assertNoSymlinks: a remote plugin must not smuggle host files via symlinks.
@@ -343,12 +369,10 @@ async function copyPluginContent(
       await cp(join(source, name), join(target, name), { recursive: true, dereference: false })
     }
   }
-  if (await isPathPresent(join(source, MANIFEST_FILE))) {
-    const manifestPath = join(source, MANIFEST_FILE)
-
+  if (records.manifestText !== undefined) {
     await createPrivateFileAtomic({
       path: join(target, MANIFEST_FILE),
-      content: await readFile(manifestPath, 'utf8'),
+      content: records.manifestText,
       validate: (content) => {
         parsePluginToml(content)
       },
@@ -357,7 +381,7 @@ async function copyPluginContent(
   await assertNoSymlinks(target)
   const sourcePath = join(target, '.source')
 
-  await createPrivateFileAtomic({ path: sourcePath, content: recordSource })
+  await createPrivateFileAtomic({ path: sourcePath, content: records.recordSource })
 }
 
 async function isPathPresent(path: string): Promise<boolean> {
@@ -399,16 +423,12 @@ async function assertNoSymlinks(root: string): Promise<void> {
     const entryPath = join(root, entry.name)
     const info = await lstat(entryPath)
 
-    assertNotSymlink(info)
+    if (info.isSymbolicLink()) {
+      throw new ToolError('invalid_input', SYMLINK_REFUSAL)
+    }
 
     if (info.isDirectory()) {
       await assertNoSymlinks(entryPath)
     }
-  }
-}
-
-function assertNotSymlink(info: Stats): void {
-  if (info.isSymbolicLink()) {
-    throw new ToolError('invalid_input', 'plugin content contains a symlink')
   }
 }
