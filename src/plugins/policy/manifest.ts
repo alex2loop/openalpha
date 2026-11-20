@@ -14,6 +14,8 @@ import { OperatorConfigError, toInvalidConfigError } from '@/core/config/operato
 import { agentId, isPathId } from '@/core/ids'
 import { isSlashCommandName } from '@/core/utils/text'
 
+export const PLUGIN_MANIFEST_FILE = 'plugin.toml'
+
 const CommandSchema = z.discriminatedUnion('target', [
   z.strictObject({
     name: z.string().refine(isSlashCommandName),
@@ -68,7 +70,7 @@ export interface PluginManifest {
 }
 
 export async function readPluginManifest(dir: string): Promise<PluginManifestRead> {
-  const file = Bun.file(join(dir, 'plugin.toml'))
+  const file = Bun.file(join(dir, PLUGIN_MANIFEST_FILE))
 
   if (!(await file.exists())) {
     return { kind: 'missing' }
@@ -77,12 +79,13 @@ export async function readPluginManifest(dir: string): Promise<PluginManifestRea
   try {
     return { kind: 'valid', manifest: parsePluginToml(await file.text()) }
   } catch (err: unknown) {
-    return {
-      kind: 'invalid',
-      reason: err instanceof Error ? err.message : 'unreadable manifest',
-      cause: err,
-    }
+    return { kind: 'invalid', reason: manifestFailureReason(err), cause: err }
   }
+}
+
+/** What a manifest that could not be read or parsed says, for the operator and the log. */
+export function manifestFailureReason(err: unknown): string {
+  return err instanceof Error ? err.message : 'unreadable manifest'
 }
 
 export function parsePluginToml(content: string): PluginManifest {

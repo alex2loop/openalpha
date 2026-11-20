@@ -239,11 +239,9 @@ async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
   return json(toScheduleRowWire(job))
 }
 
-// A job outlasts the restart a saved `public_url` waits for, so the file's next start counts too.
-// Behind it an untargeted job runs on the app's channel, so the app-run limits hold for it;
-// otherwise it keeps the scheduler's own channel, as one added from the CLI.
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const body = await parseBody(req)
+  // A job outlasts the restart a saved `public_url` waits for, so the file's next start counts too.
   const exposed = await isExposedOnDisk(ctx)
 
   // A job aimed at another chat runs on that channel, past the app-channel run limits.
@@ -254,6 +252,8 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
     )
   }
 
+  // Behind `public_url` an untargeted job runs on the app's channel, so the app-run limits hold for
+  // it; otherwise it keeps the scheduler's own channel, as one added from the CLI.
   const job = buildJob(ctx, body, exposed ? APP_TARGET : undefined)
   const armed = await armPriceAlert(req, ctx, { body, job })
 

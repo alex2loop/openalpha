@@ -564,6 +564,8 @@ khớp), ở giá mở cửa phiên đó nếu phiên mở thấp hơn.
   nhảy). Phiên mở bằng hoặc cao hơn limit là khớp giữa chừng, và một nến ngày không nói được đỉnh có
   in trước hay không. Nên mục tiêu được đọc từ phiên kế tiếp.
 - Cắt lỗ vẫn được thử ngay ở phiên khớp, như ở mọi phiên, trước mục tiêu.
+- Ở thị trường thanh toán T+N, khớp ở một phiên sau thì ngày được bán cũng dời đúng chừng ấy phiên,
+  như lệnh vào bị kẹt trần.
 - Limit chưa khớp tới ngày cuối cùng của nó đóng là `unfilled` theo cách tương tự. `/reflect` đếm các
   đề xuất này riêng khỏi những đề xuất đã diễn ra.
 

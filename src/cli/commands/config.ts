@@ -6,10 +6,10 @@ import type { Locale } from '@/core/types/locale'
 import { buildUnknownProviderMessage, findProviderById } from '@/ai/api'
 import { createCommand, createGroup } from '@/cli/command'
 import { isEditorSet, openInEditor } from '@/cli/editor'
-import { editorFromEnv, getEnv } from '@/cli/env'
+import { editorFromEnv } from '@/cli/env'
 import { terminalErrorMessage, usage } from '@/cli/error-output'
 import { CLI_COMMAND_METADATA } from '@/cli/metadata'
-import { registerConfiguredSecrets, toMissingKeyErrors } from '@/cli/missing-keys'
+import { toMissingKeyErrors } from '@/cli/missing-keys'
 import { flagString } from '@/cli/parsing/args'
 import { resolveConfigPath } from '@/cli/services'
 import { fail, success, warn } from '@/cli/ui/colors'
@@ -22,11 +22,10 @@ import { isPlainRecord } from '@/core/utils/collections'
 import { bindLocale, t } from '@/i18n'
 
 const MASKED = '[REDACTED]'
-/** An MCP server's address, the only `url` key in the config: a hosted server's key often rides in
- *  its query, and its `${VAR}` is already filled in here. */
-const SECRET_URL_KEY = 'url'
-/** An MCP server's `env` table: every value in it is a literal the server reads. */
-const SECRET_TABLE_KEY = 'env'
+/** An MCP server's address, `env` table and arguments, the only keys of those names in the config:
+ *  a `${VAR}` in them is already filled in here, and a bare key has no shape the scrubber could find
+ *  (a hosted server's key often rides in its url query). */
+const SECRET_SEGMENTS: ReadonlySet<string> = new Set(['url', 'env', 'args'])
 const FALLBACK_EDITOR = 'nano'
 
 const configCmdShow: Command = createCommand({
@@ -69,16 +68,9 @@ export const configCommand: Group = createGroup({
 })
 
 function showConfig(_args: ParsedArgs, app: CliApp): number {
-  printRedacted(app, JSON.stringify(app.config, maskSecretSegment, 2))
+  app.out(redact(JSON.stringify(app.config, maskSecretSegment, 2)))
 
   return 0
-}
-
-// The resolved config holds the values `${VAR}` placeholders were replaced with, and this process
-// never booted, so the scrubber learns them here.
-function printRedacted(app: CliApp, text: string): void {
-  registerConfiguredSecrets(app.config, getEnv())
-  app.out(redact(text))
 }
 
 function maskSecretSegment(key: string, value: unknown): unknown {
@@ -86,7 +78,7 @@ function maskSecretSegment(key: string, value: unknown): unknown {
 }
 
 function isSecretSegment(segment: string): boolean {
-  return segment === SECRET_URL_KEY || segment === SECRET_TABLE_KEY || isSensitiveKey(segment)
+  return SECRET_SEGMENTS.has(segment) || isSensitiveKey(segment)
 }
 
 function getConfigPath(args: ParsedArgs, app: CliApp): number {
@@ -110,7 +102,7 @@ function getConfigPath(args: ParsedArgs, app: CliApp): number {
     return usage(app, t(locale, 'cli.configSensitivePath', { path }))
   }
 
-  printRedacted(app, formatValue(value))
+  app.out(redact(formatValue(value)))
 
   return 0
 }

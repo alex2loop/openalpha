@@ -561,6 +561,8 @@ a fill), at that session's open where it opened below.
   fill at the open). A session that opened at or above it filled partway through, and a daily bar
   cannot say whether its high printed first. So the target is read from the next session.
 - The stop is still tested on the fill session, as it is on every session before the target.
+- A fill on a later session moves the day the purchase can be sold by the same number of sessions
+  on a T+N market, as a ceiling-locked entry does.
 - A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from
   calls that played out.
 

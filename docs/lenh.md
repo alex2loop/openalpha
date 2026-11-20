@@ -441,9 +441,8 @@ openalpha config validate
 openalpha config edit
 ```
 
-- `show` che thông tin bí mật, và `get` từ chối mọi đường dẫn đi qua một khóa bí mật, `url` hay bảng
-  `env` của máy chủ MCP. Giá trị của một khóa cũng bị che ở mọi nơi nó xuất hiện, như trong đối số của
-  máy chủ MCP.
+- `show` che thông tin bí mật, kể cả `url`, bảng `env` và đối số của máy chủ MCP, và `get` từ chối mọi
+  đường dẫn đi qua một trong số đó.
 - `validate` chạy đủ các bước kiểm tra lúc khởi động, kể cả `[trading]`. Nên một cấu hình nó chấp
   nhận là một cấu hình khởi động được. Nếu không chấp nhận, nó thoát `1` và liệt kê mọi lý do một
   lượt, kể cả tên nhà cung cấp gõ sai và biến môi trường của khóa còn thiếu.

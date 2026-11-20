@@ -9,7 +9,7 @@ import type {
 import type { Book, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { TypedPrice } from '@/trading/kernel/surface/surface'
 import { foldBook } from '@/trading/features/ledger/book'
-import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
+import { fxRateUseOf } from '@/trading/features/ledger/fx-rate'
 import { assertNameListed } from '@/trading/features/ledger/holdable'
 import { dayOf, validatorFor } from '@/trading/features/ledger/mutate'
 import { resolveDraft } from '@/trading/features/ledger/resolve'
@@ -92,6 +92,6 @@ export async function previewRecord(
     fillSource,
     transaction,
     cashChangeBase: after.cashBase - before.cashBase,
-    fxRateApplies: fxRateApplies(onItsDay, transaction),
+    fxRateApplies: fxRateUseOf(onItsDay, transaction) === 'asked',
   }
 }

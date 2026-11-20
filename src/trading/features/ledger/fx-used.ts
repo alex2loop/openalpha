@@ -4,7 +4,7 @@ import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { LedgerEntryId } from '@/trading/kernel/operator/book'
 import { ValidationError } from '@/core/errors'
 import { foldBook } from '@/trading/features/ledger/book'
-import { asksForFxRate, fxRateApplies, namesFxRate } from '@/trading/features/ledger/fx-rate'
+import { asksForFxRate, fxRateUseOf, namesFxRate } from '@/trading/features/ledger/fx-rate'
 import { orderLedger } from '@/trading/features/ledger/validate'
 import { venueParam } from '@/trading/render/format'
 
@@ -39,19 +39,16 @@ export async function assertFxRateUsed(
   const entries = await deps.ledger.listAll(input.signal)
   const others = entries.filter((entry) => entry.id !== replacing)
   const book = foldBook(orderLedger(others), transaction.at, deps.baseCurrency)
-  const applies = fxRateApplies(book, transaction)
-  // A sale into currency cash or a dividend converts nothing: it takes the day's market rate unless
-  // one is stated, which a day the provider has no rate for needs.
-  const accepted = applies || transaction.kind === 'sell' || transaction.kind === 'dividend'
+  const use = fxRateUseOf(book, transaction)
 
-  if (applies && unstated) {
+  if (use === 'asked' && unstated) {
     throw new ValidationError(`no rate stated for a ${transaction.currency} row`, {
       key: 'errors.ledgerFxRateUnstated',
       params: { currency: transaction.currency },
     })
   }
 
-  if (named && !accepted) {
+  if (named && use === 'refused') {
     const venue = transaction.kind === 'transfer' ? transaction.fromVenue : transaction.venue
 
     throw new ValidationError(`${transaction.currency} row at ${venue} takes no exchange rate`, {

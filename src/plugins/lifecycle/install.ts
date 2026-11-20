@@ -12,7 +12,12 @@ import { createPrivateFileAtomic, ensurePrivateDirectory } from '@/core/security
 import { cloneRemoteSource } from '@/plugins/lifecycle/clone'
 import { SOURCES_FILE } from '@/plugins/lifecycle/discover'
 import { toPluginError } from '@/plugins/policy/errors'
-import { type PluginManifest, parsePluginToml } from '@/plugins/policy/manifest'
+import {
+  manifestFailureReason,
+  PLUGIN_MANIFEST_FILE,
+  type PluginManifest,
+  parsePluginToml,
+} from '@/plugins/policy/manifest'
 import { isBundledId } from '@/plugins/policy/trust'
 
 // Plugins are untrusted and their agents/skills/workflows become the agent's own instructions, so
@@ -23,7 +28,6 @@ const GIT_PREFIX_RE = /^git\+/
 const GIT_SUFFIX_RE = /\.git$/
 const REMOTE_SOURCE_RE = /^https:\/\//
 const REMOTE_METADATA_RE = /[?#]/
-const MANIFEST_FILE = 'plugin.toml'
 const SYMLINK_REFUSAL = 'plugin content contains a symlink'
 // An authority is what separates a remote source from a local path: a Windows drive letter parses
 // as a URL with scheme `c:`, and canonicalizing it as one would hand `resolve` a mangled path.
@@ -121,7 +125,10 @@ async function readManifestText(source: string): Promise<string | undefined> {
   let handle: FileHandle | undefined
 
   try {
-    handle = await open(join(source, MANIFEST_FILE), constants.O_RDONLY | constants.O_NOFOLLOW)
+    handle = await open(
+      join(source, PLUGIN_MANIFEST_FILE),
+      constants.O_RDONLY | constants.O_NOFOLLOW
+    )
 
     return await handle.readFile('utf8')
   } catch (err: unknown) {
@@ -133,7 +140,7 @@ async function readManifestText(source: string): Promise<string | undefined> {
       throw new ToolError('invalid_input', SYMLINK_REFUSAL)
     }
 
-    throw err
+    throw toManifestError(err)
   } finally {
     await handle?.close()
   }
@@ -303,10 +310,16 @@ function parseInstallManifest(text: string | undefined): PluginManifest | undefi
   try {
     return parsePluginToml(text)
   } catch (err: unknown) {
-    const reason = err instanceof Error ? err.message : 'unreadable manifest'
-
-    throw new ToolError('invalid_input', `invalid plugin manifest: ${reason}`, err)
+    throw toManifestError(err)
   }
+}
+
+function toManifestError(err: unknown): ToolError {
+  return new ToolError(
+    'invalid_input',
+    `invalid plugin manifest: ${manifestFailureReason(err)}`,
+    err
+  )
 }
 
 // Canonicalize a plugin source so the recorded `.source` never carries credentials or a meaningless
@@ -371,7 +384,7 @@ async function copyPluginContent(
   }
   if (records.manifestText !== undefined) {
     await createPrivateFileAtomic({
-      path: join(target, MANIFEST_FILE),
+      path: join(target, PLUGIN_MANIFEST_FILE),
       content: records.manifestText,
       validate: (content) => {
         parsePluginToml(content)

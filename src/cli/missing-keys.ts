@@ -3,11 +3,7 @@ import type { DegradedItem } from '@/core/container'
 import { missingKeyErrors } from '@/ai/api'
 import { BRAND } from '@/core/brand'
 import { type ResolvedConfig, toMissingSearchKeyError } from '@/core/config/resolve'
-import {
-  missingCredentials,
-  registerKnownSecret,
-  resolveCredential,
-} from '@/core/security/credentials'
+import { missingCredentials } from '@/core/security/credentials'
 import { resolveTradingConfig, unavailableSources } from '@/trading/api'
 
 const API_TOKEN_SUBJECT = 'api'
@@ -93,28 +89,6 @@ function toKeylessVenues(
       },
     ]
   })
-}
-
-/** Teaches the scrubber the value of every key variable the config reads, in the groups `skip` does
- *  not name: a bare key has no shape a pattern can find, so a pasted or echoed one is caught only by
- *  its value. */
-export function registerConfiguredSecrets(
-  config: ResolvedConfig,
-  env: Readonly<Record<string, string | undefined>>,
-  skip: readonly KeyEnvGroup[] = []
-): void {
-  const names = Object.entries(keyEnvGroups(config))
-    .filter(([group]) => !skip.some((skipped) => skipped === group))
-    .flatMap(([, entries]) => entries.map((entry) => entry.name))
-
-  for (const name of names) {
-    // As venues and sources read it: the name itself or its brand-prefixed twin.
-    const value = resolveCredential(env, name)
-
-    if (value !== undefined) {
-      registerKnownSecret(value)
-    }
-  }
 }
 
 /** Every variable the config reads a key from, set or not, by what it opens: the model chain and

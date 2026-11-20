@@ -18,9 +18,10 @@ const SOURCE_CAPABILITY: Capability = 'net'
 const URL_TOKEN_RE = /[^\s<>"'`[\]{}]+/g
 const SCHEME_RE = /^https?:\/\//i
 const HOST_RE = /^[^/?#]*/
-const TRAILING_RE = /[/.:!?]+$/
+const TRAILING_CHARS = '/.:!?'
+const TRAILING_RE = new RegExp(`[${TRAILING_CHARS}]+$`)
 const PROSE_OPENING_RE = /^\(+/
-const PROSE_CLOSING_CHARS: ReadonlySet<string> = new Set(['/', '.', ':', '!', '?', ',', ';'])
+const PROSE_CLOSING_CHARS: ReadonlySet<string> = new Set([...TRAILING_CHARS, ',', ';'])
 
 // Per-run counts, keyed on the run's own RunState so they are collected with the run.
 const callCounts = new WeakMap<RunState, Map<string, number>>()

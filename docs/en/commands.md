@@ -450,8 +450,8 @@ openalpha config validate
 openalpha config edit
 ```
 
-- `show` masks secrets, and `get` refuses any path through a secret key, an MCP server's `url` or its
-  `env` table. A key's value is also hidden wherever it appears, such as in an MCP server's arguments.
+- `show` masks secrets, an MCP server's `url`, `env` table and arguments included, and `get` refuses
+  any path through one.
 - `validate` runs every check boot does, `[trading]` included. So a config it accepts is a config that
   boots. When it does not accept it, it exits `1` and lists every reason in one pass, a mistyped
   provider name and an unset key variable included.
