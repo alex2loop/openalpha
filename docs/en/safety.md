@@ -238,9 +238,10 @@ SSH keys, cloud and kube credentials, GnuPG keys, `.env` files, password files, 
 Writes also reject protected project instructions (`AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`).
 
 Shell policy rejects launchers and wrappers that would dodge inspection, interpreters (python, node,
-awk and the like), filesystem formatters, forced removal of root, and raw-device writes. Execution
-can be aborted and is bounded by duration and output. Child processes get a filtered environment and
-a per-run `HOME` and temp directory.
+awk and the like), filesystem formatters, forced removal of root, and raw-device writes. A refused
+command fails as invalid input before any approval prompt, so you are never asked to approve it.
+Execution can be aborted and is bounded by duration and output. Child processes get a filtered
+environment and a per-run `HOME` and temp directory.
 
 Everything written under the data directory is private to you: directories `0700`, files `0600`.
 That covers provider tokens, agent and skill files, plugin installs, logs, scratch directories,

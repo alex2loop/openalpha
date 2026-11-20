@@ -231,7 +231,7 @@ function createBrowserAppProvider(keyring: BrowserKeyring): ServiceProvider {
       bindRunReads(bind)
       bind('agentForRun', createChatAgentForRun)
       extend('hooks', (current, app) => extendHooks(current, app, { learnsPreferences: false }))
-      extend('researchCoordinator', (current) => gateResearch(current, keyring))
+      extend('researchCoordinator', (current, app) => gateResearch(current, keyring, app.config))
     },
   }
 }

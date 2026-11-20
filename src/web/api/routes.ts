@@ -118,8 +118,9 @@ export interface RouteDef<T> {
   readonly path: string
   /** The `state.capabilities` flag that says the daemon runs this route. */
   readonly capability?: keyof Capabilities
-  /** An analysis-only edition does not serve this route (it fires while the tab is closed, or it
-   *  names a verdict, a stop or a plan), so a block over it is absent there and never asks. */
+  /** An analysis-only edition does not serve this route (it fires while the tab is closed, it names
+   *  a verdict, a stop or a plan, or, as `research` does, the browser route table leaves it out), so
+   *  a block over it is absent there and never asks. */
   readonly daemonOnly?: true
   /** `slow`: the daemon may run it up to its slow ceiling, so the client waits that long. */
   readonly timeout?: 'slow'
@@ -231,7 +232,7 @@ export const ROUTES = Object.freeze({
   analyses: route<AnalysesResponse>('/v1/analyses'),
   screen: route<ScreenResponse>('/v1/screen', undefined, { timeout: 'slow' }),
   trackRecord: route<TradingTrackRecordResponse>('/v1/track-record', 'suggestions'),
-  research: route<ResearchResponse>('/v1/research'),
+  research: route<ResearchResponse>('/v1/research', undefined, { daemonOnly: true }),
   macro: route<MacroResponse>('/v1/macro', undefined, { timeout: 'slow' }),
   // It reads the sources for the session, so the daemon may run it to its slow ceiling.
   marketSession: route<MarketSessionResponse>('/v1/market', undefined, { timeout: 'slow' }),

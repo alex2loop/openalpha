@@ -996,6 +996,9 @@ vị thế đã qua cửa sổ đo kết cục mà không nhúc nhích. Nó mặ
 Mặc định lệnh mua phải có `sl`. Đặt `require_stop_loss = false` trong `[trading.orders]` nếu muốn mua không
 kèm cắt lỗ.
 
+Tiền tố `sàn:` còn chọn công cụ trong các thị trường mà sàn đó phục vụ: `okx:SUI` là đồng coin kể cả khi một
+cổ phiếu hay quỹ đã lưu trùng ký hiệu.
+
 `/trade` trần cho biết đang có gì chờ: các lệnh đã dàn kèm token, các lệnh thoát đang treo, các vị thế
 không ai canh, và những gì sàn đã nhận mà sổ của bạn còn thiếu. Nó không với tới sàn nào.
 

@@ -336,11 +336,11 @@ function admitThroughController(
   options: ClaimedJobRun
 ): Promise<ClaimedJobRunResult | undefined> {
   const { deps, owner, job, requestId, crossing } = options
-  const admission = controller.admit(job, (signal) =>
+  const admission = controller.admit(job, (controllerSignal) =>
     runClaimedScheduledJob({
       job,
       deps: deps.scheduler,
-      signal,
+      signal: AbortSignal.any([controllerSignal, options.signal]),
       requestId,
       crossing,
       ...(owner === undefined ? {} : { owner }),

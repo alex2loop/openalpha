@@ -8,7 +8,7 @@ import type {
   ProfileSetField,
   TradingEdition,
 } from '@/trading/api'
-import { hasAiKey, readModelProvider } from '@/app/browser/keys'
+import { findMissingKeyProvider } from '@/app/browser/keys'
 import {
   AnalysisError,
   DEBATE_MODEL_TIER,
@@ -188,7 +188,7 @@ async function analyse(
   const { request, ctx } = call
   const { analyses } = app.resolve('tradingServices')
 
-  if (!hasAiKey(keyring.env(), readModelProvider(app.config, DEBATE_MODEL_TIER))) {
+  if (findMissingKeyProvider(keyring.env(), app.config, [DEBATE_MODEL_TIER]) !== undefined) {
     const failure = await analyses.refusalOf(request, ctx.signal)
 
     return failure === undefined

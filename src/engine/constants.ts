@@ -22,9 +22,15 @@ export const COMPACT_KEEP_RECENT_GROUPS = 10
 export const COMPACT_SUMMARY_PREAMBLE =
   '[CONTEXT SUMMARY - older messages removed to free context window]\n\n'
 export const COMPACT_SUMMARY_MAX_TOKENS = 512
+// A stale tool result reaches the summarizer as a head+tail window of at most the first number of
+// bytes, and all of them together take at most the second; other messages are not capped.
+export const COMPACT_SUMMARY_TOOL_RESULT_MAX_BYTES = 4_000
+export const COMPACT_SUMMARY_TOOL_RESULTS_TOTAL_MAX_BYTES = 30_000
 // Replaces a stale tool result's body during compaction. Kept as a recognizable marker so a
 // second pass never re-elides and the model knows the data existed.
 export const COMPACT_ELIDED_TOOL_RESULT = '[tool result elided to free context]'
+// Opens the stand-in a repeated tool result is replaced by in the prompt.
+export const DUPLICATE_TOOL_RESULT_PREFIX = '[duplicate of '
 // Fresh-turn retries after a provider died mid-stream with output already shown. Each restart
 // re-bills the full prompt, so this stays small.
 export const MAX_VISIBLE_OUTPUT_RESTARTS = 2
@@ -32,6 +38,8 @@ export const LOOP_DETECTOR_WINDOW = 20
 export const LOOP_DETECTOR_MATCHES = 3
 export const LOOP_DETECTOR_NEAR_DUP_SIMILARITY = 0.55
 export const LOOP_DETECTOR_MIN_FUZZY_WORDS = 4
+// Most tool-result URLs a run trusts for citations; a link past it is stripped like any unverified one.
+export const CITE_TRUSTED_URLS_MAX = 5_000
 // Grace past a run's own duration cap before a lease it stopped renewing is treated as abandoned.
 export const RUN_LEASE_SLACK_MS = 300_000
 /** Longest title a run announces on the bus: enough to recognize the request, short enough to scan. */

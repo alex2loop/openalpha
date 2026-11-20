@@ -3,7 +3,7 @@ import type { SystemHost } from '@/app/server/routes/system'
 import type { FeatureCapabilities } from '@/app/server/wire/system'
 import type { Authorize } from '@/app/types'
 import type { ResolvedConfig } from '@/core/config/resolve'
-import { aiKeyVariable, hasAiKey, readModelProvider } from '@/app/browser/keys'
+import { aiKeyVariable, findMissingKeyProvider } from '@/app/browser/keys'
 
 /** What this edition offers, fixed: a web page analyses and keeps a ledger, and has no venue, no
  *  channel, no scheduler, no agent and no ChatGPT sign-in. */
@@ -27,17 +27,18 @@ export function createBrowserSystemHost(
   keyring: BrowserKeyring,
   config: ResolvedConfig
 ): SystemHost {
-  // The key a run needs is the main model's, not any key the visitor happens to hold.
-  const provider = readModelProvider(config)
-
   return {
     health: () => ({ running: true }),
     restart: () => ({ restartable: false, restartIdleWaitMs: 0, restartDrainMs: 0 }),
     degraded: async () => [],
-    modelReady: async () =>
-      hasAiKey(keyring.env(), provider)
+    // Ready when the main model's chain holds a key, not any key the visitor happens to hold.
+    modelReady: async () => {
+      const missing = findMissingKeyProvider(keyring.env(), config)
+
+      return missing === undefined
         ? { modelReady: true }
-        : { modelReady: false, modelKeyEnv: aiKeyVariable(provider) },
+        : { modelReady: false, modelKeyEnv: aiKeyVariable(missing) }
+    },
     features: () => BROWSER_FEATURES,
   }
 }

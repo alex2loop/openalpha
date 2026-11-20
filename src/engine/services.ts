@@ -20,14 +20,8 @@ import type {
   RateLimiter,
   UnrecordedSpendLog,
 } from '@/engine/types/cost'
-import type {
-  Compactor,
-  Hooks,
-  McpToolInvoker,
-  RunInput,
-  Runner,
-  ToolExecutor,
-} from '@/engine/types/run'
+import type { McpToolInvoker } from '@/engine/types/mcp'
+import type { Compactor, Hooks, RunInput, Runner, ToolExecutor } from '@/engine/types/run'
 import type { PrepareWorkspace } from '@/engine/types/run-deps'
 import type { Workflow } from '@/engine/workflows/types'
 import { classifyModel } from '@/ai/api'
@@ -43,7 +37,7 @@ import { MCP_ANSWER_DEADLINE_SHARE, MCP_ANSWER_TIMEOUT_MS } from '@/engine/const
 import { createRunFinishedEmit } from '@/engine/hooks/after-run'
 import { createApprovalGate, createApprovalManager } from '@/engine/hooks/approval'
 import { capabilityGate } from '@/engine/hooks/capability'
-import { citeCheckHook } from '@/engine/hooks/cite-check'
+import { citeCheckAfterTool, citeCheckHook } from '@/engine/hooks/cite-check'
 import { loopDetectorAfterTool, loopDetectorGate } from '@/engine/hooks/loop-detector'
 import { responseStyleModifier } from '@/engine/hooks/prompt-blocks'
 import { pruneStaleMessagesHook } from '@/engine/hooks/prune-stale'
@@ -248,12 +242,12 @@ function buildHooks(bus: EventBus, signal: AbortSignal): Hooks {
 
   return {
     beforeRun: [],
-    beforeLLM: [pruneStaleMessagesHook],
+    beforeLLM: [trimResultsHook, pruneStaleMessagesHook],
     llmRequestModifiers: [responseStyleModifier],
     afterLLM: [],
     toolAdmission: [loopDetectorGate, capabilityGate],
     approvalGate: createApprovalGate({ bus, manager }),
-    afterTool: [trimResultsHook, loopDetectorAfterTool],
+    afterTool: [loopDetectorAfterTool, citeCheckAfterTool],
     afterTurn: [citeCheckHook],
     beforeFinalize: [],
     afterRun: [createRunFinishedEmit(bus)],

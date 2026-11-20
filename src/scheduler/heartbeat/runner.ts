@@ -19,7 +19,7 @@ import {
   deliverHeartbeatResult,
   type HeartbeatRuntimeState,
 } from '@/scheduler/heartbeat/delivery'
-import { loadHeartbeatFile } from '@/scheduler/heartbeat/file'
+import { type HeartbeatFile, loadHeartbeatFile } from '@/scheduler/heartbeat/file'
 import {
   claimHeartbeatTask,
   deferFailedHeartbeatTask,
@@ -181,10 +181,11 @@ function toUntrustedNotice(text: string): string {
 
 async function runHeartbeatAgent(input: RunHeartbeatAgentInput): Promise<void> {
   const { agent, deps, signal, state } = input
-  const loaded = await loadHeartbeatFile(
-    join(deps.workspaceDir(agent), HEARTBEAT_FILE),
-    deps.logger
-  )
+  const file = join(deps.workspaceDir(agent), HEARTBEAT_FILE)
+  const loaded = await loadHeartbeatFile(file)
+
+  reportFileProblem({ deps, state, agentId: agent.id, file, loaded })
+
   const parsed = loaded.kind === 'loaded' ? parseHeartbeat(loaded.text) : NO_HEARTBEAT_FILE
   const extra = await extraTasksOf(deps, agent)
 
@@ -212,6 +213,33 @@ async function runHeartbeatAgent(input: RunHeartbeatAgentInput): Promise<void> {
   }
 
   await runTasksInOrder({ agent, deps, signal, state, context: parsed.context, tasks })
+}
+
+/** A broken HEARTBEAT.md warns once, and again only when its problem changes or after it is fixed. */
+function reportFileProblem(input: {
+  readonly deps: HeartbeatDeps
+  readonly state: HeartbeatRuntimeState
+  readonly agentId: AgentId
+  readonly file: string
+  readonly loaded: HeartbeatFile
+}): void {
+  const { deps, state, agentId, file, loaded } = input
+  const problem = loaded.kind === 'unavailable' ? loaded.problem : undefined
+
+  if (problem === state.reportedFileProblems.get(agentId)) {
+    return
+  }
+
+  state.reportedFileProblems.set(agentId, problem)
+
+  if (loaded.kind === 'unavailable' && problem !== undefined) {
+    deps.logger.warn('heartbeat.file_skipped', {
+      agentId,
+      file,
+      problem,
+      ...(loaded.err === undefined ? {} : { err: formatErrForLog(loaded.err) }),
+    })
+  }
 }
 
 async function runTasksInOrder(input: {

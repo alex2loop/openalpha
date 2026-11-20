@@ -224,6 +224,13 @@ export async function updatePlugin(
   pluginsDir: string,
   bundledIds: ReadonlySet<string>
 ): Promise<void> {
+  if (isBundledId(id, bundledIds)) {
+    throw new ValidationError(`bundled plugin cannot be updated: ${id}`, {
+      key: 'errors.pluginBundledFixed',
+      params: { id, brand: BRAND.display },
+    })
+  }
+
   const target = assertPluginPath(id, pluginsDir)
   const source = await Bun.file(join(target, '.source'))
     .text()
@@ -233,13 +240,6 @@ export async function updatePlugin(
     throw new ValidationError(`plugin has no source: ${id}`, {
       key: 'errors.pluginNoSource',
       params: { id, brand: BRAND.name },
-    })
-  }
-
-  if (isBundledId(id, bundledIds)) {
-    throw new ValidationError(`bundled plugin cannot be updated: ${id}`, {
-      key: 'errors.pluginBundledFixed',
-      params: { id, brand: BRAND.display },
     })
   }
 

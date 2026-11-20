@@ -509,6 +509,9 @@ Chỉ có khi bạn đã khai khóa OKX hoặc Binance.
 Lệnh mua mặc định phải có `sl`; đặt `require_stop_loss = false` trong `[trading.orders]` nếu muốn mua
 không kèm cắt lỗ.
 
+Tiền tố `sàn:` còn chọn công cụ trong các thị trường mà sàn đó phục vụ: `okx:SUI` là đồng coin kể cả khi
+một cổ phiếu hay quỹ đã lưu trùng ký hiệu.
+
 - `spot` **chỉ dựng lệnh và in token**. Không gì ra sàn cho tới khi bạn gõ `/trade confirm`.
 - `exit` đặt hoặc dời chốt lời/cắt lỗ cho vị thế đang giữ. Mặc định lấy khối lượng từ sổ; thêm `qty`
   để chỉ bảo vệ một phần. Không cần token vì lệnh này không bao giờ gỡ bớt lớp bảo vệ đang có.

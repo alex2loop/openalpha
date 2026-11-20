@@ -244,8 +244,9 @@ socket container. Riêng ghi còn từ chối các tệp chỉ dẫn dự án đ
 
 Chính sách shell từ chối các bộ khởi chạy và lớp bọc có thể lách khâu kiểm tra, các trình thông dịch
 (python, node, awk...), lệnh định dạng hệ tệp, lệnh xóa cưỡng bức thư mục gốc, và lệnh ghi thẳng vào
-thiết bị. Việc chạy hủy được và bị chặn theo thời lượng cùng dung lượng đầu ra. Tiến trình con nhận
-môi trường đã lọc, cùng `HOME` và thư mục tạm riêng cho mỗi phiên chạy.
+thiết bị. Lệnh bị từ chối báo lỗi đầu vào không hợp lệ trước mọi ô hỏi phê duyệt, nên bạn không bao giờ
+bị hỏi để duyệt nó. Việc chạy hủy được và bị chặn theo thời lượng cùng dung lượng đầu ra. Tiến trình con
+nhận môi trường đã lọc, cùng `HOME` và thư mục tạm riêng cho mỗi phiên chạy.
 
 Mọi thứ ghi dưới thư mục dữ liệu đều chỉ của riêng bạn: thư mục `0700`, tệp `0600`. Phạm vi này gồm
 token của nhà cung cấp, tệp agent và kỹ năng, các bản cài plugin, log, thư mục nháp, đầu ra `db export`

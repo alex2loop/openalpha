@@ -24,24 +24,28 @@ const DAYS_PER_WEEK = 7
  *  at nine days; the margin only widens a search window, so over-stating it costs nothing. */
 export const MAXIMUM_CLOSURE_DAYS = 21
 
+export interface ResolvedInstrument {
+  readonly kind: 'resolved'
+  readonly market: Market
+  readonly instrument: InstrumentRef
+  readonly instrumentKind?: InstrumentKind
+  readonly sector?: string
+  /** What resolving the name had to say, for a read to carry beside its own: a second market
+   *  listing the same symbol, when the caller asked. */
+  readonly caveats: readonly Caveat[]
+  /** What only a read that comes back empty says: the switched-off markets never searched. */
+  readonly unavailableCaveats: readonly Caveat[]
+}
+
 type InstrumentResolution =
-  | {
-      readonly kind: 'resolved'
-      readonly market: Market
-      readonly instrument: InstrumentRef
-      readonly instrumentKind?: InstrumentKind
-      readonly sector?: string
-      /** What resolving the name had to say, for a read to carry beside its own: a second market
-       *  listing the same symbol, when the caller asked. */
-      readonly caveats: readonly Caveat[]
-      /** What only a read that comes back empty says: the switched-off markets never searched. */
-      readonly unavailableCaveats: readonly Caveat[]
-    }
+  | ResolvedInstrument
   | { readonly kind: 'unresolved'; readonly result: SourceUnavailable }
 
 interface ResolveInstrumentOptions {
   readonly ticker: Ticker
   readonly market?: MarketRef
+  /** Search only these markets, as `ResolveMarketOptions.within`. */
+  readonly within?: readonly MarketRef[]
   /** A read the operator typed: the side they hold or watch wins a shared symbol, and the read says
    *  which other market lists it. */
   readonly operatorRead?: boolean
@@ -115,6 +119,7 @@ export async function resolveInstrument(
   const resolution = await markets.resolve({
     ticker: options.ticker,
     ...(options.market === undefined ? {} : { market: options.market }),
+    ...(options.within === undefined ? {} : { within: options.within }),
     ...(options.operatorRead === true ? { operatorRead: true } : {}),
     signal: options.signal,
   })

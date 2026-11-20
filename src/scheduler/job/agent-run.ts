@@ -51,6 +51,7 @@ export async function runAgent(
     },
     {
       approvalMode: jobApproval === undefined ? 'unavailable' : 'manual',
+      isPromptGenerated: true,
       ...(jobApproval === undefined ? {} : { approval: jobApproval.approval }),
       ...(job.target === undefined ? {} : { chatId: job.target.chatId }),
       ...(job.allowedTools !== undefined && job.allowedTools.length > 0

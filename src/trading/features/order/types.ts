@@ -320,8 +320,8 @@ export interface CapRejection {
   /** Which venue's cash the `cash` arm measured. Absent on every other code: a stake ceiling and an
    *  open-position count are whole-book figures and naming a venue beside them would be wrong. */
   readonly venue?: VenueRef
-  /** What `limit` and `actual` are counted in: the market's currency for `stake`, the book's for
-   *  `cash`. Absent on a count. */
+  /** What `limit` and `actual` are counted in: the market's currency for `stake`, and for `cash`
+   *  the order's currency when the venue holds that currency, else the book's. Absent on a count. */
   readonly currency?: CurrencyCode
 }
 

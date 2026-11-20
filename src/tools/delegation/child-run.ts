@@ -370,7 +370,7 @@ export function toChildRunSettlement(result: RunResult): ChildRunSettlement {
     }
   }
 
-  if (result.completionCode !== undefined) {
+  if (result.completionCode === 'approval_timeout') {
     return {
       kind: 'approval_timeout',
       result,
@@ -378,11 +378,13 @@ export function toChildRunSettlement(result: RunResult): ChildRunSettlement {
     }
   }
 
-  if (result.reason !== 'completed') {
+  // Any other code (the model wrote a tool call as text) is a real failure, never a completion.
+  if (result.completionCode !== undefined || result.reason !== 'completed') {
     return {
       kind: 'failed',
       result,
-      message: result.errorMessage ?? `child ended early: ${result.reason}`,
+      message:
+        result.errorMessage ?? `child ended early: ${result.completionCode ?? result.reason}`,
     }
   }
 

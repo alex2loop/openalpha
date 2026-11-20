@@ -27,9 +27,12 @@
 #
 # [model_defaults] is inherited by every [[models]] and [[model_tiers]] entry,
 # and an entry's own fields win. That is why the entries below are one line. An
-# entry that names another provider keeps api_key_env (optional there, so a
-# server on this machine runs without it) but leaves base_url and provider_*
-# behind; give a hosted provider its own api_key_env.
+# entry that names another provider leaves base_url and provider_* behind, and keeps
+# api_key_env only when that provider is the same vendor (openrouter-decisions beside
+# openrouter, whatever variable you named). Any other provider gets no inherited
+# key: a hosted one needs its own api_key_env, a cloud-account one (vertex,
+# azure-openai, azure-openai-responses) signs in with the account, a server on this
+# machine needs none.
 #
 # An unset key variable never stops `openalpha start`: the daemon prints one warning
 # and keeps refreshing data, firing alerts and running the ledger. Chat, /suggest,

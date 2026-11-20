@@ -1,7 +1,7 @@
 import type { FoldState, MutableCurrencyCash } from '@/trading/features/ledger/fold-state'
 import type { CashTxn, DividendTxn, LedgerTxn, TransferTxn } from '@/trading/features/ledger/types'
 import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
-import type { CurrencyCash, LedgerEntryId } from '@/trading/kernel/operator/book'
+import type { Book, CurrencyCash, LedgerEntryId, VenueCash } from '@/trading/kernel/operator/book'
 import { moveVenueCash } from '@/trading/features/ledger/fold-state'
 import { QUANTITY_EPSILON } from '@/trading/features/ledger/position'
 
@@ -138,18 +138,51 @@ export function toCurrencyCash(state: FoldState): readonly CurrencyCash[] {
   return [...state.currencyCash.values()].map((cash) => ({ ...cash }))
 }
 
-/** What the venue's currency cash can spend now, at its average cost. Base-cash checks subtract it,
- *  so base cash never spends the venue's USDT. */
-export function currencyCashAvailableBase(state: FoldState, venue: VenueRef): number {
-  let total = 0
+/** Where a buy in a currency is paid from, read as the fold pays it: a venue that holds the
+ *  currency pays the trade from that cash alone, and any other pays from its base cash. Either way
+ *  `availableBase` is what that cash can spend, at its cost in the base currency. */
+type BuyCash =
+  | {
+      readonly kind: 'currency'
+      readonly cash: CurrencyCash
+      readonly availableBase: number
+    }
+  | { readonly kind: 'base'; readonly availableBase: number }
 
-  for (const cash of state.currencyCash.values()) {
-    if (cash.venue === venue && cash.amount > QUANTITY_EPSILON) {
-      total += cash.costBase * (cash.available / cash.amount)
+/** Where a buy in `currency` at `venue` draws its cash, the rule `movesCurrencyCash` applies to a
+ *  row, read off a folded book. */
+export function resolveBuyCash(book: Book, venue: VenueRef, currency: CurrencyCode): BuyCash {
+  const cash =
+    currency === book.baseCurrency
+      ? undefined
+      : book.currencyCash.find((held) => held.venue === venue && held.currency === currency)
+
+  return cash === undefined
+    ? { kind: 'base', availableBase: baseCashAvailable(book.cashByVenue, book.currencyCash, venue) }
+    : { kind: 'currency', cash, availableBase: currencyCashAvailableAtCost(cash) }
+}
+
+/** The venue's figure carries its currency cash at cost, and base cash cannot spend that: a
+ *  base-currency outflow is checked against what is left. */
+export function baseCashAvailable(
+  byVenue: ReadonlyMap<VenueRef, VenueCash>,
+  held: Iterable<CurrencyCash>,
+  venue: VenueRef
+): number {
+  let currencyCashBase = 0
+
+  for (const cash of held) {
+    if (cash.venue === venue) {
+      currencyCashBase += currencyCashAvailableAtCost(cash)
     }
   }
 
-  return total
+  return (byVenue.get(venue)?.available ?? 0) - currencyCashBase
+}
+
+/** What the currency cash can spend now, at its average cost. */
+function currencyCashAvailableAtCost(cash: CurrencyCash): number {
+  return cash.amount > QUANTITY_EPSILON ? cash.costBase * (cash.available / cash.amount) : 0
 }
 
 function transferCurrencyCash(state: FoldState, txn: TransferTxn, entryId: LedgerEntryId): void {

@@ -282,6 +282,7 @@ export function assembleRun(
       limits,
       persistence: options.persistence ?? 'enabled',
       ...optionalEnvFields(options),
+      ...(input.typedMessage === undefined ? {} : { isPromptGenerated: true }),
     },
     state: buildRunState({ deps, options, parent, tools, messages, budget }),
     bookkeeping: { compactionPasses: 0, turnRestarts: 0 },

@@ -309,7 +309,7 @@ ví dụ cổ tức của một công ty và báo cáo quý của nó, rồi t�
 `context` mà các agent con cần: chúng không thấy cuộc trò chuyện. Truyền `output_schema`, một JSON Schema dài tối đa 4.000
 ký tự, khi bạn muốn mỗi câu trả lời về dưới dạng JSON đã kiểm tra thay vì văn xuôi.
 
-- Agent con là chính agent cha nhưng bị thu hẹp: chỉ đọc web, thị trường, tin tức và nhớ lại bộ nhớ. Nó không giao dịch,
+- Agent con là chính agent cha nhưng bị thu hẹp: chỉ đọc web, thị trường và tin tức. Nó không giao dịch,
   không ghi sổ, không đặt lịch, không gửi tin, không ghi đề xuất, không tạo thêm agent con và không ủy quyền.
 - Nó chạy trên nhóm `delegate` của `[model_tiers]` nếu bạn khai báo, không thì dùng mô hình của agent cha.
 - Nó có `[loop] max_spawn_duration_ms` và `max_spawn_turns`. Agent con hết thời gian, hết lượt hoặc hết ngân sách sẽ mang

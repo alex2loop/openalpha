@@ -12,12 +12,16 @@ import type { CurrencyCode, InstrumentRef, VenueRef } from '@/trading/kernel/ins
 import type { Position } from '@/trading/kernel/operator/book'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { formatErrForLog } from '@/core/security/credentials'
-import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { recoverPlacedExit } from '@/trading/features/order/exit-recovery'
 import { settleSignal } from '@/trading/features/order/mirror'
 import { isExitInverted } from '@/trading/features/order/policy'
 import { roundExitLevels, roundToInstrument } from '@/trading/features/order/precision'
-import { adapterFor, buildVenueList, resolveOrderVenue } from '@/trading/features/order/routing'
+import {
+  adapterFor,
+  buildVenueList,
+  resolveOrderInstrument,
+  resolveOrderVenue,
+} from '@/trading/features/order/routing'
 import { OrderError, OrderQuantityError } from '@/trading/features/order/types'
 import { isSameInstrument } from '@/trading/kernel/instrument'
 
@@ -161,15 +165,11 @@ export async function cancelRestingExit(
   deps: OrderServiceDeps,
   input: CancelExitRequest
 ): Promise<boolean> {
-  const resolution = await resolveInstrument(deps.markets, {
+  const resolution = await resolveOrderInstrument(deps, {
     ticker: input.ticker,
     signal: input.signal,
+    ...(input.venue === undefined ? {} : { venue: input.venue }),
   })
-
-  if (resolution.kind === 'unresolved') {
-    throw new OrderError('order.rejected', `no market quotes ${input.ticker}`)
-  }
-
   const live = await deps.resting.liveExits(resolution.instrument, input.signal)
   const resting = resolveRestingExits(live, input.venue)
   const first = resting[0]
@@ -214,15 +214,11 @@ export async function setRestingExit(
   deps: OrderServiceDeps,
   input: SetExitRequest
 ): Promise<ExitOutcome> {
-  const resolution = await resolveInstrument(deps.markets, {
+  const resolution = await resolveOrderInstrument(deps, {
     ticker: input.ticker,
     signal: input.signal,
+    ...(input.venue === undefined ? {} : { venue: input.venue }),
   })
-
-  if (resolution.kind === 'unresolved') {
-    throw new OrderError('order.rejected', `no market quotes ${input.ticker}`)
-  }
-
   const { instrument } = resolution
   const positions = await deps.portfolio.positionsAt({ now: input.now, signal: input.signal })
   const held = heldQuantitiesOf(positions, instrument)

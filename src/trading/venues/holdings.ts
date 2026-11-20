@@ -2,15 +2,20 @@ import type { InstrumentRef, MarketRef } from '@/trading/kernel/instrument'
 import type { Book, Position } from '@/trading/kernel/operator/book'
 import type { VenueInstrument } from '@/trading/kernel/venue/catalog'
 import type { SpotAdapter } from '@/trading/kernel/venue/spot-adapter'
+import type { MarketRegistry } from '@/trading/markets/types'
 import type { Venue, VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
+import { resolveBuyCash } from '@/trading/features/ledger/currency-cash'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 
-/** Available cash a buy in each market could actually reach: the venues that can place orders in it.
- *  A market no tradable venue serves is absent rather than zero — the sizer must not read "no cash"
- *  as a reason to hold a name the operator trades by hand. */
+/** Available cash a buy in each market could actually reach: the venues that can place orders in it,
+ *  each counted as the ledger would pay that market's buy (its currency cash at cost once the venue
+ *  holds the market's currency, else its base cash). A market no tradable venue serves is absent
+ *  rather than zero — the sizer must not read "no cash" as a reason to hold a name the operator
+ *  trades by hand. */
 export function reachableCashByMarket(
   venues: VenueRegistry,
+  markets: MarketRegistry,
   book: Book
 ): ReadonlyMap<MarketRef, number> {
   const reachable = new Map<MarketRef, number>()
@@ -20,10 +25,20 @@ export function reachableCashByMarket(
       continue
     }
 
-    const available = book.cashByVenue.get(venue.manifest.id)?.available ?? 0
-
     for (const market of venue.manifest.markets) {
-      reachable.set(market, (reachable.get(market) ?? 0) + available)
+      const registered = markets.find(market)
+
+      if (!registered) {
+        continue
+      }
+
+      const { availableBase } = resolveBuyCash(
+        book,
+        venue.manifest.id,
+        registered.manifest.currency
+      )
+
+      reachable.set(market, (reachable.get(market) ?? 0) + availableBase)
     }
   }
 

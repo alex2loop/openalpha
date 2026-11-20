@@ -6,6 +6,7 @@ import type { MessageKey } from '@/i18n'
 import { formatDay } from '@/i18n'
 import { ApiFailure, getJson } from '@/web/api/client'
 import { ROUTES } from '@/web/api/routes'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { locale, state } from '@/web/state/session'
 import { joinInline } from '@/web/text/glyphs'
 import { buildDayKey } from '@/web/text/time'
@@ -14,7 +15,7 @@ import { tr } from '@/web/text/tr'
 import { CostBreakdown } from '@/web/ui/cost/cost-breakdown'
 import { CostChart } from '@/web/ui/cost/cost-chart'
 import { formatSpent } from '@/web/ui/cost/spent'
-import { Button } from '@/web/ui/kit/button'
+import { Button, type ButtonSize } from '@/web/ui/kit/button'
 import { FailureStrip } from '@/web/ui/kit/failure-strip'
 import { closeModal, openModal } from '@/web/ui/kit/modal'
 import { Segmented } from '@/web/ui/kit/segmented'
@@ -51,12 +52,25 @@ export function openCostDialog(): void {
     body: <CostReportBody />,
     footer: (
       <>
-        <Button onClick={() => openSettings('agents')}>{tr('ui.office.cost.change')}</Button>
+        <ChangeBudgetButton />
         <Button onClick={closeModal}>{tr('ui.office.common.close')}</Button>
       </>
     ),
     wide: true,
   })
+}
+
+/** Opens the daemon's budget settings; the browser edition's cap is fixed, so it shows nothing. */
+export function ChangeBudgetButton({ size = 'regular' }: { readonly size?: ButtonSize }) {
+  if (isAnalysisOnly.value) {
+    return null
+  }
+
+  return (
+    <Button size={size} onClick={() => openSettings('agents')}>
+      {tr('ui.office.cost.change')}
+    </Button>
+  )
 }
 
 function CostReportBody() {

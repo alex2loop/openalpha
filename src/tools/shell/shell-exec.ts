@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 import { createTool } from '@/core/tool'
 import { isToolDetailComplete, TOOL_DETAIL_MAX_LENGTH } from '@/engine/api'
-import { assertCommandAllowed, interpretExitCode } from '@/tools/shell/policy'
+import { commandRefusalOf, interpretExitCode } from '@/tools/shell/policy'
 import { runProcess } from '@/tools/shell/process'
 
 const SHELL_DEFAULT_TIMEOUT_MS = 30_000
@@ -35,12 +35,18 @@ export const shellExecTool = createTool({
       message:
         `command and args together exceed ${TOOL_DETAIL_MAX_LENGTH} characters, more than the ` +
         'approval prompt can show in full. Split the work into several shorter commands.',
+    })
+    // In the schema so a blocked command is refused before the operator is asked to approve it.
+    .superRefine((input, ctx) => {
+      const refusal = commandRefusalOf(input.command, input.args)
+
+      if (refusal !== undefined) {
+        ctx.addIssue({ code: 'custom', path: ['command'], message: refusal })
+      }
     }),
   capability: 'shell',
   presentation: { label: 'Run command', emoji: '⚡', detailKeys: SHELL_DETAIL_KEYS },
   async execute(args, ctx): Promise<string> {
-    assertCommandAllowed(args.command, args.args)
-
     const result = await runProcess(
       {
         command: args.command,

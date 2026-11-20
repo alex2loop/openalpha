@@ -233,10 +233,15 @@ It takes `provider`, `api_key_env`, `base_url`, `reasoning`, `max_tokens`, `prov
 `reasoning_required` and the `cost_*` keys are per entry only.
 
 An entry that names a different `provider` does not inherit `base_url` or the `provider_*` keys;
-those belong to the defaults' provider. It still inherits `api_key_env`, but an unset variable is not
-an error there. A server on this machine runs without a key, and a sibling endpoint of the same
-vendor (`openrouter-decisions` beside `openrouter`) finds the router's key. Give any other hosted
-provider its own `api_key_env`. `reasoning`, `max_tokens` and the two timeouts carry over.
+those belong to the defaults' provider. It inherits `api_key_env` only when its provider is the same
+vendor as the defaults' one: `openrouter-decisions` beside `openrouter` finds the router's key,
+whatever variable you named it in. A `[model_defaults]` that names no provider lends its key to
+every entry. For any other provider the inherited key is dropped and the entry counts as naming
+none, so it never reaches another vendor, a custom `base_url` or a server on the LAN. A provider
+that needs a key then needs its own `api_key_env` on the entry (without one the entry is refused and
+`doctor` names it); a provider that signs in with a cloud account (`vertex`, `azure-openai`,
+`azure-openai-responses`) uses that sign-in; a server on this machine (loopback `base_url`, such as
+Ollama or LM Studio) needs none. `reasoning`, `max_tokens` and the two timeouts carry over.
 
 ### Agent `model_tier` (agent.toml only)
 

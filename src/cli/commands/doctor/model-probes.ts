@@ -6,6 +6,7 @@ import {
   IDENTITY_ENV,
   missingKeyErrors,
   requiresApiKey,
+  withoutBorrowedKey,
 } from '@/ai/api'
 import { bindLocale, t } from '@/i18n'
 
@@ -24,10 +25,11 @@ export function probeModels(
     return [{ name, status: 'fail', detail: t(locale, 'cli.doctorNoModels') }]
   }
 
+  const models = config.models.map(withoutBorrowedKey)
   const failures = [
     ...unsetKeyProbes(config, locale),
-    ...missingApiKeyEnvProbes(config.models, locale),
-    ...missingSignInProbes(config.models, env, locale),
+    ...missingApiKeyEnvProbes(models, locale),
+    ...missingSignInProbes(models, env, locale),
   ]
   // The chain listing is only a pass when nothing below it fails; otherwise it reads as a contradiction.
   const summary: DoctorProbe = {
@@ -48,7 +50,8 @@ function unsetKeyProbes(config: ResolvedConfig, locale: Locale): readonly Doctor
   }))
 }
 
-// A model whose entry names no api_key_env at all resolves with no key and no error; a named variable
+// A model whose entry names no api_key_env at all (or only one borrowed from another provider's
+// defaults that its provider does not read) resolves with no key and no error; a named variable
 // left unset is `unsetKeyProbes`'. The catalog is what knows which providers need a key, so this
 // pre-flight check lives here rather than in core/config, which stays finance-vocab-free.
 // `[[models]] provider` is a free string (core/config never validates it against the catalog), so a

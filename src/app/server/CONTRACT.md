@@ -37,10 +37,11 @@ this document — neither imports the other.
   messages are `WorkerCall` (`start`, `keys`, `locale`, `http`, `frame`, `abort`, `export-db`, `open-db`) and `WorkerReply`
   (`ready`, `refused`, `http`, `frame`, `db-exported`, `db-opened`) in `wire/worker.ts`: `http` carries a request and answers with
   the status and body the route gave, `frame` carries the `ClientFrame` and `ServerFrame` of section
-  5, and a `frame` that is not a command (a line not starting with `/`) is answered with an error
-  frame. `ready` carries the capabilities of the edition; `refused` says why the database cannot be
-  served (`locked`, `taken-over`, `unsupported`, `newer-schema`, `storage-full`). `export-db` answers
-  with the database as one SQLite file; `open-db` checks a file the visitor picked in a scratch
+  5; a line not starting with `/` runs the narrowed chat agent. It and `/research` are answered with
+  an error frame, calling nothing, when no usable key is set for a model they call (and `/research`
+  also with no search key). `ready` carries the capabilities of the edition; `refused` says why the
+  database cannot be served (`locked`, `taken-over`, `unsupported`, `newer-schema`,
+  `storage-full`). `export-db` answers with the database as one SQLite file; `open-db` checks a file the visitor picked in a scratch
   database (SQLite header, every migration id declared by this build, no row an installed version
   wrote in a table only it fills: stored calls, alerts, resting exits, order intents, the buying halt,
   focus and factor records, themes), then replaces the database

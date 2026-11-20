@@ -308,7 +308,7 @@ may start up to `2` in one call. Pass `goal` for one child, or `items` for one c
 `context` the children need: they see none of the conversation. Pass `output_schema`, a JSON Schema of at most 4,000
 characters, when you want each answer back as checked JSON instead of prose.
 
-- A child is the parent's own agent narrowed: web, market and news reads and memory recall only. It never trades,
+- A child is the parent's own agent narrowed: web, market and news reads only. It never trades,
   records, schedules, sends, writes suggestions, spawns or delegates.
 - It runs on the `delegate` tier of `[model_tiers]` when you declare one, else on the parent's models.
 - It has `[loop] max_spawn_duration_ms` and `max_spawn_turns`. A child that runs out of time, turns or budget brings

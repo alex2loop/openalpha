@@ -10,7 +10,7 @@ import type { CheckedProbe, DoctorInput } from '@/cli/api'
 import type { App } from '@/core/container'
 import type { CheckName } from '@/core/types/doctor'
 import type { Locale } from '@/core/types/locale'
-import { findProviderById } from '@/ai/api'
+import { findProviderById, withoutBorrowedKey } from '@/ai/api'
 import { createTokenFile } from '@/ai/node-api'
 import { SHUTDOWN_DRAIN_MS } from '@/app/daemon'
 import { apiTokenPath } from '@/app/server/http/auth'
@@ -79,7 +79,9 @@ async function readModelReady(app: App): ReturnType<SystemHost['modelReady']> {
     bindLocale(app.config.locale.language).translate
   )
   const isClientModel = app.config.modelSource === 'client'
-  const modelKeyEnv = isClientModel ? undefined : app.config.models[0]?.apiKeyEnv
+  const primary = app.config.models[0]
+  const modelKeyEnv =
+    isClientModel || primary === undefined ? undefined : withoutBorrowedKey(primary).apiKeyEnv
 
   return {
     modelReady: isClientModel || providers.some((check) => check.ok),
@@ -164,7 +166,7 @@ function cliOnlyCheck(check: CheckName, locale: Locale): DoctorCheck {
 // provider carries no key at all; it is authenticated by a login, whose token file is read here.
 function resolveProviderChecks(app: App, translate: Translate): Promise<readonly ProviderCheck[]> {
   return Promise.all(
-    app.config.models.map(async (model): Promise<ProviderCheck> => {
+    app.config.models.map(withoutBorrowedKey).map(async (model): Promise<ProviderCheck> => {
       const name = `provider: ${model.provider}`
       const params = { provider: model.provider }
 

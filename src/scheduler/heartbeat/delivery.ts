@@ -3,6 +3,7 @@ import { performance } from 'node:perf_hooks'
 import type { Logger } from '@/core/logging/logger'
 import type { LruMap } from '@/core/utils/collections'
 import type { AgentProfile } from '@/engine/api'
+import type { HeartbeatFileProblem } from '@/scheduler/heartbeat/file'
 import type { HeartbeatTask } from '@/scheduler/heartbeat/types'
 import type { DeliverySink, DeliveryTarget } from '@/scheduler/types'
 import { parseChannelAddress } from '@/core/channels'
@@ -12,16 +13,23 @@ import { hashString } from '@/core/utils/hash'
 import { withLeadParagraph } from '@/core/utils/text'
 
 const DELIVERY_CACHE_MAX = 200
+const FILE_PROBLEM_CACHE_MAX = 200
 
-// Process-local delivery history, bounded by an LRU. Suppression is best-effort across retained
-// entries in the current daemon process; restart and eviction forget old entries. Lives inside the
-// startHeartbeats lifecycle so concurrent runs never share mutable state.
+// Process-local heartbeat memory (deliveries, file problems reported), each bounded by an LRU.
+// Suppression is best-effort across retained entries in the current daemon process; restart and
+// eviction forget old entries. Lives inside the startHeartbeats lifecycle so concurrent runs never
+// share mutable state.
 export interface HeartbeatRuntimeState {
   readonly acceptedAtMonotonicMs: LruMap<string, number>
+  /** The HEARTBEAT.md problem last reported per agent, so a broken file warns once, not per tick. */
+  readonly reportedFileProblems: LruMap<string, HeartbeatFileProblem | undefined>
 }
 
 export function createHeartbeatRuntimeState(): HeartbeatRuntimeState {
-  return { acceptedAtMonotonicMs: lruMap<string, number>(DELIVERY_CACHE_MAX) }
+  return {
+    acceptedAtMonotonicMs: lruMap<string, number>(DELIVERY_CACHE_MAX),
+    reportedFileProblems: lruMap<string, HeartbeatFileProblem | undefined>(FILE_PROBLEM_CACHE_MAX),
+  }
 }
 
 interface DeliverOptions {

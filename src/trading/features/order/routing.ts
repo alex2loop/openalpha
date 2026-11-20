@@ -1,6 +1,9 @@
-import type { MarketRef, VenueRef } from '@/trading/kernel/instrument'
+import type { ResolvedInstrument } from '@/trading/features/market-data/resolve'
+import type { OrderServiceDeps } from '@/trading/features/order/deps'
+import type { MarketRef, Ticker, VenueRef } from '@/trading/kernel/instrument'
 import type { OrderSide, SpotAdapter } from '@/trading/kernel/venue/spot-adapter'
 import type { Venue, VenueRegistry } from '@/trading/venues/types'
+import { resolveInstrument } from '@/trading/features/market-data/resolve'
 import { OrderError } from '@/trading/features/order/types'
 import { INLINE_SEPARATOR } from '@/trading/render/layout'
 
@@ -65,6 +68,38 @@ function refusalVenues(input: VenueRouteInput, narrowed: NarrowedVenues): readon
 
 function venueIds(venues: readonly Venue[]): readonly VenueRef[] {
   return venues.map((venue) => venue.manifest.id)
+}
+
+interface OrderInstrumentInput {
+  readonly ticker: Ticker
+  readonly venue?: VenueRef
+  readonly signal: AbortSignal
+}
+
+/** The instrument an order request names. A named venue narrows the lookup to the markets it
+ *  serves, so a coin symbol typed with its venue is never read as a stored stock of the same name;
+ *  a venue serving one market names it outright, as `market:ticker` would, so a switched-off
+ *  segment reaches the order caps rather than reading as an unknown name. Nothing named, or a name
+ *  no venue answers to, narrows nothing; routing refuses the latter. */
+export async function resolveOrderInstrument(
+  deps: Pick<OrderServiceDeps, 'markets' | 'venues'>,
+  input: OrderInstrumentInput
+): Promise<ResolvedInstrument> {
+  const served =
+    input.venue === undefined ? [] : (deps.venues.find(input.venue)?.manifest.markets ?? [])
+  const [only, ...others] = served
+  const resolution = await resolveInstrument(deps.markets, {
+    ticker: input.ticker,
+    ...(only !== undefined && others.length === 0 ? { market: only } : {}),
+    ...(others.length > 0 ? { within: served } : {}),
+    signal: input.signal,
+  })
+
+  if (resolution.kind === 'unresolved') {
+    throw new OrderError('order.rejected', `no market quotes ${input.ticker}`)
+  }
+
+  return resolution
 }
 
 /** The venue a stored row already names. A confirm and an exit cancel address the venue the

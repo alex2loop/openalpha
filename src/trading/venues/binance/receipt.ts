@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { FeePriceLookup } from '@/trading/kernel/venue/fee'
-import type { OrderReceipt, OrderState } from '@/trading/kernel/venue/spot-adapter'
+import type { OrderReceipt, OrderSide, OrderState } from '@/trading/kernel/venue/spot-adapter'
 import type { BinanceTransportDeps } from '@/trading/venues/binance/transport'
 import { OrderError } from '@/trading/features/order/types'
 import { ORDER_SIDES } from '@/trading/kernel/venue/spot-adapter'
@@ -38,7 +38,7 @@ export type BinanceOrder = z.infer<typeof ORDER>
 interface ChargedFee {
   readonly amount: number
   readonly currency: string
-  /** Base-asset fee already taken out of the quantity. */
+  /** Base-asset fee, taken out of a buy's quantity and added to a sell's. */
   readonly inKind: number
 }
 
@@ -138,13 +138,18 @@ async function toReceipt(input: ReceiptInput): Promise<OrderReceipt | undefined>
     side,
     state: toOrderState(order.status),
     averagePrice,
-    filledQuantity: order.executedQty - (fee?.inKind ?? 0),
+    filledQuantity: netQuantity(order.executedQty, side, fee?.inKind ?? 0),
     // A receipt carries a charge as negative; Binance reports it positive.
     fee: fee === undefined ? 0 : -fee.amount,
     feeCurrency: fee?.currency ?? '',
     ...(fee === undefined ? { feeUnreported: true as const } : {}),
     ...(filledAt === undefined ? {} : { filledAt }),
   }
+}
+
+/** A base fee leaves a buy's quantity and joins a sell's, as `toBookedFill` nets it. */
+function netQuantity(executed: number, side: OrderSide, inKind: number): number {
+  return side === 'buy' ? executed - inKind : executed + inKind
 }
 
 async function chargedFee(input: ReceiptInput, averagePrice: number): Promise<ChargedFee> {
@@ -163,7 +168,8 @@ async function chargedFee(input: ReceiptInput, averagePrice: number): Promise<Ch
 }
 
 /** One order billed in several assets - the BNB balance ran out partway - becomes one quote fee.
- *  The base part leaves the quantity first, exactly as `toBookedFill` nets an in-kind fee. */
+ *  The base part is netted into the quantity first, on either side, exactly as `toBookedFill` nets
+ *  an in-kind fee: it leaves a buy's and joins a sell's. */
 async function foldIntoQuote(
   input: ReceiptInput,
   byAsset: ReadonlyMap<string, number>,

@@ -109,6 +109,8 @@ export interface RunEnv {
   readonly title?: string
   /** Names what a child run works on. Names no answer and adds nothing to the finish, unlike `title`. */
   readonly subject?: RunSubject
+  /** The user message is text the engine composed, not what a person typed: nothing is learned from it. */
+  readonly isPromptGenerated?: true
   /** Foreground research seam for this run only; delegated children never inherit it. */
   readonly researchInteraction?: ForegroundResearchInteraction
 }
@@ -216,6 +218,9 @@ export interface RunOptions {
   readonly title?: string
   /** Names what a child run works on. Names no answer and adds nothing to the finish, unlike `title`. */
   readonly subject?: RunSubject
+  /** The user message is text the engine composed, not what a person typed (also a command's
+   *  hand-off, `RunInput.typedMessage`): nothing is learned from it. */
+  readonly isPromptGenerated?: true
   /** The profile this run uses in place of its agent's: same id, tools only the agent already has. */
   readonly profile?: AgentProfile
   /** Runs once after engine admission and before any metered work starts. */
@@ -423,19 +428,4 @@ export interface ToolExecutor {
     prepared: PreparedToolCall,
     observer?: ToolExecutionObserver
   ): Promise<ToolResult>
-}
-
-export interface McpToolInvoker {
-  invoke(input: McpToolInvocation): Promise<ToolResult>
-}
-
-export interface McpToolInvocation {
-  readonly name: string
-  readonly sessionId: SessionId
-  readonly input: unknown
-  readonly signal?: AbortSignal
-  // Absent when the client cannot prompt: the call has no approver and dangerous tools fail closed.
-  readonly approval?: ToolApproval
-  /** Forwarded to the transport as a progress notification. */
-  readonly progress?: (message: ProgressMessage) => void
 }

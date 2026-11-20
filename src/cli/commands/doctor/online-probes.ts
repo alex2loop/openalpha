@@ -4,7 +4,7 @@ import type { CredentialSource, ProviderEntry, StoredTokens } from '@/ai/api'
 import type { ResolvedConfig, ResolvedModel } from '@/core/config/resolve'
 import type { LLMErrorCode } from '@/core/llm'
 import type { Locale } from '@/core/types/locale'
-import { createClient, findProviderById, missingKeyErrors } from '@/ai/api'
+import { createClient, findProviderById, missingKeyErrors, withoutBorrowedKey } from '@/ai/api'
 import { createCredentialSources, createTokenFile } from '@/ai/node-api'
 import { resolveSecret, TELEGRAM_API_BASE, ZALO_API_BASE } from '@/channels/node-api'
 import { providerFailureSpecOf, terminalErrorMessage } from '@/cli/error-output'
@@ -90,9 +90,9 @@ export async function probeProviders(
   })
   // An unset key already fails the models row; probing it would report the same cause twice.
   const unset = new Set(missingKeyErrors(config).map((err) => err.env))
-  const keyed = config.models.filter(
-    (model) => model.missingEnv === undefined || !unset.has(model.missingEnv)
-  )
+  const keyed = config.models
+    .map(withoutBorrowedKey)
+    .filter((model) => model.missingEnv === undefined || !unset.has(model.missingEnv))
   const keyProbes = await Promise.all(
     firstModelPerProvider(keyed).map((model) =>
       probeProviderKey({ config, model, credentials, locale })

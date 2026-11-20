@@ -96,11 +96,9 @@ export function closeChatClient(client: ChatClient): void {
   dropWaitingCommands(client)
   client.steerIds.clear()
 
-  for (const [sessionId, controllers] of client.activeRuns) {
+  for (const controllers of client.activeRuns.values()) {
     for (const controller of controllers) {
       controller.abort()
     }
-
-    client.services.runControl.abortSession(sessionId, sessionId)
   }
 }

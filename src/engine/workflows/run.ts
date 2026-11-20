@@ -89,7 +89,7 @@ export async function runWorkflow(deps: WorkflowRunDeps): Promise<WorkflowResult
       const result = await runStep(runner, () => runContext.createInput(agent, userMessage), {
         logger,
         label: { id: workflow.id, step: steps, agent },
-        options: runContext.options,
+        options: { ...runContext.options, isPromptGenerated: true },
       })
 
       costUsd += result.totalCostUsd

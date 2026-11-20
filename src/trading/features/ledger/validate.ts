@@ -12,8 +12,8 @@ import type { VenueManifest } from '@/trading/venues/types'
 import { ValidationError } from '@/core/errors'
 import { applyTransaction, positionAt, promoteSettled } from '@/trading/features/ledger/book'
 import {
+  baseCashAvailable,
   currencyCashAt,
-  currencyCashAvailableBase,
   currencyCashSpend,
 } from '@/trading/features/ledger/currency-cash'
 import { createFoldState } from '@/trading/features/ledger/fold-state'
@@ -108,9 +108,7 @@ function assertAffordable(state: FoldState, txn: LedgerTxn): void {
   }
 
   const venue = payingVenue(txn)
-  // The venue's figure carries its currency cash at cost; base cash cannot spend that.
-  const available =
-    (state.byVenue.get(venue)?.available ?? 0) - currencyCashAvailableBase(state, venue)
+  const available = baseCashAvailable(state.byVenue, state.currencyCash.values(), venue)
 
   if (isShortfall(available, outflow)) {
     const held = inRowCurrency(state, txn, Math.max(available, 0))

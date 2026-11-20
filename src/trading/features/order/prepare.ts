@@ -24,12 +24,16 @@ import type {
 } from '@/trading/kernel/instrument'
 import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
-import { resolveDay, resolveInstrument } from '@/trading/features/market-data/resolve'
+import { resolveDay } from '@/trading/features/market-data/resolve'
 import { assertBookPriced, breachedCaps } from '@/trading/features/order/exposure'
 import { assertBuyingAllowed } from '@/trading/features/order/halt'
 import { isExitInverted, validateOrderCaps } from '@/trading/features/order/policy'
 import { roundExitLevels, roundToInstrument } from '@/trading/features/order/precision'
-import { adapterFor, resolveOrderVenue } from '@/trading/features/order/routing'
+import {
+  adapterFor,
+  resolveOrderInstrument,
+  resolveOrderVenue,
+} from '@/trading/features/order/routing'
 import { resolveSellableQuantities, sellableQuantityOf } from '@/trading/features/order/sellable'
 import { OrderError, OrderQuantityError } from '@/trading/features/order/types'
 import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
@@ -47,15 +51,11 @@ export async function prepareOrder(
   deps: OrderServiceDeps,
   input: PrepareInput
 ): Promise<PreparedOrder> {
-  const resolution = await resolveInstrument(deps.markets, {
+  const resolution = await resolveOrderInstrument(deps, {
     ticker: input.request.ticker,
     signal: input.signal,
+    ...(input.request.venue === undefined ? {} : { venue: input.request.venue }),
   })
-
-  if (resolution.kind === 'unresolved') {
-    throw new OrderError('order.rejected', `no market quotes ${input.request.ticker}`)
-  }
-
   const { instrument, instrumentKind, market } = resolution
   const sellableOf = createSellableOf(deps, instrument, input)
 
@@ -405,10 +405,10 @@ export function rejectionsFor(deps: OrderServiceDeps, terms: CapTerms): readonly
     notional: terms.notional,
     currency: terms.currency,
     notionalBase: terms.notionalBase,
-    baseCurrency: terms.book.book.baseCurrency,
     orderType: terms.orderType,
     ...(cost === undefined ? {} : { cost }),
-    availableCashBase: venueCashBase(terms),
+    book: terms.book.book,
+    unmirroredSpentBase: terms.unmirrored.spentBase,
     venue: terms.venue,
     openTrades: terms.book.positions.length + terms.unmirrored.count,
     opensPosition: !terms.book.positions.some((entry) =>
@@ -416,15 +416,6 @@ export function rejectionsFor(deps: OrderServiceDeps, terms: CapTerms): readonly
     ),
     hasStopLoss: terms.hasStopLoss,
   })
-}
-
-/** Unmirrored spend is whole-book and stays that way: subtracting all of it from one venue can
- *  refuse an order the book could afford, which is the right direction for a cash ceiling and
- *  avoids a per-venue query for rows that are rare and have to be cleared anyway. */
-function venueCashBase(terms: CapTerms): number {
-  const available = terms.book.book.cashByVenue.get(terms.venue)?.available ?? 0
-
-  return available - terms.unmirrored.spentBase
 }
 
 /** The profile a buy is held to, read where the book is: here when the order is prepared and again

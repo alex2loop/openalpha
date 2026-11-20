@@ -3,7 +3,7 @@ import type { SkillVisibility } from '@/engine/skills/availability'
 import type { SkillCatalog } from '@/engine/skills/catalog'
 import type { SkillMeta } from '@/engine/skills/types'
 import type { AgentProfile } from '@/engine/types/agent'
-import type { McpToolInvocation, McpToolInvoker } from '@/engine/types/run'
+import type { McpToolInvocation, McpToolInvoker } from '@/engine/types/mcp'
 import { ToolError } from '@/core/errors'
 import { DEFAULT_AGENT_ID } from '@/core/ids'
 import {

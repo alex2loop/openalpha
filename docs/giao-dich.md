@@ -1511,7 +1511,7 @@ Khi có khoản nắm nào chưa có giá, NAV bị giữ lại và bản đánh
 `/portfolio nav [1m|3m|6m|1y|all]` (mặc định `3m`) cho thấy cuốn sổ đã đi thế nào theo thời gian. Nó được dựng từ một snapshot mỗi ngày:
 
 - **Một snapshot mỗi ngày.** Sau mỗi lượt `trading.refresh`, dịch vụ nền định giá cuốn sổ đúng như `/portfolio` và giữ một dòng cho ngày đó; lượt cuối của ngày thắng. Lịch sử bắt đầu từ khi bạn nâng cấp. Không gì được dựng lại từ sổ lệnh, vì giá đóng VN đã lưu được điều chỉnh ngược còn khối lượng trong sổ lệnh thì không.
-- **Lợi suất trọng số thời gian.** Một khoản nạp hay rút làm đổi giá trị cuốn sổ mà không phải là lãi, nên nó bị trừ khỏi ngày nó rơi vào. Cổ tức, phí và loss vẫn nằm trong lợi suất.
+- **Lợi suất trọng số thời gian.** Một khoản nạp hay rút làm đổi giá trị cuốn sổ mà không phải là lãi, nên không bao giờ được tính là lãi. Khoản nạp được coi là bắt đầu làm việc từ đầu ngày, khoản rút được coi là rời đi cuối ngày, nên một khoản nạp lớn được đo cùng số vốn nó gia nhập chứ không bị đọc thành lợi suất của cuốn sổ nhỏ hơn trước đó. Cổ tức, phí và khoản lỗ vẫn nằm trong lợi suất. Ngày nào hoàn toàn chưa có vốn đầu tư, tính cả khoản nạp trong ngày, thì chỉ số giữ nguyên.
 - **Sụt giảm từ đỉnh.** Mức sụt sâu nhất và hiện bạn đang thấp hơn đỉnh bao nhiêu, cả hai trên cùng một chỉ số.
 - **Một thước đo từ cơ cấu mục tiêu của chính bạn.** Mỗi nhóm bạn đã đặt mục tiêu đi theo chỉ số chuẩn của thị trường nó, còn tiền mặt thì không sinh lời. Nhóm nào mà thị trường không có chuẩn thì bị bỏ ra, và phần còn lại được co lại cho đủ một; hiện vàng không có chuẩn. Câu trả lời nêu tên các phần.
   - Nếu không nhóm nào bạn đặt mục tiêu có chuẩn, thì không có thước đo, và câu trả lời nói vậy.
@@ -1865,7 +1865,7 @@ Trần tiền mặt tính tiền khả dụng từ các dòng sổ lệnh, nên 
 - Mỗi nhãn (`limit`, `tp`, `sl`, và `qty` ở `/trade exit`) chỉ được xuất hiện một lần. Nhãn lặp lại bị từ chối kèm dòng hướng dẫn, chứ không lấy giá trị cuối.
 - Lệnh mua mặc định cần `sl`. Đặt `require_stop_loss = false` dưới `[trading.orders]` để cho phép không có.
 
-Tiền tố `sàn:` là tùy chọn và chỉ cần khi có hơn một sàn có thể trả lời. Định tuyến chọn đúng một sàn khớp được lệnh, thu hẹp lệnh bán về các sàn thật sự đang nắm một phần bán được, và từ chối mọi trường hợp khác kèm các ứng viên được nêu tên. Nó không bao giờ chọn hộ bạn, vì một lệnh tiền thật không được phụ thuộc vào một mặc định mà không ai đọc lại. Một lệnh bán bị từ chối khi vượt phần đã chốt và chưa được bảo vệ ở sàn đã định tuyến:
+Tiền tố `sàn:` là tùy chọn và chỉ cần khi có hơn một sàn có thể trả lời. Định tuyến chọn đúng một sàn khớp được lệnh, thu hẹp lệnh bán về các sàn thật sự đang nắm một phần bán được, và từ chối mọi trường hợp khác kèm các ứng viên được nêu tên. Nó không bao giờ chọn hộ bạn, vì một lệnh tiền thật không được phụ thuộc vào một mặc định mà không ai đọc lại. Tiền tố còn quyết định mã chỉ công cụ nào: `okx:SUI` chỉ tìm `SUI` trong các thị trường mà OKX phục vụ, nên một đồng coin trùng ký hiệu với cổ phiếu hay quỹ đã lưu được đọc là đồng coin, kể cả khi nhóm crypto đang tắt (lệnh mua khi đó bị từ chối vì trần bằng không của nhóm, chứ không bị coi là mã lạ). `/trade exit` và `/trade cancel` đọc tiền tố theo cách đó, còn một lệnh đã dàn dựng được xác nhận tại sàn mà nó đã được định tuyến tới. Một lệnh bán bị từ chối khi vượt phần đã chốt và chưa được bảo vệ ở sàn đã định tuyến:
 
 - vượt phần đã chốt: `order.sell_unsettled`;
 - vượt phần bán được, nơi một lối thoát đang treo đã đóng băng coin ở sàn: `order.sell_guarded`.
@@ -1880,7 +1880,7 @@ Token có hiệu lực **năm phút**, dùng một lần, và được đối ch
 
 Giá, độ lệch và các trần được chạy lại lúc xác nhận trên một giá mới, nên một thị trường đã dịch chuyển trong lúc bạn đọc thì bị từ chối thay vì khớp ở mức giá không ai kiểm. Lệnh limit được giữ theo giá trực tiếp và lệnh thị trường theo giá lúc nó được dàn dựng, cả hai trong `maximum_price_drift`.
 
-Trần tiền mặt tính cả phí mua mà tỷ lệ `fees` của sàn đã định tuyến tính (phí thu bằng chính coin bạn mua thì không cộng gì). Với lệnh thị trường nó còn cộng thêm đúng độ lệch đó làm khoảng trống cho lần khớp, nên một lệnh mua định cỡ bằng toàn bộ tiền mặt bị từ chối thay vì khớp ở sàn rồi không ghi sổ được. Một lệnh bán được kiểm lại lúc xác nhận theo khối lượng còn rảnh.
+Trần tiền mặt tính cả phí mua mà tỷ lệ `fees` của sàn đã định tuyến tính (phí thu bằng chính coin bạn mua thì không cộng gì). Với lệnh thị trường nó còn cộng thêm đúng độ lệch đó làm khoảng trống cho lần khớp, nên một lệnh mua định cỡ bằng toàn bộ tiền mặt bị từ chối thay vì khớp ở sàn rồi không ghi sổ được. Tiền mặt mà trần này đo là số tiền sổ lệnh sẽ chi: lệnh mua bằng đồng tiền mà sàn đang giữ như tiền mặt riêng (xem "Tiền ngoại tệ tại sàn") chỉ dùng số tiền đó, còn lệnh mua bằng đồng gốc của sổ dùng tiền mặt đồng gốc của sàn, không tính tiền ngoại tệ của nó. Lời từ chối nêu số tiền mặt và số cần theo đúng đồng tiền đã đo: đồng của chính lệnh ở trường hợp đầu, đồng gốc của sổ ở trường hợp sau. Một lệnh bán được kiểm lại lúc xác nhận theo khối lượng còn rảnh.
 
 Để gỡ một chốt lời/cắt lỗ đang treo:
 
