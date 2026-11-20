@@ -5,9 +5,9 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { Job, JobEvent, JobSchedule } from '@/scheduler/api'
 import { createAlertRetirer } from '@/app/event-jobs'
 import { API_CHANNEL, APP_CHAT_ID, isApiChannel } from '@/app/server/channel'
-import { isApiExposed } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { JOB_CREATE_BODY, toScheduleRowWire } from '@/app/server/mappers/jobs'
+import { isExposedOnDisk } from '@/app/server/routes/config'
 import {
   fieldRefusal,
   hostOf,
@@ -38,6 +38,7 @@ import {
 } from '@/tools/api'
 
 const MAX_BODY_BYTES = 32 * 1024
+const APP_TARGET: NonNullable<Job['target']> = { channel: API_CHANNEL, chatId: APP_CHAT_ID }
 
 async function parseBody(req: Request): Promise<JobCreateBody> {
   const parsed = JOB_CREATE_BODY.safeParse(await readJsonBody(req, MAX_BODY_BYTES))
@@ -114,7 +115,7 @@ function assertScheduledCommand(ctx: ApiRouteContext, prompt: string): void {
 /** Everything the body can get wrong is checked here, before any alert is armed. A refusal the
  *  operator can fix leaves as a `ValidationError`, which the route table answers as a 400; anything
  *  else is ours and stays a 500. */
-function buildJob(ctx: ApiRouteContext, body: JobCreateBody): Job {
+function buildJob(ctx: ApiRouteContext, body: JobCreateBody, defaultTarget: Job['target']): Job {
   try {
     const agent = agentId(body.agentId)
     const now = Date.now()
@@ -129,7 +130,7 @@ function buildJob(ctx: ApiRouteContext, body: JobCreateBody): Job {
         : toTimedSchedule(ctx, body.schedule, now)
     const target =
       body.target === undefined
-        ? toDefaultTarget(ctx)
+        ? defaultTarget
         : { channel: channelId(body.target.channel), chatId: body.target.chatId }
 
     return {
@@ -238,30 +239,23 @@ async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
   return json(toScheduleRowWire(job))
 }
 
-// Behind `public_url` an untargeted job runs on the app's channel, so the app-run limits hold for it;
-// otherwise it keeps the scheduler's own channel, as one added from the CLI.
-function toDefaultTarget(ctx: ApiRouteContext): Job['target'] {
-  return isApiExposed(ctx.app.config.api)
-    ? { channel: API_CHANNEL, chatId: APP_CHAT_ID }
-    : undefined
-}
-
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
   const body = await parseBody(req)
+  // A job outlasts the restart a saved `public_url` waits for, so the file's next start counts too.
+  const exposed = await isExposedOnDisk(ctx)
 
   // A job aimed at another chat runs on that channel, past the app-channel run limits.
-  if (
-    isApiExposed(ctx.app.config.api) &&
-    body.target !== undefined &&
-    !isApiChannel(body.target.channel)
-  ) {
+  if (exposed && body.target !== undefined && !isApiChannel(body.target.channel)) {
     return apiError(
       'conflict',
       t(localeOf(ctx), 'errors.jobTargetServerOnly', { brand: BRAND.name })
     )
   }
 
-  const armed = await armPriceAlert(req, ctx, { body, job: buildJob(ctx, body) })
+  // Behind `public_url` an untargeted job runs on the app's channel, so the app-run limits hold for
+  // it; otherwise it keeps the scheduler's own channel, as one added from the CLI.
+  const job = buildJob(ctx, body, exposed ? APP_TARGET : undefined)
+  const armed = await armPriceAlert(req, ctx, { body, job })
 
   return await storeJob(ctx, armed)
 }

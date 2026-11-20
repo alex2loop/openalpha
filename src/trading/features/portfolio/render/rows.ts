@@ -13,7 +13,7 @@ import type { QuoteConvention, QuotedIn } from '@/trading/render/money'
 import { formatDay, pluralKey, t } from '@/i18n'
 import { openLots } from '@/trading/features/portfolio/folds/holdings'
 import { renderUnplannedLine, riskFacts } from '@/trading/features/portfolio/render/attention'
-import { buildInstrumentKey, ETF_KIND } from '@/trading/kernel/instrument'
+import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
 import { costAfterDividends } from '@/trading/markets/cost'
 import {
@@ -260,7 +260,6 @@ function positionFactLines(
         locale,
         distance: display.stopDistances?.get(key),
         resting: display.restingStops?.get(key),
-        fund: display.instrumentKinds?.get(key) === ETF_KIND,
         price: { at: valued.price, quote: display.quote, context: display.context },
       }),
       display.context,

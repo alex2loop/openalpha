@@ -561,6 +561,8 @@ a fill), at that session's open where it opened below.
   fill at the open). A session that opened at or above it filled partway through, and a daily bar
   cannot say whether its high printed first. So the target is read from the next session.
 - The stop is still tested on the fill session, as it is on every session before the target.
+- A fill on a later session moves the day the purchase can be sold by the same number of sessions
+  on a T+N market, as a ceiling-locked entry does.
 - A limit unfilled by its last day closes `unfilled` the same way. `/reflect` counts those apart from
   calls that played out.
 
@@ -1388,9 +1390,10 @@ A deposit in a venue's quote currency, such as `/record deposit binance 1000 USD
   first USDT recorded at a venue changes how later rows there are paid, a back-dated deposit included,
   so rows the venue had paid in VND before it can then be refused. To move a venue from VND to USDT,
   withdraw the VND, then deposit the USDT with `fx`.
-- **The rate goes on the deposit, not the buy.** A buy, sell, fee or transfer paid from USDT the venue
-  holds takes no rate, so an `fx` on that row is refused with the reason rather than ignored. The P2P
-  rate you paid belongs on the USDT deposit.
+- **The rate goes on the deposit, not the buy.** A buy, fee or transfer paid from USDT the venue
+  holds takes no rate, so an `fx` on that row is refused with the reason rather than ignored. A sale
+  there or a dividend is valued at that day's market rate unless you state one. The P2P rate you
+  paid belongs on the USDT deposit.
 - **Withdrawing locks in the currency gain.** USDT leaves at its average cost, while net deposits fall
   by what it is worth that day. Deposit 1,000 at 26,600, withdraw 1,000 at 27,000, and the realized
   P/L is +400,000 VND with the cash back at 0.

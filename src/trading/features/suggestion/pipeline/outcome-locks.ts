@@ -57,16 +57,15 @@ export function isExitLocked(input: LockInput, session: number): boolean {
 
 /** Where the order trades: a resting limit by its own rule, anything else by the limit locks. */
 export function entryFillFor(input: LockInput, window: SessionWindow): EntryFill {
-  const { restingEntry, entry } = input.suggestion
+  const { restingEntry } = input.suggestion
 
   return restingEntry === undefined
     ? entryFillOf(input, window)
-    : restingFillOf({ entry, restingEntry }, window)
+    : restingFillOf(input, restingEntry, window)
 }
 
 /** A buy needs a seller and a reduce needs a buyer. An entry the limit shut out fills at the open
- *  of the first session that trades its side, and T+N counts from that fill, so the day it can be
- *  sold moves by the same number of sessions. */
+ *  of the first session that trades its side. */
 function entryFillOf(input: LockInput, window: SessionWindow): EntryFill {
   const locked = input.suggestion.action === 'buy' ? 'ceiling' : 'floor'
   const offset = window.bars.findIndex(
@@ -78,42 +77,58 @@ function entryFillOf(input: LockInput, window: SessionWindow): EntryFill {
     return { kind: 'shut' }
   }
 
-  const sellableFrom = input.suggestion.settlement?.sellableFrom
-
-  const fill = { offset, session: bar.at, entry: bar.open }
-
-  if (offset === 0 || sellableFrom === undefined) {
-    return { kind: 'filled', ...fill }
-  }
-
-  const lag = window.bars.filter((session) => session.at < sellableFrom).length
-  const settles = window.bars[offset + lag]
-
-  return settles === undefined
-    ? { kind: 'unsettled', ...fill }
-    : { kind: 'filled', ...fill, sellableFrom: settles.at }
+  return settledFill(
+    window,
+    { offset, session: bar.at, entry: bar.open },
+    input.suggestion.settlement?.sellableFrom
+  )
 }
 
 /** A resting buy fills on the first session that trades below it - a touch is no fill, as with a
  *  target - and at that session's open where it opened below. Past `until` with no such session the
  *  order is gone; before it, still resting. */
 function restingFillOf(
-  suggestion: Pick<ActionableSuggestion, 'entry'> & { readonly restingEntry: RestingEntry },
+  input: LockInput,
+  restingEntry: RestingEntry,
   window: SessionWindow
 ): EntryFill {
-  const { entry, restingEntry } = suggestion
+  const { entry, settlement } = input.suggestion
   const offset = window.bars.findIndex(
     (session) => session.at <= restingEntry.until && session.low < entry
   )
   const bar = window.bars[offset]
 
   if (bar !== undefined) {
-    return { kind: 'filled', offset, session: bar.at, entry: Math.min(entry, bar.open) }
+    return settledFill(
+      window,
+      { offset, session: bar.at, entry: Math.min(entry, bar.open) },
+      settlement?.sellableFrom
+    )
   }
 
   return window.bars.some((session) => session.at >= restingEntry.until)
     ? { kind: 'shut' }
     : { kind: 'resting' }
+}
+
+/** T+N counts from the fill, so a later fill moves the day the purchase can be sold by the same
+ *  number of sessions. `sellableFrom` is the day it settles for a fill on the window's first
+ *  session. */
+function settledFill(
+  window: SessionWindow,
+  fill: { readonly offset: number; readonly session: TradingDay; readonly entry: number },
+  sellableFrom: TradingDay | undefined
+): EntryFill {
+  if (fill.offset === 0 || sellableFrom === undefined) {
+    return { kind: 'filled', ...fill }
+  }
+
+  const lag = window.bars.filter((session) => session.at < sellableFrom).length
+  const settles = window.bars[fill.offset + lag]
+
+  return settles === undefined
+    ? { kind: 'unsettled', ...fill }
+    : { kind: 'filled', ...fill, sellableFrom: settles.at }
 }
 
 function limitLockAt(input: LockInput, session: number): LimitLock | undefined {

@@ -2,8 +2,7 @@ import type { LedgerTxn, LedgerTxnDraftInput, LedgerTxnKind } from '@/trading/fe
 import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { Book } from '@/trading/kernel/operator/book'
 
-/** The kinds that spend currency cash at its cost. A deposit, withdrawal, sale or dividend is
- *  priced by the row's own rate. */
+/** The kinds that spend currency cash at its cost, so a rate stated on them prices nothing. */
 const PAID_FROM_CURRENCY_CASH: ReadonlySet<LedgerTxnKind> = new Set([
   'buy',
   'rights',
@@ -25,37 +24,41 @@ export function namesFxRate(draft: LedgerTxnDraftInput): boolean {
   )
 }
 
-/** Whether the rate changes what this row records. It does where money crosses between the base
- *  and the other currency: a deposit, a withdrawal, and a trade at a venue holding none of that
- *  currency. Spending or receiving currency cash the venue already holds is priced by its cost. */
-export function fxRateApplies(book: Book, txn: LedgerTxn): boolean {
-  if (!('currency' in txn) || txn.currency === book.baseCurrency) {
-    return false
+/** How a row in another currency than the base takes a rate. `asked`: money crosses between the
+ *  two (a deposit, a withdrawal, a trade at a venue holding none of that currency), so the row asks
+ *  for the rate the operator paid. `accepted`: a sale into currency cash or a dividend converts
+ *  nothing and takes the day's market rate unless one is stated, which a day the provider has no
+ *  rate for needs. `refused`: a row paid from held currency cash at its cost, or one in the base. */
+export function fxRateUseOf(book: Book, txn: LedgerTxn): 'asked' | 'accepted' | 'refused' {
+  if (!isForeignCurrencyRow(book, txn)) {
+    return 'refused'
   }
 
   if (txn.kind === 'deposit' || txn.kind === 'withdrawal') {
-    return true
+    return 'asked'
   }
 
-  if (txn.kind === 'buy' || txn.kind === 'sell' || txn.kind === 'rights') {
-    return !holdsCurrencyCash(book, txn)
+  const isTrade = txn.kind === 'buy' || txn.kind === 'sell' || txn.kind === 'rights'
+
+  if (isTrade && !holdsCurrencyCash(book, txn)) {
+    return 'asked'
   }
 
-  return false
+  return txn.kind === 'sell' || txn.kind === 'dividend' ? 'accepted' : 'refused'
 }
 
 /** A row paid out of the venue's currency cash: its base cost is that cash's average cost, not the
  *  row's rate. */
 export function paysFromCurrencyCash(book: Book, txn: LedgerTxn): boolean {
-  if (!('currency' in txn) || txn.currency === book.baseCurrency) {
-    return false
-  }
-
-  if (!PAID_FROM_CURRENCY_CASH.has(txn.kind)) {
+  if (!(isForeignCurrencyRow(book, txn) && PAID_FROM_CURRENCY_CASH.has(txn.kind))) {
     return false
   }
 
   return holdsCurrencyCash(book, txn)
+}
+
+function isForeignCurrencyRow(book: Book, txn: LedgerTxn): boolean {
+  return 'currency' in txn && txn.currency !== book.baseCurrency
 }
 
 /** Checked against the cash's opening day, since the book may be folded past the row. */

@@ -523,7 +523,9 @@ openalpha plugin uninstall <id>
 
 Install and update validate ids and source transport (a manifest-less plugin's fallback id is the
 repository name of its canonical URL, never the temporary clone directory's name), copy into the managed plugin root, and refuse to
-uninstall bundled ids. `openalpha plugin --help` lists the exact flags.
+uninstall bundled ids. A remote source is HTTPS only: `git://`, `ssh://`, `git@`, `http://`, `file://` and `ext::` are
+refused by name. Content is copied without following links and any symlink refuses the install;
+`plugin.toml` is read once without following one, and the text parsed is the text copied. `openalpha plugin --help` lists the exact flags.
 
 ### Boot sequence
 

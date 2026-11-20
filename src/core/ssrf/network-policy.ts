@@ -123,13 +123,14 @@ async function guardedLoopbackFetch(url: string, init: RequestInit): Promise<Res
 // on, which a boot-time-only check never notices — then dispatched over the platform fetch, which
 // resolves the name again: the check does not pin the dial, so a rebind inside that window is not
 // closed. The pinned transport carries a string body only (`pinnedPublicFetch`), and a transport's
-// own fetch hook may send any body. Redirects are refused outright: a configured server endpoint has no
-// legitimate reason to redirect, and a manual redirect answer fails closed instead of being followed
-// into an unvetted host.
+// own fetch hook may send any body. The platform fetch never follows a redirect (the caller's
+// `redirect` is overridden): a configured server endpoint has no legitimate reason to redirect, and
+// the manual answer goes back to the transport, which may only repeat the request through this
+// function, so every hop is revalidated and none lands on an unvetted host.
 async function guardedServerFetch(url: string | URL, init: RequestInit = {}): Promise<Response> {
   const target = typeof url === 'string' ? url : url.toString()
   const signal = resolveFetchSignal(init)
-  const requestInit: RequestInit = { ...init, signal, redirect: init.redirect ?? 'manual' }
+  const requestInit: RequestInit = { ...init, signal, redirect: 'manual' }
 
   if (isLoopbackUrl(target)) {
     const parsed = parseLoopbackUrl(target)

@@ -22,9 +22,10 @@ import { isPlainRecord } from '@/core/utils/collections'
 import { bindLocale, t } from '@/i18n'
 
 const MASKED = '[REDACTED]'
-/** An MCP server's address, the only `url` key in the config: a hosted server's key often rides in
- *  its query, and its `${VAR}` is already filled in here. */
-const SECRET_URL_KEY = 'url'
+/** An MCP server's address, `env` table and arguments, the only keys of those names in the config:
+ *  a `${VAR}` in them is already filled in here, and a bare key has no shape the scrubber could find
+ *  (a hosted server's key often rides in its url query). */
+const SECRET_SEGMENTS: ReadonlySet<string> = new Set(['url', 'env', 'args'])
 const FALLBACK_EDITOR = 'nano'
 
 const configCmdShow: Command = createCommand({
@@ -67,17 +68,17 @@ export const configCommand: Group = createGroup({
 })
 
 function showConfig(_args: ParsedArgs, app: CliApp): number {
-  app.out(maskedConfigText(app.config))
+  app.out(redact(JSON.stringify(app.config, maskSecretSegment, 2)))
 
   return 0
 }
 
-function maskedConfigText(config: ResolvedConfig): string {
-  return redact(JSON.stringify(config, maskSensitiveValue, 2))
+function maskSecretSegment(key: string, value: unknown): unknown {
+  return isSecretSegment(key) ? MASKED : value
 }
 
-function maskSensitiveValue(key: string, value: unknown): unknown {
-  return isSensitiveKey(key) || key === SECRET_URL_KEY ? MASKED : value
+function isSecretSegment(segment: string): boolean {
+  return SECRET_SEGMENTS.has(segment) || isSensitiveKey(segment)
 }
 
 function getConfigPath(args: ParsedArgs, app: CliApp): number {
@@ -97,7 +98,7 @@ function getConfigPath(args: ParsedArgs, app: CliApp): number {
   }
 
   // Any segment: a string under a sensitive parent ends in an array index that names nothing.
-  if (path.split('.').some(isSensitiveKey)) {
+  if (path.split('.').some(isSecretSegment)) {
     return usage(app, t(locale, 'cli.configSensitivePath', { path }))
   }
 
@@ -121,7 +122,7 @@ function readKey(node: unknown, key: string): unknown {
 }
 
 function formatValue(value: unknown): string {
-  return typeof value === 'string' ? value : JSON.stringify(value, maskSensitiveValue, 2)
+  return typeof value === 'string' ? value : JSON.stringify(value, maskSecretSegment, 2)
 }
 
 function printConfigPath(_args: ParsedArgs, app: CliApp): number {

@@ -7,7 +7,7 @@ import type { Book } from '@/trading/kernel/operator/book'
 import type { Venue } from '@/trading/venues/types'
 import { BRAND } from '@/core/brand'
 import { formatDay, pluralKey, t } from '@/i18n'
-import { fxRateApplies } from '@/trading/features/ledger/fx-rate'
+import { fxRateUseOf } from '@/trading/features/ledger/fx-rate'
 import { renderEntry } from '@/trading/features/ledger/rows'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { MAXIMUM_NAMES_PER_LIST } from '@/trading/markets/overview-rollups'
@@ -93,7 +93,7 @@ function renderMarketFxLines(
     if ('conversion' in transaction && transaction.conversion.source === 'provider') {
       const { fromCurrency, toCurrency } = transaction.conversion
 
-      const ratePriced = book === undefined || fxRateApplies(book, transaction)
+      const ratePriced = book === undefined || fxRateUseOf(book, transaction) === 'asked'
 
       if (fromCurrency !== toCurrency && ratePriced) {
         counts.set(fromCurrency, (counts.get(fromCurrency) ?? 0) + 1)

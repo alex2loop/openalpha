@@ -35,7 +35,8 @@ export interface StopDistance {
   readonly distanceToStopPct?: number
   /** The mark `distanceToStopPct` was measured from; absent when the holding has no price. */
   readonly price?: number
-  /** A fund's lower level is a review, not a sale: the book words it "review" rather than "stop". */
+  /** A level the plan arms nothing at (a plain fund's) is a review, not a sale: the book words it
+   *  "review" rather than "stop". */
   readonly review: boolean
 }
 

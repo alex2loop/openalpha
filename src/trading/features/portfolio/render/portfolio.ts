@@ -19,7 +19,7 @@ import { renderCashSections } from '@/trading/features/portfolio/render/cash'
 import { renderPositionSection } from '@/trading/features/portfolio/render/rows'
 import { apportionedSegmentWeights } from '@/trading/features/portfolio/render/segment-shares'
 import { renderProfileStamp } from '@/trading/features/profile/render'
-import { buildInstrumentKey, CASH_SEGMENT, ETF_KIND } from '@/trading/kernel/instrument'
+import { CASH_SEGMENT } from '@/trading/kernel/instrument'
 import { renderCaveatLines } from '@/trading/render/caveat'
 import {
   formatCount,
@@ -104,12 +104,7 @@ export function renderPortfolioText(
   return joinSections([
     renderHeadline(locale, book, options),
     [
-      ...renderAttentionLines(
-        locale,
-        [...(options.stopDistances?.values() ?? [])],
-        (distance) =>
-          options.instrumentKinds?.get(buildInstrumentKey(distance.instrument)) === ETF_KIND
-      ),
+      ...renderAttentionLines(locale, [...(options.stopDistances?.values() ?? [])]),
       ...renderCashNudge(locale, display, options),
     ],
     // What the reader came for sits right under the warnings; the money statements follow it.

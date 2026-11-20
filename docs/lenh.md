@@ -441,7 +441,8 @@ openalpha config validate
 openalpha config edit
 ```
 
-- `show` che thông tin bí mật, và `get` từ chối mọi đường dẫn đi qua một khóa bí mật.
+- `show` che thông tin bí mật, kể cả `url`, bảng `env` và đối số của máy chủ MCP, và `get` từ chối mọi
+  đường dẫn đi qua một trong số đó.
 - `validate` chạy đủ các bước kiểm tra lúc khởi động, kể cả `[trading]`. Nên một cấu hình nó chấp
   nhận là một cấu hình khởi động được. Nếu không chấp nhận, nó thoát `1` và liệt kê mọi lý do một
   lượt, kể cả tên nhà cung cấp gõ sai và biến môi trường của khóa còn thiếu.
@@ -848,8 +849,12 @@ Một `thị-trường:mã` mà danh sách đã lưu của thị trường đó 
 /record confirm
 ```
 
-Mọi dòng có tiền (kể cả nạp, rút, chuyển tiền) có thể kết thúc bằng `fx <giá>` hoặc `fx auto`. Đây là
-tỷ giá quy ra VND của đồng tiền ghi trên dòng đó, và chỉ dùng khi dòng ghi bằng đồng khác VND, ví dụ USDT.
+Dòng nạp, rút, và dòng mua, bán hay quyền mua ở sàn chưa giữ đồng tiền đó có thể kết thúc bằng
+`fx <giá>` hoặc `fx auto`. Đây là tỷ giá quy ra VND của đồng tiền ghi trên dòng đó, và chỉ dùng khi dòng
+ghi bằng đồng khác VND, ví dụ USDT. Dòng bán vào tiền tệ sàn đang giữ và dòng cổ tức được tính theo tỷ
+giá thị trường của ngày đó mà không hỏi lại, nhưng vẫn nhận tỷ giá bạn ghi, cho ngày nguồn tỷ giá không
+có số liệu. Chuyển tiền, phí hay loss, và dòng mua trả từ tiền tệ sàn đang giữ thì không dùng tỷ giá:
+`fx` ở đó bị từ chối kèm lý do.
 
 Gõ sai một ô (mã thiếu thị trường, ngày sai, số âm, `fx` không đọc được) thì dòng không được ghi.
 Câu trả lời nêu đúng ô đó cùng dạng nó cần, rồi nhắc gõ `/record` không kèm gì để xem đủ cú pháp. Sai

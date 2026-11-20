@@ -98,6 +98,10 @@ export function applyTransaction(state: FoldState, entry: LedgerEntry): void {
   if (isCurrencyCashRow(txn) && movesCurrencyCash(state, txn)) {
     applyCurrencyCashTxn(state, txn)
 
+    if (txn.kind === 'dividend') {
+      creditDividend(state, txn, cashDeltaBase(txn))
+    }
+
     return
   }
 

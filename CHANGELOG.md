@@ -7,6 +7,31 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.7] - 2026-11-20
+
+A cash dividend paid in another currency now lowers that holding's cost, `/rebalance` again proposes the sale that brings a sector over its cap back down, and a leveraged US fund you hold is watched with a real stop.
+> Cổ tức tiền mặt trả bằng đồng tiền khác giờ cũng hạ giá vốn của mã đó, `/rebalance` lại đề xuất lệnh bán đưa một ngành vượt trần về đúng trần, và quỹ đòn bẩy Mỹ bạn đang giữ được theo dõi bằng mức cắt lỗ thật.
+
+### Changed
+
+- A sale into currency cash a venue holds, and a dividend, now take an `fx` rate you state; without one they are valued at that day's market rate as before, never asked. So a day the rate source has no rate for no longer blocks the row. A buy, fee or transfer paid from currency cash the venue holds still takes no rate, and the refusal says so.
+- While `[api] public_url` is set, saved for the next start included, signing ChatGPT out, approving a pairing and making a job for another chat happen on the server. The office page shows the command to copy instead of the button.
+- `openalpha config show` and `config get` hide an MCP server's address, `env` table and arguments, where a `${VAR}` is already filled in.
+- A background task paused because the machine is offline (a sleeping laptop, say) now says that plainly, instead of naming `example.com`, the address it checks the network with.
+
+### Fixed
+
+- A cash dividend in another currency than the book's (a US share's USD dividend in a VND book) now counts in the holding's cost after dividends.
+- `/rebalance`: a sector past its cap could end with no sale, or too small a one, when the name to trim still scored above zero. The trim now holds, and the warning names the cap you set rather than the room left under it.
+- A leveraged or inverse US fund you hold (TQQQ, SQQQ) reads as a stop on `/portfolio`, its row and the market-drop alert, as its plan and exit alerts already treated it. Before, those places called it a level to review.
+- The exit plan message for a newly held name prints prices as every other surface does: a VN stock at board scale with the scale note under it, VN gold in VND per tael.
+- A crypto buy call served again from an earlier day now says when your book changed since it was made.
+- The first take-profit on a holding already partly sold, where what is still owed is under one board lot, now names that share instead of the plan's whole one.
+- A resting buy that fills on a later session counts T+N settlement from its fill in the track record.
+- Stopping OpenAlpha while an order is being checked or exits are reconciled no longer logs failures for each one, and one market's failed list load no longer hides another market's note.
+- The office page wraps a long ChatGPT account name inside its card.
+- Hardening: an MCP server's request never follows a redirect; a plugin whose `plugin.toml` is a link, or a `git://` source, is refused; a key saved from the office page is hidden in logs at once; fetched pages lose a further set of invisible characters and script blocks closed with a space; a link you typed in capitals or with brackets or commas counts as yours, so the agent opens it without asking.
+
 ## [1.8.6] - 2026-11-18
 
 A web page OpenAlpha reads can no longer send it on to a link of the page's choosing without asking you, and text you cannot see no longer reaches the analysts unnoticed. Your keys are now hidden in logs and tool results whatever they look like.
@@ -1053,6 +1078,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.7
 [1.8.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.6
 [1.8.2]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.2
 [1.7.0]: https://github.com/alex2loop/openalpha/releases/tag/v1.7.0

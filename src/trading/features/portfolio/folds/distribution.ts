@@ -17,6 +17,8 @@ export interface CapBind {
 export interface Ceiling {
   readonly value: number
   readonly reason: CapReason
+  /** The configured cap a bind names, where the room left under it is less. */
+  readonly capPctNav?: number
 }
 
 export type CeilingFor = (candidate: PortfolioCandidate, current: number) => Ceiling
@@ -121,7 +123,7 @@ function assignPass(input: PassInput): Pass | null {
 function recordBind(widest: BindTracker, weight: number, ceiling: Ceiling): void {
   if (weight > widest.frozen) {
     widest.frozen = weight
-    widest.bind = { reason: ceiling.reason, capPctNav: ceiling.value }
+    widest.bind = { reason: ceiling.reason, capPctNav: ceiling.capPctNav ?? ceiling.value }
   }
 }
 

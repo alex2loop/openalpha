@@ -12,6 +12,7 @@ import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { Market, MarketCapabilities, MarketRegistry } from '@/trading/markets/types'
+import type { QuotedIn } from '@/trading/render/money'
 import type { StopPlacement } from '@/trading/render/stop-raised'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
@@ -217,6 +218,8 @@ interface PlannedNotice extends PlanHoldingInput {
 
 async function noticePlanned(deps: ExitPlanDeps, input: PlannedNotice): Promise<void> {
   const { instrument, delivery, options, market } = input
+  const { quoted, notes } = priceConventionOf(deps.defaultLocale, market)
+  const boardLot = market?.manifest.boardLot
   const outcome = await sendCaught(
     deps.sender,
     {
@@ -224,15 +227,17 @@ async function noticePlanned(deps: ExitPlanDeps, input: PlannedNotice): Promise<
       locale: deps.defaultLocale,
       payload: {
         kind: 'exit-plan',
-        lines: renderLevelLines({
-          locale: deps.defaultLocale,
-          suggestion: input.plan,
-          trailsStop: market?.trail !== undefined,
-          operatorFigures: 'shown',
-          ...(market?.manifest.boardLot === undefined
-            ? {}
-            : { boardLot: market.manifest.boardLot }),
-        }),
+        lines: [
+          ...renderLevelLines({
+            locale: deps.defaultLocale,
+            suggestion: input.plan,
+            quoted,
+            trailsStop: market?.trail !== undefined,
+            operatorFigures: 'shown',
+            ...(boardLot === undefined ? {} : { boardLot }),
+          }),
+          ...notes,
+        ],
       },
     },
     options.signal
@@ -369,12 +374,7 @@ interface StopRaisedNotice extends TrailPlanInput {
 /** Best-effort, like the plan notice: the raised stop is already stored and armed. */
 async function noticeStopRaised(deps: ExitPlanDeps, input: StopRaisedNotice): Promise<void> {
   const { instrument, market, options } = input
-  const { manifest } = market
-  const quoted = {
-    currency: manifest.currency,
-    unit: manifest.quoteUnit,
-    ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
-  }
+  const { quoted, notes } = priceConventionOf(deps.defaultLocale, market)
   const lines = [
     ...renderStopRaised(deps.defaultLocale, {
       instrument,
@@ -383,9 +383,7 @@ async function noticeStopRaised(deps: ExitPlanDeps, input: StopRaisedNotice): Pr
       quoted,
       placement: await placementOf(deps, input),
     }),
-    ...renderBoardScaleNotes(deps.defaultLocale, [{ market: instrument.market, ...quoted }]).map(
-      (note) => `${INDENT[1]}${note}`
-    ),
+    ...notes,
   ]
   const outcome = await sendCaught(
     deps.sender,
@@ -446,4 +444,26 @@ async function placementOf(
  *  sale's standing exit is not trailed, because the row's own stop belongs to the sale. */
 function isTrailable(plan: StoredSuggestion): boolean {
   return framedDirectionOf(plan) === 'buy' && armsExit(plan) && plan.standingExit === undefined
+}
+
+/** How a market prints a price, and the board-scale note lines beneath; bare when unlisted. */
+function priceConventionOf(
+  locale: Locale,
+  market: Market | null
+): { readonly quoted: Partial<QuotedIn>; readonly notes: readonly string[] } {
+  if (market === null) {
+    return { quoted: {}, notes: [] }
+  }
+
+  const { manifest } = market
+  const quoted: QuotedIn = {
+    currency: manifest.currency,
+    unit: manifest.quoteUnit,
+    ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
+  }
+  const notes = renderBoardScaleNotes(locale, [{ market: manifest.id, ...quoted }]).map(
+    (note) => `${INDENT[1]}${note}`
+  )
+
+  return { quoted, notes }
 }

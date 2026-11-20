@@ -103,7 +103,7 @@ export interface StopsResponse {
     readonly distanceToStopPct?: number
     /** The mark the distance was measured from; absent when the holding has no price. */
     readonly price?: number
-    /** A fund's lower level is a review, not a sale. */
+    /** A level the plan arms nothing at (a plain fund's) is a review, not a sale. */
     readonly review: boolean
     /** An exit this daemon placed, one set in the exchange's own app, or none. Absent where no order
      *  could rest: no exchange account, a custodian with no client, or a venue that did not answer. */

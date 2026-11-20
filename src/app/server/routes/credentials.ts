@@ -28,7 +28,7 @@ import { BRAND, isControlEnvName } from '@/core/brand'
 import { isEnvName } from '@/core/config/operator-errors'
 import { WEB_SEARCH_PROVIDERS } from '@/core/config/resolve'
 import { FieldValidationError } from '@/core/field-errors'
-import { formatErrForLog } from '@/core/security/credentials'
+import { formatErrForLog, registerKnownSecret } from '@/core/security/credentials'
 
 const CREDENTIAL_VALUE_MAX_CHARS = 4096
 // The env file holds one `NAME=value` per line, so a value is one line of printable text.
@@ -80,6 +80,8 @@ async function handleCredentialWrite(req: Request, ctx: ApiRouteContext): Promis
       { path: 'value', message: { key: 'errors.credentialValueInvalid' } },
     ])
   }
+
+  registerKnownSecret(parsed.data.value)
 
   try {
     await serializeFileWrite(() =>

@@ -688,7 +688,7 @@ next entry.
 `auth` commands do not boot the runtime and need no config file. Without one, tokens land in the default data
 directory; pass `--data-dir` to put them elsewhere.
 
-The office page can sign in too. Go to Settings > Providers > "+ Add provider" > "Sign in to ChatGPT": it shows a code and a link where you enter it, and saves the same login file once you finish. Signing out there asks you to confirm once. While `[api] public_url` is set, the page cannot sign in; do it on the server with `openalpha auth login chatgpt`.
+The office page can sign in too. Go to Settings > Providers > "+ Add provider" > "Sign in to ChatGPT": it shows a code and a link where you enter it, and saves the same login file once you finish. Signing out there asks you to confirm once. While `[api] public_url` is set, the page can neither sign in nor sign out; do it on the server with `openalpha auth login chatgpt` or `openalpha auth logout chatgpt`.
 
 Subscription turns are priced at `$0`, with `pricing_subscription` as the cost source. Tokens are still counted and
 turn and duration limits still apply, but the spend never counts against daily, monthly or per-run caps.
