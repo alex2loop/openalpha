@@ -17,6 +17,7 @@ A cash dividend paid in another currency now lowers that holding's cost, `/rebal
 - A sale into currency cash a venue holds, and a dividend, now take an `fx` rate you state; without one they are valued at that day's market rate as before, never asked. So a day the rate source has no rate for no longer blocks the row. A buy, fee or transfer paid from currency cash the venue holds still takes no rate, and the refusal says so.
 - While `[api] public_url` is set, saved for the next start included, signing ChatGPT out, approving a pairing and making a job for another chat happen on the server. The office page shows the command to copy instead of the button.
 - `openalpha config show` and `config get` hide an MCP server's address, `env` table and arguments, where a `${VAR}` is already filled in.
+- A background task paused because the machine is offline (a sleeping laptop, say) now says that plainly, instead of naming `example.com`, the address it checks the network with.
 
 ### Fixed
 

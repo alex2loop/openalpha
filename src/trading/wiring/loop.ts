@@ -213,7 +213,7 @@ function reportOffline(spec: LoopSpec): void {
     phase: 'end',
     at,
     ...(spec.everyMs === undefined ? {} : { everyMs: spec.everyMs }),
-    error: { key: 'ui.task.offline', params: { host: REACHABILITY_HOST } },
+    error: { key: 'ui.task.offline' },
     nextAt: at + offlineRetryMs,
   })
 }

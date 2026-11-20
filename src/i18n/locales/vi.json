@@ -36,7 +36,7 @@
     "task.channels.watch": "Theo dõi kênh nhắn tin",
     "task.workflows": "Workflow theo lịch",
     "task.failed": "Phiên chạy vừa rồi chưa xong, lần tới mình sẽ thử lại. Lý do nằm trong nhật ký.",
-    "task.offline": "Hiện chưa kết nối được tới {host}, mình đang chờ và sẽ kiểm tra lại.",
+    "task.offline": "Máy đang mất mạng, nên việc này tạm dừng và sẽ chạy lại khi có mạng.",
     "task.keyMissing": "Chưa đặt {env} nên tác vụ này tạm chờ cho tới khi có.",
     "restartDone": "Đã khởi động lại dịch vụ nền.",
     "agentDeleted": "Đã xóa agent {id}.",

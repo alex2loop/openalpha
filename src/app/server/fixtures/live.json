@@ -97,7 +97,7 @@
       "name": "trading.refresh",
       "label": "Market data refresh",
       "lastRunAt": 1792479000000,
-      "lastError": "No connection to query1.finance.yahoo.com right now, so I am waiting and checking again.",
+      "lastError": "This machine is offline right now, so this task is waiting and will run once the connection is back.",
       "nextRunAt": 1792480800000,
       "working": true,
       "shownAsRun": "refresh"
