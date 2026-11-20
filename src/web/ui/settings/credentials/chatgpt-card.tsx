@@ -41,7 +41,7 @@ export function ChatgptCard({ status, providerName, onBack }: ChatgptCardProps) 
     return (
       <div class="setting-job credential-row">
         <div class="setting-actions">
-          <b>
+          <b class="credential-account">
             {joinInline([status.account ?? '', status.plan ?? ''].filter((part) => part !== ''))}
           </b>
           {isServerOnly.value ? (
