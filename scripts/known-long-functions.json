@@ -8,7 +8,7 @@
     "src/app/boot.ts#boot": 43,
     "src/app/daemon.ts#createDaemonTask": 50,
     "src/app/providers.ts#createAppProvider": 49,
-    "src/app/scoped-jobs.ts#createScopedJobStore": 54,
+    "src/app/scoped-jobs.ts#createScopedJobStore": 50,
     "src/app/server/mappers/money.ts#toLedgerEntryWire": 43,
     "src/app/server/mappers/track-record.ts#toTrackRecordWire": 44,
     "src/app/server/mappers/trading.ts#toSuggestionWire": 43,

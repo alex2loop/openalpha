@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { JobCreateBody, JobEventScheduleBody } from '@/app/server/wire/jobs'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
-import type { Job, JobEvent, JobSchedule } from '@/scheduler/api'
+import type { Job, JobCreateResult, JobEvent, JobSchedule } from '@/scheduler/api'
 import { createAlertRetirer } from '@/app/event-jobs'
 import { API_CHANNEL, APP_CHAT_ID, isApiChannel } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -27,15 +27,16 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { advanceCron } from '@/core/utils/cron'
 import { isEntryAgent } from '@/engine/api'
 import { t } from '@/i18n'
-import { countJobsOfAgent, EVENT_JOB_PARKED_AT } from '@/scheduler/api'
+import { EVENT_JOB_PARKED_AT } from '@/scheduler/api'
 import {
   assertInterval,
-  assertJobCapacity,
   assertJobPrompt,
   assertKnownAgent,
   assertValidCron,
+  jobLimitError,
   resolveOnceAt,
   resolveTimezone,
+  SCHEDULER_MAX_JOBS,
 } from '@/tools/api'
 
 const MAX_BODY_BYTES = 32 * 1024
@@ -128,7 +129,6 @@ async function buildJob(
     assertJobPrompt(body.prompt)
     assertScheduledCommand(ctx, body.prompt)
     assertKnownAgent(agent, (id) => isEntryAgent(ctx.app.resolve('agents').get(id)))
-    assertJobCapacity(await countJobsOfAgent(ctx.app.resolve('jobStore'), agent))
 
     const timed: TimedSchedule =
       body.schedule.kind === 'event'
@@ -226,19 +226,27 @@ async function disarmAlert(ctx: ApiRouteContext, job: Job): Promise<void> {
 }
 
 async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
-  let created = false
+  let created: JobCreateResult
 
   try {
-    created = await ctx.app.resolve('jobStore').create(job)
+    created = await ctx.app.resolve('jobStore').create(job, SCHEDULER_MAX_JOBS)
   } catch (err: unknown) {
     await disarmAlert(ctx, job)
 
     throw err
   }
 
-  if (!created) {
+  if (created !== 'created') {
     await disarmAlert(ctx, job)
+  }
 
+  if (created === 'full') {
+    const refusal = jobLimitError()
+
+    throw new ValidationError(refusal.message, operatorMessageOf(refusal))
+  }
+
+  if (created === 'exists') {
     return apiError('conflict')
   }
 

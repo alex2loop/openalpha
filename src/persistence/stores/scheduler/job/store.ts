@@ -5,12 +5,14 @@ import type { StoredEventFire, StoredEventMatch } from '@/persistence/stores/sch
 import type {
   JobRow,
   StoredJob,
+  StoredJobCreate,
   StoredJobEdit,
   StoredJobOwner,
   StoredJobStore,
 } from '@/persistence/stores/scheduler/job/mapping'
 import type { JobSql } from '@/persistence/stores/scheduler/job/sql'
 import { formatErrForLog } from '@/core/security/credentials'
+import { countRows } from '@/persistence/retention-pages'
 import { toLikePrefixPattern } from '@/persistence/sql/like-escape'
 import { toTriggerParams } from '@/persistence/stores/scheduler/job/event'
 import {
@@ -22,6 +24,8 @@ import {
 import { buildJobSql } from '@/persistence/stores/scheduler/job/sql'
 
 const ENABLED = 1
+// Keeps an agent's lock apart from the other advisory locks, which hash plain names.
+const AGENT_JOBS_LOCK_PREFIX = 'jobs_of_agent:'
 
 type ClaimRunNowArgs = Parameters<StoredJobStore['claimRunNowOwned']>
 
@@ -46,26 +50,35 @@ export function createJobStore(db: Storage, dialect: Dialect, logger: Logger): S
   }
 }
 
-// An event job is the row and its trigger, so the two land together or not at all. A row that is
-// already there is left alone and reported.
-async function createJob(db: Storage, sql: JobSql, job: StoredJob): Promise<boolean> {
+// An event job is the row and its trigger, so the two land together or not at all. The count and
+// the insert share one locked transaction: a check made before it would let parallel adds from the
+// CLI, the API and a tool each pass a cap one short. A row that is already there is left alone.
+async function createJob(
+  db: Storage,
+  sql: JobSql,
+  request: { readonly job: StoredJob; readonly maxOfAgent: number }
+): Promise<StoredJobCreate> {
+  const { job, maxOfAgent } = request
   const now = Date.now()
-  const { event } = job
-
-  if (event === undefined) {
-    return (await db.execute(sql.create, toJobParams(job, now))).changes > 0
-  }
 
   return await db.transaction(async (tx) => {
-    const result = await tx.execute(sql.create, toJobParams(job, now))
-
-    if (result.changes === 0) {
-      return false
+    if (sql.lockAgent !== null) {
+      await tx.execute(sql.lockAgent, [`${AGENT_JOBS_LOCK_PREFIX}${job.agentId}`])
     }
 
-    await tx.execute(sql.putTrigger, toTriggerParams(job.id, event, now))
+    if ((await countRows(tx, sql.countOfAgent, [job.agentId])) >= maxOfAgent) {
+      return 'full'
+    }
 
-    return true
+    if ((await tx.execute(sql.create, toJobParams(job, now))).changes === 0) {
+      return 'exists'
+    }
+
+    if (job.event !== undefined) {
+      await tx.execute(sql.putTrigger, toTriggerParams(job.id, job.event, now))
+    }
+
+    return 'created'
   })
 }
 
@@ -189,7 +202,7 @@ function createSchedulerOperations(
       await db.execute(sql.deferRetry, [failures, nextRunAt, id])
     },
 
-    create: (job: StoredJob): Promise<boolean> => createJob(db, sql, job),
+    create: (job, maxOfAgent) => createJob(db, sql, { job, maxOfAgent }),
 
     edit: (id: JobId, edit: StoredJobEdit): Promise<boolean> => editJob(db, sql, { id, edit }),
 

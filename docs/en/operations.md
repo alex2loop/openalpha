@@ -192,7 +192,8 @@ again. It works while the daemon runs and writes only the fields you changed, so
 retrying is not disturbed.
 
 An agent keeps at most 100 jobs, paused ones included, whichever way they are added (`schedule add`, the
-office page or the agent's schedule tool); remove one before adding another.
+office page or the agent's schedule tool), even when two adds land at once; remove one before
+adding another.
 
 A prompt that starts with `/` is a command. It runs the way you would type it, with no model unless
 the command itself needs one (`/suggest`, `/research`). So `--prompt "/health"` costs nothing.

@@ -15,11 +15,11 @@ export { createPortableToolsProvider } from '@/tools/portable-services'
 export { SCHEDULER_MAX_JOBS } from '@/tools/schedule/policy'
 export {
   assertInterval,
-  assertJobCapacity,
   assertJobPrompt,
   assertKnownAgent,
   assertValidCron,
   isValidInterval,
+  jobLimitError,
   resolveOnceAt,
   resolveTimezone,
   validateJobPrompt,

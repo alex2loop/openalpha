@@ -48,8 +48,9 @@ export function OrderAnswer() {
   )
 }
 
-/** What the last exit cancel came back with, kept until the next one or until closed. A sale or a
- *  row left live stands out from a plain cancel. */
+/** What the last exit cancel came back with, kept until the next one or until closed, laid out as
+ *  the order answer is. A sale or a row left live stands out as a caution line, as a failed exit
+ *  does there. */
 export function CancelAnswer() {
   const answer = cancelAnswer.value
 
@@ -60,8 +61,10 @@ export function CancelAnswer() {
   const isPlain = answer.outcome === 'none' || answer.outcome === 'cancelled'
 
   return (
-    <div class={isPlain ? 'strip is-grey' : 'strip is-caution'} role="status">
-      <p>{tr(CANCEL_TEXT[answer.outcome], { ticker: answer.ticker })}</p>
+    <div class="strip is-grey" role="status">
+      <p class={isPlain ? undefined : 'strip is-caution'}>
+        {tr(CANCEL_TEXT[answer.outcome], { ticker: answer.ticker })}
+      </p>
       <div class="step-actions">
         <Button size="small" onClick={clearCancelAnswer}>
           {tr('ui.office.common.close')}

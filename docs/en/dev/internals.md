@@ -1054,11 +1054,11 @@ There is no dev server and no hot reload: build, serve `dist/web`, rebuild after
 
 ```bash
 bun install --cwd deploy --frozen-lockfile
-bun run build:web
+bun run build:web --app-url=https://app.example.com/ --noindex
 bun run wrangler dev -c deploy/web/wrangler.toml --port 8788
 ```
 
-Open `http://localhost:8788/?lang=vi` (or `?lang=en`). `wrangler dev` applies `_headers` as Cloudflare does, so a content security policy violation shows up locally; a plain static server (`bunx serve dist/web`) runs the page without those headers. `localhost` is a secure context, so the private file system and the tab lock work. Its data is separate from staging's (another origin); "Delete all data" clears it. Use a headful Chrome: vndirect's firewall refuses the headless user agent.
+Any https address does for `--app-url` here: it only names the app to OpenRouter and in link previews. Open `http://localhost:8788/?lang=vi` (or `?lang=en`). `wrangler dev` applies `_headers` as Cloudflare does, so a content security policy violation shows up locally; a plain static server (`bunx serve dist/web`) runs the page without those headers. `localhost` is a secure context, so the private file system and the tab lock work. Its data is separate from staging's (another origin); "Delete all data" clears it. Use a headful Chrome: vndirect's firewall refuses the headless user agent.
 
 The homepage needs no build to look at: open `site/index.html` (its app links stay `https://example.com/`). For working links, build it against an https app address and its own https address, since `build:site` accepts no other, then serve it the same way:
 

@@ -63,14 +63,12 @@ export function assertJobPrompt(prompt: string): void {
   }
 }
 
-/** `owned` is how many jobs the agent already has, whatever their state. */
-export function assertJobCapacity(owned: number): void {
-  if (owned >= SCHEDULER_MAX_JOBS) {
-    throw new JobInputError('schedule_blocked', `agent already has ${SCHEDULER_MAX_JOBS} jobs`, {
-      key: 'errors.jobLimitReached',
-      params: { limit: SCHEDULER_MAX_JOBS },
-    })
-  }
+/** The refusal for an add the job store answered `full`: the agent already has its cap. */
+export function jobLimitError(): JobInputError {
+  return new JobInputError('schedule_blocked', `agent already has ${SCHEDULER_MAX_JOBS} jobs`, {
+    key: 'errors.jobLimitReached',
+    params: { limit: SCHEDULER_MAX_JOBS },
+  })
 }
 
 export function assertKnownAgent<T extends string>(agent: T, has: (agent: T) => boolean): void {

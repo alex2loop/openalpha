@@ -24,6 +24,7 @@ const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
 const ORDER_INTENTS_TABLE = 'order_intents'
+const MEMORY_NFC_MIGRATION_ID = '2026_11_22_203500_normalize_memory_values'
 const SHOWN_BREACHES_MIGRATION_ID = '2026_11_12_180037_add_order_intent_shown_breaches'
 const SCREENED_NAMES_MIGRATION_ID = '2026_11_09_182105_add_screened_names'
 const SCREENED_NAMES_TABLE = 'screened_names'
@@ -222,6 +223,38 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   )
 
   return new Set(rows.map((row) => row.name))
+}
+
+/** A decomposed memory value comes back composed on up; down has nothing to undo, so the value
+ *  stays composed. */
+async function assertMemoryNfcRollback(db: Storage): Promise<void> {
+  const decomposed = 'Vie\u0302\u0323t Nam'
+  const firstBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: MEMORY_NFC_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(firstBack.kind === 'rolled_back', 'memory NFC rollback did not complete')
+  await db.execute(
+    'INSERT INTO memory_kv (agent_id, key, value, importance, created_at, updated_at) ' +
+      "VALUES ('chat', 'nfc-probe', ?1, 0, 0, 0)",
+    [decomposed]
+  )
+  await migrate(db, sqliteDialect, { logger: silentLogger })
+
+  const rows = await db.query<{ readonly value: string }>(
+    "SELECT value FROM memory_kv WHERE key = 'nfc-probe'"
+  )
+
+  assertState(rows[0]?.value === decomposed.normalize('NFC'), 'memory NFC up left a decomposed value')
+
+  const secondBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: MEMORY_NFC_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(secondBack.kind === 'rolled_back', 'memory NFC second rollback did not complete')
+  await db.execute("DELETE FROM memory_kv WHERE key = 'nfc-probe'")
 }
 
 /** The breaches a staged order named go with their column; the previous release prepares an order
@@ -594,6 +627,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertMemoryNfcRollback(db)
     await assertShownBreachesRollback(db)
     await assertScreenedNamesRollback(db)
     await assertPublicBriefsRollback(db)

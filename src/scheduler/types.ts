@@ -56,13 +56,17 @@ export interface JobEdit {
   readonly schedule?: { readonly schedule: JobSchedule; readonly nextRunAt: number }
 }
 
+/** `exists`: a job with this id is already stored; `full`: the agent already has its cap. */
+export type JobCreateResult = 'created' | 'exists' | 'full'
+
 export interface JobStore {
   /** `runNowClaimStaleBeforeMs`: a row whose run-now claim predates this is due despite the claim
    *  -- a process that died mid-run-now must not pause the job's own cadence indefinitely. */
   due(nowMs: number, limit: number, runNowClaimStaleBeforeMs: number): Promise<readonly Job[]>
   advance(id: JobId, nextRunAt: number): Promise<void>
   disable(id: JobId): Promise<void>
-  create(job: Job): Promise<boolean>
+  /** Counts the agent's jobs and inserts under one lock, so parallel adds cannot pass the cap. */
+  create(job: Job, maxOfAgent: number): Promise<JobCreateResult>
   /** False when the job is gone. */
   edit(id: JobId, edit: JobEdit): Promise<boolean>
   list(): Promise<readonly Job[]>

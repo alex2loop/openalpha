@@ -190,7 +190,8 @@ Lệnh chạy được cả khi dịch vụ nền đang chạy và chỉ ghi cá
 thử lại không bị ảnh hưởng.
 
 Mỗi agent giữ tối đa 100 công việc, kể cả công việc đang tạm dừng, dù thêm bằng cách nào (`schedule add`,
-trang văn phòng hay công cụ lập lịch của agent); muốn thêm nữa thì xóa bớt một công việc trước.
+trang văn phòng hay công cụ lập lịch của agent), kể cả khi hai lần thêm tới cùng lúc; muốn thêm
+nữa thì xóa bớt một công việc trước.
 
 Prompt bắt đầu bằng `/` là một lệnh. Nó chạy như khi bạn gõ, không dùng mô hình trừ khi chính lệnh
 đó cần (`/suggest`, `/research`). Vì vậy `--prompt "/health"` không tốn gì.

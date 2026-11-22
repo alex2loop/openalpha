@@ -1076,11 +1076,11 @@ Không có dev server và không tự nạp lại: dựng, phục vụ `dist/web
 
 ```bash
 bun install --cwd deploy --frozen-lockfile
-bun run build:web
+bun run build:web --app-url=https://app.example.com/ --noindex
 bun run wrangler dev -c deploy/web/wrangler.toml --port 8788
 ```
 
-Mở `http://localhost:8788/?lang=vi` (hoặc `?lang=en`). `wrangler dev` áp `_headers` như Cloudflare, nên một vi phạm chính sách bảo mật nội dung lộ ra ngay trên máy; một server tĩnh thường (`bunx serve dist/web`) chạy trang mà không có các header đó. `localhost` là ngữ cảnh an toàn, nên kho tệp riêng và khóa giữa các thẻ chạy được. Dữ liệu của nó tách khỏi staging (khác origin); "Xóa toàn bộ dữ liệu" xóa nó. Dùng Chrome có giao diện: tường lửa của vndirect từ chối user agent của chế độ headless.
+Địa chỉ https nào cũng dùng được cho `--app-url` ở đây: nó chỉ dùng để ghi tên ứng dụng với OpenRouter và trong phần xem trước link. Mở `http://localhost:8788/?lang=vi` (hoặc `?lang=en`). `wrangler dev` áp `_headers` như Cloudflare, nên một vi phạm chính sách bảo mật nội dung lộ ra ngay trên máy; một server tĩnh thường (`bunx serve dist/web`) chạy trang mà không có các header đó. `localhost` là ngữ cảnh an toàn, nên kho tệp riêng và khóa giữa các thẻ chạy được. Dữ liệu của nó tách khỏi staging (khác origin); "Xóa toàn bộ dữ liệu" xóa nó. Dùng Chrome có giao diện: tường lửa của vndirect từ chối user agent của chế độ headless.
 
 Trang chủ xem được mà không cần dựng: mở `site/index.html` (các link sang ứng dụng vẫn là `https://example.com/`). Muốn link chạy được thì dựng với một địa chỉ ứng dụng https và địa chỉ https của chính nó, vì `build:site` không nhận địa chỉ khác, rồi phục vụ cùng cách:
 
