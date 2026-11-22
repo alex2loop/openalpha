@@ -7,7 +7,7 @@ import type { FrameSink } from '@/app/server/ws/frame-sink'
 import type { ResolvedConfig } from '@/core/config/resolve'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
-import { type DbFileVerdict, toDbFileVerdict } from '@/app/browser/db-file'
+import { type DbFileVerdict, toDbFileVerdict, toRollbackJournal } from '@/app/browser/db-file'
 import { findMissingKeyProvider } from '@/app/browser/keys'
 import { renderModelKeyNeeded, researchRefusalOf } from '@/app/browser/research-gate'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
@@ -306,14 +306,15 @@ async function replaceDatabase(ctx: BridgeContext, bytes: Uint8Array): Promise<R
     return { outcome: 'failed' }
   }
 
-  const verdict = await toDbFileVerdict(root.files, bytes, ctx.logger)
+  const file = toRollbackJournal(bytes)
+  const verdict = await toDbFileVerdict(root.files, file, ctx.logger)
 
   if (verdict !== 'ok') {
     return { outcome: VERDICT_OUTCOME[verdict] }
   }
 
   try {
-    return { outcome: 'opened', previous: await root.files.replaceWith(bytes) }
+    return { outcome: 'opened', previous: await root.files.replaceWith(file) }
   } catch (err: unknown) {
     ctx.logger.error('browser.db_open_failed', { err: formatErrForLog(err) })
 

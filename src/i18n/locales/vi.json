@@ -199,7 +199,7 @@
     "office.edition.file.open.confirm": "Mở và thay",
     "office.edition.file.open.invalid": "Đây không phải file dữ liệu mình đọc được, hoặc file bị hỏng. Dữ liệu trên máy vẫn như cũ.",
     "office.edition.file.open.newer": "File này do một bản mới hơn của ứng dụng lưu, nên bản này chưa mở an toàn được. Dữ liệu trên máy vẫn như cũ.",
-    "office.edition.file.open.installed": "Tệp này từ bản cài; bản web chưa mở được tệp của bản cài",
+    "office.edition.file.open.installed": "File này do bản cài lưu, bản web chưa mở được. Dữ liệu trên máy vẫn như cũ.",
     "office.edition.file.open.full": "Máy chưa đủ chỗ để mở file này, hoặc mình chưa ghi được. Bạn giải phóng bớt dung lượng rồi thử lại; dữ liệu cũ vẫn còn.",
     "office.edition.file.open.failed": "Mình chưa mở được file. Dữ liệu trên máy vẫn như cũ.",
     "office.edition.file.open.tooBig": "File này lớn hơn {limit} MB, quá sức để tab này mở an toàn. Dữ liệu trên máy vẫn như cũ.",

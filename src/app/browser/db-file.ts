@@ -31,6 +31,10 @@ const INSTALLED_ONLY_TABLES = [
 ] as const
 
 const SQLITE_HEADER = 'SQLite format 3\0'
+// Header bytes 18 and 19 are the file's write and read format: 2 means WAL, 1 the rollback journal.
+const FORMAT_VERSION_OFFSETS = [18, 19] as const
+const WAL_FORMAT = 2
+const ROLLBACK_FORMAT = 1
 
 // `sqlite_` names are sqlite's own (sequences, statistics); a prefix match with LIKE would also
 // skip a visitor-named `sqliteX` table, since `_` is a wildcard there.
@@ -78,6 +82,23 @@ export async function toDbFileVerdict(
   } finally {
     await closeScratch(scratch, logger)
   }
+}
+
+/** A copied installed database is often still marked WAL, which the in-memory engine cannot open
+ *  without its `-wal` file. The copy holds every page the main file has, so it is read as a
+ *  rollback-journal file instead; the bytes the caller holds are not changed. */
+export function toRollbackJournal(bytes: Uint8Array): Uint8Array {
+  if (!FORMAT_VERSION_OFFSETS.some((offset) => bytes[offset] === WAL_FORMAT)) {
+    return bytes
+  }
+
+  const copy = bytes.slice()
+
+  for (const offset of FORMAT_VERSION_OFFSETS) {
+    copy[offset] = ROLLBACK_FORMAT
+  }
+
+  return copy
 }
 
 function hasSqliteHeader(bytes: Uint8Array): boolean {
