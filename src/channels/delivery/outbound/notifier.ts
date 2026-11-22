@@ -138,8 +138,17 @@ export class Notifier {
   private remove(note: Note): void {
     const index = this.queue.indexOf(note)
 
-    if (index >= 0) {
-      this.queue.splice(index, 1)
+    if (index < 0) {
+      return
+    }
+
+    this.queue.splice(index, 1)
+
+    // The armed timer waits out the old head's retry backoff; the next note may be ready now.
+    if (index === 0 && this.timer !== null) {
+      clearTimeout(this.timer)
+      this.timer = null
+      this.kick()
     }
   }
 

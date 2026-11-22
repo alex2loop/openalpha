@@ -8,6 +8,7 @@ import type { OpenedPersistence } from '@/persistence/api'
 import type { ScopedJobStore } from '@/tools/api'
 import type { TradingConfig, TradingNoticeSender } from '@/trading/api'
 import { createAiProvider } from '@/ai/api'
+import { createBaseCurrencyGuardProvider } from '@/app/base-currency-guard'
 import { createChatAgentForRun } from '@/app/browser/chat-agent'
 import { createBrowserEdition } from '@/app/browser/edition'
 import { createBrowserSystemHost } from '@/app/browser/host'
@@ -127,6 +128,7 @@ function buildBrowserProviders(input: BrowserProviderInput): readonly ServicePro
     createBrowserKernelProvider(kernel), // 0a-0c
     createPersistenceProvider(persistence), // 1
     createTradingStoresProvider(tradingConfig), // 2
+    createBaseCurrencyGuardProvider(), // 2b
     memoryProvider, // 3
     createAiProvider(() => createKeyringCredentials(keyring)), // 4
     engineProvider, // 5

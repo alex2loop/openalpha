@@ -4,6 +4,7 @@ import type { JsonOutputContract, ProviderModelId } from '@/core/llm'
 import type { Logger } from '@/core/logging/logger'
 import type { StreamEvent } from '@/core/stream-events'
 import type { Budget } from '@/core/types/budget'
+import type { RunResultReason } from '@/core/types/run'
 import type {
   ResearchChildResult,
   ResearchInvocation,
@@ -61,13 +62,7 @@ export async function runResearchChild<T>(
   const result = await attemptChild({ runner, input, observation })
 
   if (result.reason !== 'completed') {
-    return {
-      kind: 'halted',
-      reason: result.reason,
-      message: childResultMessage(result),
-      ...providerModelField(observation),
-      ...(result.haltCode === undefined ? {} : { haltCode: result.haltCode }),
-    }
+    return haltedChild(result, result.reason, observation)
   }
 
   const parsed = parseChildOutput(input, result.text)
@@ -77,17 +72,37 @@ export async function runResearchChild<T>(
   }
 
   // The contract was never enforced on a request carrying tools, so the answer was only asked for
-  // JSON in prose. The repair withholds them; a run that halts there keeps the first diagnosis.
+  // JSON in prose. The repair withholds them; an abort there halts the run, any other halt keeps the
+  // first diagnosis.
   const repair = await attemptChild({
     runner,
     input,
     observation,
     allowedTools: CONTRACT_REPAIR_TOOLS,
   })
+
+  if (repair.reason === 'aborted') {
+    return haltedChild(repair, repair.reason, observation)
+  }
+
   const repaired =
     repair.reason === 'completed' ? parseChildOutput(input, repair.text) : { ...parsed }
 
   return settleChildResult(input, repaired, observation)
+}
+
+function haltedChild(
+  result: RunResult,
+  reason: Exclude<RunResultReason, 'completed'>,
+  observation: ChildObservation
+): ResearchChildResult<never> {
+  return {
+    kind: 'halted',
+    reason,
+    message: childResultMessage(result),
+    ...providerModelField(observation),
+    ...(result.haltCode === undefined ? {} : { haltCode: result.haltCode }),
+  }
 }
 
 interface ChildAttempt<T> {

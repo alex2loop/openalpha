@@ -27,9 +27,10 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { advanceCron } from '@/core/utils/cron'
 import { isEntryAgent } from '@/engine/api'
 import { t } from '@/i18n'
-import { EVENT_JOB_PARKED_AT } from '@/scheduler/api'
+import { countJobsOfAgent, EVENT_JOB_PARKED_AT } from '@/scheduler/api'
 import {
   assertInterval,
+  assertJobCapacity,
   assertJobPrompt,
   assertKnownAgent,
   assertValidCron,
@@ -115,7 +116,11 @@ function assertScheduledCommand(ctx: ApiRouteContext, prompt: string): void {
 /** Everything the body can get wrong is checked here, before any alert is armed. A refusal the
  *  operator can fix leaves as a `ValidationError`, which the route table answers as a 400; anything
  *  else is ours and stays a 500. */
-function buildJob(ctx: ApiRouteContext, body: JobCreateBody, defaultTarget: Job['target']): Job {
+async function buildJob(
+  ctx: ApiRouteContext,
+  body: JobCreateBody,
+  defaultTarget: Job['target']
+): Promise<Job> {
   try {
     const agent = agentId(body.agentId)
     const now = Date.now()
@@ -123,6 +128,7 @@ function buildJob(ctx: ApiRouteContext, body: JobCreateBody, defaultTarget: Job[
     assertJobPrompt(body.prompt)
     assertScheduledCommand(ctx, body.prompt)
     assertKnownAgent(agent, (id) => isEntryAgent(ctx.app.resolve('agents').get(id)))
+    assertJobCapacity(await countJobsOfAgent(ctx.app.resolve('jobStore'), agent))
 
     const timed: TimedSchedule =
       body.schedule.kind === 'event'
@@ -254,7 +260,7 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   // Behind `public_url` an untargeted job runs on the app's channel, so the app-run limits hold for
   // it; otherwise it keeps the scheduler's own channel, as one added from the CLI.
-  const job = buildJob(ctx, body, exposed ? APP_TARGET : undefined)
+  const job = await buildJob(ctx, body, exposed ? APP_TARGET : undefined)
   const armed = await armPriceAlert(req, ctx, { body, job })
 
   return await storeJob(ctx, armed)

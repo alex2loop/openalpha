@@ -139,11 +139,15 @@ function enqueue(state: BridgeState, operation: () => Promise<void>): Promise<vo
 }
 
 async function start(ctx: BridgeContext, steal: boolean): Promise<void> {
+  await serve(ctx, await openRoot(ctx, steal))
+}
+
+async function openRoot(ctx: BridgeContext, steal: boolean): Promise<OpenedRoot> {
   const { state } = ctx
 
   await releaseRoot(state, ctx.logger)
 
-  const opened = await openBrowserRoot({
+  return openBrowserRoot({
     locale: state.locale,
     steal,
     keyring: ctx.keyring,
@@ -151,8 +155,6 @@ async function start(ctx: BridgeContext, steal: boolean): Promise<void> {
     wasmUrl: ctx.wasmUrl,
     broadcast: (event) => ctx.post({ kind: 'frame', frame: { type: 'wire_event', ...event } }),
   })
-
-  await serve(ctx, opened)
 }
 
 async function serve(ctx: BridgeContext, opened: OpenedRoot): Promise<void> {
@@ -265,15 +267,18 @@ async function serveExport(ctx: BridgeContext, id: string): Promise<void> {
 
 // A file is judged in a scratch copy first; only a good one is swapped in, and then the engine
 // starts again over it, the way a locale change does. A refusal, a failed swap or a start that
-// cannot serve the new file leaves the database and the engine as they were.
+// cannot serve the new file leaves the database and the engine as they were. The old content goes
+// back before the page hears anything, so a file that does not start never reads as a refusal.
 async function serveOpen(ctx: BridgeContext, id: string, bytes: Uint8Array): Promise<void> {
   const { outcome, previous, swapFailed } = await replaceDatabase(ctx, bytes)
   let final = outcome
 
   if (previous !== undefined) {
-    await start(ctx, false)
+    const opened = await openRoot(ctx, false)
 
-    if (ctx.state.root === undefined) {
+    if (opened.kind === 'opened') {
+      await serve(ctx, opened)
+    } else {
       await restoreOld(ctx, previous)
       final = 'failed'
     }

@@ -81,7 +81,9 @@ function normalizeOutput(text: string): string {
     return structured
   }
 
-  // reduceOutput before byte-cap so truncation markers aren't themselves compacted away.
+  // reduceOutput before byte-cap so truncation markers aren't themselves compacted away. Tools
+  // that return exact text (file_read, whose content a model edits from) return compact JSON: one
+  // line, which reduceOutput leaves as it is.
   return reduceOutput(text)
 }
 
@@ -93,7 +95,7 @@ function compactStructured(text: string): string | undefined {
   }
 
   if (utf8ByteLength(text) > STRUCTURED_INPUT_MAX_BYTES) {
-    return text
+    return undefined
   }
 
   let value: unknown
@@ -101,17 +103,17 @@ function compactStructured(text: string): string | undefined {
   try {
     value = JSON.parse(trimmed)
   } catch {
-    return text
+    return undefined
   }
 
   if (!hasAllowedDepth(value, 0)) {
-    return text
+    return undefined
   }
 
   const candidate = toStructuredTable(value)
 
   if (candidate === undefined || !isWithinStructuredGrowth(text, candidate)) {
-    return text
+    return undefined
   }
 
   return candidate

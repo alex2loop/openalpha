@@ -11,7 +11,7 @@ import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { MarketRegistry } from '@/trading/markets/types'
-import { buildScreenOrigin, isScreenOrigin } from '@/trading/features/alerts/types'
+import { buildScreenOrigin, isDueAlert, isScreenOrigin } from '@/trading/features/alerts/types'
 import { dedupeInstruments } from '@/trading/kernel/instrument'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 
@@ -276,7 +276,11 @@ export async function reconcileAlerts(
     armed += 1
   }
 
-  const disabled = await input.disableStale({ live, expected })
+  // Both passes leave a crossed row alone: it still owes its delivery, and a disable would lose it.
+  const disabled = await input.disableStale({
+    live: live.filter((alert) => !isDueAlert(alert)),
+    expected,
+  })
 
   return { armed, disabled }
 }

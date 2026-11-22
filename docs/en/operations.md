@@ -191,6 +191,9 @@ can replace the prompt, schedule, timezone or target; to change the agent, remov
 again. It works while the daemon runs and writes only the fields you changed, so a run that is due or
 retrying is not disturbed.
 
+An agent keeps at most 100 jobs, paused ones included, whichever way they are added (`schedule add`, the
+office page or the agent's schedule tool); remove one before adding another.
+
 A prompt that starts with `/` is a command. It runs the way you would type it, with no model unless
 the command itself needs one (`/suggest`, `/research`). So `--prompt "/health"` costs nothing.
 
@@ -507,9 +510,11 @@ short-lived process.
 
    - Five wrong tokens or sign-in codes pause that caller for 30 seconds. Each pause after that
      doubles, up to an hour. An hour with no wrong try starts it over.
-   - A caller through `public_url` is told apart by the last address in `X-Forwarded-For` (the one
-     your proxy added). So a guesser on the internet never pauses your terminal or the CLI on the same
-     machine.
+   - A caller through `public_url` is told apart by the first of `X-Forwarded-For` (its last
+     address, the one your proxy added), `CF-Connecting-IP` and `X-Real-IP` that the request carries.
+     A proxy that sets only `CF-Connecting-IP` or `X-Real-IP` must drop any `X-Forwarded-For` the
+     client sent. So a guesser on the internet never pauses your terminal or the CLI on the same
+     machine. A proxy that sends none of the three puts every caller under one shared pause.
    - During a pause every token and code from that caller is refused, right or wrong, so no guess is
      checked. A browser already signed in carries on.
    - Once the pause ends, a right token or code clears the count.

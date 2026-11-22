@@ -239,11 +239,14 @@ function toQuote(series: ChartSeries, instrument: InstrumentRef): Quote {
   }
 }
 
-/** Every bar in the reply belongs to the requested day, so the fold is the whole series. */
+/** Every bar in the reply belongs to the requested day, so the fold is the whole series. A zero is
+ *  a bar with no print, not a price: left in, it would pass for the session's low. */
 function sessionSoFar(series: ChartSeries): SessionSoFar | undefined {
   const first = series.t[0]
+  const highs = series.h.filter((price) => price > 0)
+  const lows = series.l.filter((price) => price > 0)
 
-  if (first === undefined || series.h.length === 0 || series.l.length === 0) {
+  if (first === undefined || highs.length === 0 || lows.length === 0) {
     return undefined
   }
 
@@ -251,8 +254,8 @@ function sessionSoFar(series: ChartSeries): SessionSoFar | undefined {
 
   return {
     fromAt: first * MS_PER_SECOND,
-    high: Math.max(...series.h),
-    low: Math.min(...series.l),
+    high: Math.max(...highs),
+    low: Math.min(...lows),
     // A series carrying no volume for this instrument sums to zero, which is not a reading.
     ...(volume > 0 ? { volume } : {}),
   }

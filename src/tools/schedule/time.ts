@@ -1,7 +1,13 @@
-import { MS_PER_HOUR, MS_PER_MINUTE, zoneOffsetMs } from '@/core/utils/time'
+import { MS_PER_MINUTE, zoneOffsetMs } from '@/core/utils/time'
 import { JobInputError } from '@/tools/schedule/job-input-error'
 
 const LOCAL_DT_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:?\d{2})?$/
+// Real offsets run from UTC-12:00 (Baker Island) to UTC+14:00 (Kiritimati); the shape check alone
+// lets "+99:99" through.
+const MINUTES_PER_HOUR = 60
+const MIN_OFFSET_TOTAL_MINUTES = -12 * MINUTES_PER_HOUR
+const MAX_OFFSET_TOTAL_MINUTES = 14 * MINUTES_PER_HOUR
+const MAX_OFFSET_MINUTE_PART = 59
 
 interface WallClock {
   readonly year: number
@@ -46,7 +52,7 @@ export function toEpochMs(local: string, tz: string): number {
   assertRealWallClock(local, wall, parts)
 
   if (offset !== undefined) {
-    return wall - toOffsetMs(offset)
+    return wall - toOffsetMs(local, offset)
   }
 
   // Two passes: the offset belongs to the instant the wall time denotes, not to the wall time read
@@ -84,17 +90,29 @@ export function formatNextRun(epochMs: number, tz: string): string {
 
 // Computed rather than handed to Date.parse, which rolls "2026-02-31" forward to March 3 instead
 // of refusing it — a real job on a date the operator never named.
-function toOffsetMs(offset: string): number {
+function toOffsetMs(local: string, offset: string): number {
   if (offset === 'Z') {
     return 0
   }
 
   // LOCAL_DT_RE has already pinned the shape to [+-]HH[:]MM, so this is exactly four digits.
   const digits = offset.slice(1).replace(':', '')
-  const magnitude =
-    Number(digits.slice(0, 2)) * MS_PER_HOUR + Number(digits.slice(2)) * MS_PER_MINUTE
+  const minutePart = Number(digits.slice(2))
+  const magnitude = Number(digits.slice(0, 2)) * MINUTES_PER_HOUR + minutePart
+  const totalMinutes = offset.startsWith('-') ? -magnitude : magnitude
 
-  return offset.startsWith('-') ? -magnitude : magnitude
+  if (
+    minutePart > MAX_OFFSET_MINUTE_PART ||
+    totalMinutes < MIN_OFFSET_TOTAL_MINUTES ||
+    totalMinutes > MAX_OFFSET_TOTAL_MINUTES
+  ) {
+    throw new JobInputError('invalid_input', `"${local}" is not a real date and time`, {
+      key: 'errors.jobAtNotReal',
+      params: { value: local },
+    })
+  }
+
+  return totalMinutes * MS_PER_MINUTE
 }
 
 // Date.UTC rolls an out-of-range field into the next unit, so "2026-13-01" becomes 2027-01-01 and

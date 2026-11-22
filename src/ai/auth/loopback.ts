@@ -6,7 +6,8 @@ import { abortError, isErrno, LLMError } from '@/core/errors'
 
 const LOOPBACK_HOST = '127.0.0.1'
 const LOOPBACK_ORIGIN = `http://${LOOPBACK_HOST}`
-const HTML_HEADERS = { 'content-type': 'text/html; charset=utf-8' } as const
+// `connection: close` so the browser's keep-alive socket cannot hold the server open after the reply.
+const HTML_HEADERS = { 'content-type': 'text/html; charset=utf-8', connection: 'close' } as const
 const OK_STATUS = 200
 const BAD_REQUEST_STATUS = 400
 const NOT_FOUND_STATUS = 404
@@ -51,7 +52,7 @@ export async function awaitLoopbackCode(input: LoopbackInput): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
     function finish(done: () => void): void {
       input.signal.removeEventListener('abort', onAbort)
-      server.close(done)
+      closeServer(server).then(done)
     }
 
     function onAbort(): void {
@@ -130,7 +131,10 @@ function sha256(value: string): Uint8Array {
 }
 
 function closeServer(server: Server): Promise<void> {
-  return new Promise((resolve) => server.close(() => resolve()))
+  return new Promise((resolve) => {
+    server.close(() => resolve())
+    server.closeIdleConnections()
+  })
 }
 
 // Only a taken port moves to the next candidate: any other listen failure is a real fault and the

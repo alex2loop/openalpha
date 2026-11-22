@@ -1,12 +1,16 @@
 import type { Stats } from 'node:fs'
 import type { FileHandle } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
+import { constants } from 'node:fs'
 
 import { abortError, ToolError } from '@/core/errors'
 import { isBinaryContent } from '@/core/security/binary'
 import { FILE_MAX_BYTES } from '@/tools/fs/limits'
 
 const FILE_VERSION_ALGORITHM = 'sha256'
+// O_NONBLOCK: opening a FIFO read-only would otherwise park a threadpool thread until a writer
+// appears, with no way to abort. It is a no-op on regular files; the isFile check rejects the rest.
+export const READ_OPEN_FLAGS = constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK
 
 interface FileSnapshot {
   readonly text: string

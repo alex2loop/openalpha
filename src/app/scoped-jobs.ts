@@ -17,17 +17,15 @@ import { LOCAL_CHANNEL_ID } from '@/core/channels'
 import { ToolError, ValidationError } from '@/core/errors'
 import { jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
-import { SCHEDULER_MAX_JOBS } from '@/tools/api'
+import { jobsOfAgent } from '@/scheduler/api'
+import { assertJobCapacity } from '@/tools/api'
 
 // Scoped, not raw: a job belongs to the agent that created it, so an agent can only ever see and
 // remove its own. Filtering here rather than in SQL keeps JobStore's shape unaware of tool scopes;
 // the job table is bounded by what a human scheduled, so the full read is cheap.
 export function createScopedJobStore(app: App): ScopedJobStore {
-  const owned = async (scope: JobToolScope): Promise<readonly Job[]> => {
-    const jobs = await app.resolve('jobStore').list()
-
-    return jobs.filter((job) => job.agentId === scope.agentId)
-  }
+  const owned = (scope: JobToolScope): Promise<readonly Job[]> =>
+    jobsOfAgent(app.resolve('jobStore'), scope.agentId)
 
   // Replaced, never appended to, so the chain cannot grow; a failed add must not poison the next.
   let tail: Promise<unknown> = Promise.resolve()
@@ -46,9 +44,7 @@ export function createScopedJobStore(app: App): ScopedJobStore {
       return serialize(async () => {
         const jobs = await owned(scope)
 
-        if (jobs.length >= SCHEDULER_MAX_JOBS) {
-          throw new ToolError('schedule_blocked', `agent already has ${SCHEDULER_MAX_JOBS} jobs`)
-        }
+        assertJobCapacity(jobs.length)
 
         const dupe = jobs.find(
           (existing) =>

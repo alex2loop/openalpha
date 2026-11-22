@@ -382,6 +382,8 @@ remainder is listed by no routed venue). It is third in `bars` on purpose: the l
 volume is least trustworthy, so it answers only for a name the majors decline. Its bars carry no `takerBuyVolume` (no aggressor
 split), which `Candle` models as absent rather than zero.
 
+`yahoo`, last in the crypto `bars` route, lists a coin against the dollar while the crypto book prices in USDT. Any coin bars or quote it serves carry `source.dollar-quote`, which names the source and says the price is a dollar price read as USDT, a gap of under a percent, rather than paying a second request a coin to convert it.
+
 **`fx`** is one `ANY_SCOPE` list whose members do not overlap.
 
 - The coin providers lead and pick their own work: they cover only a pair whose base is a coin they can price. `yahoo` and

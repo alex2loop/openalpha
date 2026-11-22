@@ -117,12 +117,12 @@ async function settleIncurredUsage(
   attempt: ProviderAttempt
 ): Promise<void> {
   const settledAt = Date.now()
+  const usage = normalizeUsage(attempt.usage)
   const charge = deps.run.services.costTracker.record(
     attempt.providerModel,
-    attempt.usage,
+    pricedUsage(attempt.usage, usage),
     settledAt
   )
-  const usage = normalizeUsage(attempt.usage)
 
   deps.reservation.consume(charge.costUsd)
 
@@ -324,14 +324,19 @@ export async function settleCallerAttempt(
   attempt: ProviderAttempt
 ): Promise<number> {
   const settledAt = Date.now()
-  const charge = services.costTracker.record(attempt.providerModel, attempt.usage, settledAt)
+  const usage = normalizeUsage(attempt.usage)
+  const charge = services.costTracker.record(
+    attempt.providerModel,
+    pricedUsage(attempt.usage, usage),
+    settledAt
+  )
 
   emitIfExhausted(services, identity.agentId, settledAt)
 
   const draft: AttemptDraft = {
     kind: 'turn',
     charge,
-    usage: normalizeUsage(attempt.usage),
+    usage,
     id: llmAttemptId(crypto.randomUUID()),
     settledAt,
   }
@@ -385,6 +390,11 @@ export function normalizeUsage(usage: TokenUsage): NormalizedUsage {
     cacheWrite: normalizeCount(usage.cacheWrite),
     reasoning: normalizeCount(usage.reasoning),
   }
+}
+
+// The tokens priced are the ones stored and totalled; a provider-reported cost rides along as is.
+function pricedUsage(raw: TokenUsage, normalized: NormalizedUsage): TokenUsage {
+  return { ...raw, ...normalized }
 }
 
 function normalizeCount(value: number | undefined): number {

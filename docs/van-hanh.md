@@ -189,6 +189,9 @@ openalpha schedule list | show <id> | pause <id> | resume <id> | run-now <id> | 
 Lệnh chạy được cả khi dịch vụ nền đang chạy và chỉ ghi các trường bạn đổi, nên phiên chạy đến hạn hay đang
 thử lại không bị ảnh hưởng.
 
+Mỗi agent giữ tối đa 100 công việc, kể cả công việc đang tạm dừng, dù thêm bằng cách nào (`schedule add`,
+trang văn phòng hay công cụ lập lịch của agent); muốn thêm nữa thì xóa bớt một công việc trước.
+
 Prompt bắt đầu bằng `/` là một lệnh. Nó chạy như khi bạn gõ, không dùng mô hình trừ khi chính lệnh
 đó cần (`/suggest`, `/research`). Vì vậy `--prompt "/health"` không tốn gì.
 
@@ -501,9 +504,11 @@ trình ngắn hạn của riêng nó.
 
    - Năm lần sai mã API hoặc mã đăng nhập sẽ tạm dừng nơi gửi đó trong 30 giây. Mỗi lần dừng sau tăng
      gấp đôi, tối đa một giờ. Một giờ không sai lần nào thì tính lại từ đầu.
-   - Yêu cầu qua `public_url` được phân biệt theo địa chỉ cuối cùng trong `X-Forwarded-For` (địa chỉ do
-     proxy của bạn thêm vào). Nên người đoán mã trên internet không bao giờ làm dừng terminal hay CLI của
-     bạn trên cùng máy.
+   - Yêu cầu qua `public_url` được phân biệt theo tiêu đề đầu tiên có mặt trong `X-Forwarded-For` (lấy
+     địa chỉ cuối cùng, do proxy của bạn thêm vào), `CF-Connecting-IP` và `X-Real-IP`. Proxy chỉ đặt
+     `CF-Connecting-IP` hoặc `X-Real-IP` phải bỏ mọi `X-Forwarded-For` do khách gửi. Nên người đoán mã
+     trên internet không bao giờ làm dừng terminal hay CLI của bạn trên cùng máy. Proxy không gửi cái
+     nào trong ba tiêu đề này thì mọi nơi gọi chung một khoảng dừng.
    - Trong khoảng dừng, mọi mã từ nơi gửi đó đều bị từ chối, đúng hay sai, nên không lần đoán nào được
      kiểm. Trình duyệt đã đăng nhập vẫn dùng bình thường.
    - Hết khoảng dừng, một mã đúng sẽ xóa số lần sai.

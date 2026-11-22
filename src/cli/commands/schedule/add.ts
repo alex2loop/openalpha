@@ -16,7 +16,14 @@ import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
 import { entryAgentIds, isEntryAgent } from '@/engine/api'
 import { bindLocale, t } from '@/i18n'
-import { assertValidCron, isValidInterval, resolveTimezone, validateJobPrompt } from '@/tools/api'
+import { countJobsOfAgent } from '@/scheduler/api'
+import {
+  assertJobCapacity,
+  assertValidCron,
+  isValidInterval,
+  resolveTimezone,
+  validateJobPrompt,
+} from '@/tools/api'
 
 import type { ScheduleResult } from './types'
 
@@ -75,14 +82,10 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, promptError)
     }
 
-    if (!isEntryAgent(app.resolve('agents').get(agent))) {
-      return usage(
-        app,
-        t(locale, 'cli.scheduleUnknownAgent', {
-          agent: agentRaw ?? 'chat',
-          valid: entryAgentIds(app.resolve('agents').values()).toSorted().join(', '),
-        })
-      )
+    const agentError = await agentRefusal(app, { agent, raw: agentRaw }, locale)
+
+    if (agentError !== undefined) {
+      return usage(app, agentError)
     }
 
     const job: Job = {
@@ -108,6 +111,34 @@ export const scheduleAddCommand: Command = createCommand({
     return 0
   },
 })
+
+interface AgentRequest {
+  readonly agent: AgentId
+  /** What was typed after `--agent`; absent for the default. */
+  readonly raw: string | undefined
+}
+
+/** Why the agent cannot take another job, in the operator's language; undefined when it can. */
+async function agentRefusal(
+  app: CliApp,
+  request: AgentRequest,
+  locale: Locale
+): Promise<string | undefined> {
+  if (!isEntryAgent(app.resolve('agents').get(request.agent))) {
+    return t(locale, 'cli.scheduleUnknownAgent', {
+      agent: request.raw ?? 'chat',
+      valid: entryAgentIds(app.resolve('agents').values()).toSorted().join(', '),
+    })
+  }
+
+  try {
+    assertJobCapacity(await countJobsOfAgent(app.resolve('jobStore'), request.agent))
+  } catch (err: unknown) {
+    return terminalErrorMessage(err, locale)
+  }
+
+  return undefined
+}
 
 /** What is wrong with a job's prompt, in the operator's language; undefined when it may run. */
 export function promptRefusal(app: CliApp, prompt: string, locale: Locale): string | undefined {

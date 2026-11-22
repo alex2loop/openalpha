@@ -85,33 +85,17 @@ async function run(deps: BriefCommandDeps, ctx: SlashContext): Promise<SlashResu
   return usage(USAGE)
 }
 
-/** Builds on a miss rather than reporting nothing. `findOrBuildBrief` is idempotent per
- *  `(day, locale)` — a second call the same day returns the cached snapshot and spends nothing —
- *  so there is no runaway-cost reason to hide composition behind its own verb. `force` is the one
+/** Reads today's snapshot, building on a miss rather than reporting nothing. `findOrBuildBrief` is
+ *  idempotent per `(day, locale)` and profile revision - a second call the same day returns the
+ *  cached snapshot and spends nothing - so there is no runaway-cost reason to hide composition
+ *  behind its own verb, and an older day's snapshot never stands in for today's. `force` is the one
  *  way past that reuse, for a snapshot rendered before a refresh replaced the data under it. */
 async function runShow(
   deps: BriefCommandDeps,
   ctx: SlashContext,
   forced: boolean
 ): Promise<SlashResult> {
-  const now = Date.now()
-  const latest = forced
-    ? null
-    : await deps.briefs.getLatest({
-        region: deps.defaultRegion,
-        locale: ctx.locale,
-        now,
-        signal: ctx.signal,
-      })
-
-  if (latest !== null) {
-    return withSchedule(deps, ctx, {
-      body: renderBriefText(ctx.locale, latest, briefContext(deps, ctx)),
-      snapshot: latest,
-    })
-  }
-
-  const built = await buildNow(deps, ctx, { now, forced })
+  const built = await buildNow(deps, ctx, { now: Date.now(), forced })
 
   if (built === null) {
     return withSchedule(deps, ctx, {

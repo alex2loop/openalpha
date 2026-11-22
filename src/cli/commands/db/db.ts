@@ -11,6 +11,7 @@ import { createCommand, createGroup, type Group } from '@/cli/command'
 import { dbExportCommand } from '@/cli/commands/db/export'
 import { dbImportCommand } from '@/cli/commands/db/import'
 import { dbMigrateGroup } from '@/cli/commands/db/migrate'
+import { existingTables } from '@/cli/commands/db/report'
 import { usage } from '@/cli/error-output'
 import { renderLocalized } from '@/cli/help'
 import { CLI_COMMAND_METADATA, CLI_FLAG_DESCRIPTIONS } from '@/cli/metadata'
@@ -219,7 +220,7 @@ const dbStatsCommand = createCommand({
     const storage = app.resolve('storage')
 
     app.out(style.heading(t(locale, 'cli.dbTableRowsHeading')))
-    for (const table of ALL_TABLES) {
+    for (const table of await existingTables(app, ALL_TABLES)) {
       app.out(
         `  ${table.name.padEnd(TABLE_NAME_WIDTH)} ${formatCount(locale, await rowCount(storage, table.name))}`
       )

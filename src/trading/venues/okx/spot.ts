@@ -20,7 +20,7 @@ import { toDecimalString } from '@/trading/venues/decimal'
 import { fetchFilledOrders, listFilledOrders } from '@/trading/venues/okx/history'
 import { listOpenExits } from '@/trading/venues/okx/open-exits'
 import { optionalNumber, toReceipt } from '@/trading/venues/okx/receipt'
-import { listStopSymbols } from '@/trading/venues/okx/stops'
+import { listStopSizes } from '@/trading/venues/okx/stops'
 import { toPair, toTicker } from '@/trading/venues/okx/symbol'
 import {
   CANCEL_SETTLED_CODES,
@@ -88,7 +88,7 @@ export function createOkxSpotAdapter(deps: OkxTransportDeps): SpotAdapter {
     cancelExit: (input) => cancelAlgo(deps, input),
     amendExit: (input) => amendAlgo(deps, input),
     listOpenExits: (signal) => listOpenExits(deps, signal),
-    listStopSymbols: (signal) => listStopSymbols(deps, signal),
+    listStopSizes: (signal) => listStopSizes(deps, signal),
   }
 }
 
@@ -354,19 +354,17 @@ async function amendAlgo(deps: OkxTransportDeps, input: AmendExitInput): Promise
   await privateRequest(deps, {
     method: 'POST',
     path: AMEND_ALGO_PATH,
-    body: [
-      {
-        instId: input.symbol,
-        algoId: input.exitId,
-        newSz: toDecimalString(input.size),
-        ...(input.takeProfit === undefined
-          ? {}
-          : { newTpTriggerPx: toDecimalString(input.takeProfit), newTpOrdPx: TRIGGER_AT_MARKET }),
-        ...(input.stopLoss === undefined
-          ? {}
-          : { newSlTriggerPx: toDecimalString(input.stopLoss), newSlOrdPx: TRIGGER_AT_MARKET }),
-      },
-    ],
+    body: {
+      instId: input.symbol,
+      algoId: input.exitId,
+      newSz: toDecimalString(input.size),
+      ...(input.takeProfit === undefined
+        ? {}
+        : { newTpTriggerPx: toDecimalString(input.takeProfit), newTpOrdPx: TRIGGER_AT_MARKET }),
+      ...(input.stopLoss === undefined
+        ? {}
+        : { newSlTriggerPx: toDecimalString(input.stopLoss), newSlOrdPx: TRIGGER_AT_MARKET }),
+    },
     signal: input.signal,
   })
 }

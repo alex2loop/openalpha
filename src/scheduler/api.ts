@@ -25,5 +25,5 @@ export type {
 } from '@/scheduler/types'
 export { createDropLog, fireMatchingJobs } from '@/scheduler/event/match'
 export { EVENT_JOB_PARKED_AT } from '@/scheduler/event/types'
-export { pauseJobsOfAgent } from '@/scheduler/job/agent-jobs'
+export { countJobsOfAgent, jobsOfAgent, pauseJobsOfAgent } from '@/scheduler/job/agent-jobs'
 export { createSchedulerProvider } from '@/scheduler/services'

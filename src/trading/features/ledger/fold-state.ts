@@ -15,6 +15,7 @@ export interface MutableCurrencyCash {
   amount: number
   available: number
   costBase: number
+  availableCostBase: number
 }
 
 /** Module-internal: `validate.ts` replays validation over the same state machine the fold uses, so

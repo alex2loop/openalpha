@@ -4,6 +4,7 @@ import type {
   LedgerEntry,
   LedgerTxn,
   LedgerTxnKind,
+  MonetaryTxn,
   TradeTxn,
 } from '@/trading/features/ledger/types'
 import type { CurrencyCode, MarketRef, TradingDay, VenueRef } from '@/trading/kernel/instrument'
@@ -296,11 +297,13 @@ function assertCurrencyMatchesMarket(txn: LedgerTxn, options: LedgerValidationOp
     case 'fee':
     case 'loss':
       assertCashCurrency(txn.currency, txn.venue, options)
+      assertConversionStated(txn, options)
 
       return
     case 'transfer':
       assertCashCurrency(txn.currency, txn.fromVenue, options)
       assertCashCurrency(txn.currency, txn.venue, options)
+      assertConversionStated(txn, options)
 
       return
     default:
@@ -356,6 +359,12 @@ function assertMarketCurrency(txn: TradeTxn | DividendTxn, options: LedgerValida
     )
   }
 
+  assertConversionStated(txn, options)
+}
+
+/** A row that says no conversion is needed must be in the base currency: a foreign amount with an
+ *  identity rate would book at one base unit per unit. */
+function assertConversionStated(txn: MonetaryTxn, options: LedgerValidationOptions): void {
   if (txn.conversion.source === 'identity' && txn.currency !== options.baseCurrency) {
     throw new ValidationError('identity conversion requires matching currencies', {
       key: 'errors.ledgerIdentityConversion',

@@ -1,6 +1,6 @@
 import type { FileHandle } from 'node:fs/promises'
-import { constants, lstat, open } from 'node:fs/promises'
-import { join } from 'node:path'
+import { lstat, open } from 'node:fs/promises'
+import { basename, join, relative, sep } from 'node:path'
 
 import { z } from 'zod'
 
@@ -14,6 +14,7 @@ import { createTool } from '@/core/tool'
 import { isPlainRecord } from '@/core/utils/collections'
 import { GLOB_MAX_LENGTH, isGlobMatch } from '@/core/utils/glob'
 import { hasBinaryExtension } from '@/tools/fs/binary'
+import { READ_OPEN_FLAGS } from '@/tools/fs/file-snapshot'
 import { walkFiles } from '@/tools/fs/walk-files'
 import { emptyToUndef, zeroOrEmptyToUndef } from '@/tools/schema'
 import { toSummaryJson } from '@/tools/summary'
@@ -176,11 +177,10 @@ async function searchFile(
   // Two anchors on purpose: the glob filters against the search root, while a reported path stays
   // workspace-relative like every other tool's output.
   const relPath = relTo(params.workspace.path, realPath)
+  // A single-file search has no path below its root, so the glob meets the file's name.
+  const globPath = realPath === params.root ? basename(realPath) : relTo(params.root, realPath)
 
-  if (
-    PathPolicy.isSensitive(realPath) ||
-    (params.glob && !isGlobMatch(params.glob, relTo(params.root, realPath)))
-  ) {
+  if (PathPolicy.isSensitive(realPath) || (params.glob && !isGlobMatch(params.glob, globPath))) {
     return { matches: [], skippedBinary: false }
   }
 
@@ -207,7 +207,7 @@ async function readSearchableFile(realPath: string, params: SearchParams): Promi
   let handle: FileHandle | undefined
 
   try {
-    handle = await open(realPath, constants.O_RDONLY | constants.O_NOFOLLOW)
+    handle = await open(realPath, READ_OPEN_FLAGS)
 
     await PathPolicy.assertOpenedWithin(params.workspace, handle, realPath)
 
@@ -263,10 +263,9 @@ function scanLines(
   return matches
 }
 
+// Always '/'-separated: the glob matcher and the reported paths are.
 function relTo(root: string, fullPath: string): string {
-  const prefix = root.endsWith('/') ? root : `${root}/`
-
-  return fullPath.startsWith(prefix) ? fullPath.slice(prefix.length) : fullPath
+  return relative(root, fullPath).split(sep).join('/')
 }
 
 function summarizeFileSearch(content: string): DisplayText | undefined {

@@ -249,6 +249,12 @@ export interface CancelExitRequest {
   readonly signal: AbortSignal
 }
 
+/** What a cancel found. `none`: no resting exit. `cancelled`: the venue took it down and its row is
+ *  closed. `filled`: it had already sold, so the sale is booked instead. `unsettled`: the venue took
+ *  the cancel but what became of the exit could not be read back, so its row stays live for the
+ *  exit tick to settle. */
+export type CancelExitOutcome = 'none' | 'cancelled' | 'filled' | 'unsettled'
+
 export interface SetExitRequest {
   readonly ticker: Ticker
   /** Which venue's position to guard. Absent answers only while one venue holds it. */
@@ -402,13 +408,13 @@ export interface OrderService {
   /** Per instrument the book could place a stop for, whether one is standing at every venue holding
    *  it. What lets a surface printing a planned stop say whether anything is behind it. */
   restingStops(input: TradeStatusInput): Promise<ReadonlyMap<string, StopCover>>
-  /** False when there was no resting exit, so the surface renders its own arm rather than
-   *  reporting a cancel that did not happen. */
   /** Sets or moves the resting exit on a position the book already holds, covering all of it
    *  unless a smaller size is named. Never removes one: a request that cannot be amended into the
    *  resting exit is refused rather than replaced. */
   setExit(input: SetExitRequest): Promise<ExitOutcome>
-  cancelExit(input: CancelExitRequest): Promise<boolean>
+  /** `none` when there was no resting exit, so the surface renders its own arm rather than
+   *  reporting a cancel that did not happen. */
+  cancelExit(input: CancelExitRequest): Promise<CancelExitOutcome>
   /** What the exchange took and the ledger never received. Rows the book has since recovered are
    *  cleared here; the rest keep counting against the caps until the operator settles them. */
   reconcileUnmirrored(signal: AbortSignal): Promise<UnmirroredReview>

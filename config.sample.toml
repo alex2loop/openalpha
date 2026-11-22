@@ -533,7 +533,10 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # X-Forwarded-For or Forwarded, or a Host that is not a local name, and refuses those with a line
 # naming public_url. A proxy that sends neither (a bare nginx proxy_pass) looks local, so set
 # public_url first and have nginx send `proxy_set_header Host $host;` and
-# `proxy_set_header X-Forwarded-For $remote_addr;`.
+# `proxy_set_header X-Forwarded-For $remote_addr;`. Behind public_url the sign-in lockout tells
+# callers apart by the first present of X-Forwarded-For (its last address), CF-Connecting-IP and
+# X-Real-IP, so a proxy that sets only CF-Connecting-IP or X-Real-IP must drop a client-sent
+# X-Forwarded-For.
 # Setting it keeps the order routes and /trade from the app off until orders = true, keeps
 # shell commands, file writes, tools from MCP servers or plugins and social network tools out of
 # chats from the app, keeps jobs made from the app answering only in the app, and makes pairing

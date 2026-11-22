@@ -10,6 +10,7 @@ const CAVEAT_CODES = Object.freeze([
   { code: 'source.futures-proxy', severity: 'info' },
   { code: 'source.token-proxy', severity: 'info' },
   { code: 'source.token-fx-proxy', severity: 'info' },
+  { code: 'source.dollar-quote', severity: 'info' },
   { code: 'source.stale-cache', severity: 'warn' },
   { code: 'source.truncated', severity: 'warn' },
   { code: 'source.market-read-truncated', severity: 'warn' },

@@ -6,7 +6,7 @@ import type { CliApp } from '@/cli/types'
 import { warn } from '@/cli/ui/colors'
 import { isControlEnvName } from '@/core/brand'
 import { isEnvName } from '@/core/config/operator-errors'
-import { isErrno } from '@/core/errors'
+import { isErrno, ValidationError } from '@/core/errors'
 import {
   ensurePrivateDirectory,
   HAS_DIRECTORY_MODES,
@@ -16,6 +16,7 @@ import { t } from '@/i18n'
 
 const BYTE_ORDER_MARK = '\uFEFF'
 const LINE_BREAK_RE = /\r?\n/
+const VALUE_LINE_BREAK_RE = /[\r\n]/
 const EXPORT_PREFIX_RE = /^export\s+/
 const ESCAPED_RE = /\\(["\\])/g
 // A quoted value ends at its closing quote; only a `# comment` may follow it.
@@ -103,6 +104,11 @@ export async function readEnvFile(path: string): Promise<ReadonlyMap<string, str
 /** Replaces the line that sets `name`, or appends one; every other line and comment stays. The
  *  write goes through a 0600 temp file, so two writers leave one whole file, never a torn one. */
 export async function writeEnvFileValue(input: EnvFileEntry): Promise<void> {
+  // A line break in the value would write a second line the file loads as another entry.
+  if (VALUE_LINE_BREAK_RE.test(input.value)) {
+    throw new ValidationError('env file value must be a single line')
+  }
+
   const lines = splitLines(await readTextOrEmpty(input.path))
   const line = `${input.name}=${formatValue(input.value)}`
   const last = lines.findLastIndex((candidate) => nameOfLine(candidate) === input.name)

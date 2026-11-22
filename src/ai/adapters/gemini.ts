@@ -150,7 +150,7 @@ function toGeminiContents(messages: readonly LLMMessage[]): readonly GeminiConte
 
     if (message.role === 'tool') {
       if (message.toolCallId !== undefined) {
-        out.push(toolResponseContent(message, callNames))
+        appendToolResponse(out, toolResponsePart(message, callNames))
       }
     } else if (message.role === 'assistant') {
       out.push(assistantContent(message))
@@ -176,16 +176,29 @@ function toolCallNames(messages: readonly LLMMessage[]): ReadonlyMap<string, str
   return names
 }
 
-function toolResponseContent(
+// Gemini wants every function response for one model turn in a single content, one part per call.
+function appendToolResponse(out: GeminiContent[], part: Record<string, unknown>): void {
+  const last = out.at(-1)
+
+  if (last?.parts.every((existing) => 'functionResponse' in existing)) {
+    out[out.length - 1] = { role: 'user', parts: [...last.parts, part] }
+
+    return
+  }
+
+  out.push({ role: 'user', parts: [part] })
+}
+
+function toolResponsePart(
   message: LLMMessage,
   callNames: ReadonlyMap<string, string>
-): GeminiContent {
+): Record<string, unknown> {
   const id = message.toolCallId ?? ''
   const name = callNames.get(id) ?? id
   const text = textOf(message.content, '\n')
   const response = message.isError === true ? { error: text } : { result: text }
 
-  return { role: 'user', parts: [{ functionResponse: { id, name, response } }] }
+  return { functionResponse: { id, name, response } }
 }
 
 function assistantContent(message: LLMMessage): GeminiContent {

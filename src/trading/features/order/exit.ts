@@ -1,6 +1,7 @@
 import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { RoutedVenue } from '@/trading/features/order/routing'
 import type {
+  CancelExitOutcome,
   CancelExitRequest,
   ExitLevels,
   ExitOutcome,
@@ -13,6 +14,7 @@ import type { Position } from '@/trading/kernel/operator/book'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { formatErrForLog } from '@/core/security/credentials'
 import { recoverPlacedExit } from '@/trading/features/order/exit-recovery'
+import { settleCancelledExit } from '@/trading/features/order/exit-settle'
 import { settleSignal } from '@/trading/features/order/mirror'
 import { isExitInverted } from '@/trading/features/order/policy'
 import { roundExitLevels, roundToInstrument } from '@/trading/features/order/precision'
@@ -24,6 +26,10 @@ import {
 } from '@/trading/features/order/routing'
 import { OrderError, OrderQuantityError } from '@/trading/features/order/types'
 import { isSameInstrument } from '@/trading/kernel/instrument'
+
+// Which outcome a cancel reports when its exits read back differently: a sale the operator must be
+// told of outranks a row left for the tick.
+const CANCEL_OUTCOME_PRECEDENCE: readonly CancelExitOutcome[] = ['filled', 'unsettled']
 
 interface PlaceExitRequest {
   readonly instrument: InstrumentRef
@@ -159,12 +165,12 @@ async function withdrawExit(deps: OrderServiceDeps, input: WithdrawInput): Promi
   }
 }
 
-/** Resolves the instrument's resting exits and removes them deliberately. `false` when there were
+/** Resolves the instrument's resting exits and removes them deliberately. `none` when there were
  *  none, so the surface renders its own arm rather than reporting a cancel that did not happen. */
 export async function cancelRestingExit(
   deps: OrderServiceDeps,
   input: CancelExitRequest
-): Promise<boolean> {
+): Promise<CancelExitOutcome> {
   const resolution = await resolveOrderInstrument(deps, {
     ticker: input.ticker,
     signal: input.signal,
@@ -175,21 +181,21 @@ export async function cancelRestingExit(
   const first = resting[0]
 
   if (first === undefined) {
-    return false
+    return 'none'
   }
 
   assertRestsExits(deps.venues, first.venue)
 
   const { adapter } = adapterFor(deps.venues, first.venue)
-  const cancelExit = adapter.cancelExit
+  const { cancelExit, fetchExit } = adapter
 
-  if (cancelExit === undefined) {
+  if (cancelExit === undefined || fetchExit === undefined) {
     throw new OrderError('order.exit_unsupported', first.venue)
   }
 
-  // Every cancel before any mark: interleaving them would let a second cancel throw with the first
-  // already recorded closed, leaving a live exit behind a message saying it is gone. Marking after
-  // fails the other way — a cancelled exit still reads live, which the next cancel settles.
+  // Every cancel before any read-back: interleaving them would let a second cancel throw with the
+  // first already recorded closed, leaving a live exit behind a message saying it is gone. Settling
+  // after fails the other way - a cancelled exit still reads live, which the next cancel settles.
   for (const exit of resting) {
     await cancelExit({
       symbol: exit.symbol,
@@ -198,11 +204,13 @@ export async function cancelRestingExit(
     })
   }
 
+  const outcomes: CancelExitOutcome[] = []
+
   for (const exit of resting) {
-    await deps.resting.markClosed(exit.exitClientId, settleSignal())
+    outcomes.push(await settleCancelledExit(deps, exit, { fetchExit, now: input.now }))
   }
 
-  return true
+  return CANCEL_OUTCOME_PRECEDENCE.find((outcome) => outcomes.includes(outcome)) ?? 'cancelled'
 }
 
 /** Sets or moves the exit on a position the book already holds. Three arms and no fourth: nothing

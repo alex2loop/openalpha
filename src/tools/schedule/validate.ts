@@ -5,6 +5,7 @@ import { advanceCron } from '@/core/utils/cron'
 import { utf8ByteLength } from '@/core/utils/text'
 import { MS_PER_MINUTE, toCanonicalTimeZone } from '@/core/utils/time'
 import { JobInputError } from '@/tools/schedule/job-input-error'
+import { SCHEDULER_MAX_JOBS } from '@/tools/schedule/policy'
 import { toEpochMs } from '@/tools/schedule/time'
 
 export const SCHEDULER_PROMPT_MAX_BYTES = 10_240
@@ -59,6 +60,16 @@ export function assertJobPrompt(prompt: string): void {
 
   if (issue !== undefined) {
     throw new JobInputError(issue.code, issue.message, issue.operator)
+  }
+}
+
+/** `owned` is how many jobs the agent already has, whatever their state. */
+export function assertJobCapacity(owned: number): void {
+  if (owned >= SCHEDULER_MAX_JOBS) {
+    throw new JobInputError('schedule_blocked', `agent already has ${SCHEDULER_MAX_JOBS} jobs`, {
+      key: 'errors.jobLimitReached',
+      params: { limit: SCHEDULER_MAX_JOBS },
+    })
   }
 }
 

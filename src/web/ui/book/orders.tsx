@@ -5,7 +5,7 @@ import { useBlockRead } from '@/web/state/block'
 import { onCommandFinished, onWireEvent } from '@/web/state/events'
 import { readTrade, setBuyingHalted } from '@/web/state/orders'
 import { toErrorText, tr } from '@/web/text/tr'
-import { OrderAnswer } from '@/web/ui/book/orders-answer'
+import { CancelAnswer, OrderAnswer } from '@/web/ui/book/orders-answer'
 import { OrderExits } from '@/web/ui/book/orders-exits'
 import { StagedCard } from '@/web/ui/book/orders-staged'
 import { FailureStrip } from '@/web/ui/kit/failure-strip'
@@ -38,6 +38,7 @@ export function Orders() {
       <BuyingSwitch isHalted={data.haltedAt !== undefined} reread={reading.retry} />
       {error !== undefined && <FailureStrip failure={error} retry={reading.retry} />}
       <OrderAnswer />
+      <CancelAnswer />
       {data.staged.length === 0 && <p class="empty-note">{tr('ui.office.orders.none')}</p>}
       {data.staged.map((order) => (
         <StagedCard key={order.token} order={order} reread={reading.retry} />

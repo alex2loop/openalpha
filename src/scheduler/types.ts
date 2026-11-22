@@ -191,8 +191,9 @@ interface SchedulerOccurrenceStore {
   }): Promise<SchedulerOccurrenceClaim>
   /** Commit the outcome and apply the requested job transition atomically. */
   finalize(input: SchedulerOccurrenceFinalization): Promise<boolean>
-  /** Close a 'running' row by id, no job transition. Recovery uses it when finalization was lost. */
-  finish(runId: number, outcome: SchedulerRunOutcome): Promise<void>
+  /** Close a 'running' row by id, no job transition. Recovery uses it when finalization was lost.
+   *  False when the row was no longer 'running': another instance closed it first. */
+  finish(runId: number, outcome: SchedulerRunOutcome): Promise<boolean>
   /** Extend a live claim's lease. Best-effort: a lost lease (wrong token/status) is a silent no-op. */
   renewLease(runId: number, token: string, leaseUntilMs: number): Promise<void>
   /** Record a delivery failure on a run that already succeeded. */

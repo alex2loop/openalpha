@@ -146,8 +146,13 @@ async function recoverStalledJob(
   }
 
   try {
+    // A row another instance closed first was settled by it: this one leaves the job alone.
     if (stalled.status === 'running') {
-      await deps.occurrences.finish(stalled.runId, outcome)
+      const closed = await deps.occurrences.finish(stalled.runId, outcome)
+
+      if (!closed) {
+        return
+      }
     }
 
     await settleStalledJob({ job, deps, outcome, now })

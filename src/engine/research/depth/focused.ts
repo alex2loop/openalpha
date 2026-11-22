@@ -206,7 +206,7 @@ async function synthesizeFocused(
     outcome: focused.outcome,
     failures: focused.failures,
     origin: focused.origin,
-    knownFutureCalls: 0,
+    knownFutureCalls: ctx.effort.reviewRoundLimit,
   })
 
   if ('status' in synthesis) {

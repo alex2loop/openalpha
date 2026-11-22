@@ -806,7 +806,7 @@ confirm_multiple = 10          # hỏi lại trước khi lưu giá gõ lệch g
 
 [trading.orders]
 maximum_stake_quote = 0        # 0 = không chặn; giá trị ước tính bằng USDT trên okx và binance
-maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh chưa vào sổ; mua thêm mã đang giữ không tính là vị thế mới
+maximum_open_trades = 0        # 0 = không chặn; vị thế mở cộng các lệnh mua chưa vào sổ ở mã chưa giữ; mua thêm mã đang giữ, hay lệnh bán chưa vào sổ, không tính là vị thế mới
 maximum_price_drift = 0.005    # một phân số, không phải phần trăm: 0.005 là nửa phần trăm
 allow_unattended = false       # cho phép đặt lệnh khi chế độ phê duyệt là "bypass"
 require_stop_loss = true       # từ chối lệnh mua không nêu mức cắt lỗ

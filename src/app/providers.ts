@@ -9,11 +9,11 @@ import type { Workflow } from '@/engine/api'
 import type { UserAgentSource } from '@/engine/node-api'
 import type { OpenedPersistence } from '@/persistence/api'
 import type { PluginAssets } from '@/plugins/api'
-import type { UserProfile } from '@/trading/api'
 import type { LoadedSourceModule } from '@/trading/node-api'
 import { createAiProvider } from '@/ai/api'
 import { createCredentialSources } from '@/ai/node-api'
 import { createUserAgentsProvider, liveAgentsProvider } from '@/app/agent-registry'
+import { createBaseCurrencyGuardProvider } from '@/app/base-currency-guard'
 import { coreCommands } from '@/app/chat-commands'
 import { createDaemonTask } from '@/app/daemon'
 import { createBootExtensionRegistration } from '@/app/extensions'
@@ -31,7 +31,6 @@ import { createOperatorNotices, createReleaseUpdates } from '@/app/update/releas
 import { createHealthSummary, createSpendReader } from '@/app/views'
 import { channelsProvider } from '@/channels/node-api'
 import { createCommandsProvider, createSessionModelSelection } from '@/commands/api'
-import { OperatorConfigError } from '@/core/config/operator-errors'
 import { engineProvider } from '@/engine/api'
 import { addWorkflow, createSkillCatalog, resolveSkillsDir } from '@/engine/node-api'
 import { bindLocale } from '@/i18n'
@@ -40,7 +39,7 @@ import { createPersistenceProvider } from '@/persistence/api'
 import { createPluginsProvider } from '@/plugins/api'
 import { createSchedulerProvider } from '@/scheduler/api'
 import { toolsProvider } from '@/tools/node-api'
-import { resolveTradingConfig, TRADING_SKILLS } from '@/trading/api'
+import { TRADING_SKILLS } from '@/trading/api'
 
 // spec §14 — the canonical order. Every `extend` target must already exist via an earlier `bind`,
 // so this list is load-bearing: never reorder it without walking the 9 constraints below.
@@ -162,62 +161,6 @@ export function buildProviders(options: BuildProvidersOptions): ProviderAssembly
   ]
 
   return { providers, assertExtensionsRegistered: bootExtension.assertRegistered }
-}
-
-// Step 2b: the persisted profile fixes the book's base currency the first time it is saved
-// (portfolio/profile.ts) while `[locale] currency` is live config a later edit can change.
-// Unguarded, a mismatch only surfaces as a repeated ValidationError deep inside the ledger fold
-// (portfolio/book.ts assertRecordedInBase) on every portfolio read thereafter. Wrapping the two
-// store methods that feed the fold — `profile.find` and `ledger.listAll` — turns every one of
-// those reads into a single clear config error instead.
-function createBaseCurrencyGuardProvider(): ServiceProvider {
-  return {
-    name: 'trading-base-currency-guard',
-    register(_bind, extend): void {
-      extend('tradingStores', (current, app) => {
-        const baseCurrency = resolveTradingConfig({
-          extensions: app.config.extensions,
-          locale: app.config.locale,
-        }).baseCurrency
-        const findProfile = (signal: AbortSignal): Promise<UserProfile | null> =>
-          assertProfileCurrency(current.profile.find(signal), baseCurrency)
-
-        return {
-          ...current,
-          profile: { ...current.profile, find: findProfile },
-          ledger: {
-            ...current.ledger,
-            listAll: async (signal) => {
-              await findProfile(signal)
-              return current.ledger.listAll(signal)
-            },
-          },
-        }
-      })
-    },
-  }
-}
-
-async function assertProfileCurrency(
-  pending: Promise<UserProfile | null>,
-  baseCurrency: UserProfile['baseCurrency']
-): Promise<UserProfile | null> {
-  const profile = await pending
-
-  if (profile && profile.baseCurrency !== baseCurrency) {
-    throw new OperatorConfigError(
-      `[locale] currency is ${baseCurrency}, but the trading profile was created with ` +
-        `${profile.baseCurrency} and never changes; restore [locale] currency to ` +
-        `${profile.baseCurrency}`,
-      {
-        key: 'errors.configCurrencyLocked',
-        params: { currency: baseCurrency, profileCurrency: profile.baseCurrency },
-      },
-      { path: ['locale', 'currency'] }
-    )
-  }
-
-  return profile
 }
 
 // Step 11: MCP tools land last, so they see the plugin-merged registry and not just the built-ins.

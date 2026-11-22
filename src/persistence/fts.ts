@@ -22,10 +22,13 @@ const IMPORTANCE_WEIGHT = 0.5
 // no-op on both dialects. The FTS layer repeats the guard so a direct caller can never hand the
 // storage engine an invalid LIMIT.
 const MEMORY_SEARCH_LIMIT_MAX = 100
+// Each short token adds a LIKE scan over the scope's rows, so a long query is cut to its first terms.
+const FTS_MAX_QUERY_TOKENS = 16
 
 // Whitelist, never a blacklist. An unquoted `-`, `"` or `*` is an FTS5 operator: a syntax error
-// or a silent prefix match, not the search the caller asked for.
-const FTS_TOKEN_RE = /[\p{L}\p{N}_]+/gu
+// or a silent prefix match, not the search the caller asked for. \p{M} keeps a combining mark in
+// the token it belongs to.
+const FTS_TOKEN_RE = /[\p{L}\p{N}\p{M}_]+/gu
 
 const LIKE_SPECIALS_RE = /[\\%_]/g
 
@@ -104,18 +107,20 @@ function buildQuery(
 
   const now = Date.now()
   const prefix = scope.keyPrefix === undefined ? undefined : `${escapeLike(scope.keyPrefix)}%`
+  // Stored values are NFC (memory/store), so a decomposed query must be too to match them.
+  const query = options.query.normalize('NFC')
 
   if (name === 'postgres') {
     return {
       sql: PG_SEARCH_HEAD + (prefix === undefined ? '' : PG_PREFIX_FILTER) + PG_SEARCH_TAIL,
       params:
         prefix === undefined
-          ? [scope.agentId, scope.userId, options.query, now, options.limit]
-          : [scope.agentId, scope.userId, options.query, now, options.limit, prefix],
+          ? [scope.agentId, scope.userId, query, now, options.limit]
+          : [scope.agentId, scope.userId, query, now, options.limit, prefix],
     }
   }
 
-  const tokens = options.query.match(FTS_TOKEN_RE) ?? []
+  const tokens = (query.match(FTS_TOKEN_RE) ?? []).slice(0, FTS_MAX_QUERY_TOKENS)
 
   if (tokens.length === 0) {
     return null

@@ -7,6 +7,7 @@ import type {
   SentRef,
 } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
+import { isPermanentStatus, RATE_LIMITED_STATUS } from '@/channels/http-failure'
 import { PermanentChannelError } from '@/channels/permanent-error'
 import { plainRenderer, plainTextOf } from '@/channels/renderer'
 import { toTokenMissingError, toTokenRejectedError } from '@/channels/token-errors'
@@ -27,7 +28,8 @@ const ZALO_CAPABILITIES: ChannelCapabilities = {
 }
 
 const ZALO_TOKEN_OWNER = { id: ZALO_CHANNEL_ID, label: 'Zalo' } as const
-const ZALO_RATE_LIMITED_CODE = 429
+// Zalo's own error table lists 403 as a server error, so it is retried like a 5xx.
+const ZALO_FORBIDDEN_CODE = 403
 // Zalo publishes no retry-after hint, so a rate-limited send gets one fixed pause instead of the
 // provider-named one telegram gets. reply.ts clamps it and retries the final write only.
 const ZALO_RATE_LIMIT_RETRY_MS = 5_000
@@ -155,11 +157,12 @@ async function sendZaloMessage(
 }
 
 // Rate limiting carries retryAfterMs so the shared 429 path in reply.ts engages for zalo too;
-// everything else is a plain failure the caller reports.
+// a refusal that repeats on every attempt is permanent, anything else a plain failure the caller
+// reports.
 function sendFailure(errorCode: number | undefined, description: string | undefined): ChannelError {
   const detail = description ?? String(errorCode ?? 'unknown')
 
-  if (errorCode === ZALO_RATE_LIMITED_CODE) {
+  if (errorCode === RATE_LIMITED_STATUS) {
     return new ChannelError('send_failed', `zalo_send_rate_limited: ${detail}`, {
       cause: errorCode,
       retryAfterMs: ZALO_RATE_LIMIT_RETRY_MS,
@@ -168,7 +171,13 @@ function sendFailure(errorCode: number | undefined, description: string | undefi
 
   const message = `zalo_send_failed: ${detail}`
 
-  return errorCode === ZALO_UNAUTHORIZED_CODE
+  return isPermanentSendCode(errorCode)
     ? new PermanentChannelError('send_failed', message)
     : new ChannelError('send_failed', message)
+}
+
+function isPermanentSendCode(errorCode: number | undefined): boolean {
+  return (
+    errorCode !== undefined && errorCode !== ZALO_FORBIDDEN_CODE && isPermanentStatus(errorCode)
+  )
 }

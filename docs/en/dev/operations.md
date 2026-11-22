@@ -220,7 +220,7 @@ already cleared.
 - Loop factory and classification: [`trading/wiring/tasks.ts`](../../../src/trading/wiring/tasks.ts)
 - Quarantine: [`trading/wiring/quarantine.ts`](../../../src/trading/wiring/quarantine.ts)
 - Refresh anchors: [`trading/features/market-data/ops/refresh-schedule.ts`](../../../src/trading/features/market-data/ops/refresh-schedule.ts)
-- Exit reconciliation: [`trading/features/order/exit-tick.ts`](../../../src/trading/features/order/exit-tick.ts)
+- Exit reconciliation: [`trading/features/order/exit-tick.ts`](../../../src/trading/features/order/exit-tick.ts); the settlement it shares with `/trade cancel`: [`trading/features/order/exit-settle.ts`](../../../src/trading/features/order/exit-settle.ts)
 - Daemon startup and retention: [`app/daemon.ts`](../../../src/app/daemon.ts)
 - Scheduler lifecycle: [`scheduler/runner.ts`](../../../src/scheduler/runner.ts); execution: [`scheduler/job/execution.ts`](../../../src/scheduler/job/execution.ts); backoff: [`scheduler/backoff.ts`](../../../src/scheduler/backoff.ts)
 - Cron parser: [`core/utils/cron.ts`](../../../src/core/utils/cron.ts)

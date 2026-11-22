@@ -62,6 +62,7 @@ import type {
 import type { TradingNavResponse } from '@/app/server/wire/nav'
 import type { BoardResponse, NoticesReadResponse, NoticesResponse } from '@/app/server/wire/notices'
 import type {
+  CancelExitResponse,
   ConfirmOrderResponse,
   ReconcileOrdersResponse,
   TradeActionResponse,
@@ -213,7 +214,7 @@ export const ROUTES = Object.freeze({
   tradeStaged: (token: string) =>
     route<TradeActionResponse>(`/v1/trade/staged/${encodeURIComponent(token)}`, 'orders'),
   tradeExit: (ticker: string, venue: string) =>
-    route<TradeActionResponse>(
+    route<CancelExitResponse>(
       `/v1/trade/exits?${new URLSearchParams({ ticker, venue })}`,
       'orders',
       { timeout: 'slow' }

@@ -316,7 +316,7 @@ async function synthesizeRevision(
     outcome,
     failures: work.failures,
     origin: work.state.origin,
-    knownFutureCalls: Math.max(0, ctx.effort.reviewRoundLimit - completedReviewIndex - 2),
+    knownFutureCalls: Math.max(0, ctx.effort.reviewRoundLimit - completedReviewIndex - 1),
     correctionIssues: work.state.review.issues.map((issue) => issue.description),
   })
 

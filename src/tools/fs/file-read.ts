@@ -1,5 +1,5 @@
 import type { FileHandle } from 'node:fs/promises'
-import { constants, open } from 'node:fs/promises'
+import { open } from 'node:fs/promises'
 
 import { z } from 'zod'
 
@@ -10,7 +10,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { PathPolicy } from '@/core/security/path-policy'
 import { createTool } from '@/core/tool'
 import { isContinuationByte } from '@/core/utils/text'
-import { readFileSnapshot } from '@/tools/fs/file-snapshot'
+import { READ_OPEN_FLAGS, readFileSnapshot } from '@/tools/fs/file-snapshot'
 import { zeroOrEmptyToUndef } from '@/tools/schema'
 
 const FILE_READ_OVERSIZE_THRESHOLD = 16_384
@@ -119,9 +119,7 @@ async function closeReadHandle(handle: FileHandle | undefined, logger: Logger): 
 
 async function openReadFile(realPath: string, requestedPath: string): Promise<FileHandle> {
   try {
-    // O_NONBLOCK: opening a FIFO read-only would otherwise park a threadpool thread until a writer
-    // appears, with no way to abort. It is a no-op on regular files; the isFile check rejects the rest.
-    return await open(realPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK)
+    return await open(realPath, READ_OPEN_FLAGS)
   } catch (err: unknown) {
     // No sibling listing: the parent is known only by name here, and a parent swapped for an
     // external symlink since resolution would put outside names in the error.

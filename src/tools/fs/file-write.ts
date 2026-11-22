@@ -11,7 +11,7 @@ import { abortError, isErrno, ToolError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { PathPolicy } from '@/core/security/path-policy'
 import { createTool } from '@/core/tool'
-import { readFileSnapshot, toFileVersion } from '@/tools/fs/file-snapshot'
+import { READ_OPEN_FLAGS, readFileSnapshot, toFileVersion } from '@/tools/fs/file-snapshot'
 import { FILE_PERMISSION_MASK } from '@/tools/fs/limits'
 
 const FILE_WRITE_MAX_BYTES = 5_242_880
@@ -140,7 +140,7 @@ async function readAppendedVersion(realPath: string, ctx: ToolInvocationContext)
   let handle: FileHandle | undefined
 
   try {
-    handle = await open(realPath, constants.O_RDONLY | constants.O_NOFOLLOW)
+    handle = await open(realPath, READ_OPEN_FLAGS)
 
     await PathPolicy.assertOpenedWithin(ctx.workspace, handle, realPath)
 

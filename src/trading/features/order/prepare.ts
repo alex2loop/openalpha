@@ -37,7 +37,7 @@ import {
 import { resolveSellableQuantities, sellableQuantityOf } from '@/trading/features/order/sellable'
 import { OrderError, OrderQuantityError } from '@/trading/features/order/types'
 import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
-import { isSameInstrument } from '@/trading/kernel/instrument'
+import { buildInstrumentKey, isSameInstrument } from '@/trading/kernel/instrument'
 import { toShownBreach } from '@/trading/kernel/operator/exposure'
 import { resolveTradeCost } from '@/trading/markets/cost'
 
@@ -410,12 +410,29 @@ export function rejectionsFor(deps: OrderServiceDeps, terms: CapTerms): readonly
     book: terms.book.book,
     unmirroredSpentBase: terms.unmirrored.spentBase,
     venue: terms.venue,
-    openTrades: terms.book.positions.length + terms.unmirrored.count,
+    openTrades: terms.book.positions.length + countUnmirroredOpens(terms),
     opensPosition: !terms.book.positions.some((entry) =>
       isSameInstrument(entry.position.instrument, terms.instrument)
     ),
     hasStopLoss: terms.hasStopLoss,
   })
+}
+
+/** Unmirrored buys that would open a position of their own, one per name: a sale, a buy on a name
+ *  the book holds, a second buy on one already counted and a buy on the name the order being judged
+ *  buys (it is that position) open none. */
+function countUnmirroredOpens(terms: CapTerms): number {
+  const counted = new Set(
+    terms.book.positions.map((entry) => buildInstrumentKey(entry.position.instrument))
+  )
+
+  if (terms.side === 'buy') {
+    counted.add(buildInstrumentKey(terms.instrument))
+  }
+
+  const opened = terms.unmirrored.buys.map((buy) => buildInstrumentKey(buy.instrument))
+
+  return new Set(opened.filter((key) => !counted.has(key))).size
 }
 
 /** The profile a buy is held to, read where the book is: here when the order is prepared and again

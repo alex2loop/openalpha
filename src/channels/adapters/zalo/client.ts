@@ -1,7 +1,9 @@
 import { z } from 'zod'
 
 import type { ChannelErrorCode } from '@/core/errors'
+import { MAX_ERROR_DESCRIPTION_LEN } from '@/channels/http-failure'
 import { abortError, ChannelError } from '@/core/errors'
+import { readTruncatedText } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
@@ -125,7 +127,10 @@ async function postZalo(options: ZaloRequestOptions): Promise<{ status: number; 
     })
 
     if (!res.ok) {
-      const description = await res.text().catch(() => '')
+      const { text: description } = await readTruncatedText(res, MAX_ERROR_DESCRIPTION_LEN).catch(
+        () => ({ text: '' })
+      )
+
       return { status: res.status, json: { ok: false, error_code: res.status, description } }
     }
 

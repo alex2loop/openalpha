@@ -172,3 +172,11 @@ export interface ReconcileOrdersResponse {
 export interface TradeActionResponse {
   readonly ok: boolean
 }
+
+/** DELETE /v1/trade/exits: what became of the exit, as `/trade cancel` names it. `none`: nothing was
+ *  resting. `cancelled`: the exit is gone and the position is unguarded. `filled`: it filled before
+ *  the cancel arrived and the sale is booked. `unsettled`: the cancel went through but the exit
+ *  could not be read back, so its row stays live. `ok` is false only for `none`. */
+export interface CancelExitResponse extends TradeActionResponse {
+  readonly outcome: 'none' | 'cancelled' | 'filled' | 'unsettled'
+}

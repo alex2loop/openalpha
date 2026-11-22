@@ -41,8 +41,9 @@ interface SchedulerOccurrenceFinalization {
 
 interface SchedulerOccurrenceStore {
   start(jobId: JobId, startedAtMs: number): Promise<number | undefined>
-  /** Closes a 'running' row by id with no job transition; stalled-run recovery depends on it. */
-  finish(runId: number, outcome: SchedulerRunOutcome): Promise<void>
+  /** Closes a 'running' row by id with no job transition; stalled-run recovery depends on it.
+   *  False when the row was no longer 'running': another instance closed it first. */
+  finish(runId: number, outcome: SchedulerRunOutcome): Promise<boolean>
   markStale(nowMs: number): Promise<number>
   claim(options: {
     readonly jobId: JobId
@@ -85,7 +86,9 @@ export function createSchedulerOccurrenceStore(
       recordDeliveryError({ db, sql, runId, errorMessage }),
     startRunNow: (jobId, requestId, startedAtMs) =>
       startRunNow({ db, sql, jobId, requestId, startedAtMs }),
-    finishRunNow: (runId, outcome) => finishRun({ db, sql, runId, outcome }),
+    finishRunNow: async (runId, outcome) => {
+      await finishRun({ db, sql, runId, outcome })
+    },
   }
 }
 
@@ -135,11 +138,11 @@ interface FinishRunOptions {
   readonly outcome: SchedulerRunOutcome
 }
 
-async function finishRun(options: FinishRunOptions): Promise<void> {
+async function finishRun(options: FinishRunOptions): Promise<boolean> {
   const { db, sql, runId, outcome } = options
 
   if (outcome.status === 'success') {
-    await db.execute(sql.finishSuccess, [
+    const { changes } = await db.execute(sql.finishSuccess, [
       outcome.summary,
       toNanoUsd(outcome.costUsd),
       outcome.endedAtMs,
@@ -147,10 +150,16 @@ async function finishRun(options: FinishRunOptions): Promise<void> {
       runId,
     ])
 
-    return
+    return changes === 1
   }
 
-  await db.execute(sql.finishFailed, [outcome.errorMessage, outcome.endedAtMs, runId])
+  const { changes } = await db.execute(sql.finishFailed, [
+    outcome.errorMessage,
+    outcome.endedAtMs,
+    runId,
+  ])
+
+  return changes === 1
 }
 
 interface MarkStaleOptions {

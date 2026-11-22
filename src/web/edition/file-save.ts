@@ -174,35 +174,40 @@ interface FileAutosave {
 
 /** Writes a full copy to a swap file that replaces the target when it closes, so a tab closed
  *  mid-write leaves the old copy or the new one, never half of each. The copy is written after a
- *  debounce, and at once when the tab goes to the background. Only a failed write marks the data
- *  changed, so a change made while a copy was being written stays marked. */
+ *  debounce, and at once when the tab goes to the background. A change made while a copy was being
+ *  written stays marked. A failed write ends the autosave: nothing is exported again until the
+ *  owner starts a new one on resume, whose first copy is written at once. */
 function createFileAutosave(options: FileAutosaveOptions): FileAutosave {
   const lifetime = new AbortController()
   let timer: ReturnType<typeof setTimeout> | undefined
   let tail: Promise<void> = Promise.resolve()
   let isDirty = false
-  let isStopped = false
+  const halt = (): void => {
+    isDirty = false
+    clearTimeout(timer)
+    lifetime.abort()
+  }
   const save = (): Promise<void> => {
     clearTimeout(timer)
     isDirty = false
-    tail = tail
-      .then(() => writeCopy(options))
-      .then((ok) => {
-        isDirty = isDirty || !ok
-      })
+    tail = tail.then(async () => {
+      if (!(await writeCopy(options))) {
+        halt()
+      }
+    })
 
     return tail
   }
 
   onTabHidden(lifetime.signal, () => {
-    if (isDirty && !isStopped) {
+    if (isDirty) {
       save().catch(options.onFailed)
     }
   })
 
   return {
     schedule() {
-      if (isStopped) {
+      if (lifetime.signal.aborted) {
         return
       }
 
@@ -210,12 +215,12 @@ function createFileAutosave(options: FileAutosaveOptions): FileAutosave {
       clearTimeout(timer)
       timer = setTimeout(() => save().catch(options.onFailed), options.debounceMs)
     },
-    flush: () => (isStopped ? tail : save()),
+    flush: () => (lifetime.signal.aborted ? tail : save()),
     async stop() {
-      isStopped = true
-      clearTimeout(timer)
-      lifetime.abort()
-      await (isDirty ? save() : tail)
+      const hasPendingChange = isDirty
+
+      halt()
+      await (hasPendingChange ? save() : tail)
     },
   }
 }

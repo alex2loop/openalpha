@@ -111,10 +111,9 @@ interface UnmirroredBuy {
   readonly notionalBase: number
 }
 
-/** What placed at the exchange and is not in the book: how many orders, the buys among them and the
- *  cash those took. A sell's proceeds are not credited back, because they too have not been booked. */
+/** What placed at the exchange and is not in the book: the buys among those orders and the cash they
+ *  took. A sell's proceeds are not credited back, because they too have not been booked. */
 export interface UnmirroredExposure {
-  readonly count: number
   readonly spentBase: number
   readonly buys: readonly UnmirroredBuy[]
 }
@@ -280,7 +279,6 @@ async function unmirroredExposure(
     }))
 
   return {
-    count: rows.length,
     spentBase: buys.reduce((total, buy) => total + buy.notionalBase, 0),
     buys,
   }

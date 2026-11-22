@@ -170,6 +170,7 @@ export function promoteSettled(state: FoldState, asOf: TradingDay): void {
 
       if (held !== undefined) {
         held.available += row.amount
+        held.availableCostBase += row.amountBase
       }
     }
 

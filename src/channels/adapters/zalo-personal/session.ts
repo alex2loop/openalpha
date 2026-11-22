@@ -85,7 +85,7 @@ export async function runZaloPersonalSession(deps: ZaloPersonalSessionDeps): Pro
 }
 
 async function runSessionOnce(deps: ZaloPersonalSessionDeps): Promise<SessionEnd> {
-  const credentials = await readZaloPersonalCredentials(deps.location)
+  const credentials = await readZaloPersonalCredentials(deps.location, deps.logger)
 
   if (credentials === undefined) {
     return { reason: 'not_authenticated', detail: { fix: LOGIN_COMMAND } }

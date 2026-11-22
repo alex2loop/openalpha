@@ -18,8 +18,9 @@ const MAX_PEERS = 1024
 // The lockout key of a request whose peer address or forwarded client is unknown.
 const UNKNOWN_PEER = '?'
 const PROXIED_PEER_PREFIX = 'proxied:'
-const FORWARDED_FOR = 'x-forwarded-for'
-const FORWARDED_FOR_SEPARATOR = ','
+// Where a proxy puts the client's address, in the order they are read.
+const CLIENT_IP_HEADERS: readonly string[] = ['x-forwarded-for', 'cf-connecting-ip', 'x-real-ip']
+const CLIENT_IP_SEPARATOR = ','
 const SECRET_BYTES = 32
 
 export const LOOPBACK_HOST = '127.0.0.1'
@@ -170,18 +171,30 @@ function toHostUrl(protocol: string, host: string): URL | undefined {
 
 /** Who a request counts as for the lockout. A caller with no proxy header is keyed by its own peer.
  *  Through the `public_url` host it is keyed by the last `X-Forwarded-For` hop, the one our proxy
- *  added, so a remote guesser never locks out a terminal on this machine. Proxy headers on any
- *  other host are not trusted: that caller shares one proxied key. */
+ *  added, or by `CF-Connecting-IP` or `X-Real-IP` when the proxy sends only those (the first
+ *  present header wins, so such a proxy must drop a client-sent `X-Forwarded-For`), so a remote
+ *  guesser never locks out a terminal on this machine. Proxy headers on any other host are not
+ *  trusted: that caller shares one proxied key. */
 export function resolvePeerKey(headers: Headers, ip: string | null, isPublicPage: boolean): string {
   if (!PROXY_HEADERS.some((name) => headers.has(name))) {
     return ip ?? UNKNOWN_PEER
   }
 
-  const hop = isPublicPage
-    ? headers.get(FORWARDED_FOR)?.split(FORWARDED_FOR_SEPARATOR).at(-1)?.trim()
-    : undefined
+  const hop = isPublicPage ? resolveClientHop(headers) : undefined
 
-  return `${PROXIED_PEER_PREFIX}${hop === undefined || hop === '' ? UNKNOWN_PEER : hop}`
+  return `${PROXIED_PEER_PREFIX}${hop ?? UNKNOWN_PEER}`
+}
+
+function resolveClientHop(headers: Headers): string | undefined {
+  for (const name of CLIENT_IP_HEADERS) {
+    const hop = headers.get(name)?.split(CLIENT_IP_SEPARATOR).at(-1)?.trim()
+
+    if (hop !== undefined && hop !== '') {
+      return hop
+    }
+  }
+
+  return undefined
 }
 
 /** Asked before a token or code is compared, so a guess sent during the lockout is never checked. */

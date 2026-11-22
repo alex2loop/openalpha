@@ -16,6 +16,12 @@ import {
 } from '@/engine/skills/skill-text'
 
 const SKILL_FILE = 'SKILL.md'
+
+interface ValidSkill {
+  readonly meta: SkillMeta
+  readonly file: SkillDoc
+}
+
 // True when `file` resolves inside `root` after symlink resolution. Closes the symlink-escape
 // attack (`ln -s /etc/passwd skills/evil/SKILL.md`). PathPolicy throws; the scanner wants a boolean.
 async function isResolvedInside(root: string, file: string, signal: AbortSignal): Promise<boolean> {
@@ -50,7 +56,8 @@ async function loadSkillIndex(
   const found = await Promise.all(names.map((name) => readSkill(skillsDir, name, signal)))
 
   return found
-    .filter((meta): meta is SkillMeta => meta !== undefined)
+    .filter((skill): skill is ValidSkill => skill !== undefined)
+    .map((skill) => skill.meta)
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
@@ -116,7 +123,8 @@ function fingerprintFromEntries(
   return hash.digest('hex')
 }
 
-// The first dir holding a readable SKILL.md for `name` wins, matching the index's shadowing order.
+// The first dir holding a valid SKILL.md for `name` wins, matching the index's shadowing order: a
+// malformed file in an earlier dir is skipped here exactly as the index skips it.
 // Every path that puts skill text in front of a model reads through here, so the role-boundary
 // strip happens once, at the read. `size` stays the on-disk byte count the reader is charged for.
 export async function readSkillDoc(
@@ -131,26 +139,23 @@ export async function readSkillDoc(
   }
 
   for (const base of dirs) {
-    const file = await readSkillFile(base, name, signal)
+    const skill = await readSkill(base, name, signal)
 
-    if (file !== undefined) {
-      return { text: stripRoleBoundaries(file.text), size: file.size }
+    if (skill !== undefined) {
+      return { text: stripRoleBoundaries(skill.file.text), size: skill.file.size }
     }
   }
 
   return undefined
 }
 
-/**
- * Skill text that never touched the filesystem, as the same document a file read produces: role
- * boundaries stripped once, `size` the text's own byte count so prompt accounting charges the same
- * units either way.
- */
+// A SKILL.md whose frontmatter parses and names the skill after its folder: `readSkillDoc` reads
+// `<dir>/<name>/SKILL.md`, so a skill filed under another name would be listed yet unreadable.
 async function readSkill(
   skillsDir: string,
   name: string,
   signal: AbortSignal
-): Promise<SkillMeta | undefined> {
+): Promise<ValidSkill | undefined> {
   const file = await readSkillFile(skillsDir, name, signal)
 
   if (file === undefined) {
@@ -159,9 +164,7 @@ async function readSkill(
 
   const meta = buildSkillMeta(parseFrontmatter(file.text))
 
-  // `readSkillDoc` reads `<dir>/<name>/SKILL.md`, so a skill filed under another name would be
-  // listed yet unreadable.
-  return meta?.name === name ? meta : undefined
+  return meta?.name === name ? { meta, file } : undefined
 }
 
 // Reads `base/<name>/SKILL.md` through a descriptor checked against the configured base dir, not

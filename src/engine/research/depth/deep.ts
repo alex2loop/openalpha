@@ -181,7 +181,7 @@ async function executeFromPlan(ctx: StageContext, plan: ResearchPlan): Promise<R
     outcome: admitted.outcome,
     failures: crawled.failures,
     origin: 'planned',
-    knownFutureCalls: Math.max(0, ctx.effort.reviewRoundLimit - 1),
+    knownFutureCalls: ctx.effort.reviewRoundLimit,
   })
 
   if ('status' in synthesis) {

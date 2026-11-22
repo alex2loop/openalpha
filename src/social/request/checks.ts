@@ -7,6 +7,7 @@ import type { SocialNotifier } from '@/social/notices'
 import type { ReadLimiter } from '@/social/request/rate'
 import type { SocialLabel } from '@/social/skill/labels'
 import type { HttpMethod, NetworkPin, SocialEndpoint } from '@/social/types'
+import { ValidationError } from '@/core/errors'
 import { hasLikelySecret } from '@/core/security/credentials'
 import { dayBoundsInZone, MS_PER_DAY, MS_PER_SECOND } from '@/core/utils/time'
 import { isCappedLabel } from '@/social/config'
@@ -242,15 +243,9 @@ async function pinStep(
     readonly membership: SocialMembershipRow
   }
 ): Promise<Refused | Member> {
-  const pointer = await deps.bundles.readPointer(who.network)
-  const pin =
-    pointer === undefined ? undefined : await deps.bundles.readPin(who.network, pointer.current)
+  const current = await readCurrentPin(deps, who.network)
 
-  if (pointer === undefined || pin === undefined) {
-    return refuse('pin-mismatch')
-  }
-
-  if (pin === 'mismatch') {
+  if (current === 'mismatch') {
     await pausePinMismatch(deps, who.network)
 
     return refuse('pin-mismatch')
@@ -260,7 +255,32 @@ async function pinStep(
 
   return apiKey === undefined
     ? refuse('no-key')
-    : { pinId: pointer.current, pin, membership: who.membership, apiKey }
+    : { ...current, membership: who.membership, apiKey }
+}
+
+// A missing or damaged pointer or `network.toml` pins nothing, so it reads like a pin that no
+// longer matches: the caller pauses the network and fails closed.
+async function readCurrentPin(
+  deps: RequestDeps,
+  network: string
+): Promise<{ readonly pinId: string; readonly pin: NetworkPin } | 'mismatch'> {
+  try {
+    const pointer = await deps.bundles.readPointer(network)
+
+    if (pointer === undefined) {
+      return 'mismatch'
+    }
+
+    const pin = await deps.bundles.readPin(network, pointer.current)
+
+    return pin === 'mismatch' ? pin : { pinId: pointer.current, pin }
+  } catch (err: unknown) {
+    if (err instanceof ValidationError) {
+      return 'mismatch'
+    }
+
+    throw err
+  }
 }
 
 interface Routed {

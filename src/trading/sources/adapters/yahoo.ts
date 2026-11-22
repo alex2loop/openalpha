@@ -11,11 +11,11 @@ import { ValidationError } from '@/core/errors'
 import { MS_PER_SECOND } from '@/core/utils/time'
 import { currencyCode } from '@/trading/kernel/instrument'
 import { sourceId } from '@/trading/kernel/source/source-id'
+import { metalSymbolOf } from '@/trading/sources/adapters/yahoo-metals'
 import { createSource, parsedSource } from '@/trading/sources/define'
 import {
   dayFromEpochSeconds,
   dropInvalid,
-  fromCodeTable,
   isUsableTimezone,
   PERCENT_PER_UNIT,
   positive,
@@ -27,21 +27,6 @@ import { QUOTE_ATTEMPT_LIMITS } from '@/trading/sources/transport/http'
 
 const YAHOO_ID = sourceId('yahoo')
 export const YAHOO_DEFAULT_ENDPOINT = 'https://query1.finance.yahoo.com'
-
-/** CME month codes, indexed by calendar month. */
-const FUTURES_MONTH_CODES = 'FGHJKMNQUVXZ'
-const COMEX_SUFFIX = '.CMX'
-const FUTURES_ROOT_SUFFIX = '=F'
-
-/** Yahoo lists neither metal at its spot symbol, and the undated root charts the spot month running
- *  into expiry while answering a quote from the active one — 73 gold lots against December's
- *  201,300 on 2026-09-11. The delivery months each metal actually trades in size are the research
- *  decision that keeps one instrument on both legs; measure volume before changing either tuple. */
-const METAL_DELIVERY_MONTHS: Readonly<Record<string, { root: string; months: readonly number[] }>> =
-  Object.freeze({
-    XAUUSD: { root: 'GC', months: [2, 4, 6, 8, 12] },
-    XAGUSD: { root: 'SI', months: [3, 5, 7, 9, 12] },
-  })
 
 /** Yahoo's crypto namespace. Unlike the bare metals tickers the suffix is self-validating — an
  *  unlisted pair answers 404 rather than an unrelated listing — so it needs no table. */
@@ -58,6 +43,13 @@ const FUTURES_LISTING_TYPES: readonly string[] = Object.freeze(['FUTURE'])
  *  discover that "world gold" is a dated contract carrying about a percent of cost of carry. */
 const FUTURES_PROXY_CAVEAT: Caveat = {
   code: 'source.futures-proxy',
+  detail: { source: YAHOO_ID },
+}
+
+/** Yahoo quotes a coin against the dollar, and the crypto book prices in USDT. Coinbase converts
+ *  through the USDT peg; this source declares the gap instead of paying a second request a coin. */
+const DOLLAR_QUOTE_CAVEAT: Caveat = {
+  code: 'source.dollar-quote',
   detail: { source: YAHOO_ID },
 }
 
@@ -242,6 +234,8 @@ interface YahooListing {
   /** Statuses that answer "not listed here" rather than fail the read. Absent where the symbol came
    *  from a total mapping, whose 404 is that mapping breaking. */
   readonly missStatuses?: readonly number[]
+  /** Set where the symbol served is not the instrument asked for, or not in its unit. */
+  readonly caveat: Caveat
 }
 
 function yahooListing(context: SourceContext): YahooListing | undefined {
@@ -251,44 +245,20 @@ function yahooListing(context: SourceContext): YahooListing | undefined {
     return undefined
   }
 
-  const metal = fromCodeTable(METAL_DELIVERY_MONTHS, instrument.ticker)
+  const metalSymbol = metalSymbolOf(instrument.ticker, context.toDay)
 
-  return metal === undefined
+  return metalSymbol === undefined
     ? {
         symbol: `${instrument.ticker}${USD_PAIR_SUFFIX}`,
         expect: CRYPTO_LISTING_TYPES,
         missStatuses: COIN_PAIR_MISS_STATUSES,
+        caveat: DOLLAR_QUOTE_CAVEAT,
       }
-    : { symbol: metalSymbol(metal, context.toDay), expect: FUTURES_LISTING_TYPES }
-}
-
-/** The nearest delivery month strictly after the one being read, which is never the spot month in
- *  expiry. A request carrying no day is the quote, and the undated root answers that one from the
- *  active contract through `meta` — measured 2026-09-11, `GC=F` meta 4.408,90 against `GCZ26.CMX`
- *  4.408,90 — so both legs read the same instrument. The root's own bar series does not, which is
- *  why the dated symbol is what the window asks for. */
-function metalSymbol(
-  metal: { readonly root: string; readonly months: readonly number[] },
-  day: TradingDay | undefined
-): string {
-  const year = day === undefined ? Number.NaN : Number(day.slice(0, 4))
-  const month = day === undefined ? Number.NaN : Number(day.slice(5, 7))
-
-  if (!(Number.isInteger(year) && Number.isInteger(month))) {
-    return `${metal.root}${FUTURES_ROOT_SUFFIX}`
-  }
-
-  const next = metal.months.find((candidate) => candidate > month)
-  const delivery = next ?? metal.months[0]
-
-  if (delivery === undefined) {
-    return `${metal.root}${FUTURES_ROOT_SUFFIX}`
-  }
-
-  const code = FUTURES_MONTH_CODES[delivery - 1]
-  const deliveryYear = String((next === undefined ? year + 1 : year) % 100).padStart(2, '0')
-
-  return `${metal.root}${code}${deliveryYear}${COMEX_SUFFIX}`
+    : {
+        symbol: metalSymbol,
+        expect: FUTURES_LISTING_TYPES,
+        caveat: FUTURES_PROXY_CAVEAT,
+      }
 }
 
 /** A ticker fetched as one listing must have answered as it. Source-boundary copy, deliberately
@@ -463,11 +433,8 @@ function exchangeTimezone(result: ChartResult): string {
   return declared !== undefined && isUsableTimezone(declared) ? declared : 'UTC'
 }
 
-/** Set only for a metal, the one case where the symbol served is not the instrument asked for. */
 function proxyCaveats(context: SourceContext): readonly Caveat[] {
-  const ticker = context.instrument?.ticker
+  const listing = yahooListing(context)
 
-  return ticker !== undefined && fromCodeTable(METAL_DELIVERY_MONTHS, ticker) !== undefined
-    ? [FUTURES_PROXY_CAVEAT]
-    : []
+  return listing === undefined ? [] : [listing.caveat]
 }

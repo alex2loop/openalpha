@@ -16,9 +16,9 @@ import {
   PRIVATE_FILE_MODE,
 } from '@/core/security/private-files'
 import { t } from '@/i18n'
-import { ALL_TABLE_NAMES, DURABLE_TABLES, findTable, hasTable } from '@/persistence/api'
+import { ALL_TABLE_NAMES, DURABLE_TABLES, findTable } from '@/persistence/api'
 
-import { countedTotals, printTableCounts, type TableCount } from './report'
+import { countedTotals, existingTables, printTableCounts, type TableCount } from './report'
 
 const EXPORT_FORMATS = ['json', 'csv'] as const
 const PAGE_SIZE = 5000
@@ -67,7 +67,7 @@ export const dbExportCommand: Command = createCommand({
       return usage(app, t(locale, 'cli.dbExportDirNotEmpty', { dir }))
     }
 
-    const present = await presentTables(app, tables)
+    const present = await existingTables(app, tables)
 
     for (const table of tables.filter((candidate) => !present.includes(candidate))) {
       app.out(t(locale, 'cli.dbExportSkippedMissing', { table: table.name }))
@@ -92,22 +92,6 @@ function resolveTables(name: string | undefined): readonly DbTable[] | null {
   const match = findTable(name)
 
   return match === null ? null : [match]
-}
-
-/** A registry newer than the applied schema names tables the database has not created yet, and they
- *  hold nothing to keep, so the export leaves them out rather than failing before a reset. */
-async function presentTables(app: CliApp, tables: readonly DbTable[]): Promise<readonly DbTable[]> {
-  const storage = app.resolve('storage')
-  const dialect = app.resolve('dialect')
-  const present: DbTable[] = []
-
-  for (const table of tables) {
-    if (await hasTable(storage, dialect, table.name)) {
-      present.push(table)
-    }
-  }
-
-  return present
 }
 
 async function hasEntries(dir: string): Promise<boolean> {
