@@ -2,7 +2,7 @@ import type { ToolErrorCode } from '@/core/errors'
 import type { FetchFn } from '@/core/ssrf/pinned-fetch'
 import { BRAND } from '@/core/brand'
 import { abortError, ToolError } from '@/core/errors'
-import { mergeHeaders } from '@/core/utils/headers'
+import { buildRequestHeaders } from '@/core/utils/headers'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -274,7 +274,7 @@ function buildInit(req: Omit<HttpRequestOptions, 'timeoutMs'>, signal: AbortSign
   const shape = req.shape ?? DAEMON_REQUEST_SHAPE
   const init: RequestInit = {
     method: req.method ?? 'GET',
-    headers: mergeHeaders({ accept: 'application/json' }, shape.headers, req.headers ?? {}),
+    headers: buildRequestHeaders(shape.headers, req.headers ?? {}),
     signal,
     redirect: shape.redirect,
   }
