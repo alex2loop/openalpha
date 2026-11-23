@@ -61,7 +61,8 @@ interface ExitPlanDeps {
   /** Plan id to the settled session its replacement by a newer strategy version was last answered
    *  in, by a new plan or by a refusal. A replacement that threw leaves it unset. */
   readonly replannedOn: LruMap<string, TradingDay>
-  /** Plan id to the instant its replacement may be tried again after one threw. */
+  /** Plan id, or the instrument key of a holding with no plan, to the instant planning may be tried
+   *  again after it threw or the planner could not plan it. */
   readonly replanRetryAt: LruMap<string, number>
   /** Whether a stop rests at the exchange behind each held name, keyed by `buildInstrumentKey`.
    *  Absent on an install with no exchange, where nothing could rest anywhere. */
@@ -146,26 +147,43 @@ function movedLevels(from: StoredSuggestion, to: StoredSuggestion): boolean {
   return planStopOf(from) !== planStopOf(to) || planTakeProfitOf(from) !== planTakeProfitOf(to)
 }
 
-/** A replacement that throws leaves the standing plan armed; only a holding with no plan has
- *  nothing to fall back to. It is tried again after `PLAN_RETRY_MS`, and logged on each attempt. */
+/** A replacement that throws leaves the standing plan armed; a holding with no plan has nothing to
+ *  fall back to, so its throw propagates to the caller's log. Either one, and a holding the planner
+ *  could not plan, is tried again after `PLAN_RETRY_MS`, not on every tick. */
 async function planCaught(
   deps: ExitPlanDeps,
   input: PlanHoldingInput
 ): Promise<RecordedPlanResult | null> {
   const { instrument, standing, options } = input
+  const retryKey = standing?.id ?? buildInstrumentKey(instrument)
 
-  if (standing !== null && options.now < (deps.replanRetryAt.get(standing.id) ?? 0)) {
+  if (options.now < (deps.replanRetryAt.get(retryKey) ?? 0)) {
     return null
   }
 
   try {
-    return await deps.exitPlans.plan({ instrument, now: options.now, signal: options.signal })
+    const planned = await deps.exitPlans.plan({
+      instrument,
+      now: options.now,
+      signal: options.signal,
+    })
+    const unplanned = standing === null && planned.kind === 'unplanned'
+
+    // The map has no delete: 0 reads as expired.
+    deps.replanRetryAt.set(retryKey, unplanned ? options.now + PLAN_RETRY_MS : 0)
+
+    return planned
   } catch (err: unknown) {
-    if (standing === null || isAbortError(err)) {
+    if (isAbortError(err)) {
       throw err
     }
 
-    deps.replanRetryAt.set(standing.id, options.now + PLAN_RETRY_MS)
+    deps.replanRetryAt.set(retryKey, options.now + PLAN_RETRY_MS)
+
+    if (standing === null) {
+      throw err
+    }
+
     deps.logger.warn('trading.exit_replan_failed', {
       ticker: instrument.ticker,
       err: formatErrForLog(err),

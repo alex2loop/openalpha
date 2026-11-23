@@ -28,13 +28,16 @@ const VOLUME_TOLERANCE = 1
 /** The board these matches print on, so a `truncTime` epoch resolves to the session that traded
  *  it rather than to the reader's day. */
 const VN_TIMEZONE = 'Asia/Ho_Chi_Minh'
+/** Epoch seconds at a fixed width: the page cursor compares these as strings, which orders them
+ *  only while every one has the same number of digits. */
+const EPOCH_SECONDS = /^\d{10}$/
 
 /** `id` is the sequence, not `truncTime`: the timestamp is truncated to the second and one second
  *  carries up to ten matches, under which `accumulatedVolume` is not monotonic. Ordering by it
  *  would pick an arbitrary member of the newest group as the newest row. */
 const TRADE_SIDES_ROW = z.object({
   id: z.coerce.number().finite(),
-  truncTime: z.string().min(1),
+  truncTime: z.string().regex(EPOCH_SECONDS),
   matchType: z.string().min(1),
   matchVol: z.coerce.number().finite().nonnegative(),
   accumulatedVolume: z.coerce.number().finite().nonnegative(),

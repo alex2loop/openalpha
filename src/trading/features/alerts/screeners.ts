@@ -100,7 +100,8 @@ async function bandDrafts(
   const settled = resolveSettledDay(calendar, context.options.now)
   const bars = await deps.marketDataStore.listBars({
     instrument,
-    fromDay: calendar.addTradingDays(settled, -deps.policy.breakoutSessions),
+    // Inclusive lookback: one session fewer than the count reads exactly that many bars.
+    fromDay: calendar.addTradingDays(settled, -deps.policy.breakoutSessions + 1),
     toDay: settled,
     signal: context.options.signal,
   })
@@ -272,8 +273,13 @@ export async function reconcileAlerts(
       continue
     }
 
-    await deps.alerts.create({ draft, now: options.now, signal: options.signal })
-    armed += 1
+    const created = await deps.alerts.create({ draft, now: options.now, signal: options.signal })
+
+    // A manual alert already on the level answers instead of a new row; it is retried each tick so
+    // the system row takes over once the manual one fires.
+    if (created.origin === origin) {
+      armed += 1
+    }
   }
 
   // Both passes leave a crossed row alone: it still owes its delivery, and a disable would lose it.
