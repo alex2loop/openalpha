@@ -28,6 +28,7 @@ export const ALERT_STATES = Object.freeze([
   'disabled',
 ] as const)
 export type AlertState = (typeof ALERT_STATES)[number]
+export const DUE_STATES = Object.freeze(['triggered', 'delivering'] as const)
 
 export const DISABLE_ALERT_RESULTS = Object.freeze([
   'disabled',
@@ -82,6 +83,11 @@ export type FiredAlert = Extract<Alert, { readonly state: 'fired' }>
 /** Armed, or crossed and waiting on its send: it can still fire. */
 export function isLiveAlert(alert: Alert | null): boolean {
   return alert?.state === 'active' || alert?.state === 'triggered' || alert?.state === 'delivering'
+}
+
+/** A crossed row still owes its delivery: the retry claims it, and a disable would lose it. */
+export function isDueAlert(alert: Alert): boolean {
+  return DUE_STATES.some((state) => state === alert.state)
 }
 
 export function buildLeaseToken(): LeaseToken {

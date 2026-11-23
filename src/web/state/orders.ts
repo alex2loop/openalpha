@@ -2,6 +2,7 @@ import { type ReadonlySignal, signal } from '@preact/signals'
 
 import type { ReconcileResponse } from '@/app/server/wire/money'
 import type {
+  CancelExitResponse,
   ConfirmOrderResponse,
   StagedOrderWire,
   TradeStatusResponse,
@@ -26,6 +27,12 @@ export type PlaceAnswer =
   | { readonly kind: 'refused'; readonly failure: ApiFailure }
   | { readonly kind: 'uncertain' }
 
+/** The last exit cancel: the instrument asked about and what became of its exit. */
+interface CancelAnswer {
+  readonly ticker: string
+  readonly outcome: CancelExitResponse['outcome']
+}
+
 /** A venue's last sync: the daemon's reply, its refusal, or `slow` when no answer came in time. */
 export type SyncAnswer =
   | { readonly kind: 'answered'; readonly text: string }
@@ -36,12 +43,14 @@ export type SyncAnswer =
 // each entry leaves when its answer comes, and the answers are one per venue and one in all.
 const placing = signal<ReadonlySet<string>>(new Set())
 const placed = signal<PlaceAnswer | undefined>(undefined)
+const cancelled = signal<CancelAnswer | undefined>(undefined)
 const syncing = signal<ReadonlySet<string>>(new Set())
 const synced = signal<ReadonlyMap<string, SyncAnswer>>(new Map())
 
 /** Tokens whose confirm is on its way: their Đặt lệnh stays disabled. */
 export const placingTokens: ReadonlySignal<ReadonlySet<string>> = placing
 export const placeAnswer: ReadonlySignal<PlaceAnswer | undefined> = placed
+export const cancelAnswer: ReadonlySignal<CancelAnswer | undefined> = cancelled
 /** Venues whose sync is on its way. */
 export const syncingVenues: ReadonlySignal<ReadonlySet<string>> = syncing
 export const syncAnswers: ReadonlySignal<ReadonlyMap<string, SyncAnswer>> = synced
@@ -83,8 +92,18 @@ export async function discardOrder(token: string): Promise<void> {
   await sendJson('DELETE', ROUTES.tradeStaged(token))
 }
 
+/** Names what became of the exit, whatever it was: a sale booked or a row left live is not a clean
+ *  cancel, and the page says so in `/trade cancel`'s own words. */
 export async function cancelExit(ticker: string, venue: string): Promise<void> {
-  await sendJson('DELETE', ROUTES.tradeExit(ticker, venue))
+  cancelled.value = undefined
+
+  const response = await sendJson('DELETE', ROUTES.tradeExit(ticker, venue))
+
+  cancelled.value = { ticker, outcome: response.outcome }
+}
+
+export function clearCancelAnswer(): void {
+  cancelled.value = undefined
 }
 
 export async function setBuyingHalted(halted: boolean): Promise<void> {

@@ -222,7 +222,7 @@ Ném lỗi sau khi đã hoàn tất là vô hại: lần ghi lỗi khóa theo to
 - Nhà máy vòng lặp và phân loại: [`trading/wiring/tasks.ts`](../../src/trading/wiring/tasks.ts)
 - Lớp cách ly: [`trading/wiring/quarantine.ts`](../../src/trading/wiring/quarantine.ts)
 - Các neo của refresh: [`trading/features/market-data/ops/refresh-schedule.ts`](../../src/trading/features/market-data/ops/refresh-schedule.ts)
-- Đối chiếu lệnh thoát: [`trading/features/order/exit-tick.ts`](../../src/trading/features/order/exit-tick.ts)
+- Đối chiếu lệnh thoát: [`trading/features/order/exit-tick.ts`](../../src/trading/features/order/exit-tick.ts); phần chốt sổ dùng chung với `/trade cancel`: [`trading/features/order/exit-settle.ts`](../../src/trading/features/order/exit-settle.ts)
 - Khởi động dịch vụ nền và lưu giữ: [`app/daemon.ts`](../../src/app/daemon.ts)
 - Vòng đời bộ lập lịch: [`scheduler/runner.ts`](../../src/scheduler/runner.ts); thực thi: [`scheduler/job/execution.ts`](../../src/scheduler/job/execution.ts); khoảng chờ: [`scheduler/backoff.ts`](../../src/scheduler/backoff.ts)
 - Bộ phân tích cron: [`core/utils/cron.ts`](../../src/core/utils/cron.ts)

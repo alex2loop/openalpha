@@ -226,10 +226,12 @@ function isWithinWorkspace(resolved: string, state: WalkState): boolean {
   )
 }
 
+// Always '/'-separated, as the glob matcher and the reported names are, on Windows too.
 function relFromRoot(root: string, fullPath: string): string {
   const prefix = withTrailingSep(root)
+  const rel = fullPath.startsWith(prefix) ? fullPath.slice(prefix.length) : fullPath
 
-  return fullPath.startsWith(prefix) ? fullPath.slice(prefix.length) : fullPath
+  return rel.split(sep).join('/')
 }
 
 function withTrailingSep(path: string): string {

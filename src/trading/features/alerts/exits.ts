@@ -29,7 +29,6 @@ import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { MarketRegistry } from '@/trading/markets/types'
 import { planAndTrail } from '@/trading/features/alerts/exit-plans'
 import { reconcileAlerts } from '@/trading/features/alerts/screeners'
-import { DUE_STATES } from '@/trading/features/alerts/store/alert'
 import { buildExitOrigin, isScreenOrigin } from '@/trading/features/alerts/types'
 import { isFirstExitTaken } from '@/trading/features/suggestion/exit-plan/first-exit'
 import {
@@ -176,11 +175,6 @@ async function disableStale(
 
     // The screener owns its own bands; each arming pass disables only the rows it armed.
     if (isScreenOrigin(alert.origin)) {
-      continue
-    }
-
-    // A crossed row still owes its delivery: the retry claims it, and a disable would lose it.
-    if (DUE_STATES.some((state) => state === alert.state)) {
       continue
     }
 

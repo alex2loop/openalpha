@@ -357,13 +357,14 @@ function toReplyTo(message: Message, mention: MentionContext): InboundReply | un
 }
 
 // Structured mentions carry verified identity; the text pattern is the fallback when the push
-// carries none.
+// carries none (absent, null or empty).
 function isAddressedToBot(message: GroupMessage, mention: MentionContext, text: string): boolean {
   const mentions = message.data.mentions
 
-  if (mentions !== undefined) {
+  if (Array.isArray(mentions) && mentions.length > 0) {
     return mentions.some((entry) => entry.uid === mention.ownId)
   }
+
   return mention.pattern.test(text)
 }
 

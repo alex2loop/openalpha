@@ -98,6 +98,10 @@ export interface CurrencyCash {
   readonly amount: number
   readonly available: number
   readonly costBase: number
+  /** The part of `costBase` the cleared currency carries in the venue's available base cash: it
+   *  moves with every inflow, spend and settlement, never as a share of `costBase`, so a sale still
+   *  unsettled leaves it alone. */
+  readonly availableCostBase: number
 }
 
 /** One venue's cash. `cash` is everything booked there; `available` is what has cleared and can

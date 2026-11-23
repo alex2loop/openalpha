@@ -155,9 +155,9 @@ export function createMemory(
 
 async function removeMemory(input: RemoveMemoryInput): Promise<number> {
   const rows = await input.db.query<{ readonly key: string }>(input.sql, [
-    Date.now(),
     input.scope.agentId,
     input.scope.userId,
+    Date.now(),
     input.key,
   ])
 
@@ -165,7 +165,8 @@ async function removeMemory(input: RemoveMemoryInput): Promise<number> {
 }
 
 async function storeMemory(input: StoreMemoryInput): Promise<void> {
-  const value = input.entry.value
+  // NFC, so a decomposed Vietnamese value is indexed as the composed text a search query is.
+  const value = input.entry.value.normalize('NFC')
   const importance = input.entry.importance ?? 'observation'
 
   assertKey(input.key)
@@ -242,9 +243,8 @@ function buildSql(d: Dialect) {
       `ORDER BY CASE WHEN user_id = ${d.param(2)} THEN 0 ELSE 1 END, agent_id, user_id, ` +
       `updated_at DESC LIMIT ${d.param(3)}`,
     remove:
-      `UPDATE memory_kv SET deleted_at = ${d.param(1)} ` +
-      `WHERE agent_id = ${d.param(2)} AND user_id = ${d.param(3)} AND key = ${d.param(4)} ` +
-      `AND deleted_at IS NULL RETURNING key`,
+      `UPDATE memory_kv SET deleted_at = ${d.param(3)} ` +
+      `WHERE ${scoped} AND ${live} AND key = ${d.param(4)} RETURNING key`,
   }
 }
 

@@ -16,7 +16,14 @@ import { agentId, jobId } from '@/core/ids'
 import { advanceCron } from '@/core/utils/cron'
 import { entryAgentIds, isEntryAgent } from '@/engine/api'
 import { bindLocale, t } from '@/i18n'
-import { assertValidCron, isValidInterval, resolveTimezone, validateJobPrompt } from '@/tools/api'
+import {
+  assertValidCron,
+  isValidInterval,
+  jobLimitError,
+  resolveTimezone,
+  SCHEDULER_MAX_JOBS,
+  validateJobPrompt,
+} from '@/tools/api'
 
 import type { ScheduleResult } from './types'
 
@@ -75,14 +82,10 @@ export const scheduleAddCommand: Command = createCommand({
       return usage(app, promptError)
     }
 
-    if (!isEntryAgent(app.resolve('agents').get(agent))) {
-      return usage(
-        app,
-        t(locale, 'cli.scheduleUnknownAgent', {
-          agent: agentRaw ?? 'chat',
-          valid: entryAgentIds(app.resolve('agents').values()).toSorted().join(', '),
-        })
-      )
+    const agentError = agentRefusal(app, { agent, raw: agentRaw }, locale)
+
+    if (agentError !== undefined) {
+      return usage(app, agentError)
     }
 
     const job: Job = {
@@ -97,9 +100,13 @@ export const scheduleAddCommand: Command = createCommand({
       consecutiveFailures: 0,
     }
 
-    const created = await app.resolve('jobStore').create(job)
+    const created = await app.resolve('jobStore').create(job, SCHEDULER_MAX_JOBS)
 
-    if (!created) {
+    if (created === 'full') {
+      return usage(app, terminalErrorMessage(jobLimitError(), locale))
+    }
+
+    if (created === 'exists') {
       return usage(app, t(locale, 'cli.scheduleJobAlreadyExists', { id }))
     }
 
@@ -108,6 +115,25 @@ export const scheduleAddCommand: Command = createCommand({
     return 0
   },
 })
+
+interface AgentRequest {
+  readonly agent: AgentId
+  /** What was typed after `--agent`; absent for the default. */
+  readonly raw: string | undefined
+}
+
+/** Why the agent cannot take a job, in the operator's language; undefined when it can. Its cap is
+ *  the store's, checked in the insert. */
+function agentRefusal(app: CliApp, request: AgentRequest, locale: Locale): string | undefined {
+  if (!isEntryAgent(app.resolve('agents').get(request.agent))) {
+    return t(locale, 'cli.scheduleUnknownAgent', {
+      agent: request.raw ?? 'chat',
+      valid: entryAgentIds(app.resolve('agents').values()).toSorted().join(', '),
+    })
+  }
+
+  return undefined
+}
 
 /** What is wrong with a job's prompt, in the operator's language; undefined when it may run. */
 export function promptRefusal(app: CliApp, prompt: string, locale: Locale): string | undefined {

@@ -40,6 +40,8 @@ let worker: Worker | undefined
 let stopWorker: (() => void) | undefined
 let readKeys: () => BrowserKeys = () => ({})
 let settleBeforeRestart: () => Promise<void> = () => Promise.resolve()
+/** The way to reject each call still waiting on the worker, so a stopped worker answers them now. */
+const pendingAsks = new Set<(reason: Error) => void>()
 
 /** Starts the worker, routes the page's `/v1` requests and feed through it, and ends it with the
  *  page: terminating a worker frees the tab lock, which is how the database is let go. `keys` is
@@ -72,6 +74,11 @@ export function startEdition(keys: () => BrowserKeys): () => void {
     lifetime.abort()
     transport.dispose()
     next.terminate()
+
+    for (const reject of pendingAsks) {
+      reject(new Error('worker stopped'))
+    }
+
     worker = undefined
     stopWorker = undefined
   }
@@ -182,7 +189,7 @@ export async function requestDbOpen(bytes: ArrayBuffer): Promise<DbOpenOutcome> 
   return reply.outcome
 }
 
-// The listener and the timer of one call are released the moment it settles.
+// The listener, the timer and the pending entry of one call are released the moment it settles.
 function askWorker<K extends 'db-exported' | 'db-opened'>(
   call: Extract<WorkerCall, { readonly id: string }>,
   kind: K
@@ -198,12 +205,13 @@ function askWorker<K extends 'db-exported' | 'db-opened'>(
     const settle = (finish: () => void): void => {
       clearTimeout(timer)
       done.abort()
+      pendingAsks.delete(cancel)
       finish()
     }
-    const timer = setTimeout(
-      () => settle(() => reject(new Error('worker call timed out'))),
-      REQUEST_TIMEOUT_MS
-    )
+    const cancel = (reason: Error): void => settle(() => reject(reason))
+    const timer = setTimeout(() => cancel(new Error('worker call timed out')), REQUEST_TIMEOUT_MS)
+
+    pendingAsks.add(cancel)
 
     target.addEventListener(
       'message',

@@ -137,12 +137,11 @@ export async function appendSessionMessages(
 
   await withAppendRetry(() =>
     store.db.transaction(async (tx) => {
-      await assertHolder({ tx, sql: store.sql, id, writes })
+      await touchHeldSession({ tx, sql: store.sql, id, writes, now })
 
       const base = await insertTail({ tx, sql: store.sql, id, writes, now })
 
       await linkAttemptGroups({ tx, sql: store.sql, sessionId: id, writes, base })
-      await tx.execute(store.sql.touchActivity, [now, id])
     })
   )
 }
@@ -172,28 +171,31 @@ export async function appendCommandExchange(
   )
 }
 
-interface AssertHolderInput {
+interface TouchHeldSessionInput {
   readonly tx: Transaction
   readonly sql: SessionSql
   readonly id: SessionId
   readonly writes: readonly SessionMessageWrite[]
+  readonly now: number
 }
 
-// Every write in one flush carries the run's own id; the row must still name that run. A run
-// whose lease expired and was reclaimed learns it here, before it can append a stale turn.
-async function assertHolder(input: AssertHolderInput): Promise<void> {
+// Every write in one flush carries the run's own id; the row must still name that run. The touch
+// itself checks it, and locks the row for the rest of the flush, so a run whose lease expired and
+// was reclaimed learns it here, before it can append a stale turn.
+async function touchHeldSession(input: TouchHeldSessionInput): Promise<void> {
   const runId = input.writes[0]?.runId
 
   if (runId === undefined) {
     return
   }
 
-  const rows = await input.tx.query<{ readonly active_run_id: string | null }>(
-    input.sql.selectOwner,
-    [input.id]
-  )
+  const { changes } = await input.tx.execute(input.sql.touchHeldActivity, [
+    input.now,
+    input.id,
+    runId,
+  ])
 
-  if (rows[0]?.active_run_id !== runId) {
+  if (changes !== 1) {
     throw new ConflictError(`session ${input.id} is not held by run ${runId}`)
   }
 }

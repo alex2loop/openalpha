@@ -20,11 +20,7 @@ import type {
   RefreshMarketDataResult,
 } from '@/trading/kernel/market/refresh'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type {
-  OrderFill,
-  OrderFilledListener,
-  TradingNoticeSender,
-} from '@/trading/kernel/operator/notice'
+import type { OrderFilledListener, TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { isAbortError } from '@/core/errors'
@@ -52,7 +48,7 @@ import {
   type OperationTick,
   type PassNotes,
 } from '@/trading/wiring/loop'
-import { withQuarantine } from '@/trading/wiring/quarantine'
+import { createFillNotifier, withQuarantine } from '@/trading/wiring/quarantine'
 
 interface TradingDaemonDeps {
   readonly config: TradingConfig
@@ -174,42 +170,15 @@ function exitTasks(deps: TradingDaemonDeps): readonly DaemonTask[] {
           logger: deps.logger,
           isFillBooked: deps.isFillBooked,
           onFilled: deps.onFilled,
-          notifyFill: (fill, signal) => notifyFill(deps, fill, signal),
+          notifyFill: createFillNotifier({
+            sender: deps.sender,
+            recipient: deps.recipient,
+            locale: deps.reportDeps.locale,
+            logger: deps.logger,
+          }),
         }),
     }),
   ]
-}
-
-/** Tells the operator an exit filled, at the chat the daemon would use. With no recipient there is
- *  nobody to tell and the ledger row is the record. A refused send is logged and never retried: the
- *  sale is booked either way, and a second send could not be told apart from the first. */
-async function notifyFill(
-  deps: TradingDaemonDeps,
-  fill: OrderFill,
-  signal: AbortSignal
-): Promise<void> {
-  const target = deps.recipient()
-
-  if (target === undefined) {
-    return
-  }
-
-  const outcome = await deps.sender.send(
-    {
-      target,
-      locale: deps.reportDeps.locale,
-      payload: { kind: 'exit-filled', fill },
-    },
-    signal
-  )
-
-  // An aborted send is shutdown, not a refusal.
-  if (outcome !== 'accepted' && outcome !== 'aborted') {
-    deps.logger.warn('trading.exit_fill_notice_undelivered', {
-      ticker: fill.instrument.ticker,
-      outcome,
-    })
-  }
 }
 
 /** No order service means no exchange this tree can ask, so there is nothing to settle. */

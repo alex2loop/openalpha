@@ -2,7 +2,11 @@ import type { DaemonTask } from '@/core/container'
 import type { Logger } from '@/core/logging/logger'
 import type { Locale } from '@/core/types/locale'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { TradingNotice, TradingNoticeSender } from '@/trading/kernel/operator/notice'
+import type {
+  OrderFill,
+  TradingNotice,
+  TradingNoticeSender,
+} from '@/trading/kernel/operator/notice'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { MS_PER_DAY, MS_PER_HOUR, sleep } from '@/core/utils/time'
@@ -131,5 +135,33 @@ async function waitCooldown(signal: AbortSignal): Promise<boolean> {
     }
 
     throw err
+  }
+}
+
+/** Tells the operator an exit filled, at the chat the daemon would use. With no recipient there is
+ *  nobody to tell and the ledger row is the record. A refused send is logged and never retried: the
+ *  sale is booked either way, and a second send could not be told apart from the first. */
+export function createFillNotifier(
+  deps: QuarantineDeps
+): (fill: OrderFill, signal: AbortSignal) => Promise<void> {
+  return async (fill, signal) => {
+    const target = deps.recipient()
+
+    if (target === undefined) {
+      return
+    }
+
+    const outcome = await deps.sender.send(
+      { target, locale: deps.locale, payload: { kind: 'exit-filled', fill } },
+      signal
+    )
+
+    // An aborted send is shutdown, not a refusal.
+    if (outcome !== 'accepted' && outcome !== 'aborted') {
+      deps.logger.warn('trading.exit_fill_notice_undelivered', {
+        ticker: fill.instrument.ticker,
+        outcome,
+      })
+    }
   }
 }

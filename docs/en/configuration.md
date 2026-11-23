@@ -811,7 +811,7 @@ confirm_multiple = 10          # ask before saving a typed price this many times
 
 [trading.orders]
 maximum_stake_quote = 0        # 0 = uncapped; estimated notional in USDT on okx and binance
-maximum_open_trades = 0        # 0 = uncapped; open positions plus orders not yet in the book; adding to a held name is not a new one
+maximum_open_trades = 0        # 0 = uncapped; open positions plus buys not yet in the book on names not held; adding to a held name, or a sale not yet in the book, is not a new one
 maximum_price_drift = 0.005    # a fraction, not a percent: 0.005 is half a percent
 allow_unattended = false       # permit an order when approval mode is "bypass"
 require_stop_loss = true       # refuse a buy that names no stop-loss

@@ -71,20 +71,25 @@ function start(key: string, read: () => Promise<ScreenResponse>): Promise<Screen
   return response
 }
 
-/** The held board stays served until the re-read answers; a failed re-read keeps it. */
+/** The held board stays served until the re-read answers; a failed re-read keeps it. A re-read
+ *  lands only while the key still holds the board it started from: a fresh ask that installed
+ *  another board in the meantime is newer than this answer. */
 function reread(key: string, held: Board, read: () => Promise<ScreenResponse>): void {
   const response = read()
 
   boards.set(key, { ...held, rereading: true })
   response.then(
-    (board) =>
-      board.isLoading === true
-        ? drop(key, held.response)
-        : boards.set(key, { readAt: Date.now(), response, answered: true, rereading: false }),
+    (board) => {
+      if (board.isLoading === true) {
+        drop(key, held.response)
+      } else if (boards.get(key)?.response === held.response) {
+        boards.set(key, { readAt: Date.now(), response, answered: true, rereading: false })
+      }
+    },
     () => {
       const current = boards.get(key)
 
-      if (current !== undefined) {
+      if (current?.response === held.response) {
         boards.set(key, { ...current, rereading: false })
       }
     }

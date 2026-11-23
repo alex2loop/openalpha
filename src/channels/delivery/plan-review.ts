@@ -9,6 +9,7 @@ import type { Locale } from '@/core/types/locale'
 import type { ResearchPlanDecision, ResearchPlanReview } from '@/engine/api'
 import type { MessageKey } from '@/i18n'
 import { replyChoiceGone } from '@/channels/delivery/choice-gone'
+import { cutByUtf16Units } from '@/channels/delivery/format'
 import { operatorContextOf } from '@/channels/operator'
 import { formatErrForLog } from '@/core/security/credentials'
 import { t } from '@/i18n'
@@ -262,8 +263,9 @@ function renderPlanText(
   // The plan yields to the codes, so the cut never lands inside one.
   const codes = choiceLines.length === 0 ? '' : `\n${choiceLines.join('\n')}`
   const room = deps.adapter.capabilities.maxTextLen - codes.length
+  const plan = lines.join('\n')
 
-  return `${lines.join('\n').slice(0, room)}${codes}`
+  return `${plan.slice(0, cutByUtf16Units(plan, 0, room))}${codes}`
 }
 
 async function notifyUnsupported(

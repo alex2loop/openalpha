@@ -6,6 +6,7 @@ import type { TradingCalendar } from '@/trading/markets/types'
 import { lowerBand } from '@/trading/kernel/conviction'
 import { isSameInstrument } from '@/trading/kernel/instrument'
 import { isBookCall } from '@/trading/kernel/operator/focus'
+import { resolveSessionOnOrBefore } from '@/trading/markets/calendar'
 import { loweredDecision, STAGE_PASS } from '@/trading/markets/stage'
 
 const ROUND_TRIP_STAGE_ID = 'round-trip'
@@ -26,7 +27,10 @@ const MAXIMUM_ROUND_TRIPS = 2
 /** The first session the re-entry read covers. Inclusive, so the window is exactly
  *  `ROUND_TRIP_WINDOW_SESSIONS` sessions counting `asOf` itself. */
 export function roundTripWindowStart(calendar: TradingCalendar, asOf: TradingDay): TradingDay {
-  return calendar.addTradingDays(asOf, -ROUND_TRIP_WINDOW_SESSIONS + 1)
+  return calendar.addTradingDays(
+    resolveSessionOnOrBefore(calendar, asOf),
+    -ROUND_TRIP_WINDOW_SESSIONS + 1
+  )
 }
 
 /** The operator's own closed round trips in this name, newest last. Flattened across venues and

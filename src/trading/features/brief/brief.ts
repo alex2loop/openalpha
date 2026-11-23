@@ -60,8 +60,8 @@ function build(deps: BriefServiceDeps, options: BuildBriefOptions): Promise<Brie
 }
 
 /** The named day's brief when one exists, otherwise the most recent one built against the current
- *  profile — so a user who asks before the morning run still reads yesterday's rather than nothing,
- *  unless the profile has changed since. A snapshot this build can no longer
+ *  profile — so a surface that only reads and never builds still shows yesterday's rather than
+ *  nothing, unless the profile has changed since. A snapshot this build can no longer
  *  read is absent rather than an error: the vocabulary it was written in is the store's problem, and
  *  taking a surface down over a derived artifact is worse than showing the empty state. */
 async function getLatest(

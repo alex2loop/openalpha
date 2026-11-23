@@ -67,10 +67,13 @@ export function createSessionModelSelection(
 
   const read = (sessionId: SessionId, agentId: AgentId): ModelSummary => {
     const agent = agents.get(agentId)
-    const selection = selected.get(sessionId)
+    const selection = ownSelection(selected, sessionId, agentId)
 
     if (agent === null) {
-      selected.delete(sessionId)
+      if (selection !== undefined) {
+        selected.delete(sessionId)
+      }
+
       return { currentSelector: null, selectors: [] }
     }
 
@@ -79,11 +82,9 @@ export function createSessionModelSelection(
 
       if (
         selectable !== undefined &&
-        selection.agentId === agentId &&
         isSameProviderModel(selection.providerModel, selectable.providerModel)
       ) {
-        selected.delete(sessionId)
-        selected.set(sessionId, selection)
+        remember(selected, sessionId, selection)
         return { currentSelector: selectable.selector, selectors }
       }
 
@@ -106,8 +107,7 @@ export function createSessionModelSelection(
         return false
       }
 
-      selected.delete(sessionId)
-      selected.set(sessionId, { agentId, selector, providerModel: selectable.providerModel })
+      remember(selected, sessionId, { agentId, selector, providerModel: selectable.providerModel })
       evictOldest(selected)
       return true
     },
@@ -119,18 +119,32 @@ export function createSessionModelSelection(
   }
 }
 
+// Another agent's run (/research) neither takes the chat's choice nor clears it.
+function ownSelection(
+  selected: ReadonlyMap<SessionId, SessionModel>,
+  sessionId: SessionId,
+  agentId: AgentId
+): SessionModel | undefined {
+  const selection = selected.get(sessionId)
+
+  return selection?.agentId === agentId ? selection : undefined
+}
+
 function applyAgentOverride(
   selected: Map<SessionId, SessionModel>,
   bySelector: ReadonlyMap<string, SelectableModel>,
   options: AgentOverrideInput
 ): AgentProfile {
   const { input, fallback } = options
-  const selection = selected.get(input.sessionId)
-  const selectable =
-    selection?.agentId === input.agentId ? bySelector.get(selection.selector) : undefined
+  const selection = ownSelection(selected, input.sessionId, input.agentId)
+
+  if (selection === undefined) {
+    return fallback
+  }
+
+  const selectable = bySelector.get(selection.selector)
 
   if (
-    selection === undefined ||
     selectable === undefined ||
     !isSameProviderModel(selection.providerModel, selectable.providerModel)
   ) {
@@ -138,8 +152,7 @@ function applyAgentOverride(
     return fallback
   }
 
-  selected.delete(input.sessionId)
-  selected.set(input.sessionId, selection)
+  remember(selected, input.sessionId, selection)
   return {
     ...fallback,
     model: selectable.providerModel.model,
@@ -223,6 +236,16 @@ function unknownModelResult(selector: string, selectors: readonly string[]): Sla
     kind: 'message',
     messages: [{ key: 'slash.modelUnknown', values: { selector, list: selectors.join(', ') } }],
   }
+}
+
+// Re-inserted so the map's order is recency: the oldest entry is the first.
+function remember(
+  selected: Map<SessionId, SessionModel>,
+  sessionId: SessionId,
+  selection: SessionModel
+): void {
+  selected.delete(sessionId)
+  selected.set(sessionId, selection)
 }
 
 function evictOldest(selected: Map<SessionId, SessionModel>): void {

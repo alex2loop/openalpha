@@ -19,7 +19,8 @@ const EXFILTRATE_PATTERN = 'exfiltrate_credentials'
 const IGNORED_SKILL_PATTERNS: ReadonlySet<string> = new Set([EXFILTRATE_PATTERN, '\\bcurl\\b'])
 const FINDING_EXCERPT_CHARS = 120
 const NEGATED_RE = /\b(?:never|not|don'?t|do not)\b/i
-const URL_HOST_RE = /https?:\/\/([^/\s"'`)<>]+)/g
+const URL_HOST_RE = /https?:\/\/([^/\s"'`)<>]+)/gi
+const AUTHORIZATION_RE = /authorization/i
 const LINE_CHECKS: readonly { readonly kind: SkillFindingKind; readonly pattern: RegExp }[] = [
   { kind: 'pipe-to-shell', pattern: /\b(?:curl|wget)\b[^\n]*\|\s*(?:sudo\s+)?(?:ba|z)?sh\b/ },
   { kind: 'encoded', pattern: /\bbase64\b/i },
@@ -70,7 +71,7 @@ function outsideHosts(file: SkillFileText, hosts: ScanHosts): readonly SkillFind
   const outside = new Set<string>()
 
   for (const match of file.text.matchAll(URL_HOST_RE)) {
-    const host = match[1] ?? ''
+    const host = hostOf(match)
 
     if (host !== hosts.apiHost && host !== hosts.skillHost) {
       outside.add(host)
@@ -90,7 +91,7 @@ function lineFindings(file: SkillFileText, apiHost: string): readonly SkillFindi
       found.push(finding(file.name, check.kind, line))
     }
 
-    if (line.includes('Authorization') && hasOtherHost(line, apiHost)) {
+    if (AUTHORIZATION_RE.test(line) && hasOtherHost(line, apiHost)) {
       found.push(finding(file.name, 'key-elsewhere', line))
     }
   }
@@ -99,7 +100,12 @@ function lineFindings(file: SkillFileText, apiHost: string): readonly SkillFindi
 }
 
 function hasOtherHost(line: string, apiHost: string): boolean {
-  return [...line.matchAll(URL_HOST_RE)].some((match) => match[1] !== apiHost)
+  return [...line.matchAll(URL_HOST_RE)].some((match) => hostOf(match) !== apiHost)
+}
+
+// Hosts compare case-insensitively, as the URL parser lowercases them.
+function hostOf(match: RegExpMatchArray): string {
+  return (match[1] ?? '').toLowerCase()
 }
 
 function finding(file: string, kind: SkillFindingKind, raw: string): SkillFinding {

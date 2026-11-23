@@ -68,12 +68,14 @@ export function spendCurrencyCash(cash: MutableCurrencyCash, amount: number): nu
   cash.amount -= amount
   cash.available -= amount
   cash.costBase -= costBase
+  cash.availableCostBase -= costBase
 
   // Dust from float subtraction would be averaged into the next inflow's cost.
   if (Math.abs(cash.amount) <= QUANTITY_EPSILON) {
     cash.amount = 0
     cash.available = 0
     cash.costBase = 0
+    cash.availableCostBase = 0
   }
 
   return costBase
@@ -124,7 +126,8 @@ export function applyCurrencyCashTxn(
   }
 }
 
-/** A sale's proceeds return to the currency they were paid in, valued at the sale's own rate. */
+/** A sale's proceeds return to the currency they were paid in, valued at the sale's own rate. They
+ *  are not available yet: `promoteSettled` clears them when the sale does. */
 export function receiveCurrencyCash(
   cash: MutableCurrencyCash,
   proceeds: { readonly amount: number; readonly costBase: number }
@@ -159,7 +162,7 @@ export function resolveBuyCash(book: Book, venue: VenueRef, currency: CurrencyCo
 
   return cash === undefined
     ? { kind: 'base', availableBase: baseCashAvailable(book.cashByVenue, book.currencyCash, venue) }
-    : { kind: 'currency', cash, availableBase: currencyCashAvailableAtCost(cash) }
+    : { kind: 'currency', cash, availableBase: cash.availableCostBase }
 }
 
 /** The venue's figure carries its currency cash at cost, and base cash cannot spend that: a
@@ -173,16 +176,11 @@ export function baseCashAvailable(
 
   for (const cash of held) {
     if (cash.venue === venue) {
-      currencyCashBase += currencyCashAvailableAtCost(cash)
+      currencyCashBase += cash.availableCostBase
     }
   }
 
   return (byVenue.get(venue)?.available ?? 0) - currencyCashBase
-}
-
-/** What the currency cash can spend now, at its average cost. */
-function currencyCashAvailableAtCost(cash: CurrencyCash): number {
-  return cash.amount > QUANTITY_EPSILON ? cash.costBase * (cash.available / cash.amount) : 0
 }
 
 function transferCurrencyCash(state: FoldState, txn: TransferTxn, entryId: LedgerEntryId): void {
@@ -222,11 +220,13 @@ function addCurrencyCash(
     amount: 0,
     available: 0,
     costBase: 0,
+    availableCostBase: 0,
   }
 
   held.amount += inflow.amount
   held.available += inflow.amount
   held.costBase += inflow.costBase
+  held.availableCostBase += inflow.costBase
   state.currencyCash.set(key, held)
   state.cashBase += inflow.costBase
   state.availableCashBase += inflow.costBase

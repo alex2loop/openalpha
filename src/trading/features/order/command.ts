@@ -7,7 +7,12 @@ import type {
 import type { Locale } from '@/core/types/locale'
 import type { MarketDataService } from '@/trading/features/market-data/types'
 import type { TradeCommand } from '@/trading/features/order/parse'
-import type { OrderRequest, OrderService, PreparedOrder } from '@/trading/features/order/types'
+import type {
+  CancelExitOutcome,
+  OrderRequest,
+  OrderService,
+  PreparedOrder,
+} from '@/trading/features/order/types'
 import type { TradingCosts } from '@/trading/kernel/config'
 import type { MarketRef } from '@/trading/kernel/instrument'
 import type { TradeCost } from '@/trading/markets/cost'
@@ -47,10 +52,19 @@ const UNKNOWN_TOKEN: 'slash.tradingTradeUnknownToken' = 'slash.tradingTradeUnkno
 const CAP_REJECTED: 'slash.tradingTradeCapRejected' = 'slash.tradingTradeCapRejected'
 const CANCELLED: 'slash.tradingTradeExitCancelled' = 'slash.tradingTradeExitCancelled'
 const NO_EXIT: 'slash.tradingTradeNoExit' = 'slash.tradingTradeNoExit'
+const EXIT_FILLED: 'slash.tradingTradeExitFilled' = 'slash.tradingTradeExitFilled'
+const EXIT_UNSETTLED: 'slash.tradingTradeExitUnsettled' = 'slash.tradingTradeExitUnsettled'
 const FAILED: 'slash.tradingTradeFailed' = 'slash.tradingTradeFailed'
 const HALTED: 'slash.tradingTradeHalted' = 'slash.tradingTradeHalted'
 const RESUMED: 'slash.tradingTradeResumed' = 'slash.tradingTradeResumed'
 const NEEDS_KEY: 'slash.tradingTradeNeedsKey' = 'slash.tradingTradeNeedsKey'
+
+const CANCEL_MESSAGES = {
+  none: NO_EXIT,
+  cancelled: CANCELLED,
+  filled: EXIT_FILLED,
+  unsettled: EXIT_UNSETTLED,
+} as const satisfies Record<CancelExitOutcome, string>
 
 const STAGE_POLICY: SlashInvocationPolicy = {
   surfaces: ['channel', 'repl'],
@@ -117,6 +131,8 @@ export function createTradeCommand(options: TradeCommandOptions): SlashCommand {
       CAP_REJECTED,
       CANCELLED,
       NO_EXIT,
+      EXIT_FILLED,
+      EXIT_UNSETTLED,
       FAILED,
       HALTED,
       RESUMED,
@@ -311,7 +327,7 @@ async function runCancel(
   parsed: CancelCommand
 ): Promise<SlashResult> {
   const { ctx, now } = invocation
-  const cancelled = await deps.order.cancelExit({
+  const outcome = await deps.order.cancelExit({
     ticker: parsed.ticker,
     now,
     signal: ctx.signal,
@@ -320,7 +336,7 @@ async function runCancel(
 
   return {
     kind: 'message',
-    messages: [{ key: cancelled ? CANCELLED : NO_EXIT, values: { ticker: parsed.ticker } }],
+    messages: [{ key: CANCEL_MESSAGES[outcome], values: { ticker: parsed.ticker } }],
   }
 }
 

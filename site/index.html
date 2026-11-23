@@ -1058,7 +1058,9 @@ query("[data-copy]").addEventListener("click", async (event) => {
   label.textContent = TEXT[lang()].copied;
   clearTimeout(copiedTimer);
   copiedTimer = setTimeout(() => {
-    label.textContent = TEXT[lang()].copy;
+    for (const [language, text] of Object.entries(TEXT)) {
+      query(`.${language}`, button).textContent = text.copy;
+    }
   }, COPY_RESET_MS);
 });
 

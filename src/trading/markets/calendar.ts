@@ -162,6 +162,13 @@ export function resolveSettledDay(calendar: TradingCalendar, now: number): Tradi
   return isSettled(calendar, day, now) ? day : calendar.addTradingDays(day, -1)
 }
 
+/** `day` when it trades, else the session before it. `addTradingDays` counts only sessions it steps
+ *  onto, so a window counted back from a weekend or holiday starts one session late unless it is
+ *  anchored here first. */
+export function resolveSessionOnOrBefore(calendar: TradingCalendar, day: TradingDay): TradingDay {
+  return calendar.isTradingDay(day) ? day : calendar.addTradingDays(day, -1)
+}
+
 /** Whether a day-less tape endpoint would answer with `day` right now: its tape has settled and the
  *  next session has not opened over it. Distinct from `isSettled`, which has no upper bound — a day
  *  stays settled forever, while the board that serves it without being asked for a date stops

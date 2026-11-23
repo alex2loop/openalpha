@@ -880,7 +880,7 @@ If all three delivery attempts fail, that day is given up, not your subscription
 - `/brief enable 07:30` sets your own time.
 - `/brief enable` with no time follows `[trading.briefs] send_time`, so editing config later still moves the brief.
 - Enabling again after today's brief went out starts tomorrow. It is refused while a brief is being sent. That refusal is checked at the moment of writing, so a send that starts between the check and the enable keeps going, and the command tells you a brief is being sent.
-- `/brief` alone shows the latest brief, building one if none exists.
+- `/brief` alone shows today's brief, building it when none is stored for today or the stored one predates a change to your profile. An earlier day's brief never stands in for today's.
 - `/brief disable` stops delivery.
 
 #### Readings that stay in the bell
@@ -1400,6 +1400,9 @@ A deposit in a venue's quote currency, such as `/record deposit binance 1000 USD
 - **The two currencies never convert on their own.** A USDT row at a venue spends only that venue's
   USDT, and is refused, naming the currency and the venue, when there is not enough. A VND withdrawal,
   fee or transfer there spends only its VND, even while the venue holds USDT.
+- **A sale that has not settled changes nothing spendable.** Its USDT joins the venue's USDT and its
+  average cost at the sale's rate when the sale is booked, but only the USDT that has cleared can be
+  spent, and the venue's VND cash is untouched until then, whatever rate the sale got.
 - **The currency line reads negative right after a P2P deposit.** USDT is valued at the market USD/VND
   rate, and its cost is the P2P rate you paid, so right after a deposit at 26,600 that line reads about
   -2% while the market rate is about 26,036.
@@ -1702,7 +1705,7 @@ Terminal chat and channels share one slash-command registry, so a transaction sy
 
 A fill placed through `/trade` or `order_place` is written to the ledger the same way a manual `/record` is. The book stays one calculation over one set of rows, and a position opened at the exchange looks the same as one typed in by hand. A sell written by a triggered exit names which leg filled (`stopped out` / `target hit`); a sale you make yourself names none.
 
-When a resting stop or take-profit fills at the exchange, the next pass over resting exits (every 60 seconds) books the sale and sends one notice naming which exit filled, the venue, the quantity and the price, and that the ledger holds it. An app on the API sees the same fill once. A sale that `/record sync` booked first sends nothing.
+When a resting stop or take-profit fills at the exchange, the next pass over resting exits (every 60 seconds) books the sale and sends one notice naming which exit filled, the venue, the quantity and the price, and that the ledger holds it. An app on the API sees the same fill once. A sale that `/record sync` booked first sends nothing. A `/trade cancel` that finds the exit already filled books the sale the same way and sends the same notice.
 
 **`/record sync <venue>`** is the third way those rows are created, and it takes the same path. It differs only in how it selects: it asks the venue what it filled, then books what the book has no row for. Validation, calculation and confirmation are shared.
 
@@ -1902,7 +1905,7 @@ To remove a resting take-profit/stop-loss:
 /trade cancel okx:BTC
 ```
 
-Name the venue when two of them hold a resting exit on the same instrument. That is refused rather than guessed, since canceling either silently would leave the other resting behind a message saying it is gone. Two exits at one venue are not ambiguous: both are canceled, so nothing is left resting there.
+Name the venue when two of them hold a resting exit on the same instrument. That is refused rather than guessed, since canceling either silently would leave the other resting behind a message saying it is gone. Two exits at one venue are not ambiguous: both are canceled, so nothing is left resting there. After the cancel, each exit is read back from the venue: one that had already sold before the cancel reached it is booked as a sale in the ledger and the reply says so, instead of reporting a cancel. If the read fails the exit stays listed, the reply says so, and running the cancel again (or the background check) settles it.
 
 ### 6. Guard a position you already hold
 
@@ -1966,7 +1969,7 @@ A bare `/trade` answers one question, what is live right now, in sections. Any s
 - **Buying is off since ...** - present only after `/trade halt`, and first because it changes what every other line means.
 - **Waiting for your confirmation** - every staged order still inside its five-minute window, each with the token that places it.
 - **Resting exits** - what stands at a venue, with its triggers.
-- **Nothing is guarding these** - positions at a venue you can place at, with less exit under them than the book says you hold, each naming the command that fixes it.
+- **Nothing is guarding these** - positions at a venue you can place at, with less exit under them than the book says you hold, each naming the command that fixes it. On OKX a stop set in the exchange's own app counts up to its size, so a stop smaller than the holding still lists the rest.
 - **Placed at the exchange, missing from your book** - the reconcile list, with its remedy.
 
 It reaches no venue. A status that needs every exchange up goes blank exactly when you most need to know what is standing out there.

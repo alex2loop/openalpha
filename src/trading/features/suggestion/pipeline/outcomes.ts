@@ -1,3 +1,7 @@
+import type {
+  HoldingWindow,
+  HoldingWindowInput,
+} from '@/trading/features/suggestion/pipeline/outcome-holding'
 import type { EntryFill } from '@/trading/features/suggestion/pipeline/outcome-locks'
 import type { ActionableSuggestion, OutcomeResolution } from '@/trading/features/suggestion/types'
 import type { OutcomeStatus } from '@/trading/kernel/conviction'
@@ -7,6 +11,7 @@ import type { MarketPriceLimit } from '@/trading/markets/price-limit'
 import type { MarketTrail, TrailBounds } from '@/trading/markets/types'
 import { bankedShareOf, firstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { withExcursion } from '@/trading/features/suggestion/pipeline/outcome-excursion'
+import { holdingWindowOf } from '@/trading/features/suggestion/pipeline/outcome-holding'
 import {
   entryFillFor,
   isExitLocked,
@@ -58,18 +63,12 @@ type ScoredCall = Pick<
   | 'priceBand'
 >
 
-interface OutcomeInput {
+interface OutcomeInput extends HoldingWindowInput {
   readonly suggestion: ScoredCall
-  /** Ascending by day, the market's own adjusted series. */
-  readonly bars: readonly Candle[]
-  readonly maximumHoldingSessions: number
   /** Calendar sessions since the suggestion's own session, so a series the source cannot complete
    *  still expires instead of staying pending forever. */
   readonly elapsedSessions: number
   readonly benchmarkBars?: readonly Candle[]
-  /** The session the entry price was printed in. Absent where the call priced off no quote, which
-   *  reads as a settled close rather than a live print. */
-  readonly entrySession?: TradingDay
   /** Entry plus exit commission, spread and tax at the venue this market books to, as a fraction. */
   readonly roundTripFeeFraction: number
   readonly now: number
@@ -86,14 +85,6 @@ interface OutcomeInput {
   /** Set by the scorer when a resting limit's fill bar opened under the limit: the fill was at the
    *  open, so everything the bar printed came after it. */
   readonly filledAtOpen?: true
-}
-
-/** The holding window, and where it starts in the full series the trail reads. `sessions` counts
- *  only the sessions after the suggestion's own, which is what the window is measured in. */
-interface HoldingWindow {
-  readonly bars: readonly Candle[]
-  readonly start: number
-  readonly sessions: number
 }
 
 interface OutcomeExit {
@@ -213,65 +204,6 @@ function expiredAtLastClose(input: OutcomeInput, window: HoldingWindow): Outcome
   return isExpired(input, window) && last !== undefined
     ? resolved('expired', last, input)
     : EXPIRY_NOT_REACHED
-}
-
-/** At most the configured window: a stop hit at session 40 must not resolve a suggestion that
- *  expired at session 20. It counts from the session after the suggestion's own, whose bar the
- *  levels were derived from - except where the order trades that session itself: from the entry
- *  where the entry was a live price inside it, and from its open where it was not, since an order
- *  placed before the open lives through the gap a call made after the close would also meet. */
-function holdingWindowOf(input: OutcomeInput): HoldingWindow {
-  const whole = tradesWholeSession(input)
-  const start = input.bars.findIndex((bar) =>
-    whole ? bar.at >= input.suggestion.at : bar.at > input.suggestion.at
-  )
-  const after = start < 0 ? [] : input.bars.slice(start, start + input.maximumHoldingSessions)
-  const filled = whole ? undefined : fillSessionOf(input)
-
-  return filled === undefined
-    ? { bars: after, start, sessions: after.length }
-    : { bars: [filled.bar, ...after], start: filled.index, sessions: after.length }
-}
-
-/** An order trading in the suggestion's own session on a price that session never printed - a
- *  close, read before the open - meets the whole of that session. */
-function tradesWholeSession(input: OutcomeInput): boolean {
-  const { suggestion } = input
-
-  return suggestion.orderSession === suggestion.at && input.entrySession !== suggestion.at
-}
-
-/** A live entry fills inside a session whose daily bar also holds the prices printed before it, so
- *  only the path the fill must have travelled is known: from the entry to that session's close. A
- *  level that close is already through was crossed after the fill, at the level. Skipping the
- *  session instead scored a whole session of movement with no stop or target watching it. */
-function fillSessionOf(
-  input: OutcomeInput
-): { readonly bar: Candle; readonly index: number } | undefined {
-  const { suggestion } = input
-  const index = input.bars.findIndex((bar) => bar.at === suggestion.at)
-  const own = input.bars[index]
-
-  if (own === undefined || suggestion.orderSession !== suggestion.at) {
-    return undefined
-  }
-
-  // The session's own low may print before the order existed, so the call day counts only the move
-  // from the price the order went in at to the close.
-  const placed =
-    suggestion.restingEntry === undefined
-      ? suggestion.entry
-      : (suggestion.quote?.price ?? suggestion.entry)
-
-  return {
-    index,
-    bar: {
-      ...own,
-      open: placed,
-      high: Math.max(placed, own.close),
-      low: Math.min(placed, own.close),
-    },
-  }
 }
 
 /** Bar count is the real window and settles a complete series; elapsed sessions only catch one the

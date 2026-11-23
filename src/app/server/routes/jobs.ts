@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import type { JobCreateBody, JobEventScheduleBody } from '@/app/server/wire/jobs'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
-import type { Job, JobEvent, JobSchedule } from '@/scheduler/api'
+import type { Job, JobCreateResult, JobEvent, JobSchedule } from '@/scheduler/api'
 import { createAlertRetirer } from '@/app/event-jobs'
 import { API_CHANNEL, APP_CHAT_ID, isApiChannel } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
@@ -33,8 +33,10 @@ import {
   assertJobPrompt,
   assertKnownAgent,
   assertValidCron,
+  jobLimitError,
   resolveOnceAt,
   resolveTimezone,
+  SCHEDULER_MAX_JOBS,
 } from '@/tools/api'
 
 const MAX_BODY_BYTES = 32 * 1024
@@ -115,7 +117,11 @@ function assertScheduledCommand(ctx: ApiRouteContext, prompt: string): void {
 /** Everything the body can get wrong is checked here, before any alert is armed. A refusal the
  *  operator can fix leaves as a `ValidationError`, which the route table answers as a 400; anything
  *  else is ours and stays a 500. */
-function buildJob(ctx: ApiRouteContext, body: JobCreateBody, defaultTarget: Job['target']): Job {
+async function buildJob(
+  ctx: ApiRouteContext,
+  body: JobCreateBody,
+  defaultTarget: Job['target']
+): Promise<Job> {
   try {
     const agent = agentId(body.agentId)
     const now = Date.now()
@@ -220,19 +226,27 @@ async function disarmAlert(ctx: ApiRouteContext, job: Job): Promise<void> {
 }
 
 async function storeJob(ctx: ApiRouteContext, job: Job): Promise<Response> {
-  let created = false
+  let created: JobCreateResult
 
   try {
-    created = await ctx.app.resolve('jobStore').create(job)
+    created = await ctx.app.resolve('jobStore').create(job, SCHEDULER_MAX_JOBS)
   } catch (err: unknown) {
     await disarmAlert(ctx, job)
 
     throw err
   }
 
-  if (!created) {
+  if (created !== 'created') {
     await disarmAlert(ctx, job)
+  }
 
+  if (created === 'full') {
+    const refusal = jobLimitError()
+
+    throw new ValidationError(refusal.message, operatorMessageOf(refusal))
+  }
+
+  if (created === 'exists') {
     return apiError('conflict')
   }
 
@@ -254,7 +268,7 @@ async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Respons
 
   // Behind `public_url` an untargeted job runs on the app's channel, so the app-run limits hold for
   // it; otherwise it keeps the scheduler's own channel, as one added from the CLI.
-  const job = buildJob(ctx, body, exposed ? APP_TARGET : undefined)
+  const job = await buildJob(ctx, body, exposed ? APP_TARGET : undefined)
   const armed = await armPriceAlert(req, ctx, { body, job })
 
   return await storeJob(ctx, armed)

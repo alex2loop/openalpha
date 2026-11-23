@@ -886,7 +886,7 @@ Nếu cả ba lần gửi đều hỏng, chỉ ngày đó bị bỏ, đăng ký 
 - `/brief enable 07:30` đặt giờ riêng của bạn.
 - `/brief enable` không kèm giờ thì theo `[trading.briefs] send_time`, nên sửa cấu hình sau này vẫn dời bản tin.
 - Bật lại sau khi bản tin hôm nay đã gửi thì bắt đầu từ ngày mai. Lệnh bị từ chối khi một bản tin đang được gửi. Việc từ chối được kiểm ngay lúc ghi, nên một lần gửi bắt đầu giữa lúc kiểm tra và lúc bật vẫn tiếp tục, và lệnh báo cho bạn rằng một bản tin đang được gửi.
-- `/brief` đứng một mình hiện bản tin mới nhất, dựng một bản nếu chưa có.
+- `/brief` đứng một mình hiện bản tin của hôm nay, dựng bản mới khi hôm nay chưa lưu bản nào hoặc bản đã lưu có trước lần đổi hồ sơ của bạn. Bản tin của ngày trước không bao giờ thay cho bản của hôm nay.
 - `/brief disable` dừng việc gửi.
 
 #### Những tin chỉ nằm trong chuông
@@ -1397,6 +1397,7 @@ Khoản nạp bằng đồng tiền mà thị trường của sàn niêm yết, 
 - **Tỷ giá ghi ở dòng nạp, không ở dòng mua.** Lệnh mua, phí hay chuyển trả bằng USDT sàn đang giữ thì không dùng tỷ giá, nên `fx` trên dòng đó bị từ chối kèm lý do thay vì bị bỏ qua. Dòng bán ở sàn đó hay dòng cổ tức tính theo tỷ giá thị trường của ngày đó, trừ khi bạn ghi tỷ giá khác. Giá P2P bạn trả thuộc về dòng nạp USDT.
 - **Rút ra là chốt phần chênh tỷ giá.** USDT ra đi theo giá vốn bình quân, nhưng tiền nạp ròng giảm đúng bằng giá trị của nó hôm đó. Nạp 1.000 ở 26.600 rồi rút 1.000 ở 27.000 thì lãi đã chốt là +400.000 VND và tiền mặt về lại 0.
 - **Hai đồng tiền không tự đổi sang nhau.** Lệnh USDT ở một sàn chỉ dùng USDT của nó và bị từ chối, nêu tên đồng tiền và sàn, khi thiếu. Rút, phí hay chuyển VND ở đó chỉ dùng VND của nó, dù sàn đang giữ USDT.
+- **Lệnh bán chưa về tiền thì chưa có gì để chi.** USDT của nó nhập vào USDT của sàn và vào giá vốn bình quân theo tỷ giá của lệnh bán ngay khi ghi, nhưng chỉ phần USDT đã về mới chi được, và tiền VND của sàn không đổi cho tới lúc đó, dù lệnh bán có tỷ giá nào.
 - **Dòng chênh tỷ giá âm ngay sau khi nạp qua P2P.** USDT được tính theo tỷ giá USD/VND thị trường, còn giá vốn là giá P2P bạn đã trả, nên ngay sau khoản nạp ở 26.600 dòng đó đọc khoảng -2% khi tỷ giá thị trường là khoảng 26.036.
 - **Xem ở đâu.** `/portfolio` liệt kê USDT cạnh tiền mặt cùng giá vốn và giá trị hôm nay, và in phần chênh tỷ giá. `/reconcile` đối chiếu nó với số USDT thật trên sàn.
 
@@ -1689,7 +1690,7 @@ Chat terminal và các kênh dùng chung một registry lệnh gạch chéo, nê
 
 Một lần khớp đặt qua `/trade` hay `order_place` được ghi vào sổ lệnh đúng như một `/record` thủ công. Cuốn sổ vẫn là một phép tính trên một tập dòng, và một vị thế mở ở sàn trông giống hệt một vị thế gõ tay. Một lệnh bán do một lối thoát đã kích hoạt ghi rõ chân nào đã khớp (`stopped out` / `target hit`); một lệnh bán bạn tự làm thì không nêu gì.
 
-Khi lệnh cắt lỗ hoặc chốt lời đang treo khớp ở sàn, lượt đối soát các lệnh thoát đang treo kế tiếp (mỗi 60 giây) ghi lệnh bán vào sổ lệnh và gửi một thông báo nêu lệnh thoát nào đã khớp, sàn, khối lượng và giá, và rằng sổ lệnh đã có dòng đó. Ứng dụng nối vào API thấy lần khớp đó một lần. Lệnh bán mà `/record sync` đã ghi trước thì không gửi gì.
+Khi lệnh cắt lỗ hoặc chốt lời đang treo khớp ở sàn, lượt đối soát các lệnh thoát đang treo kế tiếp (mỗi 60 giây) ghi lệnh bán vào sổ lệnh và gửi một thông báo nêu lệnh thoát nào đã khớp, sàn, khối lượng và giá, và rằng sổ lệnh đã có dòng đó. Ứng dụng nối vào API thấy lần khớp đó một lần. Lệnh bán mà `/record sync` đã ghi trước thì không gửi gì. Một `/trade cancel` thấy lệnh thoát đã khớp cũng ghi lệnh bán theo cách đó và gửi cùng thông báo.
 
 **`/record sync <sàn>`** là cách thứ ba để tạo các dòng đó, và nó đi cùng đường. Nó chỉ khác ở cách chọn: nó hỏi sàn đã khớp gì, rồi ghi những gì cuốn sổ chưa có dòng. Kiểm hợp lệ, phép tính và dòng xác nhận đều dùng chung.
 
@@ -1889,7 +1890,7 @@ Trần tiền mặt tính cả phí mua mà tỷ lệ `fees` của sàn đã đ�
 /trade cancel okx:BTC
 ```
 
-Hãy nêu sàn khi hai sàn cùng giữ một lối thoát đang treo trên một công cụ. Trường hợp đó bị từ chối thay vì đoán, vì lặng lẽ hủy một trong hai sẽ để cái kia vẫn treo sau một thông báo nói nó đã mất. Hai lối thoát ở cùng một sàn thì không mơ hồ: cả hai đều bị hủy, nên ở sàn đó không còn gì treo lại.
+Hãy nêu sàn khi hai sàn cùng giữ một lối thoát đang treo trên một công cụ. Trường hợp đó bị từ chối thay vì đoán, vì lặng lẽ hủy một trong hai sẽ để cái kia vẫn treo sau một thông báo nói nó đã mất. Hai lối thoát ở cùng một sàn thì không mơ hồ: cả hai đều bị hủy, nên ở sàn đó không còn gì treo lại. Sau khi hủy, mỗi lối thoát được đọc lại từ sàn: lối thoát đã bán xong trước khi lệnh hủy tới được ghi vào sổ như một lệnh bán và câu trả lời nói rõ điều đó, thay vì báo là đã hủy. Nếu đọc lại thất bại, lối thoát vẫn nằm trong danh sách, câu trả lời nói rõ, và chạy lại lệnh hủy (hoặc vòng kiểm tra nền) sẽ xử lý nó.
 
 ### 6. Bảo vệ một vị thế bạn đã nắm
 
@@ -1953,7 +1954,7 @@ Một sàn khai những gì API của nó làm được, và sàn nào không l�
 - **Đã tắt mua từ ...** - chỉ có sau `/trade halt`, và đứng đầu vì nó đổi nghĩa mọi dòng khác.
 - **Đang chờ bạn xác nhận** - mọi lệnh đã dàn dựng còn trong cửa sổ năm phút, mỗi lệnh kèm token đặt nó.
 - **Lệnh thoát đang chờ trên sàn** - những gì đang đứng ở một sàn, kèm trigger của chúng.
-- **Chưa có gì bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lối thoát bên dưới ít hơn cuốn sổ nói bạn đang nắm, mỗi cái nêu lệnh để chữa.
+- **Chưa có gì bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lối thoát bên dưới ít hơn cuốn sổ nói bạn đang nắm, mỗi cái nêu lệnh để chữa. Trên OKX, lệnh dừng lỗ đặt trong app của sàn được tính đến đúng khối lượng của nó, nên lệnh dừng lỗ nhỏ hơn số đang nắm vẫn khiến phần còn lại bị liệt kê.
 - **Đã đặt trên sàn, chưa có trong sổ** - danh sách đối soát, kèm cách chữa.
 
 Nó không chạm sàn nào. Một trạng thái cần mọi sàn đều hoạt động sẽ trống đúng lúc bạn cần biết nhất cái gì đang đứng ngoài đó.

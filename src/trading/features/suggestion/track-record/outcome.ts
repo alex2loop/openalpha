@@ -18,6 +18,7 @@ import type { Market, MarketRegistry } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { calendarSessionsBetween } from '@/trading/features/market-data/resolve'
+import { entrySessionOf } from '@/trading/features/suggestion/pipeline/outcome-holding'
 import {
   outcomeLookbackSessions,
   outcomeWindowSessions,
@@ -187,9 +188,7 @@ async function scoreSeries(pass: ResolvePass, series: WindowSeries): Promise<Out
     maximumHoldingSessions: window.holdingSessions,
     elapsedSessions: window.sessions - 1,
     ...(benchmarkBars === undefined ? {} : { benchmarkBars }),
-    ...(suggestion.quote === undefined
-      ? {}
-      : { entrySession: market.manifest.calendar.dayAt(suggestion.quote.observedAt) }),
+    ...entrySessionOf(market.manifest.calendar, suggestion),
     roundTripFeeFraction: marketRoundTripRate(deps, market.manifest.id),
     now: options.now,
     ...(market.trail === undefined ? {} : { trail: market.trail }),

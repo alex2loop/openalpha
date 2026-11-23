@@ -30,7 +30,7 @@ const STATUS_ROWS = 10
  *  a residue no order could ever cover, and reporting that would flag the entire book forever.
  *  Anything an operator deliberately left out is orders of magnitude above this. */
 const UNGUARDED_FRACTION = 0.01
-const NO_SYMBOLS: ReadonlySet<string> = new Set()
+const NO_STOPS: ReadonlyMap<string, number> = new Map()
 /** The weakest cover on any venue holding a name is the name's cover. */
 const COVER_STRENGTH: Readonly<Record<StopCover, number>> = Object.freeze({
   none: 0,
@@ -105,36 +105,38 @@ interface TradeablePositions {
   readonly residue: readonly string[]
 }
 
+type VenueStops = ReadonlyMap<VenueRef, ReadonlyMap<string, number>>
+
 interface GuardInput {
   readonly positions: TradeablePositions
   readonly exits: readonly RestingExit[]
-  readonly venueStops: ReadonlyMap<VenueRef, ReadonlySet<string>>
+  readonly venueStops: VenueStops
 }
 
+/** A venue whose stops could not be read is not named unguarded on a guess. */
 function unguardedStatus(
   deps: OrderServiceDeps,
   input: GuardInput
 ): Pick<TradeStatus, 'unguarded' | 'unguardedResidue'> {
   const { tradeable, residue } = input.positions
-  const unwatched = tradeable.filter((position) => !isStoppedAtVenue(deps, position, input))
+  const readable = tradeable.filter((position) => input.venueStops.has(position.venue))
 
   return {
-    unguarded: unguardedPositions(deps, unwatched, input.exits).slice(0, STATUS_ROWS),
+    unguarded: unguardedPositions(deps, readable, input).slice(0, STATUS_ROWS),
     unguardedResidue: residue,
   }
 }
 
-/** A stop the operator set in the exchange's app covers the position as far as this screen can
- *  tell, and a venue whose stops could not be read is not named unguarded on a guess. */
-function isStoppedAtVenue(
+/** The size a stop the operator set in the exchange's app covers, as far as this screen can tell;
+ *  undefined when the venue lists no stop on the position. */
+function stopSizeAtVenue(
   deps: OrderServiceDeps,
   position: Position,
-  input: Pick<GuardInput, 'venueStops'>
-): boolean {
-  const atVenue = input.venueStops.get(position.venue)
+  venueStops: VenueStops
+): number | undefined {
   const symbol = deps.venues.find(position.venue)?.adapter?.toSymbol(position.instrument)
 
-  return atVenue === undefined || (symbol !== undefined && atVenue.has(symbol))
+  return symbol === undefined ? undefined : venueStops.get(position.venue)?.get(symbol)
 }
 
 function withCurrency(deps: OrderServiceDeps, exit: RestingExit): RestingExitRow {
@@ -145,20 +147,25 @@ function withCurrency(deps: OrderServiceDeps, exit: RestingExit): RestingExitRow
 
 /** Positions with less exit standing at them than the book says is held, largest gap first. Only
  *  where the venue carries an adapter: a custodian this tree has no client for can hold no resting
- *  order at all, so naming its positions unguarded would flag every hand-held book forever. */
+ *  order at all, so naming its positions unguarded would flag every hand-held book forever. What
+ *  stands is the larger of this tree's exits and the stops the venue lists, since the venue's list
+ *  holds this tree's own stops as well. */
 function unguardedPositions(
   deps: OrderServiceDeps,
   positions: readonly Position[],
-  exits: readonly RestingExit[]
+  input: Pick<GuardInput, 'exits' | 'venueStops'>
 ): readonly UnguardedPosition[] {
-  const resting = exitsByPosition(exits)
+  const resting = exitsByPosition(input.exits)
 
   return placeablePositions(deps, positions)
     .map((position) => ({
       instrument: position.instrument,
       venue: position.venue,
       quantity: position.quantity,
-      guarded: guardedQuantityOf(restingOn(resting, position)),
+      guarded: Math.max(
+        guardedQuantityOf(restingOn(resting, position)),
+        stopSizeAtVenue(deps, position, input.venueStops) ?? 0
+      ),
     }))
     .filter((row) => gapOf(row) > row.quantity * UNGUARDED_FRACTION)
     .sort((left, right) => gapOf(right) - gapOf(left))
@@ -230,9 +237,10 @@ export async function resolveRestingStops(
     }
 
     const key = buildInstrumentKey(position.instrument)
+    const venueSize = stopSizeAtVenue(deps, position, venueStops) ?? 0
     const cover = coverOf(
       restingOn(resting, position),
-      isStoppedAtVenue(deps, position, { venueStops })
+      coveredFractionOf(venueSize, position.quantity) === 1
     )
 
     covers.set(key, weakerCover(covers.get(key), cover))
@@ -253,14 +261,14 @@ function weakerCover(held: StopCover | undefined, next: StopCover): StopCover {
   return held === undefined || COVER_STRENGTH[next] < COVER_STRENGTH[held] ? next : held
 }
 
-/** The symbols each venue holds a live sell stop on. A venue with no way to list them answers with
- *  none, which is what it answered before; one whose read failed is left out, so its names claim
- *  nothing. */
+/** The size each venue holds live sell stops on, per symbol. A venue with no way to list them
+ *  answers with none, which is what it answered before; one whose read failed is left out, so its
+ *  names claim nothing. */
 async function stopsAtVenues(
   deps: OrderServiceDeps,
   positions: readonly Position[],
   signal: AbortSignal
-): Promise<ReadonlyMap<VenueRef, ReadonlySet<string>>> {
+): Promise<VenueStops> {
   const venues = [...new Set(positions.map((position) => position.venue))]
   const read = await Promise.all(
     venues.map(async (venue) => [venue, await stopsAt(deps, venue, signal)] as const)
@@ -273,15 +281,15 @@ async function stopsAt(
   deps: OrderServiceDeps,
   venue: VenueRef,
   signal: AbortSignal
-): Promise<ReadonlySet<string> | undefined> {
+): Promise<ReadonlyMap<string, number> | undefined> {
   const adapter = deps.venues.find(venue)?.adapter
 
-  if (adapter?.listStopSymbols === undefined) {
-    return NO_SYMBOLS
+  if (adapter?.listStopSizes === undefined) {
+    return NO_STOPS
   }
 
   try {
-    return await adapter.listStopSymbols(signal)
+    return await adapter.listStopSizes(signal)
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err

@@ -10,6 +10,7 @@ import type {
 } from '@/trading/features/ledger/types'
 import type { PriceChart } from '@/trading/features/market-data/types'
 import type {
+  CancelExitOutcome,
   ConfirmOutcome,
   ExitLevels,
   ExitOutcome,
@@ -404,8 +405,8 @@ export interface TradingHost {
   /** False when the token names no staged order still waiting. */
   discardOrder(request: TradingOrderTokenRequest): Promise<boolean>
   setExit(request: TradingSetExitRequest): Promise<ExitOutcome>
-  /** False when no exit was resting there. */
-  cancelExit(request: TradingCancelExitRequest): Promise<boolean>
+  /** `none` when no exit was resting there; `filled` when it had already sold. */
+  cancelExit(request: TradingCancelExitRequest): Promise<CancelExitOutcome>
   /** Switches buying off or back on; sells, exits and cancels always go out. */
   setBuyingHalted(request: TradingHaltRequest): Promise<void>
   /** Clears the fills the book now holds and lists the rest. */

@@ -249,19 +249,18 @@ interface RunRow {
   readonly active_run_id: string | null
 }
 
-// The run is read inside the transaction: a running session's next message flush would fail on the
-// cascaded delete, leaving its run unfinalized. A session open with no run holds nothing to lose.
+// A running session's next message flush would fail on the cascaded delete, leaving its run
+// unfinalized, so the idle row is locked first: a run claiming it afterwards waits for the commit
+// and lands on a fresh row, since the delete has committed. A session open with no run holds
+// nothing to lose.
 async function removeSession(store: StoreDeps, id: SessionId): Promise<SessionRemoval> {
   return await store.db.transaction(async (tx) => {
-    const rows = await tx.query<RunRow>(store.sql.selectRun, [id])
-    const row = rows[0]
+    const { changes } = await tx.execute(store.sql.lockIdle, [id])
 
-    if (row === undefined) {
-      return 'not_found'
-    }
+    if (changes === 0) {
+      const rows = await tx.query<RunRow>(store.sql.selectRun, [id])
 
-    if (row.active_run_id !== null) {
-      return 'active'
+      return rows[0] === undefined ? 'not_found' : 'active'
     }
 
     await tx.execute(store.sql.removeRoutes, [ROUTE_KEY_PATTERN, id])

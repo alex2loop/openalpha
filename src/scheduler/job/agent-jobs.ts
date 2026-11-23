@@ -1,5 +1,12 @@
 import type { AgentId } from '@/core/ids'
-import type { JobStore } from '@/scheduler/types'
+import type { Job, JobStore } from '@/scheduler/types'
+
+/** Every job an agent has, whatever its state. */
+export async function jobsOfAgent(store: JobStore, id: AgentId): Promise<readonly Job[]> {
+  const jobs = await store.list()
+
+  return jobs.filter((job) => job.agentId === id)
+}
 
 /** Pauses every schedule of an agent that is on, one by one, and returns how many it paused: a
  *  schedule left on would keep firing at an agent id that no longer resolves. */

@@ -244,6 +244,8 @@ Binance hỏi `symbolStatus=TRADING`: một cặp bị nó tạm dừng sẽ mã
 
 `mexc` niêm yết nhiều cơ sở spot hơn hẳn Binance và Bybit cộng lại, nên nó phục vụ vài coin xếp hạng cao mà không bên nào kia có (phần còn lại không sàn nào trong tuyến niêm yết). Nó cố ý đứng thứ ba ở `bars`: cái đuôi dài mà riêng nó phủ là nơi khối lượng báo cáo kém đáng tin nhất, nên nó chỉ trả lời cho mã mà các sàn lớn từ chối. Nến của nó không có `takerBuyVolume` (không tách được phía chủ động), mà `Candle` mô hình hóa là vắng mặt chứ không phải số 0.
 
+`yahoo`, đứng cuối tuyến `bars` của crypto, niêm yết coin theo đô la trong khi sổ crypto định giá bằng USDT. Mọi nến hay báo giá coin nó phục vụ đều mang `source.dollar-quote`: cảnh báo nêu tên nguồn và nói đây là giá đô la được đọc như giá USDT, lệch dưới 1%, thay vì tốn thêm một yêu cầu cho mỗi coin để quy đổi.
+
 **`fx`** là một danh sách `ANY_SCOPE` mà các thành viên không chồng lấn nhau.
 
 - Các nhà cung cấp coin dẫn đầu và tự chọn việc: chúng chỉ phủ một cặp có cơ sở là coin mà chúng định giá được. `yahoo` và `er-api` tách một cặp thành hai mã ISO, nên `USDTVND` bảy ký tự trượt `covers` của chúng.

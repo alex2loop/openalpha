@@ -59,6 +59,8 @@ interface ZaloLink {
 interface AdapterState {
   link: ZaloLink | null
   sessionTask: Promise<void> | null
+  /** The one group listing in flight, shared by every send that misses the cache meanwhile. */
+  groupLookup: ReturnType<API['getAllGroups']> | null
   /** Ends the transport the session logs in and sends through. The start signal ends intake only,
    *  so the final notices of a shutdown still go out; `dispose` aborts this. */
   readonly transport: AbortController
@@ -72,6 +74,7 @@ export function createZaloPersonalAdapter(
   const state: AdapterState = {
     link: null,
     sessionTask: null,
+    groupLookup: null,
     transport: new AbortController(),
     threadTypes: lruMap<string, ThreadType>(ZALO_PERSONAL_THREAD_CACHE_MAX),
     logger: options.logger,
@@ -138,8 +141,9 @@ async function startSession(input: StartSessionOptions): Promise<void> {
 
 // The cache is filled by pushes, so a chat nobody has posted in since the daemon started (a proactive
 // brief, an inbox entry drained after a restart) misses it. Zalo lists the account's groups, so a
-// miss asks once and remembers the answer; an id outside that list is a direct thread. A failed
-// lookup throws rather than guessing, since a group id sent as a direct thread goes nowhere.
+// miss asks once (concurrent misses share the call) and remembers the answer; an id outside that
+// list is a direct thread. A failed lookup throws rather than guessing, since a group id sent as a
+// direct thread goes nowhere, and caches nothing.
 async function resolveThreadType(
   state: AdapterState,
   link: ZaloLink,
@@ -151,7 +155,11 @@ async function resolveThreadType(
     return cached
   }
 
-  const { gridVerMap } = await link.api.getAllGroups()
+  state.groupLookup ??= link.api.getAllGroups().finally(() => {
+    state.groupLookup = null
+  })
+
+  const { gridVerMap } = await state.groupLookup
   const { Group, User } = link.zca.ThreadType
   const threadType = Object.hasOwn(gridVerMap, chatId) ? Group : User
 

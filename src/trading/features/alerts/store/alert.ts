@@ -23,14 +23,13 @@ import {
   toDeliveringAlert,
   toFiredAlert,
 } from '@/trading/features/alerts/store/alert-row'
-import { alertOrigin } from '@/trading/features/alerts/types'
+import { alertOrigin, DUE_STATES } from '@/trading/features/alerts/types'
 import { claimDueRows } from '@/trading/features/suggestion/store/claim'
 import { toPage } from '@/trading/kernel/store/store-row'
 
 const INSERT_SQL =
   'INSERT INTO alerts (id, market, ticker, condition, threshold, channel, ' +
   'chat_id, state, created_at, attempts, origin) VALUES '
-export const DUE_STATES = Object.freeze(['triggered', 'delivering'] as const)
 const LIVE_STATES_SQL = "('active','triggered','delivering')"
 
 type AlertCreateResult =

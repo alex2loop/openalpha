@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import type { HaltBody, SetExitBody, TradeActionResponse } from '@/app/server/wire/orders'
+import type {
+  CancelExitResponse,
+  HaltBody,
+  SetExitBody,
+  TradeActionResponse,
+} from '@/app/server/wire/orders'
 import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import { apiError, json } from '@/app/server/http/dispatch'
 import {
@@ -136,9 +141,9 @@ async function handleCancelExit(req: Request, ctx: ApiRouteContext): Promise<Res
     return apiError('invalid_body')
   }
 
-  const ok = await hostOf(ctx).cancelExit(target)
+  const outcome = await hostOf(ctx).cancelExit(target)
 
-  return json({ ok } satisfies TradeActionResponse)
+  return json({ ok: outcome !== 'none', outcome } satisfies CancelExitResponse)
 }
 
 async function handleHalt(req: Request, ctx: ApiRouteContext): Promise<Response> {

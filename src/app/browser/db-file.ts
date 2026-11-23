@@ -1,13 +1,12 @@
 import type { Logger } from '@/core/logging/logger'
 import type { Storage } from '@/core/types/storage'
 import type { DatabaseFiles } from '@/persistence/api'
-import { silentLogger } from '@/core/logging/silent-logger'
 import { formatErrForLog } from '@/core/security/credentials'
 import {
   hasTable,
   isUnreadableDatabase,
+  MIGRATIONS,
   MIGRATIONS_TABLE,
-  migrate,
   migrationStatus,
   sqliteDialect,
 } from '@/persistence/api'
@@ -32,6 +31,10 @@ const INSTALLED_ONLY_TABLES = [
 ] as const
 
 const SQLITE_HEADER = 'SQLite format 3\0'
+// Header bytes 18 and 19 are the file's write and read format: 2 means WAL, 1 the rollback journal.
+const FORMAT_VERSION_OFFSETS = [18, 19] as const
+const WAL_FORMAT = 2
+const ROLLBACK_FORMAT = 1
 
 // `sqlite_` names are sqlite's own (sequences, statistics); a prefix match with LIKE would also
 // skip a visitor-named `sqliteX` table, since `_` is a wildcard there.
@@ -81,6 +84,23 @@ export async function toDbFileVerdict(
   }
 }
 
+/** A copied installed database is often still marked WAL, which the in-memory engine cannot open
+ *  without its `-wal` file. The copy holds every page the main file has, so it is read as a
+ *  rollback-journal file instead; the bytes the caller holds are not changed. */
+export function toRollbackJournal(bytes: Uint8Array): Uint8Array {
+  if (!FORMAT_VERSION_OFFSETS.some((offset) => bytes[offset] === WAL_FORMAT)) {
+    return bytes
+  }
+
+  const copy = bytes.slice()
+
+  for (const offset of FORMAT_VERSION_OFFSETS) {
+    copy[offset] = ROLLBACK_FORMAT
+  }
+
+  return copy
+}
+
 function hasSqliteHeader(bytes: Uint8Array): boolean {
   return new TextDecoder('latin1').decode(bytes.subarray(0, SQLITE_HEADER.length)) === SQLITE_HEADER
 }
@@ -109,7 +129,11 @@ async function toScratchVerdict(check: ScratchCheck): Promise<DbFileVerdict> {
     return 'newer-schema'
   }
 
-  if (!(await hasOnlyOwnSchema(check))) {
+  const appliedIds = new Set(
+    status.filter((migration) => migration.state === 'applied').map((migration) => migration.id)
+  )
+
+  if (!(isLeadingMigrations(appliedIds) && (await hasOnlyOwnSchema(check, appliedIds)))) {
     return 'invalid'
   }
 
@@ -122,19 +146,28 @@ async function toScratchVerdict(check: ScratchCheck): Promise<DbFileVerdict> {
   return 'ok'
 }
 
+// The runner applies migrations in order, so a file listing any other set was not made by one.
+function isLeadingMigrations(appliedIds: ReadonlySet<string>): boolean {
+  return MIGRATIONS.slice(0, appliedIds.size).every((migration) => appliedIds.has(migration.id))
+}
+
 async function hasRows(scratch: Storage, table: string): Promise<boolean> {
   const rows = await scratch.query(`SELECT 1 FROM ${table} LIMIT 1`)
 
   return rows.length > 0
 }
 
-/** A file may carry the tables, indexes, triggers and views this build's migrations make and
+/** A file may carry the tables, indexes, triggers and views the migrations it has applied make and
  *  nothing else: a foreign trigger or view would run its own SQL inside the visitor's writes. The
- *  expected set is read from a blank database migrated here, never listed by hand. A table is
- *  judged by name, since its text grows as migrations add columns; a trigger or view by name and
- *  text, since the same name with another body is exactly the thing to refuse. */
-async function hasOnlyOwnSchema(check: ScratchCheck): Promise<boolean> {
-  const own = await readOwnSchema(check.files, check.logger)
+ *  expected set is read from a blank database given exactly those migrations, never listed by hand,
+ *  so a file older than a migration that rewrote an index or trigger still matches its own era. A
+ *  table is judged by name, since its text grows as migrations add columns; a trigger or view by
+ *  name and text, since the same name with another body is exactly the thing to refuse. */
+async function hasOnlyOwnSchema(
+  check: ScratchCheck,
+  appliedIds: ReadonlySet<string>
+): Promise<boolean> {
+  const own = await readOwnSchema(check, appliedIds)
   const foreign = (await readSchemaObjects(check.scratch)).find(
     (object) => !isOwnObject(object, own)
   )
@@ -150,19 +183,31 @@ async function hasOnlyOwnSchema(check: ScratchCheck): Promise<boolean> {
 }
 
 async function readOwnSchema(
-  files: DatabaseFiles,
-  logger: Logger
+  check: ScratchCheck,
+  appliedIds: ReadonlySet<string>
 ): Promise<ReadonlyMap<string, string | null>> {
-  const blank = files.openBlank()
+  const blank = check.files.openBlank()
 
   try {
-    await migrate(blank, sqliteDialect, { logger: silentLogger })
+    await blank.transaction(async (tx) => {
+      for (const migration of MIGRATIONS) {
+        if (appliedIds.has(migration.id)) {
+          await migration.up(tx, sqliteDialect)
+        }
+      }
+    })
 
-    const objects = await readSchemaObjects(blank)
+    const own = new Map<string, string | null>()
 
-    return new Map(objects.map((object) => [toObjectKey(object), object.sql]))
+    for (const object of await readSchemaObjects(blank)) {
+      own.set(toObjectKey(object), object.sql)
+    }
+    // The ledger is the runner's, not a migration's, and the file already proved it holds one.
+    own.set(toObjectKey({ type: 'table', name: MIGRATIONS_TABLE, sql: null }), null)
+
+    return own
   } finally {
-    await closeScratch(blank, logger)
+    await closeScratch(blank, check.logger)
   }
 }
 

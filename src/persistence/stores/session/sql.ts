@@ -37,7 +37,6 @@ export interface SessionSql {
   readonly create: string
   readonly insertIfAbsent: string
   readonly claim: string
-  readonly selectOwner: string
   readonly loadSession: string
   readonly resolveIdPrefix: string
   readonly loadPayloads: string
@@ -55,12 +54,14 @@ export interface SessionSql {
   readonly linkAttempt: string
   readonly linkedGroup: string
   readonly touchActivity: string
+  readonly touchHeldActivity: string
   readonly finalize: string
   readonly updateStatus: string
   readonly listRecent: string
   readonly latestIdForChannel: string
   readonly channelOf: string
   readonly selectRun: string
+  readonly lockIdle: string
   readonly removeRoutes: string
   readonly removeBinding: string
   readonly removeMessages: string
@@ -166,7 +167,7 @@ function buildTranscriptSql(d: Dialect): TranscriptSql {
   }
 }
 
-type ClaimSql = Pick<SessionSql, 'create' | 'insertIfAbsent' | 'claim' | 'selectOwner'>
+type ClaimSql = Pick<SessionSql, 'create' | 'insertIfAbsent' | 'claim' | 'touchHeldActivity'>
 
 // The four statements that decide who owns a session row.
 function buildClaimSql(d: Dialect): ClaimSql {
@@ -189,7 +190,10 @@ function buildClaimSql(d: Dialect): ClaimSql {
       `UPDATE sessions SET status = 'active', active_run_id = ${d.param(1)}, end_reason = NULL, ` +
       `error_message = NULL, ended_at = NULL, last_activity_at = ${d.param(2)} ` +
       `WHERE id = ${d.param(3)} AND (active_run_id IS NULL OR last_activity_at < ${d.param(4)})`,
-    selectOwner: `SELECT active_run_id FROM sessions WHERE id = ${d.param(1)}`,
+    // Names the run in the write itself, so the holder check and the row lock are one statement.
+    touchHeldActivity:
+      `UPDATE sessions SET last_activity_at = ${d.param(1)} ` +
+      `WHERE id = ${d.param(2)} AND active_run_id = ${d.param(3)}`,
   }
 }
 
@@ -197,6 +201,7 @@ type RemoveSql = Pick<
   SessionSql,
   | 'channelOf'
   | 'selectRun'
+  | 'lockIdle'
   | 'removeRoutes'
   | 'removeBinding'
   | 'removeMessages'
@@ -209,6 +214,11 @@ function buildRemoveSql(d: Dialect): RemoveSql {
   return {
     channelOf: `SELECT channel FROM sessions WHERE id = ${d.param(1)}`,
     selectRun: `SELECT active_run_id FROM sessions WHERE id = ${d.param(1)}`,
+    // A no-op write that matches only an idle row: postgres holds that row's lock to commit, so a
+    // claim cannot land between this and the deletes below.
+    lockIdle:
+      `UPDATE sessions SET last_activity_at = last_activity_at ` +
+      `WHERE id = ${d.param(1)} AND active_run_id IS NULL`,
     removeRoutes: `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} AND value = ${d.param(2)}`,
     // The agent a chat is bound to, keyed (channel, chat id): the app's chat id is its session id.
     removeBinding:

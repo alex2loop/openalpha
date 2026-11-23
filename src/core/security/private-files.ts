@@ -142,6 +142,13 @@ async function preparePrivateFileParent(path: string): Promise<void> {
       throw new ConfigError(`refusing private file parent symlink: ${path}`)
     }
 
+    // Windows opens no directory handle.
+    if (!HAS_DIRECTORY_MODES) {
+      await assertDirectory(path)
+
+      return
+    }
+
     handle = await open(path, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW)
     const directoryInfo = await handle.stat()
 

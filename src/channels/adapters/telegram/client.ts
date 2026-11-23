@@ -1,9 +1,15 @@
 import type { ChannelOutbound, EditRequest, ReactionRequest, SentRef } from '@/channels/types'
 import type { Logger } from '@/core/logging/logger'
+import {
+  isPermanentStatus,
+  MAX_ERROR_DESCRIPTION_LEN,
+  RATE_LIMITED_STATUS,
+} from '@/channels/http-failure'
 import { PermanentChannelError } from '@/channels/permanent-error'
 import { ChannelError, type ChannelErrorCode } from '@/core/errors'
 import { BROWSER_HEADERS } from '@/core/http-client'
 import { formatErrForLog } from '@/core/security/credentials'
+import { truncate } from '@/core/utils/text'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
 import { fromMarkdownV2 } from './markup'
@@ -21,13 +27,8 @@ import {
 
 // Bounds every call, including getUpdates' own long-poll timeout.
 const TELEGRAM_REQUEST_TIMEOUT_MS = 15_000
-const RATE_LIMITED_STATUS = 429
-const REQUEST_TIMEOUT_STATUS = 408
 const BAD_REQUEST_STATUS = 400
-const CLIENT_ERROR_MIN_STATUS = 400
-const SERVER_ERROR_MIN_STATUS = 500
 const ALLOWED_UPDATES = '["message","callback_query"]'
-const MAX_ERROR_DESCRIPTION_LEN = 512
 const PARSE_FAILURE_RE = /can't parse|parse error/i
 const NOT_MODIFIED_RE = /message is not modified/i
 
@@ -371,17 +372,6 @@ function toChannelError(
     : new ChannelError(code, message, { cause: err.status })
 }
 
-// A client error other than a timeout or a rate limit (a bad request, a blocked bot, a revoked
-// token) says the same thing on every attempt; a server error or a dropped line may not.
-function isPermanentStatus(status: number): boolean {
-  return (
-    status >= CLIENT_ERROR_MIN_STATUS &&
-    status < SERVER_ERROR_MIN_STATUS &&
-    status !== REQUEST_TIMEOUT_STATUS &&
-    status !== RATE_LIMITED_STATUS
-  )
-}
-
 interface TelegramApiError {
   readonly status: number
   readonly description: string
@@ -396,7 +386,7 @@ async function readTelegramError(res: Response): Promise<TelegramApiError> {
     raw !== null &&
     'description' in raw &&
     typeof raw.description === 'string'
-      ? truncateString(raw.description, MAX_ERROR_DESCRIPTION_LEN)
+      ? truncate(raw.description, MAX_ERROR_DESCRIPTION_LEN)
       : ''
 
   return { status, description, body: raw }
@@ -418,10 +408,6 @@ function isParseFailure(description: string): boolean {
 
 function isUnchangedEdit(err: TelegramApiError): boolean {
   return err.status === BAD_REQUEST_STATUS && NOT_MODIFIED_RE.test(err.description)
-}
-
-function truncateString(value: string, max: number): string {
-  return value.length <= max ? value : `${value.slice(0, max)}…`
 }
 
 interface PostAndLogRequest {

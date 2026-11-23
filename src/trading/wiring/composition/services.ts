@@ -5,6 +5,7 @@ import type { AlertService } from '@/trading/features/alerts/types'
 import type { BriefService } from '@/trading/features/brief/types'
 import type { EnsureMarketData } from '@/trading/features/market-data/ops/ensure'
 import type { ExclusionReader, MarketDataService } from '@/trading/features/market-data/types'
+import type { OrderServiceDeps } from '@/trading/features/order/deps'
 import type { OrderService } from '@/trading/features/order/types'
 import type { NavService } from '@/trading/features/portfolio/nav/types'
 import type { PortfolioService } from '@/trading/features/portfolio/types'
@@ -17,6 +18,7 @@ import type { SuggestionService } from '@/trading/features/suggestion/suggestion
 import type { FactorLogService } from '@/trading/features/suggestion/track-record/factor-log-types'
 import type { CallScoredNotices } from '@/trading/features/suggestion/track-record/scored-notice'
 import type { TradingConfig } from '@/trading/kernel/config'
+import type { CurrencyCode } from '@/trading/kernel/instrument'
 import type { FxRates } from '@/trading/kernel/market/fx-rates'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
 import type {
@@ -31,7 +33,7 @@ import type { TradingEdition } from '@/trading/wiring/composition/edition'
 import type { TradingStores } from '@/trading/wiring/composition/stores'
 import { createAlertService } from '@/trading/features/alerts/alerts'
 import { createBriefService } from '@/trading/features/brief/brief'
-import { buildVenueFillKey } from '@/trading/features/ledger/sync'
+import { buildVenueFillKey, isVenueFillBooked } from '@/trading/features/ledger/sync'
 import { createMarketDataService } from '@/trading/features/market-data/market-data'
 import { createOrderService } from '@/trading/features/order/execute'
 import { OrderError } from '@/trading/features/order/types'
@@ -49,6 +51,7 @@ import {
   createPortfolioReader,
   listFillsSince,
 } from '@/trading/wiring/composition/portfolio-reader'
+import { createFillNotifier } from '@/trading/wiring/quarantine'
 
 interface DomainServices {
   readonly marketData: MarketDataService
@@ -316,6 +319,12 @@ function buildOrder(parts: OrderParts): OrderService | undefined {
     costs: deps.config.costs,
     logger: deps.logger,
     onFilled: deps.onFilled,
+    notifyFill: createFillNotifier({
+      sender: deps.sender,
+      recipient: deps.recipient,
+      locale: deps.defaultLocale,
+      logger: deps.logger,
+    }),
     findProfile: (signal) => deps.stores.profile.find(signal),
     quoteOf: (instrument, now, signal) => quoteOf(marketData, instrument, { now, signal }),
     quoteConvention: (market) => marketData.quoteConvention(market),
@@ -326,21 +335,29 @@ function buildOrder(parts: OrderParts): OrderService | undefined {
           signal,
         })
       )?.entry,
-    toBaseCurrency: async (input) => {
-      const quote = await fx.convert({
-        fromCurrency: input.currency,
-        toCurrency: deps.config.baseCurrency,
-        asOf: input.asOf,
-        signal: input.signal,
-      })
-
-      if (quote.kind !== 'available') {
-        throw new OrderError('order.rejected', `no rate from ${input.currency} to the book`)
-      }
-
-      return input.amount * quote.value.rate
-    },
+    isFillBooked: (fill, signal) => isVenueFillBooked(deps.stores.ledger, fill, signal),
+    toBaseCurrency: baseConverterOf(fx, deps.config.baseCurrency),
   })
+}
+
+function baseConverterOf(
+  fx: FxRates,
+  baseCurrency: CurrencyCode
+): OrderServiceDeps['toBaseCurrency'] {
+  return async (input) => {
+    const quote = await fx.convert({
+      fromCurrency: input.currency,
+      toCurrency: baseCurrency,
+      asOf: input.asOf,
+      signal: input.signal,
+    })
+
+    if (quote.kind !== 'available') {
+      throw new OrderError('order.rejected', `no rate from ${input.currency} to the book`)
+    }
+
+    return input.amount * quote.value.rate
+  }
 }
 
 /** The two unattended senders, split out only to keep the assembly point readable. Both render in

@@ -108,14 +108,15 @@ interface StoredWindow {
 /** Today's bar is dropped before anything reads it: it still moves, so keeping it would make one
  *  window score differently minute to minute and date the evidence to a session nobody has closed.
  *  Days before `from` go with it — a source free to ignore the narrowed range would otherwise
- *  duplicate what the prefix already holds. */
+ *  duplicate what the prefix already holds — and so do days past the window's end, which the
+ *  window never asked for. */
 function store(
   deps: SettledBarsDeps,
   window: SettledWindow,
   fetched: StoredWindow
 ): readonly Candle[] {
   const settled = fetched.candles.filter(
-    (candle) => candle.at >= fetched.from && candle.at < fetched.today
+    (candle) => candle.at >= fetched.from && candle.at <= window.toDay && candle.at < fetched.today
   )
 
   for (const day of unpublishedLead(fetched.from, settled)) {

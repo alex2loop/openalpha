@@ -355,9 +355,9 @@ adapter là tín hiệu nhận tin, nên `send`, `edit` và các hàm còn lại
 Tín hiệu dừng thứ hai thì thoát tiến trình, nên không có gì chờ nó.
 
 Bộ gửi thử lại một lần gửi hỏng tối đa `notifyMaxAttempts` lần, trừ `PermanentChannelError`: nền tảng từ chối
-và lần nào cũng từ chối lại (lỗi phía client của Telegram ngoài 408 và 429, văn bản quá giới hạn của nền tảng,
-Zalo 401). Loại này bị bỏ ngay ở lần hỏng đầu. Mã 429 là `ChannelError` thường và vẫn chờ đúng khoảng
-retry-after. Hộp thư áp dụng cùng quy tắc qua `isPermanentChannelError`, hàm này nhìn xuyên cả lớp bọc như
+và lần nào cũng từ chối lại (lỗi phía client của Telegram hoặc Zalo ngoài 408, 429 và 403 của Zalo, mã mà Zalo
+coi là lỗi phía máy chủ, hoặc văn bản quá giới hạn của nền tảng). Loại này bị bỏ ngay ở lần hỏng đầu. Mã 429 là
+`ChannelError` thường và vẫn chờ đúng khoảng retry-after. Hộp thư áp dụng cùng quy tắc qua `isPermanentChannelError`, hàm này nhìn xuyên cả lớp bọc như
 `AnswerUndelivered`: một mục mà nền tảng từ chối câu trả lời vĩnh viễn thì vào hàng chết ngay, không thử lại tới
 `inboxMaxAttempts`.
 

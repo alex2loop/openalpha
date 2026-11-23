@@ -1,4 +1,5 @@
 import type { Logger } from '@/core/logging/logger'
+import type { VenueFill } from '@/trading/features/ledger/sync'
 import type { LedgerEntry } from '@/trading/features/ledger/types'
 import type { OrderIntentStore } from '@/trading/features/order/store/order-intent'
 import type { OrderSettingsStore } from '@/trading/features/order/store/order-settings'
@@ -12,7 +13,7 @@ import type {
   TradingDay,
   VenueRef,
 } from '@/trading/kernel/instrument'
-import type { OrderFilledListener } from '@/trading/kernel/operator/notice'
+import type { OrderFill, OrderFilledListener } from '@/trading/kernel/operator/notice'
 import type { UserProfile } from '@/trading/kernel/operator/profile'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { QuoteConvention } from '@/trading/render/money'
@@ -55,6 +56,9 @@ export interface OrderServiceDeps {
     orderId: string,
     signal: AbortSignal
   ): Promise<LedgerEntry | undefined>
+  /** Whether the book already holds this sale, under the venue's key or as a row typed by hand.
+   *  Asked before booking an exit a cancel found filled, since a second sale would never settle. */
+  isFillBooked(fill: VenueFill, signal: AbortSignal): Promise<boolean>
   /** The operator's concentration ceilings, read where the prompt is built. A function rather than
    *  the profile store: this path needs the caps and nothing else the store holds. `null` when
    *  nothing has been saved, which states no ceilings rather than guessing at seeds. */
@@ -62,4 +66,6 @@ export interface OrderServiceDeps {
   /** Told of each fill once its ledger row is booked. Whoever binds it shows the fill; it is never
    *  asked whether the fill may stand. */
   readonly onFilled: OrderFilledListener
+  /** Tells the operator a sale booked by a cancel's read-back, as the exit tick tells one it books. */
+  notifyFill(fill: OrderFill, signal: AbortSignal): Promise<void>
 }

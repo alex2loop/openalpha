@@ -19,6 +19,7 @@ export {
   assertKnownAgent,
   assertValidCron,
   isValidInterval,
+  jobLimitError,
   resolveOnceAt,
   resolveTimezone,
   validateJobPrompt,

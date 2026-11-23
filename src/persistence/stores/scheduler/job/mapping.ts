@@ -49,12 +49,15 @@ export interface StoredJobEdit {
   readonly schedule?: { readonly schedule: StoredJobSchedule; readonly nextRunAt: number }
 }
 
+/** `exists`: a job with this id is already stored; `full`: the agent already has its cap. */
+export type StoredJobCreate = 'created' | 'exists' | 'full'
+
 export interface StoredJobStore {
   due(nowMs: number, limit: number, runNowClaimStaleBeforeMs: number): Promise<readonly StoredJob[]>
   advance(id: JobId, nextRunAt: number): Promise<void>
   disable(id: JobId): Promise<void>
   deferRetry(id: JobId, failures: number, nextRunAt: number): Promise<void>
-  create(job: StoredJob): Promise<boolean>
+  create(job: StoredJob, maxOfAgent: number): Promise<StoredJobCreate>
   edit(id: JobId, edit: StoredJobEdit): Promise<boolean>
   list(): Promise<readonly StoredJob[]>
   listEnabledOfAgent(agentId: string): Promise<readonly StoredJob[]>

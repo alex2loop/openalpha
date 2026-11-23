@@ -1,9 +1,17 @@
 import type {
+  CancelExitResponse,
   CapRejectionWire,
   ConfirmOrderResponse,
   StagedOrderWire,
 } from '@/app/server/wire/orders'
-import { clearPlaceAnswer, type PlaceAnswer, placeAnswer } from '@/web/state/orders'
+import type { MessageKey } from '@/i18n'
+import {
+  cancelAnswer,
+  clearCancelAnswer,
+  clearPlaceAnswer,
+  type PlaceAnswer,
+  placeAnswer,
+} from '@/web/state/orders'
 import { formatMoney, formatQuantity } from '@/web/text/figures'
 import { formatMarketPrice } from '@/web/text/market-price'
 import { toFailureText, tr } from '@/web/text/tr'
@@ -11,6 +19,14 @@ import { toVenueName } from '@/web/text/venue'
 import { Button } from '@/web/ui/kit/button'
 
 type Executed = Extract<ConfirmOrderResponse, { readonly kind: 'executed' }>
+
+// The sentences `/trade cancel` prints for each outcome.
+const CANCEL_TEXT = {
+  none: 'slash.tradingTradeNoExit',
+  cancelled: 'slash.tradingTradeExitCancelled',
+  filled: 'slash.tradingTradeExitFilled',
+  unsettled: 'slash.tradingTradeExitUnsettled',
+} as const satisfies Record<CancelExitResponse['outcome'], MessageKey>
 
 /** What the last Đặt lệnh came back with, kept until the next one or until closed. */
 export function OrderAnswer() {
@@ -25,6 +41,32 @@ export function OrderAnswer() {
       <AnswerLines answer={answer} />
       <div class="step-actions">
         <Button size="small" onClick={clearPlaceAnswer}>
+          {tr('ui.office.common.close')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** What the last exit cancel came back with, kept until the next one or until closed, laid out as
+ *  the order answer is. A sale or a row left live stands out as a caution line, as a failed exit
+ *  does there. */
+export function CancelAnswer() {
+  const answer = cancelAnswer.value
+
+  if (answer === undefined) {
+    return null
+  }
+
+  const isPlain = answer.outcome === 'none' || answer.outcome === 'cancelled'
+
+  return (
+    <div class="strip is-grey" role="status">
+      <p class={isPlain ? undefined : 'strip is-caution'}>
+        {tr(CANCEL_TEXT[answer.outcome], { ticker: answer.ticker })}
+      </p>
+      <div class="step-actions">
+        <Button size="small" onClick={clearCancelAnswer}>
           {tr('ui.office.common.close')}
         </Button>
       </div>

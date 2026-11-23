@@ -45,6 +45,10 @@ export interface JobSql {
   readonly disable: string
   readonly deferRetry: string
   readonly create: string
+  readonly countOfAgent: string
+  /** Held until the transaction ends, so two adds for one agent cannot both pass its cap; null on
+   *  sqlite, whose write transaction already holds the file. */
+  readonly lockAgent: string | null
   readonly editPrompt: string
   readonly editTarget: string
   readonly editSchedule: string
@@ -88,6 +92,11 @@ export function buildJobSql(dialect: Dialect): JobSql {
     create:
       `INSERT INTO jobs (${['id', ...JOB_COLS].join(', ')}) ` +
       `VALUES (${dialect.paramList(JOB_COLS.length + 1)}) ON CONFLICT (id) DO NOTHING`,
+    countOfAgent: `SELECT COUNT(*) AS n FROM jobs WHERE agent_id = ${dialect.param(1)}`,
+    lockAgent:
+      dialect.name === 'postgres'
+        ? `SELECT pg_advisory_xact_lock(hashtext(${dialect.param(1)}))`
+        : null,
     ...buildEditSql(dialect),
     list: `${JOB_SELECT} ORDER BY next_run_at`,
     listEnabledOfAgent:

@@ -27,9 +27,9 @@ export const BROWSER_FETCH_GUARD: FetchGuard = {
     })
     const finalUrl = response.url === '' ? target.toString() : response.url
 
-    // The redirect has already been followed; what it landed on is judged like the first host.
+    // The redirect has already been followed; what it landed on is judged like the first URL.
     try {
-      assertHostAllowlisted(options?.allowlist, new URL(finalUrl).hostname)
+      assertHostAllowlisted(options?.allowlist, parsePublicUrl(finalUrl).hostname)
     } catch (err: unknown) {
       await response.body?.cancel().catch(() => undefined)
 

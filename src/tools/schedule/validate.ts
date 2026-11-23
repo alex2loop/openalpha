@@ -5,6 +5,7 @@ import { advanceCron } from '@/core/utils/cron'
 import { utf8ByteLength } from '@/core/utils/text'
 import { MS_PER_MINUTE, toCanonicalTimeZone } from '@/core/utils/time'
 import { JobInputError } from '@/tools/schedule/job-input-error'
+import { SCHEDULER_MAX_JOBS } from '@/tools/schedule/policy'
 import { toEpochMs } from '@/tools/schedule/time'
 
 export const SCHEDULER_PROMPT_MAX_BYTES = 10_240
@@ -60,6 +61,14 @@ export function assertJobPrompt(prompt: string): void {
   if (issue !== undefined) {
     throw new JobInputError(issue.code, issue.message, issue.operator)
   }
+}
+
+/** The refusal for an add the job store answered `full`: the agent already has its cap. */
+export function jobLimitError(): JobInputError {
+  return new JobInputError('schedule_blocked', `agent already has ${SCHEDULER_MAX_JOBS} jobs`, {
+    key: 'errors.jobLimitReached',
+    params: { limit: SCHEDULER_MAX_JOBS },
+  })
 }
 
 export function assertKnownAgent<T extends string>(agent: T, has: (agent: T) => boolean): void {

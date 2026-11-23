@@ -197,7 +197,8 @@ export interface SpotAdapter {
    *  exchange's own app, which this tree must neither claim nor report. Rejects when the venue
    *  cannot be read: an empty list is an answer, never a failure's stand-in. */
   listOpenExits?(signal: AbortSignal): Promise<readonly OpenExit[]>
-  /** The symbols carrying a live sell stop on the account, whoever placed it, so a stop the operator
-   *  set in the exchange's app is not reported as missing. */
-  listStopSymbols?(signal: AbortSignal): Promise<ReadonlySet<string>>
+  /** The size each symbol carries live sell stops on, summed over the account's orders whoever
+   *  placed them, so a stop the operator set in the exchange's app is not reported as missing and a
+   *  stop smaller than the holding is not reported as covering it. */
+  listStopSizes?(signal: AbortSignal): Promise<ReadonlyMap<string, number>>
 }
