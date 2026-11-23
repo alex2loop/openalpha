@@ -118,9 +118,7 @@ export async function mutateLedger(
   const id = await resolveEntryId(deps, mutation.ref, mutation.signal)
 
   if (mutation.kind === 'delete') {
-    const entry = await deps.ledger.deleteValidated(id, assertValid, mutation.signal)
-
-    return { kind: 'deleted', entry, book: await bookAfter(deps, folded, mutation) }
+    return deleteMutation(deps, mutation, { id, folded, assertValid })
   }
 
   const previous = await deps.ledger.findById(id, mutation.signal)
@@ -158,6 +156,24 @@ export async function mutateLedger(
   )
 
   return { kind: 'updated', entry, book: await bookAfter(deps, folded, mutation) }
+}
+
+async function deleteMutation(
+  deps: LedgerMutateDeps,
+  mutation: Extract<LedgerMutation, { readonly kind: 'delete' }>,
+  context: {
+    readonly id: LedgerEntryId
+    readonly folded: { book?: Book }
+    readonly assertValid: AssertLedgerValid
+  }
+): Promise<LedgerWriteResult> {
+  const entry = await deps.ledger.deleteValidated(
+    { id: context.id, deletedAt: mutation.now },
+    context.assertValid,
+    mutation.signal
+  )
+
+  return { kind: 'deleted', entry, book: await bookAfter(deps, context.folded, mutation) }
 }
 
 async function recordMutation(

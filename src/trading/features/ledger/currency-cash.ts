@@ -50,6 +50,12 @@ export function currencyCashSpend(state: FoldState, txn: LedgerTxn): CurrencyCas
     case 'buy':
     case 'rights':
       return spend(txn.venue, txn.currency, txn.quantity * txn.unitPrice + txn.fee)
+    case 'sell': {
+      // A fee passing the gross is a net outflow, which needs cash like any other spend.
+      const shortfall = txn.fee - txn.quantity * txn.unitPrice
+
+      return shortfall > 0 ? spend(txn.venue, txn.currency, shortfall) : undefined
+    }
     case 'withdrawal':
     case 'fee':
     case 'loss':

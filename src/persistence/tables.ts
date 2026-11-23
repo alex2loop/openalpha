@@ -80,6 +80,8 @@ const TRADING_TABLES = [
   { name: 'agent_focuses', pk: ['agent_id', 'focus_key'], durable: true },
   { name: 'factor_log', pk: ['id'], durable: true },
   { name: 'ledger_entries', pk: ['id'], durable: true },
+  // Durable: suggestions are, and each is judged against the deletions made since it was written.
+  { name: 'ledger_deletions', pk: ['market', 'ticker'], durable: true },
   { name: 'nav_snapshots', pk: ['day'], durable: true },
   { name: 'trading_profiles', pk: ['id'], durable: true },
   { name: 'alerts', pk: ['id'], durable: true },

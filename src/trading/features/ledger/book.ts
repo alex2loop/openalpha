@@ -52,6 +52,9 @@ export function foldBook(
     }
 
     assertRecordedInBase(entry, baseCurrency)
+    // Settle what cleared by this row's day first, as the validator's replay does: a currency
+    // buy then spends the cash that was available that day, not cash a later row would clear.
+    promoteSettled(state, entry.transaction.at)
     applyTransaction(state, entry)
   }
 

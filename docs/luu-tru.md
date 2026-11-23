@@ -63,7 +63,7 @@ Nó **không** có nghĩa là `db stats` đang che một migration hỏng.
 Phần giao dịch có các bảng riêng: `instruments`, `daily_bars`, `fundamental_snapshots`,
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
-`macro_documents`, `news_items`, `market_refresh_attempts`, `screened_names`, `ledger_entries`, `nav_snapshots`,
+`macro_documents`, `news_items`, `market_refresh_attempts`, `screened_names`, `ledger_entries`, `ledger_deletions`, `nav_snapshots`,
 `trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` và `agent_focuses`. `public_briefs` để dành cho phiên bản sau; phiên
@@ -85,6 +85,9 @@ trả lời cho hiện tại:
   mọi lần bán do bạn tự làm.
 - `from_venue` là nguồn của một dòng `transfer`, và để trống ở các loại khác.
 - `venue` luôn có giá trị. Dòng tiền mặt cho biết nơi giữ tiền, không gắn với công cụ nào.
+- `ledger_deletions` giúp một dòng đã xóa vẫn tính là thay đổi của sổ: mỗi công cụ một dòng ghi lần
+  xóa gần nhất, và một dòng tên trống cho tiền mặt. Bảng này bền, và đề xuất đang đứng cũ hơn một lần
+  xóa sẽ được đánh dấu là đã cũ.
 
 **NAV.** `nav_snapshots` giữ mỗi ngày một dòng về giá trị danh mục (NAV, tiền mặt, tiền nạp ròng), do
 `trading.refresh` ghi (ở bản web, do lần làm mới của trang lúc đang mở ghi). `db export` và `db import`

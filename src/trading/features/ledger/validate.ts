@@ -189,6 +189,11 @@ function cashOutflowBase(txn: LedgerTxn): number {
     return txn.amount * txn.conversion.rate
   }
 
+  // A sale's fee passing its gross leaves a net outflow, which needs cash like any other.
+  if (txn.kind === 'sell') {
+    return Math.max(0, txn.fee - txn.quantity * txn.unitPrice) * txn.conversion.rate
+  }
+
   return 0
 }
 

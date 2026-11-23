@@ -11,7 +11,11 @@ import type {
   ResolveMarketOptions,
 } from '@/trading/markets/types'
 import { isAbortError } from '@/core/errors'
-import { resolveAfterListingLoad, UNIVERSE_EMPTY } from '@/trading/markets/listing-miss'
+import {
+  awaitsListingLoad,
+  resolveAfterListingLoad,
+  UNIVERSE_EMPTY,
+} from '@/trading/markets/listing-miss'
 import { NOTHING_USED, unusedMarkets, withSwitchedOffNote } from '@/trading/markets/operator-use'
 import { buildResolutionKey } from '@/trading/markets/resolution-key'
 
@@ -190,27 +194,26 @@ function preferredMarket(
 }
 
 /** The held side wins when its own detector confirms the ticker; otherwise the ticker resolves as
- *  it would for an operator who holds nothing. */
+ *  it would for an operator who holds nothing, unless the held side's listing is still loading: the
+ *  read then waits for it rather than settle on another market. */
 async function resolveUnqualified(
   markets: readonly Market[],
   options: ResolveMarketOptions,
   preferred: MarketRef | undefined
 ): Promise<MarketResolution> {
-  if (preferred !== undefined) {
-    const held = await resolveExplicit(markets, { ...options, market: preferred })
-
-    if (held.kind === 'resolved') {
-      const others = await otherListingCaveats(
-        possibleMarkets(markets, options),
-        held.market,
-        options
-      )
-
-      return { ...held, caveats: [...held.caveats, ...others] }
-    }
+  if (preferred === undefined) {
+    return resolve(markets, options)
   }
 
-  return resolve(markets, options)
+  const held = await resolveExplicit(markets, { ...options, market: preferred })
+
+  if (held.kind !== 'resolved') {
+    return awaitsListingLoad(held, options) ? held : resolve(markets, options)
+  }
+
+  const others = await otherListingCaveats(possibleMarkets(markets, options), held.market, options)
+
+  return { ...held, caveats: [...held.caveats, ...others] }
 }
 
 // Unqualified tickers only: resolveCached routes an explicit market to resolveExplicit.

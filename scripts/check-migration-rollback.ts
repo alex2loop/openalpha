@@ -24,6 +24,8 @@ const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
 const ORDER_INTENTS_TABLE = 'order_intents'
+const LEDGER_DELETIONS_MIGRATION_ID = '2026_11_23_190924_add_ledger_deletions'
+const LEDGER_DELETIONS_TABLE = 'ledger_deletions'
 const MEMORY_NFC_MIGRATION_ID = '2026_11_22_203500_normalize_memory_values'
 const SHOWN_BREACHES_MIGRATION_ID = '2026_11_12_180037_add_order_intent_shown_breaches'
 const SCREENED_NAMES_MIGRATION_ID = '2026_11_09_182105_add_screened_names'
@@ -225,6 +227,30 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
+/** The recorded deletions go with their one table; a deleted row then goes unseen by the book
+ *  change check, as it did before the table existed. */
+async function assertLedgerDeletionsRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasTable(db, LEDGER_DELETIONS_TABLE),
+    'ledger deletions migration did not add the table'
+  )
+
+  await rollBackLedgerDeletions(db)
+}
+
+async function rollBackLedgerDeletions(db: Storage): Promise<void> {
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: LEDGER_DELETIONS_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'ledger deletions rollback did not complete')
+  assertState(
+    !(await hasTable(db, LEDGER_DELETIONS_TABLE)),
+    'ledger deletions rollback kept the table'
+  )
+}
+
 /** A decomposed memory value comes back composed on up; down has nothing to undo, so the value
  *  stays composed. */
 async function assertMemoryNfcRollback(db: Storage): Promise<void> {
@@ -247,6 +273,9 @@ async function assertMemoryNfcRollback(db: Storage): Promise<void> {
   )
 
   assertState(rows[0]?.value === decomposed.normalize('NFC'), 'memory NFC up left a decomposed value')
+
+  // The migrate above applied every rolled-back migration again, the newer one included.
+  await rollBackLedgerDeletions(db)
 
   const secondBack = await rollbackMigration(db, sqliteDialect, {
     expectedId: MEMORY_NFC_MIGRATION_ID,
@@ -617,6 +646,7 @@ async function main(): Promise<void> {
   await assertDownCoversUp(`${OVERRIDES_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${PUBLIC_BRIEFS_MIGRATION_ID}.ts`)
   await assertDownCoversUp(`${SCREENED_NAMES_MIGRATION_ID}.ts`)
+  await assertDownCoversUp(`${LEDGER_DELETIONS_MIGRATION_ID}.ts`)
 
   const dir = await mkdtemp(join(tmpdir(), 'migration-rollback-'))
   let db: Storage | undefined
@@ -627,6 +657,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertLedgerDeletionsRollback(db)
     await assertMemoryNfcRollback(db)
     await assertShownBreachesRollback(db)
     await assertScreenedNamesRollback(db)

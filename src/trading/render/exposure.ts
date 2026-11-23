@@ -1,7 +1,12 @@
 import type { Locale } from '@/core/types/locale'
 import type { CapBreach } from '@/trading/kernel/operator/exposure'
 import { t } from '@/i18n'
-import { formatFraction, formatWholeFraction, renderDeclaredValue } from '@/trading/render/format'
+import {
+  formatFraction,
+  formatWholeFraction,
+  renderDeclaredValue,
+  renderProvidedValue,
+} from '@/trading/render/format'
 import { INDENT } from '@/trading/render/layout'
 
 /** One sentence per breach, whichever surface asked. A fold over weights takes the whole-percent
@@ -50,7 +55,7 @@ function subjectOf(locale: Locale, breach: Exclude<CapBreach, { kind: 'etf-unmea
     case 'position':
       return breach.ticker
     case 'sector':
-      return breach.sector
+      return renderProvidedValue(locale, `trading.sector.${breach.sector}`, breach.sector)
     case 'segment':
       return renderDeclaredValue(locale, `trading.segment.${breach.segment}`)
     case 'etf':

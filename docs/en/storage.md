@@ -61,7 +61,7 @@ mean `db stats` is hiding a failed migration.
 Trading adds its own tables: `instruments`, `daily_bars`, `fundamental_snapshots`,
 `foreign_flow_snapshots`, `daily_trade_sides`, `annual_accounts`, `quarterly_accounts`,
 `funding_snapshots`, `fx_rates`, `macro_snapshots`, `series_points`, `series_provenance`,
-`macro_documents`, `news_items`, `market_refresh_attempts`, `screened_names`, `ledger_entries`, `nav_snapshots`,
+`macro_documents`, `news_items`, `market_refresh_attempts`, `screened_names`, `ledger_entries`, `ledger_deletions`, `nav_snapshots`,
 `trading_profiles`, `suggestions`, `suggestion_analyses`, `factor_log`, `alerts`, `brief_snapshots`, `brief_delivery`,
 `intraday_settings`, `order_intents`, `order_settings`, `resting_exits`, `themes`, `theme_runs`,
 `theme_reads`, `theme_outcomes` and `agent_focuses`. `public_briefs` is reserved for a later
@@ -79,7 +79,9 @@ answers only for the present:
 **Ledger.** `ledger_entries` has a `close_reason` column: which leg of a resting exit filled (`stop`
 or `target`), empty on every sale you made by hand. `from_venue` is a `transfer` row's source,
 empty on every other kind. `venue` is always set: a cash row names where the money is held, without
-naming an instrument.
+naming an instrument. `ledger_deletions` is what lets a deleted row still count as a change to
+the book: one row per instrument holding when a row of it was last deleted, and one blank-named row
+for cash. It is durable, and a standing suggestion older than a deletion is marked as outdated.
 
 **NAV.** `nav_snapshots` keeps one row a day of the book's value (NAV, cash, net deposits), written by
 `trading.refresh` (in the web version, by the page's refresh while it is open). `db export` and

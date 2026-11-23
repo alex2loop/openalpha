@@ -1,4 +1,5 @@
 import type { InsiderRelationship } from '@/trading/kernel/market/market-event'
+import { decodeEntities } from '@/trading/sources/rows/html-text'
 
 /** A Form 4's transactions we read: one non-derivative line of an ownership document. */
 interface OwnershipTransaction {
@@ -30,14 +31,15 @@ const PRICE_RE = /<transactionPricePerShare>\s*<value>\s*([^<]+?)\s*</
 /** Regular enough to read with patterns, as the Treasury's XML is. A line that cannot be read is
  *  left out, never filled in; a document with no owner is not an ownership document. */
 export function parseOwnershipXml(text: string): OwnershipFiling | undefined {
-  const owner = OWNER_RE.exec(text)?.[1]
+  const rawOwner = OWNER_RE.exec(text)?.[1]
 
-  if (owner === undefined || owner === '') {
+  if (rawOwner === undefined || rawOwner === '') {
     return undefined
   }
 
+  const owner = decodeEntities(rawOwner)
   const title = TITLE_RE.exec(text)?.[1]
-  const officerTitle = title === '' ? undefined : title
+  const officerTitle = title === undefined || title === '' ? undefined : decodeEntities(title)
   const relationship = officerTitle === undefined ? relationshipOf(text) : undefined
 
   return {

@@ -38,20 +38,28 @@ export async function resolveAfterListingLoad(
   resolveOnce: () => Promise<MarketResolution>
 ): Promise<MarketResolution> {
   const first = await resolveOnce()
-  const empty = emptyListingsOf(first)
 
-  const mayFetch = options.operatorRead === true && options.detection !== 'stored'
-
-  if (!mayFetch || first.kind === 'resolved' || empty.length === 0) {
+  if (!awaitsListingLoad(first, options)) {
     return first
   }
 
-  const notes = await ensureListingsQuietly(ensureListing, empty, options.signal)
+  const notes = await ensureListingsQuietly(ensureListing, emptyListingsOf(first), options.signal)
   const second = await resolveOnce()
 
   return second.kind === 'resolved' || notes.length === 0
     ? second
     : { ...second, caveats: [...second.caveats, ...notes] }
+}
+
+/** Whether a read that found a stored listing empty may wait for its first load: an operator read
+ *  that is allowed to fetch. A resolved read has nothing to wait for. */
+export function awaitsListingLoad(
+  resolution: MarketResolution,
+  options: ResolveMarketOptions
+): boolean {
+  const mayFetch = options.operatorRead === true && options.detection !== 'stored'
+
+  return mayFetch && resolution.kind !== 'resolved' && emptyListingsOf(resolution).length > 0
 }
 
 function emptyListingsOf(resolution: MarketResolution): readonly MarketRef[] {
