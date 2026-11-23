@@ -206,10 +206,8 @@ export function scrubCredentials(input: string): string {
     out = out.replace(re, '[REDACTED]')
   }
 
-  for (const secrets of [PINNED_SECRETS, KNOWN_SECRETS]) {
-    for (const secret of secrets) {
-      out = out.replaceAll(secret, '[REDACTED]')
-    }
+  for (const secret of knownSecrets()) {
+    out = out.replaceAll(secret, '[REDACTED]')
   }
 
   return out
@@ -325,8 +323,12 @@ export function hasLikelySecret(input: string): boolean {
 
   return (
     SECRET_PATTERNS_NONGLOBAL.some((re) => re.test(input)) ||
-    [...KNOWN_SECRETS].some((secret) => input.includes(secret))
+    knownSecrets().some((secret) => input.includes(secret))
   )
+}
+
+function knownSecrets(): readonly string[] {
+  return [...PINNED_SECRETS, ...KNOWN_SECRETS]
 }
 
 export function isSensitiveKey(key: string): boolean {
