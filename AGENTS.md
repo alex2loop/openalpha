@@ -310,7 +310,7 @@ Gates and ratios:
 - Size is budgeted on the entry-relative stop distance (`TradeLevels.riskDistance`), never a trail- or ratchet-moved stop.
 
 Plan lifecycle:
-- A held name never lacks a plan longer than one alert tick: `ExitPlanner` writes a `recorded-entry` hold at the fill price on the write path and from the settled close on the tick (the board's two sides where bars are another instrument's tape). One insert; never over a plan the watched price has not passed; never as today's `/suggest` answer.
+- A held name never lacks a plan longer than one alert tick: `ExitPlanner` writes a `recorded-entry` hold at the fill price on the write path and from the settled close on the tick (the board's two sides where bars are another instrument's tape). One insert; never over a plan the watched price has not passed; never as today's `/suggest` answer. A tick whose planning threw or planned nothing asks again only after `PLAN_RETRY_MS`.
 - A plan belongs to the holding as it stands: every exit-plan read passes `heldSince`. A holding opens at the latest buy landing on nothing or on residue below the venue minimum (`PositionBuy`, `toCurrentCycles`); its sold-since-opened count starts there. `isStandingAnswer` is the one gate for reuse, replace and cooldown.
 - The arming pass reads the live book while the row prints its stored snapshot (an add moves the armed level a tick before the printed one).
 - A plan spent at its target re-plans from the current close, lifting the fresh stop by the whole distance travelled, so changing `targetRiskMultiplier` changes how far held stops jump.
