@@ -7,6 +7,35 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.11] - 2026-11-23 [IMPORTANT]
+
+A page token can no longer point a channel's token file at another file on your machine, a long chat no longer lets the agent open a link it read on a fetched page without asking, and a take-profit tranche of 100% now sells the whole position at the take-profit everywhere it is shown, alerted and scored. No database change.
+> Token của trang web không còn trỏ được tệp token của kênh sang một tệp khác trên máy bạn, cuộc trò chuyện dài không còn cho agent mở link đọc được trong trang mà không hỏi, và chốt lời từng phần 100% giờ bán toàn bộ vị thế ở mức chốt lời ở mọi nơi hiển thị, cảnh báo và chấm điểm. Không có thay đổi cơ sở dữ liệu.
+
+### Changed
+
+- `take-profit-tranche-pct 1` sells the whole position at the take-profit: the plan says so, the R:R and stake are measured to it, the held take-profit stays put until it sells, and the track record grades those calls there. Plans that leave whole at the target (a reduce, a fund, a market with no trailing stop) are unchanged.
+- A channel's `token_file` changes only from the CLI or in `config.toml`, like `token_env`.
+- After cancelling the rest of an unfilled order, `/trade` reads the order back until the venue reports it finished; one it never sees finish is left flagged to reconcile instead of being called unfilled.
+- Web version: changing a custom venue's market is refused while your book has rows on that venue.
+- Zalo personal runs on zca-js 2.3.0, which fixes an unhandled message type in its listener.
+
+### Fixed
+
+- A page token could set a channel's `token_file` to any local file and restart the daemon.
+- After a long chat was compacted, a link the agent had read on a fetched page could be opened without asking.
+- A configured key could drop out of log scrubbing after many credential saves.
+- A research source flagged for prompt injection could lose its warning once its paragraphs were ranked, and coin names from crypto rankings reached prompts unfiltered.
+- Research dropped a claim when a second line of inquiry quoted the same passage from the same source.
+- Spending foreign cash that had settled, while a sale was still settling, used the unsettled sale's exchange rate for its cost.
+- A stop finer than the instrument's price step became zero and was refused by the venue only after the entry filled; it is now refused before.
+- `/themes` showed earlier sectors and stocks under a weakening or ended theme when the screen step failed.
+- The track record could count a resting buy as filled on a session locked at the ceiling.
+- A FRED value left blank read as zero.
+- Crypto and world gold could treat the previous day as settled during the first 29 minutes after midnight UTC.
+- Web version: the 3D office kept redrawing after a lighting change, a slow older chat page could overwrite a newer one, and a failed 3D load could show the fallback note after you had already switched to 2D.
+- `autostart enable` refuses an argument with a line break, `db restore` writes the restored file private, and an aborted Zalo personal login no longer leaves its QR image behind.
+
 ## [1.8.10] - 2026-11-23 [IMPORTANT]
 
 Cancelling an exit that had already filled now books the sale instead of dropping it from your book, moving an OKX exit goes through, and Gemini models no longer fail when they call several tools at once. One database change; the upgrade runs it for you.
