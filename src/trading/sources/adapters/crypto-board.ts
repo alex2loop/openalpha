@@ -20,6 +20,7 @@ import {
   positive as positiveNumber,
   publishedChangePct,
   publishedWeekChangePct,
+  untrustedText,
 } from '@/trading/sources/rows/normalization'
 
 /** One coin as every board publishes it, whatever the provider names its fields. `observedAt` is
@@ -188,7 +189,8 @@ function toRecords(deps: BoardDeps, fold: BoardFold): readonly MarketCapRecord[]
 
     return {
       instrument: { market, ticker: ticker(row.symbol) },
-      name: row.name,
+      // A coin's name reaches a model through screens and briefs, like a headline does.
+      name: untrustedText(row.name, 'name').value,
       asOf: dayFromEpochSeconds(observedAt / MS_PER_SECOND, 'UTC'),
       observedAt,
       marketCapUsd: positiveNumber(row.marketCapUsd, 'market cap'),

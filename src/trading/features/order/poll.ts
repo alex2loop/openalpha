@@ -12,6 +12,8 @@ const ORDER_POLL_ATTEMPTS = 20
 /** Consecutive lookup failures before a live order is abandoned; one miss among twenty polls
  *  says nothing about the order. */
 const ORDER_POLL_FAILURE_LIMIT = 3
+/** Reads after a cancel, a second apart, for the venue to finish cancelling. */
+const CANCEL_CONFIRM_ATTEMPTS = 5
 
 export interface SubmitInput {
   readonly staged: StagedOrder
@@ -29,29 +31,50 @@ export async function pollUntilTerminal(
 ): Promise<OrderReceipt> {
   const { staged } = input
   const lookup = { symbol: staged.symbol, orderId, signal: input.signal }
+  const receipt = await pollForTerminal(deps, input, { lookup, attempts: ORDER_POLL_ATTEMPTS })
+
+  if (receipt === undefined) {
+    return await cancelRemainder(deps, input, orderId)
+  }
+
+  deps.logger.info('order.filled', {
+    clientOrderId: staged.clientOrderId,
+    orderId,
+    symbol: staged.symbol,
+    state: receipt.state,
+  })
+
+  return receipt
+}
+
+interface PollBudget {
+  readonly lookup: OrderLookup
+  readonly attempts: number
+}
+
+/** Undefined when no terminal state shows within the attempts, a second apart. */
+async function pollForTerminal(
+  deps: OrderServiceDeps,
+  input: SubmitInput,
+  budget: PollBudget
+): Promise<OrderReceipt | undefined> {
+  const { lookup, attempts } = budget
   let consecutiveFailures = 0
 
-  for (let attempt = 1; attempt <= ORDER_POLL_ATTEMPTS; attempt += 1) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const polled = await pollOnce(deps, input, { lookup, consecutiveFailures })
     consecutiveFailures = polled.consecutiveFailures
 
     if (polled.receipt !== undefined && isTerminal(polled.receipt.state)) {
-      deps.logger.info('order.filled', {
-        clientOrderId: staged.clientOrderId,
-        orderId,
-        symbol: staged.symbol,
-        state: polled.receipt.state,
-      })
-
       return polled.receipt
     }
 
-    if (attempt < ORDER_POLL_ATTEMPTS) {
+    if (attempt < attempts) {
       await sleep(ORDER_POLL_INTERVAL_MS, input.signal)
     }
   }
 
-  return await cancelRemainder(deps, input, orderId)
+  return undefined
 }
 
 interface PollState {
@@ -107,8 +130,8 @@ function isTerminal(state: OrderReceipt['state']): boolean {
 }
 
 /** Whatever filled between the last poll and the cancel is read back and booked; a cancel that
- *  fails leaves a live order the operator has to reconcile, and says so. An abort is the caller's
- *  own to clean up. */
+ *  fails, or is never seen to finish, leaves an order the operator has to reconcile, and says so. An
+ *  abort is the caller's own to clean up. */
 async function cancelRemainder(
   deps: OrderServiceDeps,
   input: SubmitInput,
@@ -134,9 +157,18 @@ async function cancelRemainder(
     throw new OrderError('order.fill_timeout', `order ${orderId} is still live`, err)
   }
 
-  const receipt = await input.venue.adapter.fetchOrder(lookup)
+  // A cancel is a request: the venue may still report the order live while it works through it, and
+  // reading that as unfilled would drop a fill that lands a moment later.
+  const receipt = await pollForTerminal(deps, input, {
+    lookup,
+    attempts: CANCEL_CONFIRM_ATTEMPTS,
+  })
 
-  if (receipt === undefined || receipt.filledQuantity <= 0) {
+  if (receipt === undefined) {
+    throw new OrderError('order.fill_timeout', `order ${orderId} is not confirmed cancelled`)
+  }
+
+  if (receipt.filledQuantity <= 0) {
     throw new OrderError('order.unfilled', `order ${orderId} did not fill and was cancelled`)
   }
 

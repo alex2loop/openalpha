@@ -373,7 +373,8 @@ interface ShownSnapshot {
 }
 
 /** The theme as last read. When that run's sector step failed for it, its sectors and companies
- *  come from the read before, which did map them, rather than leaving the theme with none. */
+ *  come from the read before, which did map them, rather than leaving the theme with none. Only an
+ *  active read has a chain, so any other status keeps none. */
 function toShownSnapshot(id: ThemeId, history: readonly ThemeSnapshot[]): readonly ShownSnapshot[] {
   const [last, before] = history
 
@@ -383,6 +384,7 @@ function toShownSnapshot(id: ThemeId, history: readonly ThemeSnapshot[]): readon
 
   const mapped =
     before !== undefined &&
+    last.reads.themes.some((read) => read.themeId === id && read.status === 'active') &&
     isSectorStepFailed(last.run, id) &&
     !isSectorStepFailed(before.run, id) &&
     before.reads.sectors.length > 0

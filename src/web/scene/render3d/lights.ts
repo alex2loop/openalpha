@@ -258,7 +258,10 @@ function easeKey(held: LightKey, at: { readonly target: LightKey; readonly k: nu
   const { target, k } = at
   const step = (from: number, to: number): number =>
     Math.abs(to - from) < SETTLED ? to : from + (to - from) * k
-  const tone = (from: Color, to: Color): Color => from.clone().lerp(to, k)
+  const tone = (from: Color, to: Color): Color =>
+    Math.max(Math.abs(to.r - from.r), Math.abs(to.g - from.g), Math.abs(to.b - from.b)) < SETTLED
+      ? to.clone()
+      : from.clone().lerp(to, k)
 
   return {
     sky: tone(held.sky, target.sky),

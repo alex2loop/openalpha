@@ -1562,7 +1562,7 @@ openalpha chat --message "/profile reset"
 - `risk-per-trade-pct-nav` - mức lỗ tối đa nếu một lệnh mua mới chạm cắt lỗ
 - `maximum-open-risk-pct-nav` - mức lỗ tối đa nếu mọi vị thế đang nắm cùng chạm cắt lỗ
 - `entry-tranche-pct` - phần của lệnh mua mới được vào trước (mặc định 0,5)
-- `take-profit-tranche-pct` - phần bán ở mục tiêu đầu tiên và trong một reduce (mặc định một phần ba)
+- `take-profit-tranche-pct` - phần bán ở mục tiêu đầu tiên và trong một reduce (mặc định một phần ba); bằng 1 thì bán hết vị thế ở đó
 
 Cả hai trường này nhận từ 0,2 tới 1.
 

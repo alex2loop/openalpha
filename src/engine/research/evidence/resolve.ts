@@ -136,7 +136,7 @@ function resolveClaim(
   }
 
   const evidenceIds = resolveExcerptRefs(state, scope, candidate.evidenceRefs)
-  if (candidate.kind !== 'inference' && evidenceIds.length === 0) {
+  if (evidenceIds.length === 0) {
     state.pushGap({
       code: 'unresolved_reference',
       message: 'claim references no admitted excerpt',
@@ -195,7 +195,9 @@ function resolveExcerptRefs(
       })
       continue
     }
-    resolved.push(id)
+    if (!resolved.includes(id)) {
+      resolved.push(id)
+    }
   }
   return resolved
 }

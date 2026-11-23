@@ -192,7 +192,12 @@ function withResting(result: LevelResult, resting: RestingEntryPrice): LevelResu
 function trailingStopOf(candles: readonly Candle[], policy: LevelPolicy): number | undefined {
   const last = candles.at(-1)
 
-  if (policy.trail === undefined || last === undefined || candles.length < policy.atrSessions + 1) {
+  if (
+    policy.trail === undefined ||
+    last === undefined ||
+    candles.length < policy.atrSessions + 1 ||
+    !hasIntradayRange(candles, policy.atrSessions)
+  ) {
     return undefined
   }
 
@@ -202,7 +207,7 @@ function trailingStopOf(candles: readonly Candle[], policy: LevelPolicy): number
   )
   const atr = averageTrueRange(candles, policy.atrSessions)
 
-  if (high === undefined || !(atr > 0)) {
+  if (high === undefined || !(atr > 0) || !Number.isFinite(atr)) {
     return undefined
   }
 

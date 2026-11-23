@@ -35,6 +35,8 @@ interface QrFlow {
   readonly options: LoginZaloPersonalOptions
   readonly qrPath: string
   abort: (() => unknown) | undefined
+  /** The QR image writes so far, which never reject: the last one ends before the file is removed. */
+  qrWrite: Promise<void>
   declined: boolean
   failure: unknown
 }
@@ -49,6 +51,7 @@ export async function loginZaloPersonal(
     options,
     qrPath: resolveQrCodePath(options.location),
     abort: undefined,
+    qrWrite: Promise.resolve(),
     declined: false,
     failure: undefined,
   }
@@ -74,6 +77,7 @@ export async function loginZaloPersonal(
     return flow.declined ? { kind: 'declined' } : { kind: 'expired' }
   } finally {
     options.signal.removeEventListener('abort', onAbort)
+    await flow.qrWrite
     await rm(flow.qrPath, { force: true })
   }
 }
@@ -92,7 +96,8 @@ function onQrEvent(flow: QrFlow, event: LoginQRCallbackEvent): void {
 
   switch (event.type) {
     case LoginQRCallbackEventType.QRCodeGenerated:
-      writeQrCode(flow.qrPath, event.data.image)
+      flow.qrWrite = flow.qrWrite
+        .then(() => writeQrCode(flow.qrPath, event.data.image))
         .then(() => flow.options.onProgress({ kind: 'qr-ready', path: flow.qrPath }))
         .catch((err: unknown) => {
           flow.failure = err

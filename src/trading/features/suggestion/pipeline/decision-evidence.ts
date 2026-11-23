@@ -3,6 +3,10 @@ import type { DebateInput } from '@/trading/features/suggestion/pipeline/types'
 import type { SuggestionDirection } from '@/trading/features/suggestion/types'
 import type { FactorScore, TradeLevels } from '@/trading/kernel/factor'
 import type { PriceDisplay } from '@/trading/kernel/instrument'
+import {
+  bankedShareOf,
+  banksAtTakeProfit,
+} from '@/trading/features/suggestion/exit-plan/first-exit'
 import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { promptWholePercent } from '@/trading/prompt-text'
 import { formatPrice } from '@/trading/render/money'
@@ -40,6 +44,9 @@ const FRAMINGS = Object.freeze({
 const RUNNER_TARGET =
   'above entry: the far level the reward is measured to, which few entries reach; nothing is sold there'
 
+const WHOLE_TAKE_PROFIT_TARGET =
+  'above entry: not sold at; the plan ends at the take-profit, where the whole position is sold'
+
 export function decisionLine(draft: DebateInput['draft']): string {
   return `DECISION: ${FRAMINGS[framedDirectionOf(draft)].question}`
 }
@@ -60,9 +67,9 @@ function confidenceRow(factors: FactorScore): string {
 
 interface LevelSectionInput {
   readonly levels: TradeLevels | undefined
-  readonly direction: SuggestionDirection
-  /** The share sold at the take-profit; below one, the rest rides the trail with no fixed exit. */
-  readonly banked: number
+  readonly draft: DebateInput['draft']
+  /** Whether the market keeps a trail: without one the plan leaves whole at the target. */
+  readonly trails: boolean
   readonly locale: Locale
   readonly display: PriceDisplay | undefined
 }
@@ -78,20 +85,22 @@ export function levelSection(input: LevelSectionInput): string {
     return 'LEVELS: unavailable — no entry, stop, or target has been computed.'
   }
 
-  const { banked } = input
-  const framing = FRAMINGS[input.direction]
-  const runner = banked < 1
+  const { draft } = input
+  const framing = FRAMINGS[framedDirectionOf(draft)]
+  const banks = banksAtTakeProfit(draft, input.trails)
+  const banked = bankedShareOf(draft, input.trails)
+  const rest = banked < 1 ? '; the rest has no fixed exit and rides a rising stop' : ''
 
   return [
     'LEVELS (fixed, computed deterministically — quote them as they stand, never alter them):',
     `- entry ${formatPrice(locale, levels.entry, display)} — ${entryPurpose(levels, framing)}`,
     `- stop ${formatPrice(locale, levels.stop, display)} — ${framing.stop}`,
-    ...(runner
+    ...(banks
       ? [
-          `- take-profit ${formatPrice(locale, levels.takeProfit, display)} — ${promptWholePercent(banked)} of the position is sold here; the rest has no fixed exit and rides a rising stop`,
+          `- take-profit ${formatPrice(locale, levels.takeProfit, display)} — ${promptWholePercent(banked)} of the position is sold here${rest}`,
         ]
       : []),
-    `- target ${formatPrice(locale, levels.target, display)} — ${runner ? RUNNER_TARGET : framing.target}`,
+    `- target ${formatPrice(locale, levels.target, display)} — ${targetPurpose(framing, banks, banked)}`,
   ].join('\n')
 }
 
@@ -108,4 +117,12 @@ function entryPurpose(levels: TradeLevels, framing: DecisionFraming): string {
     `the name ran ${promptWholePercent(resting.run)} over its last ${resting.runSessions}; ` +
     'it fills only on a dip to it'
   )
+}
+
+function targetPurpose(framing: DecisionFraming, banks: boolean, banked: number): string {
+  if (!banks) {
+    return framing.target
+  }
+
+  return banked < 1 ? RUNNER_TARGET : WHOLE_TAKE_PROFIT_TARGET
 }

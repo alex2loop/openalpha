@@ -210,7 +210,7 @@ function firstUsableObservation(
   for (const observation of payload.observations) {
     const value = Number(observation.value)
 
-    if (observation.value !== MISSING_OBSERVATION && Number.isFinite(value)) {
+    if (!isMissingObservation(observation.value) && Number.isFinite(value)) {
       return { date: observation.date, value }
     }
   }
@@ -220,7 +220,7 @@ function firstUsableObservation(
 
 function latestKnownObservation(payload: FredObservations): TradingDay | undefined {
   for (const observation of payload.observations) {
-    if (observation.value === MISSING_OBSERVATION) {
+    if (isMissingObservation(observation.value)) {
       continue
     }
 
@@ -403,8 +403,9 @@ function alignedObservation(
   const breakevenByDate = observationValues(breakeven.value, US_BREAKEVEN_SERIES)
 
   for (const observation of nominal.value.observations) {
-    const breakevenValue =
-      observation.value === MISSING_OBSERVATION ? undefined : breakevenByDate.get(observation.date)
+    const breakevenValue = isMissingObservation(observation.value)
+      ? undefined
+      : breakevenByDate.get(observation.date)
 
     if (breakevenValue !== undefined) {
       return {
@@ -422,10 +423,15 @@ function observationValues(payload: FredObservations, label: string): ReadonlyMa
   const values = new Map<string, number>()
 
   for (const observation of payload.observations) {
-    if (observation.value !== MISSING_OBSERVATION) {
+    if (!isMissingObservation(observation.value)) {
       values.set(observation.date, finite(Number(observation.value), label))
     }
   }
 
   return values
+}
+
+/** FRED publishes a day with no reading as `.`; a blank value is the same absence, not a zero. */
+function isMissingObservation(value: string): boolean {
+  return value === MISSING_OBSERVATION || value.trim() === ''
 }

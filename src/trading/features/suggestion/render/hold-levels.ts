@@ -6,6 +6,7 @@ import type { QuotedIn } from '@/trading/render/money'
 import { t } from '@/i18n'
 import {
   bankedShareOf,
+  banksAtTakeProfit,
   firstExitRiskReward,
   heldFirstExitOf,
 } from '@/trading/features/suggestion/exit-plan/first-exit'
@@ -231,33 +232,47 @@ function holdingMarkOf(suggestion: StoredSuggestion, entry: number): number {
 }
 
 /** The exits past the stop in the order the operator meets them: a tranche banked before the
- *  target is its own row and the R:R is the take-profit's. A sale, a fund and a market with no
- *  trail exit whole at the target, so they keep the single target row and the row's own ratio. */
+ *  target is its own row and the R:R is the take-profit's, and a tranche of the whole position has
+ *  no target row at all. A sale, a fund and a market with no trail exit whole at the target, so
+ *  they keep the single target row and the row's own ratio. */
 function exitRows(
   input: HoldLevelsInput,
   levels: { entry: number; stop: number; takeProfit: number; target: number },
   shared: Record<string, string>
 ): readonly string[] {
   const { locale, suggestion } = input
-  const banked = bankedShareOf(suggestion, input.trailsStop === true)
+  const trails = input.trailsStop === true
   const arm = framedDirectionOf(suggestion) === 'reduce' ? 'Reduce' : ''
 
-  if (banked >= 1) {
+  if (!banksAtTakeProfit(suggestion, trails)) {
     return [
       t(locale, `trading.render.suggestion.holdLevelsTarget${arm}`, shared),
       t(locale, 'trading.render.suggestion.holdLevelsRiskReward', shared),
     ]
   }
 
+  const banked = bankedShareOf(suggestion, trails)
   const { entry, takeProfit, target } = levels
-  const ladder = takeProfit < target
   const params = {
     ...shared,
     tranche: formatWholeFraction(locale, banked),
     takeProfit: formatPriceIn(locale, takeProfit, input.quoted ?? {}),
     takeProfitPct: formatSignedFraction(locale, (takeProfit - entry) / entry),
-    rr: formatRatio(locale, firstExitRiskReward(levels, banked)),
+    rr: formatRatio(locale, firstExitRiskReward(levels, suggestion, trails)),
   }
+
+  if (banked >= 1) {
+    return [
+      t(locale, 'trading.render.suggestion.holdLevelsTakeProfit', {
+        ...params,
+        target: params.takeProfit,
+        targetPct: params.takeProfitPct,
+      }),
+      t(locale, 'trading.render.suggestion.holdLevelsRiskRewardTakeProfit', params),
+    ]
+  }
+
+  const ladder = takeProfit < target
 
   return [
     t(

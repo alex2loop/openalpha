@@ -67,10 +67,7 @@ export function entryFillFor(input: LockInput, window: SessionWindow): EntryFill
 /** A buy needs a seller and a reduce needs a buyer. An entry the limit shut out fills at the open
  *  of the first session that trades its side. */
 function entryFillOf(input: LockInput, window: SessionWindow): EntryFill {
-  const locked = input.suggestion.action === 'buy' ? 'ceiling' : 'floor'
-  const offset = window.bars.findIndex(
-    (_, index) => limitLockAt(input, window.start + index) !== locked
-  )
+  const offset = window.bars.findIndex((_, index) => !isEntryLocked(input, window.start + index))
   const bar = window.bars[offset]
 
   if (bar === undefined) {
@@ -94,7 +91,10 @@ function restingFillOf(
 ): EntryFill {
   const { entry, settlement } = input.suggestion
   const offset = window.bars.findIndex(
-    (session) => session.at <= restingEntry.until && session.low < entry
+    (session, index) =>
+      session.at <= restingEntry.until &&
+      session.low < entry &&
+      !isEntryLocked(input, window.start + index)
   )
   const bar = window.bars[offset]
 
@@ -109,6 +109,11 @@ function restingFillOf(
   return window.bars.some((session) => session.at >= restingEntry.until)
     ? { kind: 'shut' }
     : { kind: 'resting' }
+}
+
+/** A buy needs a seller, which a ceiling with none cannot give; a reduce needs a buyer. */
+function isEntryLocked(input: LockInput, session: number): boolean {
+  return limitLockAt(input, session) === (input.suggestion.action === 'buy' ? 'ceiling' : 'floor')
 }
 
 /** T+N counts from the fill, so a later fill moves the day the purchase can be sold by the same

@@ -183,9 +183,10 @@ interface AdmittedResult {
  *  command answered is recorded in its session's transcript, a refusal included, except the rate
  *  limiter's. */
 function dispatchResolved(options: AdmissionOptions): Promise<SlashResult> {
-  const context = withRunId(options.context, options.resolved.policy)
-  const id = context.correlationId ?? context.sessionId
   const { command, args, policy } = options.resolved
+  // Admission and the command read one context: a policy keyed on the arguments sees them.
+  const context = withRunId({ ...options.context, args }, policy)
+  const id = context.correlationId ?? context.sessionId
 
   return withCorrelation(id, async () => {
     const exchange = { ...options, invocation: [`/${command.name}`, ...args].join(' '), policy }
@@ -258,8 +259,8 @@ async function dispatchAdmitted(options: AdmissionOptions): Promise<AdmittedResu
 
 // Only a long-running command is a run on the bus; the rest answer in place.
 async function runCommand(options: AdmissionOptions): Promise<SlashResult> {
-  const { command, args, policy } = options.resolved
-  const context = { ...options.context, args }
+  const { command, policy } = options.resolved
+  const { context } = options
 
   if (policy.execution !== undefined) {
     return await options.runs.withCommandEvents(context, command)

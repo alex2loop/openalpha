@@ -593,8 +593,8 @@ name a tunnel or proxy can send: the daemon has no IPv6 listener.
 
 The office page's config editor cannot change plugins, an MCP server's command, every `*_env` key and
 every other field naming an environment variable (`[trading.sources]`,
-`[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
-`[update]` or `[trading.orders] allow_unattended`; change those here. The key values themselves can be
+`[trading.venues.<id>] credentials`), `base_url`, a channel's `token_file`, `[paths]`, `[log] file`,
+`[storage]`, `[api]`, `[update]` or `[trading.orders] allow_unattended`; change those here. The key values themselves can be
 saved from Settings > Providers, Exchanges and Tools, which write `<data dir>/env` as
 `openalpha key set` does.
 

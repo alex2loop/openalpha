@@ -46,6 +46,7 @@ export function startViews(deps: ViewDeps): () => void {
   const views: ViewState = {
     canvas: new AbortController(),
     isStopped: false,
+    loadEpoch: 0,
     noteTimer: undefined,
   }
   const off = effect(() => {
@@ -73,12 +74,16 @@ function showFlat(deps: ViewDeps, views: ViewState): void {
 
 function showDeep(deps: ViewDeps, views: ViewState): void {
   const fallback = () => fallBack(deps, views)
+  const loadEpoch = ++views.loadEpoch
+  // A load the operator left, or a newer one replaced, neither shows nor falls back.
+  const isStale = () =>
+    views.isStopped || views.loadEpoch !== loadEpoch || sceneView.peek() !== '3d'
 
   showViewNote('loading')
   deps
     .load3d()
     .then((create) => {
-      if (views.isStopped || sceneView.peek() !== '3d') {
+      if (isStale()) {
         return
       }
 
@@ -87,7 +92,7 @@ function showDeep(deps: ViewDeps, views: ViewState): void {
       showViewNote(undefined)
     })
     .catch(() => {
-      if (!views.isStopped) {
+      if (!isStale()) {
         fallback()
       }
     })
@@ -104,6 +109,8 @@ function fallBack(deps: ViewDeps, views: ViewState): void {
 interface ViewState {
   canvas: AbortController
   isStopped: boolean
+  /** Counts the 3D loads started. */
+  loadEpoch: number
   noteTimer: ReturnType<typeof setTimeout> | undefined
 }
 

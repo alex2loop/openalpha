@@ -21,12 +21,7 @@ import type { VenueRegistry } from '@/trading/venues/types'
 import { BRAND } from '@/core/brand'
 import { translateToolError } from '@/i18n'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
-import {
-  confirmTokenOf,
-  isConfirmArgs,
-  parseTradeArgs,
-  TRADE_ACTIONS,
-} from '@/trading/features/order/parse'
+import { parseTradeArgs, TRADE_ACTIONS } from '@/trading/features/order/parse'
 import {
   quotedInFor,
   renderCapRejections,
@@ -71,17 +66,6 @@ const STAGE_POLICY: SlashInvocationPolicy = {
   role: 'operator',
   action: 'mutate',
   idempotencyKey: (ctx) => ctx.requestId,
-}
-
-/** The dispatcher keys on `(surface, channel, userId, chatId, 'trade', policyKey)` for five
- *  minutes. A confirm keyed on the staging call's own `requestId` would produce the identical tuple
- *  and be answered `handled` without ever running, for exactly the window in which a confirm is
- *  plausible — so it keys on the token the staging call minted instead. A bare confirm names no
- *  token and falls back to the request id, which is what keeps a retry of the same turn idempotent
- *  without letting two different turns share a key. */
-const CONFIRM_POLICY: SlashInvocationPolicy = {
-  ...STAGE_POLICY,
-  idempotencyKey: (ctx) => confirmTokenOf(ctx.args) ?? ctx.requestId,
 }
 
 const KEYLESS_POLICY: SlashInvocationPolicy = {
@@ -139,7 +123,6 @@ export function createTradeCommand(options: TradeCommandOptions): SlashCommand {
       ...REVIEW_MESSAGE_KEYS,
     ],
     policy: STAGE_POLICY,
-    policyFor: (args) => (isConfirmArgs(args) ? CONFIRM_POLICY : STAGE_POLICY),
     // The action only: a staged order's side sits behind an optional venue, so its slot is not
     // known until the line is finished.
     completeFor: (args) => (args.length === 1 ? TRADE_ACTIONS : []),

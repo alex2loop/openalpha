@@ -89,7 +89,8 @@ function renderStakeLine(input: OrderNotesInput, suggestion: Actionable): readon
   const banked = bankedShareOf(suggestion, input.trailsStop)
   const feePerUnit = isBuy && cost !== undefined ? entry * roundTripRate(cost) : 0
   const risk = Math.abs(entry - stop) + feePerUnit
-  const reward = Math.abs(firstExitOf(suggestion, banked) - entry) - feePerUnit
+  const reward =
+    Math.abs(firstExitOf(suggestion, suggestion, input.trailsStop) - entry) - feePerUnit
 
   return [
     `${INDENT[1]}${t(locale, `trading.render.suggestion.${stakeKeyOf(suggestion, banked, cost)}`, {

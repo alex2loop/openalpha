@@ -11,6 +11,7 @@ import { createSource, parsedSource } from '@/trading/sources/define'
 import {
   dropInvalid,
   finite,
+  fromCodeTable,
   nonNegative,
   pageRows,
   parseRow,
@@ -90,7 +91,7 @@ function toSessionQuotes(
  *  a fund certificate in the tally measures the same names twice. */
 function toSessionQuote(row: unknown, market: MarketRef): readonly SessionQuote[] {
   const parsed = parseRow(SESSION_ROW, row, 'stock_prices')
-  const kind = LISTING_KINDS[parsed.type]
+  const kind = fromCodeTable(LISTING_KINDS, parsed.type)
 
   if (kind === undefined) {
     return []

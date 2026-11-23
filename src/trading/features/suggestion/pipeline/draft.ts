@@ -25,7 +25,7 @@ import type { InvestmentHorizon, ProfileStamp } from '@/trading/kernel/operator/
 import type { SourceProvenance } from '@/trading/kernel/source/source-result'
 import type { MarketManifest } from '@/trading/markets/types'
 import { invalidatorsOf, probabilityOf } from '@/trading/features/suggestion/debate/types'
-import { bankedShareOf, firstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
+import { firstExitOf } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { levelDirectionFor, targetWeightOf } from '@/trading/features/suggestion/pipeline/direction'
 import {
   priceBandOf,
@@ -150,11 +150,11 @@ export function finalize(input: FinalizeInput): Suggestion {
   }
   const decline = declineReasonOf(
     debate.result,
-    plannedFirstExitRiskReward(
-      input.levels,
-      bankedShareOf(draft, input.trailsStop),
-      input.deps.roundTripFeeFraction(input.manifest.id)
-    ),
+    plannedFirstExitRiskReward(input.levels, {
+      plan: draft,
+      trails: input.trailsStop,
+      roundTripFeeFraction: input.deps.roundTripFeeFraction(input.manifest.id),
+    }),
     input.direction.action === 'buy' && input.direction.coreFill === true
   )
   // An actionable draft holding on nothing but an empty thesis has no other reason on record: the
@@ -182,15 +182,18 @@ export function finalize(input: FinalizeInput): Suggestion {
  *  carry a ratio, which leaves the floor with nothing to test. */
 function plannedFirstExitRiskReward(
   levels: TradeLevels | undefined,
-  banked: number,
-  roundTripFeeFraction: number
+  input: {
+    readonly plan: Suggestion
+    readonly trails: boolean
+    readonly roundTripFeeFraction: number
+  }
 ): number | undefined {
   if (levels === undefined || !(levels.riskDistance > 0)) {
     return undefined
   }
 
-  const cost = levels.entry * roundTripFeeFraction
-  const reward = Math.abs(firstExitOf(levels, banked) - levels.entry)
+  const cost = levels.entry * input.roundTripFeeFraction
+  const reward = Math.abs(firstExitOf(levels, input.plan, input.trails) - levels.entry)
 
   return (reward - cost) / (levels.riskDistance + cost)
 }

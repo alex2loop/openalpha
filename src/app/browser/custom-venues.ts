@@ -106,16 +106,25 @@ interface VenueChange {
   readonly rows: readonly LedgerEntry[]
 }
 
-/** Refuses dropping a venue a ledger row still names, so no row is left on a venue the book no
- *  longer knows. Reads the whole book: removing a venue is rare and the book is bounded. */
+/** Refuses dropping a venue, or moving it to another market, while a ledger row still names it, so
+ *  no row is left on a venue the book no longer knows or that no longer holds its market. Reads the
+ *  whole book: changing a venue is rare and the book is bounded. */
 export function assertRowsStay({ before, after, rows }: VenueChange): void {
-  const kept = new Set(after.map(({ id }) => id))
+  const marketsAfter = new Map(after.map(({ id, market }) => [id, market]))
 
-  for (const { id } of before) {
-    const named = kept.has(id) ? 0 : rows.filter((row) => namesVenue(row, id)).length
+  for (const { id, market } of before) {
+    const next = marketsAfter.get(id)
+
+    if (next === market) {
+      continue
+    }
+
+    const named = rows.filter((row) => namesVenue(row, id)).length
 
     if (named > 0) {
-      throw refusal('errors.customVenueInUse', id, { count: named })
+      const key = next === undefined ? 'errors.customVenueInUse' : 'errors.customVenueMarketInUse'
+
+      throw refusal(key, id, { count: named })
     }
   }
 }

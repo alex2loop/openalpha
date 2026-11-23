@@ -8,7 +8,11 @@ import type {
 import type { BoardLotPolicy } from '@/trading/kernel/instrument'
 import type { QuotedIn } from '@/trading/render/money'
 import { formatDay, t } from '@/i18n'
-import { bankedShareOf } from '@/trading/features/suggestion/exit-plan/first-exit'
+import {
+  bankedShareOf,
+  banksAtTakeProfit,
+  firstExitOf,
+} from '@/trading/features/suggestion/exit-plan/first-exit'
 import { OUTCOME_WINDOW_DAYS } from '@/trading/features/suggestion/pipeline/outcome-window'
 import { armsExit } from '@/trading/features/suggestion/types'
 import { floorToLot } from '@/trading/kernel/instrument'
@@ -119,32 +123,39 @@ function renderChaseLines(
 }
 
 /** Where the first profit is taken, in the words of how the rest is handled: a trailing plan banks
- *  a tranche and lets the rest ride its stop, a plan with no trail is complete at its target, and a
- *  fund is graded there and rebalanced rather than sold. */
+ *  a tranche and lets the rest ride its stop (or sells the whole position there when the tranche is
+ *  all of it), a plan with no trail is complete at its target, and a fund is graded there and
+ *  rebalanced rather than sold. */
 function renderTakeProfitLines(
   locale: Locale,
   suggestion: ActionableStoredSuggestion,
   options: PlanLinesOptions
 ): readonly string[] {
-  const { entry, takeProfit, target } = suggestion
-  const banked = bankedShareOf(suggestion, options.trailsStop === true)
+  const { entry, target } = suggestion
+  const trails = options.trailsStop === true
+  const banked = bankedShareOf(suggestion, trails)
+  const firstExit = firstExitOf(suggestion, suggestion, trails)
   const params = {
     tranche: formatWholeFraction(locale, banked),
-    price: formatPriceIn(locale, takeProfit, options.quote),
-    pct: formatSignedFraction(locale, (takeProfit - entry) / entry),
+    price: formatPriceIn(locale, firstExit, options.quote),
+    pct: formatSignedFraction(locale, (firstExit - entry) / entry),
     target: formatPriceIn(locale, target, options.quote),
     targetPct: formatSignedFraction(locale, (target - entry) / entry),
   }
-  return [`${INDENT[1]}${t(locale, takeProfitKeyOf(suggestion, banked), params)}`]
+  return [`${INDENT[1]}${t(locale, takeProfitKeyOf(suggestion, trails), params)}`]
 }
 
-function takeProfitKeyOf(suggestion: ActionableStoredSuggestion, banked: number): MessageKey {
+function takeProfitKeyOf(suggestion: ActionableStoredSuggestion, trails: boolean): MessageKey {
   if (!armsExit(suggestion)) {
     return 'trading.render.suggestion.planTakeProfitFund'
   }
 
-  if (banked >= 1) {
+  if (!banksAtTakeProfit(suggestion, trails)) {
     return 'trading.render.suggestion.planTakeProfit'
+  }
+
+  if (bankedShareOf(suggestion, trails) >= 1) {
+    return 'trading.render.suggestion.planTakeProfitWhole'
   }
 
   return suggestion.takeProfit < suggestion.target
