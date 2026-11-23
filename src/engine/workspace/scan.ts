@@ -133,7 +133,7 @@ async function drainPending(context: ScanContext, state: ScanState): Promise<voi
         await inspectChild({ context, state, current, childName })
       }
     } catch (err: unknown) {
-      if (isWorkspaceRootFailure(err)) {
+      if (isScanStop(err)) {
         throw err
       }
 
@@ -192,7 +192,7 @@ async function inspectChild(options: {
       })
     }
   } catch (err: unknown) {
-    if (isWorkspaceRootFailure(err)) {
+    if (isScanStop(err)) {
       throw err
     }
 
@@ -235,8 +235,7 @@ function fileIdentity(info: {
   return { dev: info.dev, ino: info.ino, mtimeMs: info.mtimeMs, ctimeMs: info.ctimeMs }
 }
 
-/** What the policy raises when the workspace root itself is unsafe: it stops the whole scan, where
- *  any other failure is one agent's or one directory's. */
-export function isWorkspaceRootFailure(err: unknown): boolean {
+/** An escape or a blown entry budget stops the agent's scan; any other failure is one entry's. */
+function isScanStop(err: unknown): boolean {
   return err instanceof ToolError && (err.code === 'path_escape' || err.code === 'depth_limit')
 }

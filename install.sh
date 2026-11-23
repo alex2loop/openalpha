@@ -111,19 +111,21 @@ install_binary() {
          "Tệp tải về không khớp mã kiểm tra nên tôi chưa cài. Chạy lại script này nhé."
 
   chmod 755 "$part"
-  keep_previous
+  keep_previous "$work"
   mv -f "$part" "$INSTALL_DIR/$COMMAND"
+  # The binary is in place: a signal from here on (Ctrl-C in onboarding) is the binary's to answer.
+  trap - HUP INT TERM
 }
 
 # The release being replaced stays next to the new one as `.old`, as `openalpha upgrade` keeps it,
-# so `upgrade --rollback` goes back to it. A filesystem without hard links gets a copy, written under
-# a temporary name first so a copy cut short (a full disk) never becomes the rollback copy.
+# so `upgrade --rollback` goes back to it. A filesystem without hard links gets a copy, written in
+# the run's folder (`$1`) first so a copy cut short (a full disk) never becomes the rollback copy.
 keep_previous() {
   [ -x "$INSTALL_DIR/$COMMAND" ] || return 0
   rm -f "$INSTALL_DIR/$COMMAND.old"
   ln "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null && return 0
-  if cp -p "$INSTALL_DIR/$COMMAND" "$work/previous" 2>/dev/null; then
-    mv -f "$work/previous" "$INSTALL_DIR/$COMMAND.old"
+  if cp -p "$INSTALL_DIR/$COMMAND" "$1/previous" 2>/dev/null; then
+    mv -f "$1/previous" "$INSTALL_DIR/$COMMAND.old"
   fi
 }
 

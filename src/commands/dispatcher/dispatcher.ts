@@ -345,7 +345,6 @@ function admit(options: AdmissionOptions): AdmissionResult {
   const gateKey = encodeKey(gate)
   let cooldownKey: string | undefined
   let cooldownMs: number | undefined
-
   const idempotencyKey = idempotencyKeyOf(policy, context, gate)
 
   // First, so a redelivery of a command still running or cooling down is dropped silently rather

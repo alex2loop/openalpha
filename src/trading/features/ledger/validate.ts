@@ -14,8 +14,9 @@ import { ValidationError } from '@/core/errors'
 import { applyTransaction, positionAt, promoteSettled } from '@/trading/features/ledger/book'
 import {
   baseCashAvailable,
+  cashOutflowOf,
   currencyCashAt,
-  currencyCashSpend,
+  movesCurrencyCash,
 } from '@/trading/features/ledger/currency-cash'
 import { createFoldState } from '@/trading/features/ledger/fold-state'
 import { orderLedger } from '@/trading/features/ledger/ordering'
@@ -94,21 +95,20 @@ function replayForValidity(ordered: readonly LedgerEntry[], baseCurrency: Curren
 }
 
 function assertAffordable(state: FoldState, txn: LedgerTxn): void {
-  const spend = currencyCashSpend(state, txn)
+  const paid = cashOutflowOf(txn)
 
-  if (spend !== undefined) {
-    assertCurrencyCashCovers(state, txn, spend)
+  if (paid === undefined || !('conversion' in txn)) {
+    return
+  }
+
+  if (movesCurrencyCash(state, txn)) {
+    assertCurrencyCashCovers(state, txn, { ...paid, currency: txn.currency })
 
     return
   }
 
-  const outflow = cashOutflowBase(txn)
-
-  if (outflow === 0) {
-    return
-  }
-
-  const venue = payingVenue(txn)
+  const { venue } = paid
+  const outflow = paid.amount * txn.conversion.rate
   const available = baseCashAvailable(state.byVenue, state.currencyCash.values(), venue)
 
   if (isShortfall(available, outflow)) {
@@ -172,31 +172,6 @@ function assertCurrencyCashCovers(
 
 /** Which venue's cash a row spends. Every kind but a transfer spends where it sits; a transfer
  *  spends at its source and credits its destination. */
-function payingVenue(txn: LedgerTxn): VenueRef {
-  return txn.kind === 'transfer' ? txn.fromVenue : txn.venue
-}
-
-function cashOutflowBase(txn: LedgerTxn): number {
-  if (txn.kind === 'transfer') {
-    return (txn.amount + txn.fee) * txn.conversion.rate
-  }
-
-  if (txn.kind === 'buy' || txn.kind === 'rights') {
-    return (txn.quantity * txn.unitPrice + txn.fee) * txn.conversion.rate
-  }
-
-  if (txn.kind === 'withdrawal' || txn.kind === 'fee' || txn.kind === 'loss') {
-    return txn.amount * txn.conversion.rate
-  }
-
-  // A sale's fee passing its gross leaves a net outflow, which needs cash like any other.
-  if (txn.kind === 'sell') {
-    return Math.max(0, txn.fee - txn.quantity * txn.unitPrice) * txn.conversion.rate
-  }
-
-  return 0
-}
-
 /** Sells are limited by settled quantity, which is how T+2 is expressed once rather than as a VN
  *  special case. */
 function assertSellable(state: FoldState, txn: LedgerTxn): void {

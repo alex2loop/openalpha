@@ -233,7 +233,6 @@ export function cutByUtf16Units(text: string, pos: number, maxLen: number): numb
   }
 
   const code = text.charCodeAt(end - 1)
-
   const splitsPair = code >= HIGH_SURROGATE_MIN && code <= HIGH_SURROGATE_MAX
 
   return splitsPair && end - 1 > pos ? end - 1 : end

@@ -259,14 +259,14 @@ export async function resolveRestingStops(
 /** `placed` is what this tree's stops guard, `atVenue` what the venue lists; a stop that guards
  *  only part of the position is not cover for the rest. */
 function coverOf(
-  stops: { readonly placed: number; readonly atVenue: number },
+  guarded: { readonly placed: number; readonly atVenue: number },
   held: number
 ): StopCover {
-  if (coveredFractionOf(stops.placed, held) === 1) {
+  if (coveredFractionOf(guarded.placed, held) === 1) {
     return 'placed'
   }
 
-  return coveredFractionOf(stops.atVenue, held) === 1 ? 'venue' : 'none'
+  return coveredFractionOf(guarded.atVenue, held) === 1 ? 'venue' : 'none'
 }
 
 function weakerCover(held: StopCover | undefined, next: StopCover): StopCover {

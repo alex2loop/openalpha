@@ -21,9 +21,9 @@ import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { LEVEL_BARS_SESSIONS, resolveTrailBounds } from '@/trading/markets/levels'
 
-/** A trail series the market could not serve, or a replacement that threw, is asked again after
- *  this, not on every tick: either reaches a provider, and an outage would otherwise cost one
- *  request per held name a minute. */
+/** A trail series the market could not serve, a plan that threw, or a holding the planner could not
+ *  plan is asked again after this, not on every tick: each reaches a provider, and an outage would
+ *  otherwise cost one request per held name a minute. */
 const PLAN_RETRY_MS = 15 * 60_000
 
 /** What the two plan-maintenance passes read — a slice of what the reconcile pass holds, declared
