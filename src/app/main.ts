@@ -114,7 +114,10 @@ export async function main(argv: readonly string[], options?: MainOptions): Prom
     // Config resolution reads keys from `process.env`, so the key file loads first.
     const keyLoad = loadEnvFile(
       resolveEnvFile(
-        resolveLoadDataDir(flags.dataDir === undefined ? {} : { dataDir: flags.dataDir })
+        resolveLoadDataDir({
+          env: getEnv(),
+          ...(flags.dataDir === undefined ? {} : { dataDir: flags.dataDir }),
+        })
       ),
       getEnv()
     )

@@ -294,6 +294,7 @@ async function prepareBootApp(options: PrepareBootAppOptions): Promise<void> {
 // data directory.
 async function resolveBootConfig(options: BootOptions): Promise<ResolvedBootConfig> {
   const { raw, configPath } = await loadConfig({
+    env: options.env,
     configFile: options.configFile ?? 'required',
     ...(options.configPath === undefined ? {} : { configPath: options.configPath }),
     ...(options.dataDir === undefined ? {} : { dataDir: options.dataDir }),

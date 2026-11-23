@@ -23,7 +23,13 @@ import { withCorrelation } from '@/core/logging/correlation'
 
 import { type CommandRuns, createCommandRuns } from './long-running'
 import { assertPolicyValid, assertSlashCommandValid } from './registration'
-import { IDEMPOTENCY_TTL_MS, RATE_WINDOW_MS, sweepRegistries } from './registries'
+import {
+  isCooldownActive,
+  isIdempotencyActive,
+  isRateExceeded,
+  recordCall,
+  sweepRegistries,
+} from './registries'
 import {
   dispatchLine,
   isCommandVisible,
@@ -340,6 +346,14 @@ function admit(options: AdmissionOptions): AdmissionResult {
   let cooldownKey: string | undefined
   let cooldownMs: number | undefined
 
+  const idempotencyKey = idempotencyKeyOf(policy, context, gate)
+
+  // First, so a redelivery of a command still running or cooling down is dropped silently rather
+  // than answered as a rate limit.
+  if (isIdempotencyActive({ idempotency, pendingKeys, key: idempotencyKey, now })) {
+    return rejectHandled()
+  }
+
   if (policy.cooldownMs !== undefined) {
     cooldownMs = policy.cooldownMs
     cooldownKey = gateKey
@@ -357,13 +371,7 @@ function admit(options: AdmissionOptions): AdmissionResult {
     return rejectRateLimited()
   }
 
-  if (policy.idempotencyKey !== undefined) {
-    const idempotencyKey = encodeKey([...gate, policy.idempotencyKey(context)])
-
-    if (isIdempotencyActive({ idempotency, pendingKeys, key: idempotencyKey, now })) {
-      return rejectHandled()
-    }
-
+  if (idempotencyKey !== undefined) {
     keys.push(idempotencyKey)
     // Stamped on admission, not on completion: a command that side-effects and then throws must
     // not run again when the inbox redelivers the message it came from.
@@ -383,18 +391,6 @@ function admit(options: AdmissionOptions): AdmissionResult {
     kind: 'admitted',
     lease: createAdmissionLease({ keys, cooldowns, pendingKeys, cooldownKey, cooldownMs, now }),
   }
-}
-
-function recordCall(calls: Map<string, readonly number[]>, key: string, now: number): void {
-  calls.set(key, [...activeCalls(calls, key, now), now])
-}
-
-function activeCalls(
-  calls: Map<string, readonly number[]>,
-  key: string,
-  now: number
-): readonly number[] {
-  return (calls.get(key) ?? []).filter((at) => now - at < RATE_WINDOW_MS)
 }
 
 // Escapes the separator so no part can forge another identity's key.
@@ -430,34 +426,12 @@ function createAdmissionLease(options: AdmissionLeaseOptions): AdmissionLease {
   }
 }
 
-function isCooldownActive(options: {
-  readonly cooldowns: Map<string, number>
-  readonly pendingKeys: Set<string>
-  readonly key: string
-  readonly now: number
-}): boolean {
-  return (
-    options.pendingKeys.has(options.key) || (options.cooldowns.get(options.key) ?? 0) > options.now
-  )
-}
-
-function isIdempotencyActive(options: {
-  readonly idempotency: Map<string, number>
-  readonly pendingKeys: Set<string>
-  readonly key: string
-  readonly now: number
-}): boolean {
-  return (
-    options.pendingKeys.has(options.key) ||
-    (options.idempotency.get(options.key) ?? 0) > options.now - IDEMPOTENCY_TTL_MS
-  )
-}
-
-function isRateExceeded(options: {
-  readonly calls: Map<string, readonly number[]>
-  readonly key: string
-  readonly now: number
-  readonly limit: number
-}): boolean {
-  return activeCalls(options.calls, options.key, options.now).length >= options.limit
+function idempotencyKeyOf(
+  policy: SlashInvocationPolicy,
+  context: SlashContext,
+  gate: readonly string[]
+): string | undefined {
+  return policy.idempotencyKey === undefined
+    ? undefined
+    : encodeKey([...gate, policy.idempotencyKey(context)])
 }

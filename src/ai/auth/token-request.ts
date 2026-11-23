@@ -1,7 +1,7 @@
 import type { AccessToken } from '@/ai/auth/types'
 import { attributionHeaders } from '@/ai/auth/attribution'
 import { readRecord, readString } from '@/ai/auth/json'
-import { isAbortError, LLMError } from '@/core/errors'
+import { LLMError, ToolError } from '@/core/errors'
 import { HttpRequestError, httpRequest } from '@/core/http-client'
 import { MS_PER_SECOND } from '@/core/utils/time'
 
@@ -34,10 +34,6 @@ export async function requestAccessToken(request: AccessTokenRequest): Promise<A
 
     return toAccessToken(response.text, request.issuer)
   } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw new LLMError('timeout', `${request.issuer} token request timed out`, { cause: err })
-    }
-
     throw toTokenRequestError(err, request.issuer)
   }
 }
@@ -47,6 +43,10 @@ export function toTokenRequestError(err: unknown, issuer: string): Error {
     return err
   }
 
+  if (isTimeout(err)) {
+    return new LLMError('timeout', `${issuer} token request timed out`, { cause: err })
+  }
+
   const status = err instanceof HttpRequestError ? err.status : undefined
   const permanent = status !== undefined && PERMANENT_STATUSES.has(status)
 
@@ -54,6 +54,14 @@ export function toTokenRequestError(err: unknown, issuer: string): Error {
     permanent ? 'auth' : 'transient',
     `${issuer} token request failed${status === undefined ? '' : ` (HTTP ${status})`}`,
     { cause: err instanceof Error ? err : undefined }
+  )
+}
+
+// A deadline surfaces as the signal's `TimeoutError` or, once a host spent its own, a typed timeout.
+function isTimeout(err: unknown): boolean {
+  return (
+    (err instanceof Error && err.name === 'TimeoutError') ||
+    (err instanceof ToolError && err.code === 'timeout')
   )
 }
 

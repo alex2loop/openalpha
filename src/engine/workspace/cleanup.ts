@@ -17,6 +17,7 @@ import type {
   WorkspaceFixedArea,
 } from './types'
 import {
+  isWorkspaceRootFailure,
   listAgentDirectories,
   resolveAgentDirectory,
   resolveWorkspaceRoot,
@@ -146,8 +147,12 @@ async function planAllScope(options: {
       await resolveAgentDirectory(context, id)
       const plan = await scanAgentWorkspace(context, id, request.areas)
       agents.set(id, plan)
-    } catch {
-      // Workspace-root failures are re-thrown by the policy; everything else is an isolated agent failure.
+    } catch (err: unknown) {
+      // An unsafe workspace root stops the plan; everything else is an isolated agent failure.
+      if (isWorkspaceRootFailure(err)) {
+        throw err
+      }
+
       failures += 1
     }
   }

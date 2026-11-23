@@ -16,6 +16,8 @@ import { ConfigError } from '@/core/errors'
 import { isPlainRecord } from '@/core/utils/collections'
 
 interface ConfigLoadOptions {
+  /** The variables the data-dir lookup reads, handed in by the caller as `resolveConfig` takes them. */
+  readonly env: ConfigHost['env']
   /** Only an absent implicit file may resolve defaults; an explicit missing path always fails. */
   readonly configFile?: 'required' | 'optional' | 'probe'
   /** An explicit file always wins over the implicit `<dataDir>/config.toml` location. */
@@ -35,7 +37,8 @@ class MissingConfigError extends OperatorConfigError {
   }
 }
 
-type ConfigProbeOptions = ConfigLoadOptions & Omit<ConfigResolveOptions, keyof ConfigHost>
+type ConfigProbeOptions = Omit<ConfigLoadOptions, 'env'> &
+  Omit<ConfigResolveOptions, keyof ConfigHost>
 
 interface LoadedConfig {
   readonly raw: RawConfig
@@ -53,13 +56,15 @@ interface ProbedConfig {
 }
 
 export async function probeConfig(options?: ConfigProbeOptions): Promise<ProbedConfig> {
-  const configPath = resolveConfigPath(options)
-  const resolveOptions: ConfigResolveOptions = { ...options, ...readConfigHost() }
+  const host = readConfigHost()
+  const loadOptions: ConfigLoadOptions = { ...options, env: host.env }
+  const configPath = resolveConfigPath(loadOptions)
+  const resolveOptions: ConfigResolveOptions = { ...options, ...host }
 
   let raw: RawConfig | undefined
 
   try {
-    raw = (await loadConfig(options)).raw
+    raw = (await loadConfig(loadOptions)).raw
 
     return {
       config: resolveConfig(raw, resolveOptions),
@@ -115,21 +120,21 @@ async function readLocale(path: string): Promise<unknown> {
   }
 }
 
-export async function loadConfig(options?: ConfigLoadOptions): Promise<LoadedConfig> {
+export async function loadConfig(options: ConfigLoadOptions): Promise<LoadedConfig> {
   const dataDir = resolveLoadDataDir(options)
-  const configPath = resolveConfigFile(dataDir, options?.configPath, configFileBase())
+  const configPath = resolveConfigFile(dataDir, options.configPath, configFileBase())
 
   const toml = await readToml(configPath)
 
   if (toml === undefined) {
     if (
-      (options?.configFile === 'optional' || options?.configFile === 'probe') &&
+      (options.configFile === 'optional' || options.configFile === 'probe') &&
       options.configPath === undefined
     ) {
       return { raw: parseRawConfig(undefined), configPath }
     }
 
-    throw new MissingConfigError(configPath, options?.configPath !== undefined)
+    throw new MissingConfigError(configPath, options.configPath !== undefined)
   }
 
   const overlaid = withDataDir(toml, rawDataDirOverride(options, dataDir))
@@ -141,8 +146,8 @@ export function parseConfigToml(text: string): RawConfig {
   return parseRawConfig(parseTomlText(text))
 }
 
-function resolveConfigPath(options?: ConfigLoadOptions): string {
-  return resolveConfigFile(resolveLoadDataDir(options), options?.configPath, configFileBase())
+function resolveConfigPath(options: ConfigLoadOptions): string {
+  return resolveConfigFile(resolveLoadDataDir(options), options.configPath, configFileBase())
 }
 
 /** The host this loader runs on: its variables, read live, and its home directory. Read here, at
@@ -156,12 +161,12 @@ function configFileBase(): ConfigFileBase {
 }
 
 /** The data dir before any config loads: `--data-dir`, the brand's data-dir variable, then the default. */
-export function resolveLoadDataDir(options?: ConfigLoadOptions): string {
-  if (options?.dataDir !== undefined) {
+export function resolveLoadDataDir(options: ConfigLoadOptions): string {
+  if (options.dataDir !== undefined) {
     return expandHome(options.dataDir, homedir())
   }
 
-  return resolveDataDir(readConfigHost())
+  return resolveDataDir({ env: options.env, homeDir: homedir() })
 }
 
 async function readToml(path: string): Promise<unknown> {
@@ -188,21 +193,21 @@ function parseTomlText(text: string): unknown {
   return parseToml(text)
 }
 
-function readEnvDataDir(): string | undefined {
-  const envValue = readConfigHost().env[BRAND.controlEnv.dataDir]
+function readEnvDataDir(env: ConfigHost['env']): string | undefined {
+  const envValue = env[BRAND.controlEnv.dataDir]
 
   return envValue !== undefined && envValue !== '' ? envValue : undefined
 }
 
 function rawDataDirOverride(
-  options: ConfigLoadOptions | undefined,
+  options: ConfigLoadOptions,
   bootstrapDataDir: string
 ): string | undefined {
-  if (options?.dataDir !== undefined) {
+  if (options.dataDir !== undefined) {
     return bootstrapDataDir
   }
 
-  return readEnvDataDir()
+  return readEnvDataDir(options.env)
 }
 
 // Preserve malformed known sections for parseRawConfig; only a valid path table can be overlaid.

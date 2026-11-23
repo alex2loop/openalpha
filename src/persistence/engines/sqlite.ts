@@ -15,6 +15,7 @@ import { toStorageError } from '@/persistence/errors'
 import { migrate } from '@/persistence/migrations/runner'
 
 const IN_MEMORY_PATH = ':memory:'
+const CLOSED_MESSAGE = 'storage is closed'
 const SQLITE_DELETE_JOURNAL_MODE = 'PRAGMA journal_mode = DELETE'
 const SQLITE_WAL_CHECKPOINT = 'PRAGMA wal_checkpoint(TRUNCATE)'
 const SQLITE_IMMUTABLE_QUERY = '?immutable=1'
@@ -153,11 +154,14 @@ function createStorage(db: Database, logger: Logger): Storage {
   let txTail: Promise<unknown> = Promise.resolve()
   let closeTask: Promise<void> | null = null
   let closed = false
+  let sealed = false
 
   // A failed ROLLBACK closes the handle to avoid a stuck BEGIN IMMEDIATE. Seal the surface to match:
-  // later ops report the shutdown instead of raw driver errors, and close() skips pragmas that would
-  // now fail against a dead handle.
+  // later ops, those already queued included, report the shutdown instead of raw driver errors, and
+  // close() skips pragmas that would now fail against a dead handle. A plain close() lets queued
+  // work finish instead.
   const sealClosedHandle = (): void => {
+    sealed = true
     closed = true
     closeTask ??= Promise.resolve()
   }
@@ -167,21 +171,15 @@ function createStorage(db: Database, logger: Logger): Storage {
     // Sealed on close: work queued behind the tail would otherwise run after the handle is gone
     // and fail as a driver error rather than as the shutdown it is.
     if (closed) {
-      return Promise.reject(new StorageError('storage is closed'))
+      return Promise.reject(new StorageError(CLOSED_MESSAGE))
     }
 
-    const next = txTail.then(op)
+    const next = txTail.then(() =>
+      sealed ? Promise.reject(new StorageError(CLOSED_MESSAGE)) : op()
+    )
     txTail = next.catch(() => undefined)
 
     return next.catch((err: unknown) => Promise.reject(toStorageError(err, boundary)))
-  }
-
-  // Non-throwing: a close throw would mask whatever triggered the shutdown.
-  const closeStorage = async (): Promise<void> => {
-    // Let in-flight transactions finish before the handle goes away.
-    await txTail
-
-    closeDatabase(db, logger)
   }
 
   return {
@@ -201,11 +199,19 @@ function createStorage(db: Database, logger: Logger): Storage {
     // completion instead of returning early and a later caller reuses the settled task.
     close(): Promise<void> {
       closed = true
-      closeTask ??= closeStorage()
+      closeTask ??= closeAfter(txTail, db, logger)
 
       return closeTask
     },
   }
+}
+
+// Non-throwing: a close throw would mask whatever triggered the shutdown. The tail is awaited so
+// in-flight transactions finish before the handle goes away.
+async function closeAfter(tail: Promise<unknown>, db: Database, logger: Logger): Promise<void> {
+  await tail
+
+  closeDatabase(db, logger)
 }
 
 interface TransactionContext {

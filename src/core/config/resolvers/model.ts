@@ -164,12 +164,13 @@ function keyLenderOf(entry: RawModel, defaults: RawModelDefaults | undefined): s
   return isInheritedKey(entry, defaults) ? defaults?.provider : undefined
 }
 
-/** The entry names no key of its own and a provider the defaults do not name. */
+/** The entry names no key of its own and a provider other than the one the defaults name. */
 function isInheritedKey(entry: RawModel, defaults: RawModelDefaults | undefined): boolean {
   return (
     entry.api_key_env === undefined &&
     entry.provider !== undefined &&
-    entry.provider !== defaults?.provider
+    defaults?.provider !== undefined &&
+    entry.provider !== defaults.provider
   )
 }
 

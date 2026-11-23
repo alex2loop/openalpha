@@ -180,8 +180,9 @@ async function configReport(app: CliApp): Promise<ConfigReport> {
   const locale = app.config.locale.language
 
   try {
-    const { raw } = await loadConfig({ configPath: app.configPath })
-    const config = resolveConfig(raw, { ...readConfigHost(), deferMissingKeys: true })
+    const host = readConfigHost()
+    const { raw } = await loadConfig({ env: host.env, configPath: app.configPath })
+    const config = resolveConfig(raw, { ...host, deferMissingKeys: true })
     const missingKeys = toMissingKeyErrors(config).map((err) => ({
       fallback: err.effect === 'fallback',
       message: terminalErrorMessage(err, locale),

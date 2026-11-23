@@ -1,12 +1,13 @@
 // Lifetime of the dispatcher's three admission registries: cooldown deadlines, idempotency stamps,
-// and per-identity call windows. The dispatcher itself owns admission policy.
+// and per-identity call windows, and the readers the dispatcher asks of them. The dispatcher itself
+// owns admission policy.
 //
 // Not `ttlCache`: that expires lazily on read, so a key nobody looks up again is never released.
 // Admission keys are per-identity and mostly never revisited, so expiry has to be swept eagerly —
 // batched so one sweep cannot stall a dispatch, with a hard cap as the backstop.
 
-export const RATE_WINDOW_MS = 60_000
-export const IDEMPOTENCY_TTL_MS = 5 * 60_000
+const RATE_WINDOW_MS = 60_000
+const IDEMPOTENCY_TTL_MS = 5 * 60_000
 
 const SWEEP_BATCH_SIZE = 64
 const MAX_ADMISSION_KEYS = 10_000
@@ -67,4 +68,52 @@ function capRegistry<V>(registry: Map<string, V>): void {
 
     registry.delete(key)
   }
+}
+
+export function recordCall(calls: Map<string, readonly number[]>, key: string, now: number): void {
+  calls.set(key, [...activeCalls(calls, key, now), now])
+}
+
+export function isCooldownActive(options: {
+  readonly cooldowns: Map<string, number>
+  readonly pendingKeys: Set<string>
+  readonly key: string
+  readonly now: number
+}): boolean {
+  return (
+    options.pendingKeys.has(options.key) || (options.cooldowns.get(options.key) ?? 0) > options.now
+  )
+}
+
+/** A command with no idempotency key is never a redelivery. */
+export function isIdempotencyActive(options: {
+  readonly idempotency: Map<string, number>
+  readonly pendingKeys: Set<string>
+  readonly key: string | undefined
+  readonly now: number
+}): boolean {
+  const { key } = options
+
+  return (
+    key !== undefined &&
+    (options.pendingKeys.has(key) ||
+      (options.idempotency.get(key) ?? 0) > options.now - IDEMPOTENCY_TTL_MS)
+  )
+}
+
+export function isRateExceeded(options: {
+  readonly calls: Map<string, readonly number[]>
+  readonly key: string
+  readonly now: number
+  readonly limit: number
+}): boolean {
+  return activeCalls(options.calls, options.key, options.now).length >= options.limit
+}
+
+function activeCalls(
+  calls: Map<string, readonly number[]>,
+  key: string,
+  now: number
+): readonly number[] {
+  return (calls.get(key) ?? []).filter((at) => now - at < RATE_WINDOW_MS)
 }
