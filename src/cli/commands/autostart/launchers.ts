@@ -20,6 +20,8 @@ const XML_ESCAPES: Readonly<Record<string, string>> = {
 const XML_SPECIAL_RE = /[&<>]/g
 const SYSTEMD_ESCAPE_RE = /[\\"]/g
 const SYSTEMD_SPECIFIER_RE = /[%$]/g
+// A line break would start a new directive in the unit file.
+const SYSTEMD_UNSAFE_RE = /[\r\n\0]/
 
 /** A tool and its arguments: the tool always comes first. */
 type ToolArgv = readonly [string, ...string[]]
@@ -136,6 +138,10 @@ WantedBy=default.target
 }
 
 function quoteSystemdArg(arg: string): string {
+  if (SYSTEMD_UNSAFE_RE.test(arg)) {
+    throw toolFailed('an argument holds a line break or a NUL character')
+  }
+
   const escaped = arg.replace(SYSTEMD_ESCAPE_RE, '\\$&').replace(SYSTEMD_SPECIFIER_RE, '$&$&')
 
   return `"${escaped}"`

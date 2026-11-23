@@ -8,7 +8,10 @@ import type { Caveat } from '@/trading/kernel/caveat'
 import type { LevelResult, TradeLevels } from '@/trading/kernel/factor'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { Market, MarketResolution } from '@/trading/markets/types'
-import { bankedShareOf, isFirstExitTaken } from '@/trading/features/suggestion/exit-plan/first-exit'
+import {
+  banksAtTakeProfit,
+  isFirstExitTaken,
+} from '@/trading/features/suggestion/exit-plan/first-exit'
 import { heldPositionOf } from '@/trading/features/suggestion/pipeline/concentration'
 import { type ExRightGap, planBasisFactorOf } from '@/trading/features/suggestion/pipeline/ex-right'
 import { armsExit, planStopOf, planTakeProfitOf } from '@/trading/features/suggestion/types'
@@ -78,9 +81,7 @@ export function keepTakeProfit(
   const takeProfit =
     planned === undefined || held.toBasis === undefined ? planned : held.toBasis(planned)
   const unsold =
-    armsExit(prior) &&
-    bankedShareOf(prior, held.trails) < 1 &&
-    !isFirstExitTaken(held.position, prior, held.trails)
+    banksAtTakeProfit(prior, held.trails) && !isFirstExitTaken(held.position, prior, held.trails)
 
   if (!unsold || takeProfit === undefined || takeProfit <= levels.stop) {
     return { caveats: [] }

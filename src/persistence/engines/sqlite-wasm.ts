@@ -208,30 +208,7 @@ function createStorage(engine: Engine): {
   readonly files: DatabaseFiles
 } {
   const tx = createTransaction(() => engine.db)
-
-  // One connection, and BEGIN IMMEDIATE is per-connection: a bare query/execute run while a
-  // transaction is mid-flight would land inside it. Every op chains on this tail. The tail is
-  // replaced, never appended.
-  let txTail: Promise<unknown> = Promise.resolve()
-  let closeTask: Promise<void> | null = null
-  let closed = false
-
-  // A failed ROLLBACK closes the handle; seal the surface to match and free what it held.
-  const seal = (): void => {
-    closed = true
-    closeTask ??= Promise.resolve().then(() => freeEngine(engine))
-  }
-
-  const enqueue = <T>(op: () => Promise<T>, boundary: string): Promise<T> => {
-    if (closed) {
-      return Promise.reject(new StorageError('storage is closed'))
-    }
-
-    const next = txTail.then(op)
-    txTail = next.catch(() => undefined)
-
-    return next.catch((err: unknown) => Promise.reject(toStorageError(err, boundary)))
-  }
+  const { enqueue, release, seal } = createSerialQueue(engine)
 
   const storage: Storage = {
     query<T>(sql: string, params?: readonly unknown[]) {
@@ -244,12 +221,7 @@ function createStorage(engine: Engine): {
       return enqueue(() => runTransaction(engine, fn, seal), 'sqlite transaction failed')
     },
     // Idempotent and non-throwing: every caller awaits the one close.
-    close(): Promise<void> {
-      closed = true
-      closeTask ??= txTail.then(() => freeEngine(engine))
-
-      return closeTask
-    },
+    close: release,
   }
   const files = createDatabaseFiles({
     engine,
@@ -260,6 +232,51 @@ function createStorage(engine: Engine): {
   })
 
   return { storage, files }
+}
+
+interface SerialQueue {
+  readonly enqueue: <T>(op: () => Promise<T>, boundary: string) => Promise<T>
+  // Frees the engine after the work already queued; close() lets that work finish.
+  readonly release: () => Promise<void>
+  // A failed ROLLBACK closes the handle: work still queued would run on it, so it is refused.
+  readonly seal: () => void
+}
+
+// One connection, and BEGIN IMMEDIATE is per-connection: a bare query/execute run while a
+// transaction is mid-flight would land inside it. Every op chains on this tail. The tail is
+// replaced, never appended.
+function createSerialQueue(engine: Engine): SerialQueue {
+  let txTail: Promise<unknown> = Promise.resolve()
+  let closeTask: Promise<void> | null = null
+  let closed = false
+  let sealed = false
+
+  const release = (): Promise<void> => {
+    closed = true
+    closeTask ??= txTail.then(() => freeEngine(engine))
+
+    return closeTask
+  }
+
+  const seal = (): void => {
+    sealed = true
+    release()
+  }
+
+  const enqueue = <T>(op: () => Promise<T>, boundary: string): Promise<T> => {
+    if (closed) {
+      return Promise.reject(new StorageError('storage is closed'))
+    }
+
+    const next = txTail.then(() =>
+      sealed ? Promise.reject(new StorageError('storage is closed')) : op()
+    )
+    txTail = next.catch(() => undefined)
+
+    return next.catch((err: unknown) => Promise.reject(toStorageError(err, boundary)))
+  }
+
+  return { enqueue, release, seal }
 }
 
 // Handles first, lock last: the next holder must find the files free the moment it is granted.

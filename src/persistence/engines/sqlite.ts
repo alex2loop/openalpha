@@ -95,6 +95,7 @@ export async function restoreSqlite(options: RestoreSqliteOptions): Promise<void
     }
 
     await copyFile(source, paths.tempPath)
+    await chmod(paths.tempPath, PRIVATE_FILE_MODE)
     await installPreparedSqliteDatabase(paths)
   } finally {
     await removeSqliteFilesQuietly(paths.tempPath)

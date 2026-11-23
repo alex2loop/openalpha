@@ -108,7 +108,8 @@ function splitIpv6Groups(lower: string): Ipv6Split {
   const dIdx = lower.indexOf('::')
 
   if (dIdx === -1) {
-    return { left: lower.split(':'), right: [], doubleColon: false }
+    // All groups sit in `right`, where a dotted last group is resolved.
+    return { left: [], right: lower.split(':'), doubleColon: false }
   }
 
   const left = dIdx > 0 ? lower.slice(0, dIdx).split(':') : []

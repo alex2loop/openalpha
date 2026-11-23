@@ -154,12 +154,17 @@ export function isSettled(calendar: TradingCalendar, day: TradingDay, now: numbe
 }
 
 /** The newest session whose rows are final — which is the previous trading day until this day's
- *  tape settles. A day called settled inside that gap is stored and served as a close it does not
- *  yet hold. */
+ *  tape settles, and the one before it while that day's own tape is still inside its lag (a
+ *  calendar closing at 23:59). A day called settled inside that gap is stored and served as a
+ *  close it does not yet hold. */
 export function resolveSettledDay(calendar: TradingCalendar, now: number): TradingDay {
-  const day = calendar.dayAt(now)
+  let day = calendar.dayAt(now)
 
-  return isSettled(calendar, day, now) ? day : calendar.addTradingDays(day, -1)
+  while (!isSettled(calendar, day, now)) {
+    day = calendar.addTradingDays(day, -1)
+  }
+
+  return day
 }
 
 /** `day` when it trades, else the session before it. `addTradingDays` counts only sessions it steps

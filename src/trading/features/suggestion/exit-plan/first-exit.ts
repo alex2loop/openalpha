@@ -9,6 +9,8 @@ type HeldFirstExit =
   | { readonly kind: 'taken'; readonly soldShare: number }
   | { readonly kind: 'sell'; readonly shareOfHeld: number; readonly units?: number }
 
+type BankingPlan = Pick<Suggestion, 'action' | 'reviewOnly' | 'takeProfitTranchePct'>
+
 interface PlanLevels {
   readonly entry: number
   readonly stop: number
@@ -16,31 +18,40 @@ interface PlanLevels {
   readonly target: number
 }
 
-/** Where the first profit is taken: the take-profit when a tranche banks there, the target when the
+/** Where the first profit is taken: the take-profit when the plan banks there, the target when the
  *  whole position leaves at once. */
-export function firstExitOf(levels: PlanLevels, banked: number): number {
-  return banked < 1 ? levels.takeProfit : levels.target
+export function firstExitOf(levels: PlanLevels, plan: BankingPlan, trails: boolean): number {
+  return banksAtTakeProfit(plan, trails) ? levels.takeProfit : levels.target
 }
 
 /** The R:R a reader is shown: the first exit over the stop distance, because the far target a
  *  runner aims at is reached by few entries. The void line and the reward gates keep the
  *  full-target ratio stored on the row. */
-export function firstExitRiskReward(levels: PlanLevels, banked: number): number {
-  const risk = Math.abs(levels.entry - levels.stop)
-
-  return risk > 0 ? Math.abs(firstExitOf(levels, banked) - levels.entry) / risk : 0
-}
-
-/** The share a long plan banks at its take-profit, the rest riding the trail. Everything leaves at
- *  once on a reduce, a review level, a market that keeps no trail and a row that stamped no tranche: none
- *  has anything to let ride. The plan, the held exit and the outcome scorer all read this. */
-export function bankedShareOf(
-  suggestion: Pick<Suggestion, 'action' | 'reviewOnly' | 'takeProfitTranchePct'>,
+export function firstExitRiskReward(
+  levels: PlanLevels,
+  plan: BankingPlan,
   trails: boolean
 ): number {
-  const tranche = suggestion.takeProfitTranchePct
+  const risk = Math.abs(levels.entry - levels.stop)
 
-  if (suggestion.action === 'reduce' || tranche === undefined || !trails || !armsExit(suggestion)) {
+  return risk > 0 ? Math.abs(firstExitOf(levels, plan, trails) - levels.entry) / risk : 0
+}
+
+/** Whether a long plan sells at its take-profit, a tranche of one included, the rest riding the
+ *  trail. Everything leaves at the target instead on a reduce, a review level, a market that keeps
+ *  no trail and a row that stamped no tranche: none has anything to let ride. */
+export function banksAtTakeProfit(plan: BankingPlan, trails: boolean): boolean {
+  return (
+    plan.action !== 'reduce' && plan.takeProfitTranchePct !== undefined && trails && armsExit(plan)
+  )
+}
+
+/** The share a long plan sells at its take-profit; one where everything leaves at the target. The
+ *  plan, the held exit and the outcome scorer all read this. */
+export function bankedShareOf(plan: BankingPlan, trails: boolean): number {
+  const tranche = plan.takeProfitTranchePct
+
+  if (tranche === undefined || !banksAtTakeProfit(plan, trails)) {
     return 1
   }
 
@@ -51,7 +62,7 @@ export function bankedShareOf(
  *  take-profit. */
 export function isFirstExitTaken(
   held: Pick<HeldPosition, 'units' | 'soldUnits'>,
-  plan: Pick<Suggestion, 'action' | 'reviewOnly' | 'takeProfitTranchePct'>,
+  plan: BankingPlan,
   trails: boolean
 ): boolean {
   return heldFirstExitOf(held, bankedShareOf(plan, trails), undefined).kind === 'taken'

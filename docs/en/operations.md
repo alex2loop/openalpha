@@ -769,7 +769,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     daemon runs, which files it uses or where a key goes: plugins, an MCP server's command,
     arguments, `env`, address and transport, every `*_env` key and every other field naming an
     environment variable (`[trading.sources]`, `[trading.venues.<id>] credentials`), `base_url` and
-    `fallback_base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` and
+    `fallback_base_url`, a channel's `token_file`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` and
     `[trading.orders] allow_unattended`.
   - While `[api] public_url` is set, a channel's `allowed_ids`, `operator_user_ids`, `pairing` and
     `dm_policy` change only on the server too.

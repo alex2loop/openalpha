@@ -13,7 +13,7 @@ import type { ParsedSource, SourceAdapterOptions } from '@/trading/sources/defin
 import type { SourceFetchOutcome } from '@/trading/sources/types'
 import { sourceId } from '@/trading/kernel/source/source-id'
 import { createCryptoFx } from '@/trading/sources/adapters/crypto-fx'
-import { createSource, parsedSource } from '@/trading/sources/define'
+import { createSource, mapOutcome, parsedSource } from '@/trading/sources/define'
 import { dayChangePct, finite, positive } from '@/trading/sources/rows/normalization'
 import { QUOTE_ATTEMPT_LIMITS } from '@/trading/sources/transport/http'
 
@@ -135,7 +135,9 @@ async function loadQuote(
     return { kind: 'error', code: 'source.symbol-not-found' as const }
   }
 
-  return { kind: 'ok', value: parsedSource(toQuote(row, instrument)), fetchedAt: outcome.fetchedAt }
+  // `toQuote` throws on an unreadable price: mapped to a rejected payload, not thrown past the
+  // source as a defect.
+  return mapOutcome({ ...outcome, value: row }, (held) => parsedSource(toQuote(held, instrument)))
 }
 
 function toQuote(row: z.infer<typeof TICKER>, instrument: InstrumentRef): Quote {

@@ -61,9 +61,11 @@ export function currencyCashSpend(state: FoldState, txn: LedgerTxn): CurrencyCas
   }
 }
 
-/** Spends at average cost and returns the base cost that leaves with the amount. */
+/** Spends settled cash at its own average cost, so unsettled sale proceeds at another rate never
+ *  price it, and returns the base cost that leaves with the amount. With nothing settled it falls
+ *  back to the average over the whole pool. */
 export function spendCurrencyCash(cash: MutableCurrencyCash, amount: number): number {
-  const costBase = cash.amount > 0 ? cash.costBase * (amount / cash.amount) : 0
+  const costBase = spentCostBase(cash, amount)
 
   cash.amount -= amount
   cash.available -= amount
@@ -181,6 +183,14 @@ export function baseCashAvailable(
   }
 
   return (byVenue.get(venue)?.available ?? 0) - currencyCashBase
+}
+
+function spentCostBase(cash: MutableCurrencyCash, amount: number): number {
+  if (cash.available > 0) {
+    return cash.availableCostBase * (amount / cash.available)
+  }
+
+  return cash.amount > 0 ? cash.costBase * (amount / cash.amount) : 0
 }
 
 function transferCurrencyCash(state: FoldState, txn: TransferTxn, entryId: LedgerEntryId): void {

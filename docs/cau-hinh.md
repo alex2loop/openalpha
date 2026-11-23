@@ -590,8 +590,8 @@ reverse proxy chạy cùng máy (xem [Vận hành](van-hanh.md)). API chỉ nh�
 
 Ô sửa cấu hình trên trang văn phòng không đổi được plugin, câu lệnh khởi chạy máy chủ MCP, mọi khóa
 `*_env` cùng mọi mục khác ghi tên biến môi trường (`[trading.sources]`,
-`[trading.venues.<id>] credentials`), `base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`,
-`[update]` hay `[trading.orders] allow_unattended`; những mục đó bạn sửa ngay trong file này. Bản thân
+`[trading.venues.<id>] credentials`), `base_url`, `token_file` của kênh, `[paths]`, `[log] file`,
+`[storage]`, `[api]`, `[update]` hay `[trading.orders] allow_unattended`; những mục đó bạn sửa ngay trong file này. Bản thân
 giá trị khóa thì lưu được từ Cài đặt > Nhà cung cấp, Sàn giao dịch và Công cụ; các mục này ghi
 `<thư mục dữ liệu>/env` giống `openalpha key set`.
 

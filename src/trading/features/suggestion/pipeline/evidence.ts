@@ -13,7 +13,6 @@ import type { AnalystRecommendation, NewsItem } from '@/trading/kernel/market/ma
 import type { SourceResult } from '@/trading/kernel/source/source-result'
 import type { Market } from '@/trading/markets/types'
 import { t } from '@/i18n'
-import { bankedShareOf } from '@/trading/features/suggestion/exit-plan/first-exit'
 import { accountsSection } from '@/trading/features/suggestion/pipeline/accounts-evidence'
 import {
   adjudicationSection,
@@ -35,7 +34,6 @@ import {
   withoutStories,
 } from '@/trading/features/suggestion/pipeline/news-evidence'
 import { portfolioSection } from '@/trading/features/suggestion/pipeline/portfolio-evidence'
-import { framedDirectionOf } from '@/trading/features/suggestion/types'
 import { dedupeCaveats } from '@/trading/kernel/caveat'
 import { renderDeclaredValue, renderProvidedValue, renderScoreBand } from '@/trading/render/format'
 
@@ -144,8 +142,8 @@ export async function buildEvidenceBundle(options: EvidenceBundleOptions): Promi
 
   const levels = levelSection({
     levels: input.proposedLevels,
-    direction: framedDirectionOf(draft),
-    banked: bankedShareOf(draft, market.trail !== undefined),
+    draft,
+    trails: market.trail !== undefined,
     locale: input.request.locale,
     display: market.manifest.priceDisplay,
   })

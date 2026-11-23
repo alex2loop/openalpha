@@ -116,7 +116,7 @@ class EvidenceAdmissionState implements ResolutionState {
   private readonly sources = new Map<string, ResearchSource>()
   readonly sourceIdByUrl = new Map<string, SourceId>()
   private readonly excerpts: EvidenceExcerpt[] = []
-  private readonly excerptHashesBySource = new Map<string, Set<string>>()
+  private readonly excerptIdByHashBySource = new Map<string, Map<string, EvidenceExcerptId>>()
   private readonly excerptCountsBySource = new Map<string, number>()
   readonly excerptIdByRef = new Map<string, EvidenceExcerptId>()
   readonly claims: ResearchClaim[] = []
@@ -222,6 +222,14 @@ class EvidenceAdmissionState implements ResolutionState {
       return
     }
 
+    // A verbatim repeat from another branch is the same evidence: its ref resolves to the first.
+    const duplicateId = this.excerptIdByHashBySource.get(sourceId)?.get(derived.textHash)
+
+    if (duplicateId !== undefined) {
+      this.excerptIdByRef.set(referenceKey, duplicateId)
+      return
+    }
+
     if (this.gateExcerpt(derived) !== 'admit') {
       return
     }
@@ -249,11 +257,6 @@ class EvidenceAdmissionState implements ResolutionState {
 
   private gateExcerpt(derived: DerivedExcerpt): 'admit' | 'skip' {
     const sourceKey = derived.sourceId
-    const hashes = this.excerptHashesBySource.get(sourceKey) ?? new Set<string>()
-    if (hashes.has(derived.textHash)) {
-      return 'skip'
-    }
-
     const count = this.excerptCountsBySource.get(sourceKey) ?? 0
     if (count >= this.bounds.maxExcerptsPerSource) {
       this.pushGap({
@@ -280,9 +283,10 @@ class EvidenceAdmissionState implements ResolutionState {
     this.excerptCounter += 1
     this.excerpts.push(excerpt)
     this.excerptIdByRef.set(candidateReferenceKey(scope, ref), excerpt.id)
-    const hashes = this.excerptHashesBySource.get(sourceKey) ?? new Set<string>()
-    hashes.add(excerpt.textHash)
-    this.excerptHashesBySource.set(sourceKey, hashes)
+    const idByHash =
+      this.excerptIdByHashBySource.get(sourceKey) ?? new Map<string, EvidenceExcerptId>()
+    idByHash.set(excerpt.textHash, excerpt.id)
+    this.excerptIdByHashBySource.set(sourceKey, idByHash)
     this.excerptCountsBySource.set(sourceKey, (this.excerptCountsBySource.get(sourceKey) ?? 0) + 1)
   }
 

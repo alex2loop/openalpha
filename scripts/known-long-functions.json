@@ -61,7 +61,7 @@
     "src/engine/research/evidence/coverage.ts#validateClaimCoverage": 45,
     "src/engine/research/evidence/disposition.ts#boundEvidenceToHeadroom": 57,
     "src/engine/research/results.ts#childFailure": 49,
-    "src/engine/research/retrieval/state.ts#createContentStore": 45,
+    "src/engine/research/retrieval/state.ts#createContentStore": 43,
     "src/engine/research/review/revision.ts#applyFollowup": 53,
     "src/engine/research/stages/prompts.ts#crawlPrompt": 43,
     "src/engine/research/stages/stages.ts#createResearchStages": 48,
