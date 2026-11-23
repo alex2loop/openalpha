@@ -37,6 +37,8 @@ const opened = signal<ChatSession | undefined>(undefined)
 const isGone = signal(false)
 // The session the history was read for: only the one `/v1/chat/recent` named has earlier messages.
 let historySession: string | undefined
+// Counts the resets of the history, so a page still on its way from before one is dropped.
+let historyEpoch = 0
 let nextBefore: number | undefined
 let lifetime: AbortController | undefined
 
@@ -59,6 +61,7 @@ export function startChatHistory(sessionToOpen?: string): () => void {
 
     if (session !== historySession) {
       historySession = undefined
+      historyEpoch++
       nextBefore = undefined
       view.value = session === undefined ? EMPTY : FRESH
     }
@@ -128,6 +131,7 @@ export async function loadEarlier(): Promise<void> {
 /** The next older page of the current session; a call while one loads is ignored. */
 async function loadOlder(): Promise<void> {
   const session = historySession
+  const epoch = historyEpoch
   const abortSignal = lifetime?.signal
   const held = view.value
 
@@ -146,7 +150,7 @@ async function loadOlder(): Promise<void> {
       signal: abortSignal,
     })
 
-    if (historySession !== session) {
+    if (historyEpoch !== epoch) {
       return
     }
 
@@ -159,7 +163,7 @@ async function loadOlder(): Promise<void> {
     }
   } catch (error: unknown) {
     // Anything but an `ApiFailure` is the stop's own abort.
-    if (error instanceof ApiFailure && historySession === session) {
+    if (error instanceof ApiFailure && historyEpoch === epoch) {
       view.value = { messages: held.messages, status: 'failed', failure: error }
     }
   }
@@ -218,6 +222,7 @@ async function loadRecent(abortSignal: AbortSignal): Promise<void> {
 
 function resumeSession(id: string, agentId: string | undefined): void {
   historySession = id
+  historyEpoch++
   nextBefore = undefined
   sessionId.value = id
   resumeAgentChoice(agentId)

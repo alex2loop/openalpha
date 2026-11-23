@@ -155,7 +155,7 @@ phân số 0 tới 1 (`0.2` là 20%).
 | `reserve-pct-nav` | phân số tổng tài sản | phần tiền mặt luôn giữ lại |
 | `regime-scale` | phân số | mỗi lần mua chỉ dùng tối đa chừng này số tiền định mua (`0.75` là 75%); thị trường phòng thủ có thể hạ thấp hơn nữa |
 | `entry-tranche-pct` | phân số | phần của lệnh mua mới vào trước (`0.5` là một nửa, nửa còn lại khi kế hoạch vẫn đứng vững) |
-| `take-profit-tranche-pct` | phân số | phần bán ra ở mục tiêu đầu; phần còn lại đi tiếp với mức cắt lỗ tự nâng theo giá |
+| `take-profit-tranche-pct` | phân số | phần bán ra ở mục tiêu đầu; phần còn lại đi tiếp với mức cắt lỗ tự nâng theo giá (bằng 1 thì bán hết ở đó) |
 | `risk-per-trade-pct-nav` | phân số tổng tài sản | mức lỗ tối đa nếu một lệnh mua chạm cắt lỗ |
 | `segment-target <nhóm> <tỷ lệ>` | phân số tổng tài sản | tỷ trọng mục tiêu của một nhóm (các nhóm còn lại nhường phần chênh nên tổng vẫn 100%) |
 | `segment-cap <nhóm> <tỷ lệ>` | phân số tổng tài sản | mức tối đa một nhóm được chiếm |

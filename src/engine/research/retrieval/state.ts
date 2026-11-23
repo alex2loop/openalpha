@@ -26,7 +26,7 @@ const URL_TRAILING_PUNCTUATION = '.,;:)]}!?'
 export interface ResearchRetrievalState {
   classifySubquery(query: string): 'available' | 'duplicate' | 'bound'
   rememberSubquery(query: string): 'new' | 'duplicate'
-  getContent(url: string): string | undefined
+  getContent(url: string): CachedContent | undefined
   /** The page's own published day extracted from its markup at store time, when it had one. */
   getPublishedDay(url: string): string | undefined
   /** Stores per-source-bounded content; returns one status per input item. */
@@ -34,6 +34,13 @@ export interface ResearchRetrievalState {
     contents: readonly ResearchContentInput[]
   ): readonly ('stored' | 'duplicate' | 'skipped')[]
   dispose(): void
+}
+
+/** A page's bounded text, plus whether the injection scan flagged it: the notice is added to the
+ *  excerpt the model reads, because ranking paragraphs by query terms can drop any one of them. */
+interface CachedContent {
+  readonly text: string
+  readonly flagged: boolean
 }
 
 interface ResearchContentInput {
@@ -68,14 +75,14 @@ interface SubqueryRegistry {
 }
 
 interface ContentStore {
-  get(url: string): string | undefined
+  get(url: string): CachedContent | undefined
   getPublishedDay(url: string): string | undefined
   store(contents: readonly ResearchContentInput[]): readonly ('stored' | 'duplicate' | 'skipped')[]
   dispose(): void
 }
 
 interface ContentState {
-  readonly values: Map<string, string>
+  readonly values: Map<string, CachedContent>
   readonly publishedDays: Map<string, string>
   disposed: boolean
 }
@@ -127,15 +134,13 @@ function createContentStore(
         }
 
         const publishedDay = item.publishedDay ?? extractPublishedDay(item.text)
-        const bounded = truncateUtf8HeadTail(
-          sanitizeContent(item.text),
-          options.maxContentBytesPerSource
-        )
+        const sanitized = sanitizeContent(item.text)
+        const bounded = truncateUtf8HeadTail(sanitized.text, options.maxContentBytesPerSource)
         if (bounded === '') {
           return 'skipped'
         }
 
-        state.values.set(key, bounded)
+        state.values.set(key, { text: bounded, flagged: sanitized.flagged })
         if (publishedDay !== undefined) {
           state.publishedDays.set(key, publishedDay)
         }
@@ -225,9 +230,14 @@ export function createRetrievalCache(
   }
 }
 
-export function toBoundedQueryExcerpt(text: string, query: string, maxCharacters: number): string {
+export function toBoundedQueryExcerpt(
+  content: CachedContent,
+  query: string,
+  maxCharacters: number
+): string {
   const terms = extractQueryTerms(query)
-  const selected = text
+  const notice = content.flagged ? `${SECURITY_NOTICE} ` : ''
+  const selected = content.text
     .split(PARAGRAPH_SPLIT_RE)
     .filter((paragraph) => paragraph.trim() !== '')
     .map((paragraph, index) => ({ paragraph, index, score: scoreParagraph(paragraph, terms) }))
@@ -236,7 +246,7 @@ export function toBoundedQueryExcerpt(text: string, query: string, maxCharacters
     .map((entry) => entry.paragraph)
     .join('\n\n')
 
-  return truncateAtSentenceBoundary(selected, maxCharacters)
+  return `${notice}${truncateAtSentenceBoundary(selected, maxCharacters - notice.length)}`
 }
 
 export function explicitResearchUrl(query: string): string | undefined {
@@ -292,12 +302,12 @@ function normalizeUrl(value: string): string {
   return canonicalizeResearchUrl(value) ?? ''
 }
 
-function sanitizeContent(text: string): string {
+function sanitizeContent(text: string): CachedContent {
   const plain = stripMarkup(stripControls(text))
     .replace(INLINE_WHITESPACE_RE, ' ')
     .replace(NEWLINE_PADDING_RE, '\n')
     .replace(EXCESS_NEWLINES_RE, '\n\n')
     .trim()
 
-  return scanOutput(plain).length === 0 ? plain : `${SECURITY_NOTICE} ${plain}`
+  return { text: plain, flagged: scanOutput(plain).length > 0 }
 }

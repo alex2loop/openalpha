@@ -144,7 +144,7 @@ function segmentFindingsFor(input: AssessInput, value: SegmentValue): readonly P
 function positionWeightFindings(input: AssessInput): readonly PortfolioFinding[] {
   const nav = input.valued.navBase
 
-  if (nav === undefined) {
+  if (nav === undefined || nav <= 0) {
     return []
   }
 

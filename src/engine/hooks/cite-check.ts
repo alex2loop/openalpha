@@ -2,7 +2,8 @@ import type { AssistantMessage, ContentBlock, LLMMessage } from '@/core/llm'
 import type { AfterToolHook, HookFn, RunState } from '@/engine/types/run'
 import { unwrapToolResult } from '@/core/security/sanitize'
 import { textOf } from '@/core/utils/message'
-import { CITE_TRUSTED_URLS_MAX, COMPACT_SUMMARY_PREAMBLE } from '@/engine/constants'
+import { isCompactionSummary } from '@/engine/compact/compactor'
+import { CITE_TRUSTED_URLS_MAX } from '@/engine/constants'
 
 const MD_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi
 const URL_RE = /https?:\/\/[^\s)\]]+(?:\([^)\s]*\))*/gi
@@ -112,11 +113,6 @@ function resultUrlsFor(state: RunState): Set<string> {
   resultUrls.set(state, fresh)
 
   return fresh
-}
-
-// A summary is model prose, and its URLs may have come from a fetched page.
-function isCompactionSummary(msg: LLMMessage): boolean {
-  return textOf(msg.content, '\n').startsWith(COMPACT_SUMMARY_PREAMBLE)
 }
 
 function addTextUrls(text: string, urls: Set<string>): void {

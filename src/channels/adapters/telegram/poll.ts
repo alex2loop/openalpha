@@ -145,7 +145,7 @@ async function dispatchUpdate(deps: PollDeps, update: TelegramUpdate): Promise<v
 // An update from a chat no admission rule could let in never reaches the inbox, so a stranger
 // cannot grow it; the gate stays the one place that decides who is admitted.
 function canStore(deps: PollDeps, chatId: string | undefined, userId: string): boolean {
-  return chatId === undefined || (deps.handlers.canAdmit?.(chatId, userId) ?? true)
+  return chatId !== undefined && (deps.handlers.canAdmit?.(chatId, userId) ?? true)
 }
 
 function onPollSuccess(deps: PollDeps, state: PollState): void {

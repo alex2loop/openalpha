@@ -4,6 +4,7 @@ import type { RunState, RunView } from '@/engine/types/run'
 import { withoutPastedContent } from '@/core/security/pasted-content'
 import { unwrapToolResult } from '@/core/security/sanitize'
 import { textOf, toolCallsOf } from '@/core/utils/message'
+import { isCompactionSummary } from '@/engine/compact/compactor'
 
 // A built-in network tool's result is the outside world's text; any other tool's can echo what the
 // model wrote into its own arguments, and an external tool's or a stranger's text is not the
@@ -125,7 +126,10 @@ function sourceOf(
   delegated: boolean
 ): string {
   if (message.role === 'user') {
-    return delegated ? '' : withoutPastedContent(textOf(message.content))
+    // A compaction summary is model prose and can restate a fetched page's URL.
+    return delegated || isCompactionSummary(message)
+      ? ''
+      : withoutPastedContent(textOf(message.content))
   }
 
   const isNetworkResult =

@@ -20,7 +20,6 @@ import {
 import {
   directionalReturn,
   exitPriceAt,
-  exitPriceFor,
   openedBeyondStop,
 } from '@/trading/features/suggestion/pipeline/outcome-prices'
 import { armsExit } from '@/trading/features/suggestion/types'
@@ -201,9 +200,15 @@ function neverFilled(input: OutcomeInput, window: HoldingWindow): OutcomeResolut
 function expiredAtLastClose(input: OutcomeInput, window: HoldingWindow): OutcomeResolution {
   const last = window.bars.at(-1)
 
-  return isExpired(input, window) && last !== undefined
-    ? resolved('expired', last, input)
-    : EXPIRY_NOT_REACHED
+  if (!isExpired(input, window) || last === undefined) {
+    return EXPIRY_NOT_REACHED
+  }
+
+  return outcomeOf(input, {
+    status: 'expired',
+    bar: last,
+    returnPct: directionalReturn(input.suggestion, last.close, input.roundTripFeeFraction),
+  })
 }
 
 /** Bar count is the real window and settles a complete series; elapsed sessions only catch one the
@@ -229,10 +234,13 @@ function resolveTarget(
     return EXPIRY_NOT_REACHED
   }
 
-  const banked = bankedShareOf(input.suggestion, input.trail !== undefined)
+  const { suggestion, roundTripFeeFraction: fee } = input
+  const banked = bankedShareOf(suggestion, input.trail !== undefined)
+  const bankedPrice = exitPriceAt(bar, suggestion, profitLevelOf(input))
+  const bankedReturn = directionalReturn(suggestion, bankedPrice, fee)
 
   if (banked >= 1) {
-    return resolved('target', bar, input)
+    return outcomeOf(input, { status: 'target', bar, returnPct: bankedReturn })
   }
 
   const rest = runnerExitOf(input, window, at)
@@ -241,9 +249,6 @@ function resolveTarget(
     return EXPIRY_NOT_REACHED
   }
 
-  const { suggestion, roundTripFeeFraction: fee } = input
-  const bankedPrice = exitPriceAt(bar, suggestion, profitLevelOf(input))
-  const bankedReturn = directionalReturn(suggestion, bankedPrice, fee)
   const restReturn = directionalReturn(suggestion, rest.price, fee)
 
   return outcomeOf(input, {
@@ -254,7 +259,7 @@ function resolveTarget(
 }
 
 function profitLevelOf(input: OutcomeInput): number {
-  return firstExitOf(input.suggestion, bankedShareOf(input.suggestion, input.trail !== undefined))
+  return firstExitOf(input.suggestion, input.suggestion, input.trail !== undefined)
 }
 
 /** The rest leaves on the first touch of the trailed stop, or at the window's last close. */
@@ -321,20 +326,6 @@ function crossedStop(bar: Candle, suggestion: ScoredCall, stop: number): boolean
  *  Treating both as fills scored one side at its worst case and the other at its best. */
 function crossedLevel(bar: Candle, suggestion: ScoredCall, level: number): boolean {
   return suggestion.action === 'buy' ? bar.high > level : bar.low < level
-}
-
-function resolved(
-  status: Exclude<OutcomeStatus, 'stop'>,
-  bar: Candle,
-  input: OutcomeInput
-): OutcomeResolution {
-  const exitPrice = exitPriceFor(status, bar, input.suggestion)
-
-  return outcomeOf(input, {
-    status,
-    bar,
-    returnPct: directionalReturn(input.suggestion, exitPrice, input.roundTripFeeFraction),
-  })
 }
 
 /** A stop is a market order once touched, so it fills at the level, or at the open that gapped

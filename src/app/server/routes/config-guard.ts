@@ -39,6 +39,9 @@ const MCP_SERVER_CLI_ONLY_KEYS: readonly string[] = ['transport', 'command', 'ar
  *  over), never add or change it. */
 const ENDPOINT_KEYS: ReadonlySet<string> = new Set(['base_url', 'fallback_base_url'])
 const KEY_VAR_SUFFIX = '_env'
+/** A channel's `token_file`: the file its bot token is read from, so a key naming one is held to
+ *  the same rule as a key naming a variable. */
+const SECRET_FILE_SUFFIX = '_file'
 /** The model picker sets a provider's own key variable when it switches provider. */
 const PROVIDER_KEY_VAR = 'api_key_env'
 /** Sections the rules above already cover, so the walk does not report them twice. */
@@ -204,7 +207,7 @@ function endpointChanges(body: unknown, disk: unknown, path: string): readonly s
 }
 
 function isEndpointKey(key: string): boolean {
-  return ENDPOINT_KEYS.has(key) || key.endsWith(KEY_VAR_SUFFIX)
+  return ENDPOINT_KEYS.has(key) || key.endsWith(KEY_VAR_SUFFIX) || key.endsWith(SECRET_FILE_SUFFIX)
 }
 
 function isProviderKeyVar(entry: ConfigTree, key: string): boolean {

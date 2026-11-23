@@ -121,19 +121,6 @@ function parseConfirm(rest: readonly string[]): TradeCommand | null {
   return { kind: 'confirm', ...(token === undefined ? {} : { token }) }
 }
 
-/** Whether this line confirms an order at all, read without parsing the rest: the dispatcher picks
- *  the invocation policy before the command ever runs, and a bare confirm is still a confirm. */
-export function isConfirmArgs(args: readonly string[]): boolean {
-  return parseTradeArgs(args)?.kind === 'confirm'
-}
-
-/** The token a confirm carries, or `undefined` where it names none. */
-export function confirmTokenOf(args: readonly string[]): string | undefined {
-  const parsed = parseTradeArgs(args)
-
-  return parsed?.kind === 'confirm' ? parsed.token : undefined
-}
-
 /** `[venue:]ticker`: the venue is only ever named to separate two resting exits on one instrument. */
 function parseCancel(rest: readonly string[]): TradeCommand | null {
   if (rest.length !== CANCEL_ARGUMENTS) {

@@ -37,9 +37,10 @@ const BARE_KEY_BODY = '[A-Za-z0-9]{32,128}(?![A-Za-z0-9_-])'
 const BARE_KEY_RE = new RegExp(`(?<=${BARE_KEY_WORD}${BARE_KEY_GAP})${BARE_KEY_BODY}`, 'gi')
 
 const KNOWN_SECRET_MIN_CHARS = 8
-// Room for every key the config reads and the API token.
+// Room for the values registered while running: a visitor's pasted keys, a stored credential.
 const KNOWN_SECRET_LIMIT = 64
 const KNOWN_SECRETS = new Set<string>()
+const PINNED_SECRETS = new Set<string>()
 
 // Compiled once at module load; 'g' flag requires reset per-use via SECRET_PATTERNS_NONGLOBAL.
 const SECRET_PATTERNS: readonly RegExp[] = [
@@ -205,8 +206,10 @@ export function scrubCredentials(input: string): string {
     out = out.replace(re, '[REDACTED]')
   }
 
-  for (const secret of KNOWN_SECRETS) {
-    out = out.replaceAll(secret, '[REDACTED]')
+  for (const secrets of [PINNED_SECRETS, KNOWN_SECRETS]) {
+    for (const secret of secrets) {
+      out = out.replaceAll(secret, '[REDACTED]')
+    }
   }
 
   return out
@@ -230,6 +233,14 @@ export function registerKnownSecret(value: string): void {
     }
 
     KNOWN_SECRETS.delete(oldest)
+  }
+}
+
+/** A boot-time secret (a key the config reads, the API token): kept for the life of the process,
+ *  so no run of `registerKnownSecret` calls can push it out of the scrub. */
+export function pinKnownSecret(value: string): void {
+  if (value.length >= KNOWN_SECRET_MIN_CHARS) {
+    PINNED_SECRETS.add(value)
   }
 }
 

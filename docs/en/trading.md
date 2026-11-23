@@ -1575,7 +1575,7 @@ openalpha chat --message "/profile reset"
 - `risk-per-trade-pct-nav` - the most one new buy may lose at its stop-loss
 - `maximum-open-risk-pct-nav` - the most every holding may lose together at their stops
 - `entry-tranche-pct` - the share of a new buy placed first (0.5 by default)
-- `take-profit-tranche-pct` - the share sold at the first target and in a reduce (a third by default)
+- `take-profit-tranche-pct` - the share sold at the first target and in a reduce (a third by default); 1 sells the whole position there
 
 Both fields take 0.2 to 1.
 

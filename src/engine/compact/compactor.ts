@@ -3,6 +3,7 @@ import type { SummarizerFn } from '@/engine/compact/summarizer'
 import type { Compactor, RunView } from '@/engine/types/run'
 import { LLMError, RunHalted } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
+import { textOf } from '@/core/utils/message'
 import { truncateUtf8HeadTail } from '@/core/utils/text'
 import { applyRepairSequence, groupMessages } from '@/engine/compact/message-repair'
 import {
@@ -75,6 +76,14 @@ export function createSummarizingCompactor(deps: CompactorDeps): Compactor {
       }
     },
   }
+}
+
+/** The engine's own recap of older turns: model prose that can restate a fetched page, never text
+ *  the operator typed. */
+export function isCompactionSummary(message: LLMMessage): boolean {
+  return (
+    message.role === 'user' && textOf(message.content, '\n').startsWith(COMPACT_SUMMARY_PREAMBLE)
+  )
 }
 
 // Mirrors commitTurn's usage settlement: per-run budget, daily/monthly + durable ledger, and totals.

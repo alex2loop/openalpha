@@ -55,13 +55,19 @@ export function roundToInstrument(input: RoundInput): RoundedOrder {
  *  level rounds away from the price, so neither can cross it and fire the moment it rests: the
  *  cost is a stop at most one step wider, which still guards the position a refused one would not. */
 export function roundExitLevels(limits: InstrumentLimits, exit: ExitLevels): ExitLevels {
+  const stopLoss =
+    exit.stopLoss === undefined ? undefined : roundToStep(exit.stopLoss, limits.tickSize, 'down')
+
+  // A stop finer than the tick rounds to zero, which a venue refuses only after the entry filled.
+  if (stopLoss !== undefined && !(stopLoss > 0)) {
+    throw new OrderError('order.rejected', `${limits.symbol} stop rounds to no price`)
+  }
+
   return {
     ...(exit.takeProfit === undefined
       ? {}
       : { takeProfit: roundToStep(exit.takeProfit, limits.tickSize, 'up') }),
-    ...(exit.stopLoss === undefined
-      ? {}
-      : { stopLoss: roundToStep(exit.stopLoss, limits.tickSize, 'down') }),
+    ...(stopLoss === undefined ? {} : { stopLoss }),
   }
 }
 

@@ -7,7 +7,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { CHARS_PER_TOKEN, weightedCharCount } from '@/core/stream-events'
 import { textOf } from '@/core/utils/message'
 import { reserveOptionalLlmCost } from '@/engine/budget/reservation'
-import { COMPACT_SUMMARY_PREAMBLE } from '@/engine/constants'
+import { isCompactionSummary } from '@/engine/compact/compactor'
 import { appendSystemBlock } from '@/engine/hooks/system-block'
 import {
   buildExtractPrompt,
@@ -280,10 +280,7 @@ function lastTypedUserText(history: readonly LLMMessage[]): string | undefined {
       continue
     }
 
-    if (
-      message.content.startsWith(COMPACT_SUMMARY_PREAMBLE) ||
-      message.content.startsWith(TODO_RESTORED_NOTICE)
-    ) {
+    if (isCompactionSummary(message) || message.content.startsWith(TODO_RESTORED_NOTICE)) {
       continue
     }
 

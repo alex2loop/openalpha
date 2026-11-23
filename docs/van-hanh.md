@@ -758,7 +758,7 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     dịch vụ nền chạy gì, dùng file nào hay gửi khóa đi đâu: plugin, câu lệnh khởi chạy, tham số,
     `env`, địa chỉ và cách kết nối của máy chủ MCP, mọi khóa `*_env` cùng mọi mục khác ghi tên biến
     môi trường (`[trading.sources]`, `[trading.venues.<id>] credentials`), `base_url` và
-    `fallback_base_url`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` và
+    `fallback_base_url`, `token_file` của kênh, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` và
     `[trading.orders] allow_unattended`.
   - Khi đã đặt `[api] public_url`, `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của
     từng kênh cũng chỉ đổi được trên máy chủ.
