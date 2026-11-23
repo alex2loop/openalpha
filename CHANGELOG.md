@@ -7,6 +7,38 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.10] - 2026-11-23 [IMPORTANT]
+
+Cancelling an exit that had already filled now books the sale instead of dropping it from your book, moving an OKX exit goes through, and Gemini models no longer fail when they call several tools at once. One database change; the upgrade runs it for you.
+> Hủy một lệnh thoát đã khớp giờ ghi lệnh bán vào sổ thay vì làm mất nó, dời lệnh thoát trên OKX đã chạy được, và mô hình Gemini không còn lỗi khi gọi nhiều công cụ cùng lúc. Có một thay đổi cơ sở dữ liệu; lệnh nâng cấp tự chạy nó.
+
+### Changed
+
+- `/trade cancel` and the Cancel exit button read each exit back after cancelling and say which of three things happened: the exit was cancelled, it had already filled (the sale is booked and you get the fill notice), or the venue did not confirm it (it may still rest; check the venue).
+- Bare `/brief` builds today's brief when none is stored yet, as `/brief force` does, instead of showing an older day's. Building it spends the brief's model calls.
+- An agent's 100-job cap now holds when jobs are added at the same moment from the CLI, the API and the agent's schedule tool.
+- Memory search matches Vietnamese typed with decomposed accents, and a search keeps at most 16 words. Memories saved before are rewritten to the composed form once, at upgrade.
+- Web version: a raw copy of the installed version's database file is named as one instead of reported as broken, and a file whose tables do not match its own migrations is refused. The answer to a cancelled exit is laid out like the answer to a placed order.
+
+### Fixed
+
+- Cancelling an exit that had already filled at the venue dropped the sale from your book.
+- Moving an OKX exit's take-profit or stop was refused by OKX.
+- `/trade status` read a stop covering part of an OKX position as guarding all of it; the uncovered size now shows as unguarded.
+- Staging a buy counted the name being bought as one of your untracked open trades.
+- Foreign cash from a sale that had not settled yet (T+N) counted as available at its old cost, so a buy or withdrawal could spend money not yet there.
+- A foreign-currency row marked as needing no conversion (a deposit, withdrawal, fee, loss, transfer or market row) was booked at one base unit per unit; it is now refused.
+- Gemini models failed when they called several tools in one turn.
+- A suggestion's cooldown and round-trip windows were counted from a day with no session, such as a weekend or holiday; they now count from the last session.
+- A screener alert waiting to be delivered could be switched off before it was sent.
+- Settled price bars could include bars past the window asked for, a Yahoo metals quote is marked as priced in dollars, and a zero or negative Vietcap chart price is dropped.
+- On Postgres, a run that had already lost its chat to a newer run could still write messages to it.
+- Zalo: a 403 reply is retried instead of treated as final. Zalo personal: a group message with an unusual mention list no longer breaks reading it, and a failure to lock down the saved credentials is logged.
+- `file_list` with a glob matched nothing on Windows.
+- A schedule time with an offset outside -12:00 to +14:00 is refused.
+- Behind a proxy, the API reads the client address from `X-Forwarded-For` first, then `CF-Connecting-IP`, then `X-Real-IP`.
+- Web version: a failed import, a failed autosave or a stopped worker no longer leaves the page stuck.
+
 ## [1.8.9] - 2026-11-20
 
 `/trade okx:SUI` now trades the coin even when a US stock shares the symbol, the order cash check counts USDT held at a venue the way the book does, and a key in `[model_defaults]` no longer reaches another vendor's server.
@@ -1135,6 +1167,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.10
 [1.8.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.9
 [1.8.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.7
 [1.8.6]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.6
