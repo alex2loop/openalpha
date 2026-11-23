@@ -167,10 +167,10 @@ async function planCaught(
       now: options.now,
       signal: options.signal,
     })
-    const unplanned = standing === null && planned.kind === 'unplanned'
 
-    // The map has no delete: 0 reads as expired.
-    deps.replanRetryAt.set(retryKey, unplanned ? options.now + PLAN_RETRY_MS : 0)
+    if (standing === null && planned.kind === 'unplanned') {
+      deps.replanRetryAt.set(retryKey, options.now + PLAN_RETRY_MS)
+    }
 
     return planned
   } catch (err: unknown) {
