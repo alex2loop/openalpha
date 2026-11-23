@@ -2,7 +2,13 @@ import { effect, type ReadonlySignal, signal, untracked } from '@preact/signals'
 
 import { reducedMotion } from '@/web/state/prefs'
 import { type ClockParts, zoneParts } from '@/web/text/time'
-import { MINUTES_PER_HOUR, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from '@/web/text/time-units'
+import {
+  MINUTES_PER_DAY,
+  MINUTES_PER_HOUR,
+  MS_PER_DAY,
+  MS_PER_HOUR,
+  MS_PER_MINUTE,
+} from '@/web/text/time-units'
 
 export const CLOCK_SPEEDS = [1, 10, 60] as const
 export const CLOCK_PRESET_HOURS = [6, 9 + 20 / 60, 12 + 10 / 60, 16.5, 19.5, 22.5] as const
@@ -10,6 +16,8 @@ export const CLOCK_PRESET_HOURS = [6, 9 + 20 / 60, 12 + 10 / 60, 16.5, 19.5, 22.
 const REAL_SPEED: ClockSpeed = 1
 // Lands the minute timer just past the boundary, never just before it.
 const MINUTE_EDGE_MS = 5
+// From a local midnight this lands mid-afternoon of the next day, whatever hour a DST change moved.
+const NEXT_DAY_PROBE_MS = MS_PER_DAY + MS_PER_DAY / 2
 
 export type ClockSpeed = (typeof CLOCK_SPEEDS)[number]
 export type ClockMode =
@@ -32,6 +40,7 @@ interface PreviewBase {
 interface RealDay {
   readonly zone: string
   readonly startMs: number
+  readonly endMs: number
 }
 
 const mode = signal<ClockMode>({ kind: 'real' })
@@ -142,20 +151,33 @@ function syncMinute(): void {
 function resolveRealDayStart(realMs: number): number {
   const held = realDay
   const isHeld =
-    held !== undefined &&
-    held.zone === zone.value &&
-    realMs >= held.startMs &&
-    realMs < held.startMs + MS_PER_DAY
+    held !== undefined && held.zone === zone.value && realMs >= held.startMs && realMs < held.endMs
 
   if (isHeld) {
     return held.startMs
   }
 
-  const startMs = realMs - zoneParts(realMs, zone.value).minute * MS_PER_MINUTE
+  const startMs = zoneDayStart(realMs, zone.value)
 
-  realDay = { zone: zone.value, startMs }
+  realDay = {
+    zone: zone.value,
+    startMs,
+    endMs: zoneDayStart(startMs + NEXT_DAY_PROBE_MS, zone.value),
+  }
 
   return startMs
+}
+
+// The first instant of `ms`'s day in the zone. The wall-clock minutes read at `ms` overshoot or
+// undershoot when a DST change fell earlier that day, so the guess is read once more and corrected
+// by what it shows.
+function zoneDayStart(ms: number, timeZone: string): number {
+  const guess = ms - zoneParts(ms, timeZone).minute * MS_PER_MINUTE
+  const minuteAtGuess = zoneParts(guess, timeZone).minute
+  const drift =
+    minuteAtGuess > MINUTES_PER_DAY / 2 ? minuteAtGuess - MINUTES_PER_DAY : minuteAtGuess
+
+  return Math.round(guess - drift * MS_PER_MINUTE)
 }
 
 function pageMinuteAt(nowMs: number): PageMinute {

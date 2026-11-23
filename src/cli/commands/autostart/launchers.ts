@@ -22,6 +22,8 @@ const SYSTEMD_ESCAPE_RE = /[\\"]/g
 const SYSTEMD_SPECIFIER_RE = /[%$]/g
 // A line break would start a new directive in the unit file.
 const SYSTEMD_UNSAFE_RE = /[\r\n\0]/
+// PowerShell reads the typographic single quotes (U+2018 to U+201B) as quotes too.
+const POWERSHELL_QUOTE_RE = /['\u2018\u2019\u201A\u201B]/g
 
 /** A tool and its arguments: the tool always comes first. */
 type ToolArgv = readonly [string, ...string[]]
@@ -158,7 +160,7 @@ function windowsLauncher(): Launcher {
       ),
     async install(argv): Promise<void> {
       const [exe = '', ...args] = argv
-      const quoted = [exe, ...args].map((arg) => `'${arg.replaceAll("'", "''")}'`)
+      const quoted = [exe, ...args].map((arg) => `'${arg.replace(POWERSHELL_QUOTE_RE, '$&$&')}'`)
       const command = `powershell -NoProfile -WindowStyle Hidden -Command "& ${quoted.join(' ')}"`
 
       await runTool([

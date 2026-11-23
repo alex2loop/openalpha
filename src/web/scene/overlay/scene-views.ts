@@ -73,7 +73,7 @@ function showFlat(deps: ViewDeps, views: ViewState): void {
 }
 
 function showDeep(deps: ViewDeps, views: ViewState): void {
-  const fallback = () => fallBack(deps, views)
+  const fallback = () => fallBack(views)
   const loadEpoch = ++views.loadEpoch
   // A load the operator left, or a newer one replaced, neither shows nor falls back.
   const isStale = () =>
@@ -98,9 +98,9 @@ function showDeep(deps: ViewDeps, views: ViewState): void {
     })
 }
 
-function fallBack(deps: ViewDeps, views: ViewState): void {
+// Choosing 2D runs the view effect, which shows the flat renderer.
+function fallBack(views: ViewState): void {
   setSceneView('2d')
-  showView(deps, views, deps.renderers.flat)
   showViewNote('fallback')
   clearTimeout(views.noteTimer)
   views.noteTimer = setTimeout(() => showViewNote(undefined), FALLBACK_NOTE_MS)

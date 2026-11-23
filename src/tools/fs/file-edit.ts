@@ -214,6 +214,8 @@ async function commitEdit(input: CommitEditInput): Promise<string> {
       constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
       input.identity.permissions
     )
+
+    await PathPolicy.assertOpenedWithin(edit.workspace, tempHandle, tempPath)
     await tempHandle.chmod(input.identity.permissions)
     await tempHandle.writeFile(input.newContent, { encoding: 'utf8', signal: edit.signal })
     await tempHandle.close()

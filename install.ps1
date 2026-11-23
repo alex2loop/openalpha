@@ -19,7 +19,7 @@
   $ProgressPreference = 'SilentlyContinue'
   # Windows PowerShell 5.1 writes with the legacy code page, which turns Vietnamese into question marks.
   [Console]::OutputEncoding = [Text.Encoding]::UTF8
-  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+  [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
   $Repository = 'alex2loop/openalpha'
   $Command = 'openalpha'
@@ -70,12 +70,18 @@
   function Install-Binary {
     $base = Get-ReleaseBase
     $asset = "$Command-windows-$(Get-Architecture).exe"
-    $part = Join-Path $InstallDir ".$Command.download"
-    $sums = Join-Path $InstallDir ".$Command.sha256sums"
 
     New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
+    # One private folder per run, so two installs at once never share a file. It sits inside the
+    # install dir so the final move stays on one volume.
+    $work = Join-Path $InstallDir ".$Command.$([Guid]::NewGuid().ToString('N'))"
+    $part = Join-Path $work 'download'
+    $sums = Join-Path $work 'sha256sums'
+
     try {
+      New-Item -ItemType Directory -Path $work | Out-Null
+
       try {
         Invoke-WebRequest -UseBasicParsing -Uri "$base/SHA256SUMS" -OutFile $sums
         Invoke-WebRequest -UseBasicParsing -Uri "$base/$asset" -OutFile $part
@@ -93,22 +99,33 @@
           'Tệp tải về không khớp mã kiểm tra nên tôi chưa cài. Chạy lại nhé.'
       }
 
-      Move-Aside
-      Move-Item -Force -Path $part -Destination $Target
+      $movedAside = Move-Aside
+
+      try {
+        Move-Item -Force -Path $part -Destination $Target
+      } catch {
+        # The old binary goes back, so a failed swap never leaves PATH without a command.
+        if ($movedAside) {
+          try { Move-Item -Force -Path "$Target.old" -Destination $Target } catch { }
+        }
+
+        throw
+      }
     } finally {
-      Remove-Item -Force -ErrorAction SilentlyContinue -Path $part, $sums
+      Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Path $work
     }
   }
 
   # The previous upgrade's leftover is replaced; it is locked only while that version still runs.
+  # True when the current binary was renamed to `.old`, false when there was none to move.
   function Move-Aside {
     if (-not (Test-Path $Target)) {
-      return
+      return $false
     }
 
     try {
       Move-Item -Force -Path $Target -Destination "$Target.old"
-      return
+      return $true
     } catch {
       # A daemon `upgrade` could not restart (in a terminal, or left by an older release) still runs
       # the leftover. It is paused once, through the pid file, and the swap tried again.
@@ -119,6 +136,7 @@
 
     try {
       Move-Item -Force -Path $Target -Destination "$Target.old"
+      return $true
     } catch {
       if ($script:PausedDaemon) {
         Fail "An older openalpha.exe is still running. Close it, then run this again. The daemon is paused; start it with: $Command start --background" `

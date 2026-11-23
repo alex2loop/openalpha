@@ -90,11 +90,17 @@ sha256_of() {
 # download never leaves a half-written command on PATH.
 install_binary() {
   base="https://github.com/$REPOSITORY/releases/download/$TAG"
-  part="$INSTALL_DIR/.$COMMAND.download"
-  sums="$INSTALL_DIR/.$COMMAND.sha256sums"
-  trap 'rm -f "$part" "$sums"' EXIT
 
   mkdir -p "$INSTALL_DIR"
+  # One private folder per run, so two installs at once never share a file. It sits inside the install
+  # dir so the final rename stays on one filesystem.
+  work="$(mktemp -d "$INSTALL_DIR/.$COMMAND.XXXXXX")" \
+    || fail "I couldn't write to $INSTALL_DIR." "Tôi không ghi được vào $INSTALL_DIR."
+  trap 'rm -rf "$work"' EXIT
+  trap 'exit 1' HUP INT TERM
+  part="$work/download"
+  sums="$work/sha256sums"
+
   { fetch -fsSL "$base/SHA256SUMS" -o "$sums" && fetch -fL --progress-bar "$base/$ASSET" -o "$part"; } \
     || fail "I couldn't download $TAG. Run this script again in a minute." \
          "Chưa tải được $TAG. Đợi một phút rồi chạy lại script này nhé."
@@ -116,10 +122,8 @@ keep_previous() {
   [ -x "$INSTALL_DIR/$COMMAND" ] || return 0
   rm -f "$INSTALL_DIR/$COMMAND.old"
   ln "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null && return 0
-  if cp -p "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old.part" 2>/dev/null; then
-    mv -f "$INSTALL_DIR/$COMMAND.old.part" "$INSTALL_DIR/$COMMAND.old"
-  else
-    rm -f "$INSTALL_DIR/$COMMAND.old.part"
+  if cp -p "$INSTALL_DIR/$COMMAND" "$work/previous" 2>/dev/null; then
+    mv -f "$work/previous" "$INSTALL_DIR/$COMMAND.old"
   fi
 }
 
