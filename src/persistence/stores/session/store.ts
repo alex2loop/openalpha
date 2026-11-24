@@ -135,6 +135,13 @@ async function countSessions(store: StoreDeps, agentId?: AgentId): Promise<numbe
 async function clearSessions(store: StoreDeps, agentId?: AgentId): Promise<SessionClearResult> {
   return await store.db.transaction(async (tx) => {
     const params = agentId === undefined ? [] : [agentId]
+
+    // Idle rows first, so a run cannot claim one between the count below and the deletes.
+    await tx.execute(
+      agentId === undefined ? store.sql.lockIdleAll : store.sql.lockIdleByAgent,
+      params
+    )
+
     const runningSql =
       agentId === undefined ? store.sql.countRunningAll : store.sql.countRunningByAgent
     const runningRows = await tx.query<{ readonly n: number }>(runningSql, params)

@@ -213,7 +213,9 @@ function toCoverage(position: Position, resting: readonly RestingExit[]): ExitCo
  *  instrument because that is how a book row is keyed; an instrument held only at custodians with
  *  no client is absent, because nothing can rest there and a row that called it unplaced would flag
  *  every hand-held holding forever. A venue whose stops could not be read is absent too: claiming
- *  none there would tell an operator with a stop in the exchange's app to place a second one. */
+ *  none there would tell an operator with a stop in the exchange's app to place a second one. So is
+ *  a name split across venues when any one of them could not be read: the rest would speak for a
+ *  parcel they do not hold. */
 export async function resolveRestingStops(
   deps: OrderServiceDeps,
   input: TradeStatusInput
@@ -225,22 +227,27 @@ export async function resolveRestingStops(
   const placeable = placeablePositions(deps, positions)
   const venueStops = await stopsAtVenues(deps, placeable, input.signal)
   const resting = exitsByPosition(exits)
+  const unreadable = new Set(
+    placeable
+      .filter((position) => !venueStops.has(position.venue))
+      .map((position) => buildInstrumentKey(position.instrument))
+  )
   const covers = new Map<string, StopCover>()
 
   // Every venue holding the name has to be covered: one custodian's stop does not protect the
   // parcel sitting at another.
   for (const position of placeable) {
-    const atVenue = venueStops.get(position.venue)
+    const key = buildInstrumentKey(position.instrument)
 
-    if (atVenue === undefined) {
+    if (unreadable.has(key)) {
       continue
     }
 
-    const key = buildInstrumentKey(position.instrument)
+    const stops = restingOn(resting, position).filter((exit) => exit.stopLoss !== undefined)
     const venueSize = stopSizeAtVenue(deps, position, venueStops) ?? 0
     const cover = coverOf(
-      restingOn(resting, position),
-      coveredFractionOf(venueSize, position.quantity) === 1
+      { placed: guardedQuantityOf(stops), atVenue: venueSize },
+      position.quantity
     )
 
     covers.set(key, weakerCover(covers.get(key), cover))
@@ -249,12 +256,17 @@ export async function resolveRestingStops(
   return covers
 }
 
-function coverOf(placed: readonly RestingExit[], heldAtVenue: boolean): StopCover {
-  if (placed.some((exit) => exit.stopLoss !== undefined)) {
+/** `placed` is what this tree's stops guard, `atVenue` what the venue lists; a stop that guards
+ *  only part of the position is not cover for the rest. */
+function coverOf(
+  guarded: { readonly placed: number; readonly atVenue: number },
+  held: number
+): StopCover {
+  if (coveredFractionOf(guarded.placed, held) === 1) {
     return 'placed'
   }
 
-  return heldAtVenue ? 'venue' : 'none'
+  return coveredFractionOf(guarded.atVenue, held) === 1 ? 'venue' : 'none'
 }
 
 function weakerCover(held: StopCover | undefined, next: StopCover): StopCover {

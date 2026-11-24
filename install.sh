@@ -90,11 +90,17 @@ sha256_of() {
 # download never leaves a half-written command on PATH.
 install_binary() {
   base="https://github.com/$REPOSITORY/releases/download/$TAG"
-  part="$INSTALL_DIR/.$COMMAND.download"
-  sums="$INSTALL_DIR/.$COMMAND.sha256sums"
-  trap 'rm -f "$part" "$sums"' EXIT
 
   mkdir -p "$INSTALL_DIR"
+  # One private folder per run, so two installs at once never share a file. It sits inside the install
+  # dir so the final rename stays on one filesystem.
+  work="$(mktemp -d "$INSTALL_DIR/.$COMMAND.XXXXXX")" \
+    || fail "I couldn't write to $INSTALL_DIR." "Tôi không ghi được vào $INSTALL_DIR."
+  trap 'rm -rf "$work"' EXIT
+  trap 'exit 1' HUP INT TERM
+  part="$work/download"
+  sums="$work/sha256sums"
+
   { fetch -fsSL "$base/SHA256SUMS" -o "$sums" && fetch -fL --progress-bar "$base/$ASSET" -o "$part"; } \
     || fail "I couldn't download $TAG. Run this script again in a minute." \
          "Chưa tải được $TAG. Đợi một phút rồi chạy lại script này nhé."
@@ -105,21 +111,21 @@ install_binary() {
          "Tệp tải về không khớp mã kiểm tra nên tôi chưa cài. Chạy lại script này nhé."
 
   chmod 755 "$part"
-  keep_previous
+  keep_previous "$work"
   mv -f "$part" "$INSTALL_DIR/$COMMAND"
+  # The binary is in place: a signal from here on (Ctrl-C in onboarding) is the binary's to answer.
+  trap - HUP INT TERM
 }
 
 # The release being replaced stays next to the new one as `.old`, as `openalpha upgrade` keeps it,
-# so `upgrade --rollback` goes back to it. A filesystem without hard links gets a copy, written under
-# a temporary name first so a copy cut short (a full disk) never becomes the rollback copy.
+# so `upgrade --rollback` goes back to it. A filesystem without hard links gets a copy, written in
+# the run's folder (`$1`) first so a copy cut short (a full disk) never becomes the rollback copy.
 keep_previous() {
   [ -x "$INSTALL_DIR/$COMMAND" ] || return 0
   rm -f "$INSTALL_DIR/$COMMAND.old"
   ln "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old" 2>/dev/null && return 0
-  if cp -p "$INSTALL_DIR/$COMMAND" "$INSTALL_DIR/$COMMAND.old.part" 2>/dev/null; then
-    mv -f "$INSTALL_DIR/$COMMAND.old.part" "$INSTALL_DIR/$COMMAND.old"
-  else
-    rm -f "$INSTALL_DIR/$COMMAND.old.part"
+  if cp -p "$INSTALL_DIR/$COMMAND" "$1/previous" 2>/dev/null; then
+    mv -f "$1/previous" "$INSTALL_DIR/$COMMAND.old"
   fi
 }
 

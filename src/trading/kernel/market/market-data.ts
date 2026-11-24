@@ -339,6 +339,7 @@ export interface PositioningSnapshot extends SourceStamp {
   readonly week: TradingDay
   readonly netLongContracts: number
   readonly weekChangeContracts?: number
+  /** A fraction in 0..1 (0.85 = above 85% of the trailing year). */
   readonly yearPercentile?: number
 }
 

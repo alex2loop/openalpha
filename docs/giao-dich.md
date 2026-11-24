@@ -1921,7 +1921,7 @@ Vì nó không tiêu được tiền mặt, không mở được vị thế và 
 
 Đây cũng là câu trả lời cho cảnh báo lệch: khi nhịp đối soát log `order.exit_diverged`, một lối thoát đang treo phủ nhiều hơn cái sổ nói bạn đang nắm. Chạy `/trade exit` sẽ co nó lại theo vị thế.
 
-**Một cắt lỗ bạn đặt trong app OKX cũng được tính.** `/portfolio` hỏi OKX các lệnh bán đang sống có chân cắt lỗ (TP/SL, OCO và trailing stop), nên một vị thế bạn đã bảo vệ trong app không đọc là "no stop placed". Khi kế hoạch nâng một cắt lỗ trên vị thế như vậy, thông báo bảo bạn dời nó trong app thay vì gợi ý `/trade exit`, thứ sẽ đặt thêm một cái nữa bên cạnh. Nếu không đọc được OKX, dòng đó bị bỏ chứ không đoán. Một lệnh trigger thường không được tính: không có giá đi kèm, một trigger bán không phân biệt được với một chốt lời.
+**Một cắt lỗ bạn đặt trong app OKX cũng được tính.** `/portfolio` hỏi OKX các lệnh bán đang sống có chân cắt lỗ (TP/SL, OCO và trailing stop), nên một vị thế bạn đã bảo vệ trong app không đọc là "no stop placed". Khi kế hoạch nâng một cắt lỗ trên vị thế như vậy, thông báo bảo bạn dời nó trong app thay vì gợi ý `/trade exit`, thứ sẽ đặt thêm một cái nữa bên cạnh. Một cắt lỗ chỉ bảo vệ một phần vị thế thì không tính là bảo vệ cả vị thế. Nếu không đọc được OKX, dòng đó bị bỏ chứ không đoán, và một mã nắm giữ ở hai sàn cũng bị bỏ khi một trong hai sàn không đọc được. Một lệnh trigger thường không được tính: không có giá đi kèm, một trigger bán không phân biệt được với một chốt lời.
 
 **Trên Binance không dời được một lối thoát.** Binance không có cách đổi một cắt lỗ đang treo, nên `/trade exit` lần hai trên một mã đã có một cái treo ở đó bị từ chối với `order.exit_not_amendable`, và câu trả lời nói phải làm gì:
 

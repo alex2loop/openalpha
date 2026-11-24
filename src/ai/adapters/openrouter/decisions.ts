@@ -7,12 +7,14 @@ import { z } from 'zod'
 import type { ChainEntry, Transport } from '@/ai/types'
 import type { DecisionQueries, DecisionQuery, LLMRequest, LLMResponse } from '@/core/llm'
 import type { OnStreamEvent, TokenUsage } from '@/core/stream-events'
+import { resolveAuthHeaders } from '@/ai/adapters/auth-headers'
 import { classifyHttpError, classifyNetworkError } from '@/ai/adapters/errors'
+import { resolveEndpointUrl } from '@/ai/adapters/runner'
 import { LLMError } from '@/core/errors'
 import { HttpRequestError, httpRequestWithSignal, parseRetryAfterMs } from '@/core/http-client'
 import { RETRY_MAX_DELAY_MS } from '@/core/utils/retry'
 
-const DECISIONS_PATH = '/decisions'
+const DECISIONS_PATH = 'decisions'
 /** Nothing is streamed and nothing is sampled, so the usage the router reports is all there is. */
 const NO_TOKENS: TokenUsage = Object.freeze({ input: 0, output: 0 })
 const USAGE = z.object({
@@ -59,12 +61,14 @@ async function post(
   entry: ChainEntry,
   asked: DecisionQueries
 ): Promise<DecisionsReply> {
+  const auth = await resolveAuthHeaders(req, entry)
+
   try {
     const response = await httpRequestWithSignal({
-      hosts: [entry.baseUrl],
-      path: DECISIONS_PATH,
+      hosts: [resolveEndpointUrl(entry.baseUrl, DECISIONS_PATH)],
+      path: '',
       method: 'POST',
-      headers: { authorization: `Bearer ${entry.apiKey}`, 'content-type': 'application/json' },
+      headers: { ...auth, 'content-type': 'application/json' },
       body: JSON.stringify(toBody(entry.model, asked)),
       signal: req.signal,
     })

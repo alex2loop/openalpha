@@ -36,9 +36,9 @@ export function startNoticeLog(app: App): NoticeLog {
   let tail: Promise<void> = Promise.resolve()
   const logFailure = createFailureLog(logger)
 
-  const persist = async (row: NoticeRow): Promise<void> => {
+  const persist = async (filing: Filing): Promise<void> => {
     try {
-      await store.record(row)
+      await store.record(toRow(filing))
       bus.emit('notices_changed', { unread: await store.unreadCount() })
     } catch (err: unknown) {
       logFailure(err)
@@ -46,7 +46,7 @@ export function startNoticeLog(app: App): NoticeLog {
   }
   const file = (filing: Filing): void => {
     if (filing.event.weight !== 'quiet') {
-      tail = tail.then(() => persist(toRow(filing)))
+      tail = tail.then(() => persist(filing))
     }
   }
   const offs = [

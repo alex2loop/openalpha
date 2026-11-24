@@ -81,7 +81,9 @@ export function quoteSource(options: SourceAdapterOptions): RegisteredSource {
 function sessionOf(row: z.infer<typeof QUOTE_ROW>): SessionSoFar | undefined {
   const { high, low, nmVolume } = row
 
-  if (high === undefined || low === undefined) {
+  // A pre-open row carries 0 for both: no session has traded yet, which is no reason to drop the
+  // quote itself.
+  if (high === undefined || low === undefined || high === 0 || low === 0) {
     return undefined
   }
 

@@ -5,10 +5,9 @@ import type { Book, CurrencyCash, LedgerEntryId, VenueCash } from '@/trading/ker
 import { moveVenueCash } from '@/trading/features/ledger/fold-state'
 import { QUANTITY_EPSILON } from '@/trading/features/ledger/position'
 
-/** What a row spends of one venue's currency cash. */
-interface CurrencyCashSpend {
+/** What leaves the venue that pays for a row, in the row's own currency. */
+interface CashOutflow {
   readonly venue: VenueRef
-  readonly currency: CurrencyCode
   readonly amount: number
 }
 
@@ -39,25 +38,33 @@ export function movesCurrencyCash(state: FoldState, txn: LedgerTxn): boolean {
   return true
 }
 
-/** The currency-cash outflow a row needs before it applies; undefined when it spends base cash or
- *  nothing. */
-export function currencyCashSpend(state: FoldState, txn: LedgerTxn): CurrencyCashSpend | undefined {
-  if (!(movesCurrencyCash(state, txn) && 'currency' in txn)) {
+/** The cash a row needs before it applies, from the venue that pays; undefined when none leaves. */
+export function cashOutflowOf(txn: LedgerTxn): CashOutflow | undefined {
+  const amount = outflowAmountOf(txn)
+
+  if (amount <= 0) {
     return undefined
   }
 
+  return { venue: txn.kind === 'transfer' ? txn.fromVenue : txn.venue, amount }
+}
+
+function outflowAmountOf(txn: LedgerTxn): number {
   switch (txn.kind) {
     case 'buy':
     case 'rights':
-      return spend(txn.venue, txn.currency, txn.quantity * txn.unitPrice + txn.fee)
+      return txn.quantity * txn.unitPrice + txn.fee
+    case 'sell':
+      // A fee passing the gross is a net outflow, which needs cash like any other spend.
+      return txn.fee - txn.quantity * txn.unitPrice
     case 'withdrawal':
     case 'fee':
     case 'loss':
-      return spend(txn.venue, txn.currency, txn.amount)
+      return txn.amount
     case 'transfer':
-      return spend(txn.fromVenue, txn.currency, txn.amount + txn.fee)
+      return txn.amount + txn.fee
     default:
-      return undefined
+      return 0
   }
 }
 
@@ -247,10 +254,6 @@ function debitBase(state: FoldState, venue: VenueRef, costBase: number): void {
   state.cashBase -= costBase
   state.availableCashBase -= costBase
   moveVenueCash(state, venue, { cash: -costBase, available: -costBase })
-}
-
-function spend(venue: VenueRef, currency: CurrencyCode, amount: number): CurrencyCashSpend {
-  return { venue, currency, amount }
 }
 
 function currencyCashKey(venue: VenueRef, currency: CurrencyCode): string {

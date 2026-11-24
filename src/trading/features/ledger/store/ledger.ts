@@ -11,6 +11,7 @@ import type { BookChange, LedgerEntryId } from '@/trading/kernel/operator/book'
 import type { Page } from '@/trading/kernel/store/page'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted, ConflictError, ValidationError } from '@/core/errors'
+import { bookChangeSince, recordDeletion } from '@/trading/features/ledger/store/book-change'
 import {
   IDENTITY_COLUMNS,
   TRANSACTION_COLUMNS,
@@ -20,9 +21,6 @@ import {
 import { venueRef } from '@/trading/kernel/instrument'
 import { ledgerEntryId } from '@/trading/kernel/operator/book'
 import { toPage } from '@/trading/kernel/store/store-row'
-
-/** The query's integer answer, by value. */
-const BOOK_CHANGES: readonly BookChange[] = Object.freeze(['none', 'book', 'instrument'])
 
 const INSERT_COLUMNS = [...IDENTITY_COLUMNS, ...TRANSACTION_COLUMNS]
 const INSERT_SQL = `INSERT INTO ledger_entries (${INSERT_COLUMNS.join(', ')}) VALUES `
@@ -65,6 +63,11 @@ interface LedgerPatch {
   readonly updatedAt: number
 }
 
+interface LedgerRemoval {
+  readonly id: LedgerEntryId
+  readonly deletedAt: number
+}
+
 export interface LedgerStore {
   findById(id: LedgerEntryId, signal: AbortSignal): Promise<LedgerEntry | null>
   findByIdempotency(options: FindByIdempotencyOptions): Promise<StoredLedgerRequest | null>
@@ -79,8 +82,9 @@ export interface LedgerStore {
     assertValid: AssertLedgerValid,
     signal: AbortSignal
   ): Promise<LedgerEntry>
+  /** Removes one row and records the deletion, so `bookChangeSince` still sees the change. */
   deleteValidated(
-    id: LedgerEntryId,
+    removal: LedgerRemoval,
     assertValid: AssertLedgerValid,
     signal: AbortSignal
   ): Promise<LedgerEntry>
@@ -117,8 +121,8 @@ export function createLedgerStore(deps: LedgerStoreDeps): LedgerStore {
       insertValidated(deps, { subject: insert, assertValid, signal }),
     updateValidated: (patch, assertValid, signal) =>
       updateValidated(deps, { subject: patch, assertValid, signal }),
-    deleteValidated: (id, assertValid, signal) =>
-      deleteValidated(deps, { subject: id, assertValid, signal }),
+    deleteValidated: (removal, assertValid, signal) =>
+      deleteValidated(deps, { subject: removal, assertValid, signal }),
     listAll: (signal) => listAll(deps, signal),
     listVenues: (signal) => listVenues(deps, signal),
     bookChangeSince: (instrument, from, signal) =>
@@ -157,31 +161,6 @@ async function findByIdempotency(
   const row = rows[0]
 
   return row ? { entry: toEntry(row), requestFingerprint: row.request_fingerprint } : null
-}
-
-interface ChangeSinceQuery {
-  readonly instrument: InstrumentRef
-  readonly from: number
-  readonly signal: AbortSignal
-}
-
-async function bookChangeSince(
-  deps: LedgerStoreDeps,
-  options: ChangeSinceQuery
-): Promise<BookChange> {
-  const { instrument } = options
-
-  assertNotAborted(options.signal)
-
-  const p = deps.dialect.param
-  // An unchanged book, the usual answer, costs one scan. Integers rather than the boolean `EXISTS`
-  // gives Postgres, so both engines answer alike.
-  const rows = await deps.db.query<{ readonly change: number }>(
-    `SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM ledger_entries WHERE COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 0 WHEN EXISTS (SELECT 1 FROM ledger_entries WHERE market = ${p(1)} AND ticker = ${p(2)} AND COALESCE(updated_at, recorded_at) > ${p(3)}) THEN 2 ELSE 1 END AS change`,
-    [instrument.market, instrument.ticker, options.from]
-  )
-
-  return BOOK_CHANGES[Number(rows[0]?.change ?? 0)] ?? 'none'
 }
 
 async function insertValidated(
@@ -254,9 +233,10 @@ async function updateValidated(
 
 async function deleteValidated(
   deps: LedgerStoreDeps,
-  options: WriteOptions<LedgerEntryId>
+  options: WriteOptions<LedgerRemoval>
 ): Promise<LedgerEntry> {
-  const { subject: id, assertValid, signal } = options
+  const { subject: removal, assertValid, signal } = options
+  const { id } = removal
 
   assertNotAborted(signal)
 
@@ -269,6 +249,7 @@ async function deleteValidated(
 
     assertValid(current.filter((row) => row.id !== id))
     await tx.execute(`DELETE FROM ledger_entries WHERE id = ${deps.dialect.param(1)}`, [id])
+    await recordDeletion(deps, tx, { removed, deletedAt: removal.deletedAt })
 
     return removed
   })

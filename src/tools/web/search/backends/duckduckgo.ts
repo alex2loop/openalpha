@@ -137,7 +137,9 @@ function decodeHtmlEntities(text: string): string {
       const n = Number.parseInt(code, 16)
       return isValidCodePoint(n) ? String.fromCodePoint(n) : `&#x${code};`
     })
-    .replace(/&([a-z][a-z0-9]*);/gi, (_, name) => NAMED_ENTITIES[name] ?? `&${name};`)
+    .replace(/&([a-z][a-z0-9]*);/gi, (match, name) =>
+      Object.hasOwn(NAMED_ENTITIES, name) ? (NAMED_ENTITIES[name] ?? match) : match
+    )
 }
 
 function isValidCodePoint(n: number): boolean {
@@ -158,8 +160,8 @@ function unwrapDuckDuckGoUrl(raw: string): string {
       return raw
     }
 
-    const unwrapped = decodeURIComponent(uddg)
-    const unwrappedUrl = new URL(unwrapped)
+    // searchParams already percent-decoded it; a second decode would corrupt a literal `%`.
+    const unwrappedUrl = new URL(uddg)
 
     return unwrappedUrl.protocol === 'https:' ? unwrappedUrl.href : raw
   } catch {

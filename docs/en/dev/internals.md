@@ -1091,7 +1091,7 @@ Built in against both: the workflow needs only a token with the Workers role `Ed
 
 ### Retention on the web
 
-The browser runs the same database sweep as the daemon (`runPortableRetention`, [portable-retention.ts](../../../src/app/portable-retention.ts)) with the default `[retention]` windows. Swept: sessions and their messages, runs, notices, memory entries, terminal alerts, brief snapshots and model-call records (`llm_attempts`, kept about a year). Never swept: `ledger_entries`, `trading_profiles`, `suggestion_analyses` (durable visitor records, no sweep in v1) and `config_overrides`. `nav_snapshots` follow `history_days` like the daemon's: they cannot be refetched once old prices are pruned, so the value history beyond the window is lost.
+The browser runs the same database sweep as the daemon (`runPortableRetention`, [portable-retention.ts](../../../src/app/portable-retention.ts)) with the default `[retention]` windows. Swept: sessions and their messages, runs, notices, memory entries, terminal alerts, brief snapshots and model-call records (`llm_attempts`, kept about a year). Never swept: `ledger_entries`, `ledger_deletions`, `trading_profiles`, `suggestion_analyses` (durable visitor records, no sweep in v1) and `config_overrides`. `nav_snapshots` follow `history_days` like the daemon's: they cannot be refetched once old prices are pruned, so the value history beyond the window is lost.
 
 ---
 

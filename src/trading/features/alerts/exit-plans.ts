@@ -1,22 +1,16 @@
-import type { Logger } from '@/core/logging/logger'
-import type { Locale } from '@/core/types/locale'
 import type { LruMap } from '@/core/utils/collections'
-import type { PortfolioAtOptions } from '@/trading/features/portfolio/options'
+import type { ExitNoticeDeps } from '@/trading/features/alerts/exit-notices'
 import type { ExitPlanner, RecordedPlanResult } from '@/trading/features/suggestion/exit-plan/types'
 import type { SuggestionStore } from '@/trading/features/suggestion/store/suggestion'
 import type { StoredSuggestion } from '@/trading/features/suggestion/types'
 import type { InstrumentRef, TradingDay } from '@/trading/kernel/instrument'
 import type { Candle } from '@/trading/kernel/market/market-data'
-import type { StopCover } from '@/trading/kernel/operator/alert'
 import type { DeliveryAddress } from '@/trading/kernel/operator/delivery'
-import type { TradingNoticeSender } from '@/trading/kernel/operator/notice'
 import type { OperationTickOptions } from '@/trading/kernel/store/page'
 import type { Market, MarketCapabilities, MarketRegistry } from '@/trading/markets/types'
-import type { QuotedIn } from '@/trading/render/money'
-import type { StopPlacement } from '@/trading/render/stop-raised'
 import { isAbortError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
-import { renderLevelLines } from '@/trading/features/suggestion/render/hold-levels'
+import { noticePlanned, noticeStopRaised } from '@/trading/features/alerts/exit-notices'
 import {
   armsExit,
   framedDirectionOf,
@@ -24,34 +18,20 @@ import {
   planTakeProfitOf,
 } from '@/trading/features/suggestion/types'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
-import { sendCaught } from '@/trading/kernel/operator/delivery-retry'
 import { resolveSettledDay } from '@/trading/markets/calendar'
 import { LEVEL_BARS_SESSIONS, resolveTrailBounds } from '@/trading/markets/levels'
-import { INDENT } from '@/trading/render/layout'
-import { renderBoardScaleNotes } from '@/trading/render/money'
-import { renderStopRaised } from '@/trading/render/stop-raised'
 
-/** A trail series the market could not serve, or a replacement that threw, is asked again after
- *  this, not on every tick: either reaches a provider, and an outage would otherwise cost one
- *  request per held name a minute. */
+/** A trail series the market could not serve, a plan that threw, or a holding the planner could not
+ *  plan is asked again after this, not on every tick: each reaches a provider, and an outage would
+ *  otherwise cost one request per held name a minute. */
 const PLAN_RETRY_MS = 15 * 60_000
-/** A stop the operator set in the exchange's app is moved there by hand, never by `/trade exit`,
- *  which would place a second one beside it. */
-const PLACEMENT_BY_COVER: Readonly<Record<StopCover, StopPlacement>> = Object.freeze({
-  placed: 'resting',
-  venue: 'by-hand',
-  none: 'unguarded',
-})
 
 /** What the two plan-maintenance passes read — a slice of what the reconcile pass holds, declared
  *  here rather than imported from `exits.ts`, which consumes these. */
-interface ExitPlanDeps {
+interface ExitPlanDeps extends ExitNoticeDeps {
   readonly suggestions: SuggestionStore
   readonly markets: MarketRegistry
   readonly exitPlans: ExitPlanner
-  readonly sender: TradingNoticeSender
-  readonly logger: Logger
-  readonly defaultLocale: Locale
   /** Plan id to the settled session its trail was last computed for. The trail is a function of
    *  settled closes, so asking again inside one session re-reads a year of bars to reach the same
    *  answer - and reaches the provider whenever the store has not caught up yet. */
@@ -61,11 +41,9 @@ interface ExitPlanDeps {
   /** Plan id to the settled session its replacement by a newer strategy version was last answered
    *  in, by a new plan or by a refusal. A replacement that threw leaves it unset. */
   readonly replannedOn: LruMap<string, TradingDay>
-  /** Plan id to the instant its replacement may be tried again after one threw. */
+  /** Plan id, or the instrument key of a holding with no plan, to the instant planning may be tried
+   *  again after it threw or the planner could not plan it. */
   readonly replanRetryAt: LruMap<string, number>
-  /** Whether a stop rests at the exchange behind each held name, keyed by `buildInstrumentKey`.
-   *  Absent on an install with no exchange, where nothing could rest anywhere. */
-  restingStops?(options: PortfolioAtOptions): Promise<ReadonlyMap<string, StopCover>>
 }
 
 interface PlanHoldingInput {
@@ -146,26 +124,43 @@ function movedLevels(from: StoredSuggestion, to: StoredSuggestion): boolean {
   return planStopOf(from) !== planStopOf(to) || planTakeProfitOf(from) !== planTakeProfitOf(to)
 }
 
-/** A replacement that throws leaves the standing plan armed; only a holding with no plan has
- *  nothing to fall back to. It is tried again after `PLAN_RETRY_MS`, and logged on each attempt. */
+/** A replacement that throws leaves the standing plan armed; a holding with no plan has nothing to
+ *  fall back to, so its throw propagates to the caller's log. Either one, and a holding the planner
+ *  could not plan, is tried again after `PLAN_RETRY_MS`, not on every tick. */
 async function planCaught(
   deps: ExitPlanDeps,
   input: PlanHoldingInput
 ): Promise<RecordedPlanResult | null> {
   const { instrument, standing, options } = input
+  const retryKey = standing?.id ?? buildInstrumentKey(instrument)
 
-  if (standing !== null && options.now < (deps.replanRetryAt.get(standing.id) ?? 0)) {
+  if (options.now < (deps.replanRetryAt.get(retryKey) ?? 0)) {
     return null
   }
 
   try {
-    return await deps.exitPlans.plan({ instrument, now: options.now, signal: options.signal })
+    const planned = await deps.exitPlans.plan({
+      instrument,
+      now: options.now,
+      signal: options.signal,
+    })
+
+    if (standing === null && planned.kind === 'unplanned') {
+      deps.replanRetryAt.set(retryKey, options.now + PLAN_RETRY_MS)
+    }
+
+    return planned
   } catch (err: unknown) {
-    if (standing === null || isAbortError(err)) {
+    if (isAbortError(err)) {
       throw err
     }
 
-    deps.replanRetryAt.set(standing.id, options.now + PLAN_RETRY_MS)
+    deps.replanRetryAt.set(retryKey, options.now + PLAN_RETRY_MS)
+
+    if (standing === null) {
+      throw err
+    }
+
     deps.logger.warn('trading.exit_replan_failed', {
       ticker: instrument.ticker,
       err: formatErrForLog(err),
@@ -209,43 +204,6 @@ async function planHolding(
   }
 
   return planned.plan
-}
-
-interface PlannedNotice extends PlanHoldingInput {
-  readonly market: Market | null
-  readonly plan: StoredSuggestion
-}
-
-async function noticePlanned(deps: ExitPlanDeps, input: PlannedNotice): Promise<void> {
-  const { instrument, delivery, options, market } = input
-  const { quoted, notes } = priceConventionOf(deps.defaultLocale, market)
-  const boardLot = market?.manifest.boardLot
-  const outcome = await sendCaught(
-    deps.sender,
-    {
-      target: delivery,
-      locale: deps.defaultLocale,
-      payload: {
-        kind: 'exit-plan',
-        lines: [
-          ...renderLevelLines({
-            locale: deps.defaultLocale,
-            suggestion: input.plan,
-            quoted,
-            trailsStop: market?.trail !== undefined,
-            operatorFigures: 'shown',
-            ...(boardLot === undefined ? {} : { boardLot }),
-          }),
-          ...notes,
-        ],
-      },
-    },
-    options.signal
-  )
-
-  if (outcome !== 'accepted') {
-    deps.logger.warn('trading.exit_plan_notice_undelivered', { ticker: instrument.ticker, outcome })
-  }
 }
 
 interface TrailPlanInput {
@@ -365,105 +323,10 @@ function raiseOf(
   return trailed <= from || trailed >= close ? undefined : { from, to: trailed }
 }
 
-interface StopRaisedNotice extends TrailPlanInput {
-  readonly market: Market
-  readonly from: number
-  readonly to: number
-}
-
-/** Best-effort, like the plan notice: the raised stop is already stored and armed. */
-async function noticeStopRaised(deps: ExitPlanDeps, input: StopRaisedNotice): Promise<void> {
-  const { instrument, market, options } = input
-  const { quoted, notes } = priceConventionOf(deps.defaultLocale, market)
-  const lines = [
-    ...renderStopRaised(deps.defaultLocale, {
-      instrument,
-      from: input.from,
-      to: input.to,
-      quoted,
-      placement: await placementOf(deps, input),
-    }),
-    ...notes,
-  ]
-  const outcome = await sendCaught(
-    deps.sender,
-    {
-      target: input.delivery,
-      locale: deps.defaultLocale,
-      payload: { kind: 'stop-raised', lines },
-    },
-    options.signal
-  )
-
-  if (outcome !== 'accepted') {
-    deps.logger.warn('trading.stop_raised_notice_undelivered', {
-      ticker: instrument.ticker,
-      outcome,
-    })
-  }
-}
-
-/** A name no venue this tree places on holds is carried by hand. A book that could not be read is
- *  `unread`, which still names the command: the exchange may hold a stop nobody can see. */
-async function placementOf(
-  deps: ExitPlanDeps,
-  input: Pick<TrailPlanInput, 'instrument' | 'options'>
-): Promise<StopPlacement> {
-  const { instrument, options } = input
-
-  if (deps.restingStops === undefined) {
-    return 'by-hand'
-  }
-
-  try {
-    const stops = await deps.restingStops({ now: options.now, signal: options.signal })
-    const resting = stops.get(buildInstrumentKey(instrument))
-
-    if (resting === undefined) {
-      return 'by-hand'
-    }
-
-    return PLACEMENT_BY_COVER[resting]
-  } catch (err: unknown) {
-    if (isAbortError(err)) {
-      throw err
-    }
-
-    deps.logger.warn('trading.resting_stops_unread', {
-      ticker: instrument.ticker,
-      err: formatErrForLog(err),
-    })
-
-    return 'unread'
-  }
-}
-
 /** An armed plan whose position is long, which on a spot book is every one the trail applies to,
  *  tested on the framing as `findLatestExitPlan` selects: almost every held name carries a debated
  *  hold framed as a buy, and testing the action instead excluded all of them. A plan read off a
  *  sale's standing exit is not trailed, because the row's own stop belongs to the sale. */
 function isTrailable(plan: StoredSuggestion): boolean {
   return framedDirectionOf(plan) === 'buy' && armsExit(plan) && plan.standingExit === undefined
-}
-
-/** How a market prints a price, and the board-scale note lines beneath; bare when unlisted. */
-function priceConventionOf(
-  locale: Locale,
-  market: Market | null
-): { readonly quoted: Partial<QuotedIn>; readonly notes: readonly string[] } {
-  if (market === null) {
-    return { quoted: {}, notes: [] }
-  }
-
-  const { manifest } = market
-  const quoted: QuotedIn = {
-    currency: manifest.currency,
-    unit: manifest.quoteUnit,
-    ...(manifest.priceDisplay === undefined ? {} : { display: manifest.priceDisplay }),
-  }
-  const notes = renderBoardScaleNotes(locale, [{ market: manifest.id, ...quoted }]).map(
-    (note) => `${INDENT[1]}${note}`
-  )
-
-  return { quoted, notes }
 }

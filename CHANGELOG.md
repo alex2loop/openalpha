@@ -7,6 +7,38 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.12] - 2026-11-23
+
+Deleting a ledger row now marks a reused suggestion as outdated, foreign cash stays correct when a buy spends a currency's whole balance, a sale whose fee passes its proceeds needs the cash to pay it, and the gold COT line shows its real rank. One database change; the upgrade runs it for you.
+> Xóa một dòng trong sổ giờ đánh dấu đề xuất dùng lại là đã cũ, tiền ngoại tệ vẫn đúng khi một lệnh mua tiêu hết số dư của loại tiền đó, lệnh bán có phí lớn hơn tiền thu phải có đủ tiền để trả, và dòng COT của vàng hiện đúng thứ hạng. Có một thay đổi cơ sở dữ liệu; lệnh nâng cấp tự chạy nó.
+
+### Changed
+
+- `/delete` counts as a change to your book, as `/record` and `/update` do: a reused `/suggest` answer says that name or the book changed since it was made.
+- A held name with no exit plan whose planning fails or finds no levels is tried again after 15 minutes instead of every minute.
+- When a trailing stop is raised, a stop at the venue that covers only part of the position is no longer named as resting there, and a name split across venues where one venue could not be read is named as moved by hand.
+- `doctor` reports the missing key when `[model_defaults]` names `api_key_env` without a `provider`.
+- A command delivered again while it is still running or cooling down is dropped silently instead of answered as rate limited.
+- Install scripts use a private folder per run, so two installs at once never share a file. `install.ps1` puts the previous `openalpha.exe` back when the final swap fails, and adds TLS 1.2 to the shell's protocols instead of replacing them.
+
+### Fixed
+
+- After a buy that spent a currency's whole balance, foreign cash from a sale that settled in between could still show as available, and a spend could take its cost from the wrong exchange rate.
+- A sale whose fee was larger than its proceeds was booked without checking cash and could leave the venue's cash negative.
+- The gold COT "vs 1 year" line printed "lowest in the window" or "above 1%" instead of the real rank.
+- A name you hold could resolve to another market's listing of the same ticker while your market's listing was still loading.
+- The screener measured its average range over one session more than `breakout_sessions`.
+- The sector cap warning printed the sector's id instead of its name, SEC insider filings showed `&amp;` in names and titles, and a VNDirect quote with no high or low yet was dropped instead of kept without its session range.
+- The `openrouter-decisions` provider called a wrong address when `base_url` ended with `/`.
+- Clearing chat history on Postgres could delete a chat a run had just started using.
+- A notice that failed to save could stop every later notice from being saved and keep the daemon from shutting down cleanly.
+- Social network keys were not hidden from logs and outbound text like other keys, and a network's register example on another host was accepted.
+- `web_search` through DuckDuckGo broke links holding encoded characters such as `%26` or `%2F`.
+- `file_edit` did not check that its temporary file was opened inside the workspace.
+- `autostart enable` on Windows broke on a path holding a typographic apostrophe.
+- A timed-out cloud sign-in token request was reported as a passing network error rather than a timeout, and work queued after the database closed on a failed rollback failed with a driver error instead of a storage-closed one.
+- Web version: the clock preview drifted an hour on a daylight-saving day, and switching to 2D after a failed 3D load set the office up twice.
+
 ## [1.8.11] - 2026-11-23 [IMPORTANT]
 
 A page token can no longer point a channel's token file at another file on your machine, a long chat no longer lets the agent open a link it read on a fetched page without asking, and a take-profit tranche of 100% now sells the whole position at the take-profit everywhere it is shown, alerted and scored. No database change.
@@ -1196,6 +1228,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.12
 [1.8.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.10
 [1.8.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.9
 [1.8.7]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.7

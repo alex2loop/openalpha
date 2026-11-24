@@ -133,7 +133,7 @@ async function drainPending(context: ScanContext, state: ScanState): Promise<voi
         await inspectChild({ context, state, current, childName })
       }
     } catch (err: unknown) {
-      if (err instanceof ToolError && (err.code === 'path_escape' || err.code === 'depth_limit')) {
+      if (isScanStop(err)) {
         throw err
       }
 
@@ -192,7 +192,7 @@ async function inspectChild(options: {
       })
     }
   } catch (err: unknown) {
-    if (err instanceof ToolError && (err.code === 'path_escape' || err.code === 'depth_limit')) {
+    if (isScanStop(err)) {
       throw err
     }
 
@@ -233,4 +233,9 @@ function fileIdentity(info: {
   ctimeMs: number
 }): WorkspaceFileIdentity {
   return { dev: info.dev, ino: info.ino, mtimeMs: info.mtimeMs, ctimeMs: info.ctimeMs }
+}
+
+/** An escape or a blown entry budget stops the agent's scan; any other failure is one entry's. */
+function isScanStop(err: unknown): boolean {
+  return err instanceof ToolError && (err.code === 'path_escape' || err.code === 'depth_limit')
 }

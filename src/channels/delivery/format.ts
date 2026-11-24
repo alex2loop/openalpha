@@ -223,7 +223,8 @@ function cutPoint(text: string, pos: number, maxLen: number): number {
 
 // Chat length limits count UTF-16 code units (exactly JS `String.length`), not code points: an
 // astral character such as an emoji spends two of them. Backs off one unit rather than cutting a
-// surrogate pair in half.
+// surrogate pair in half, unless that would leave the chunk empty (`maxLen` of 1 on an astral
+// character): the cut then splits the pair, so a loop over it always advances.
 export function cutByUtf16Units(text: string, pos: number, maxLen: number): number {
   const end = Math.min(text.length, pos + maxLen)
 
@@ -232,8 +233,9 @@ export function cutByUtf16Units(text: string, pos: number, maxLen: number): numb
   }
 
   const code = text.charCodeAt(end - 1)
+  const splitsPair = code >= HIGH_SURROGATE_MIN && code <= HIGH_SURROGATE_MAX
 
-  return code >= HIGH_SURROGATE_MIN && code <= HIGH_SURROGATE_MAX ? end - 1 : end
+  return splitsPair && end - 1 > pos ? end - 1 : end
 }
 
 export function formatRunResultBody(result: RunResult, locale: Locale): string {

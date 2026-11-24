@@ -67,6 +67,8 @@ export interface SessionSql {
   readonly removeMessages: string
   readonly detachAttempts: string
   readonly remove: string
+  readonly lockIdleAll: string
+  readonly lockIdleByAgent: string
   readonly countAll: string
   readonly countByAgent: string
   readonly countRunningAll: string
@@ -239,6 +241,8 @@ export function detachAttemptsSql(where: string): string {
 
 type ClearSql = Pick<
   SessionSql,
+  | 'lockIdleAll'
+  | 'lockIdleByAgent'
   | 'countAll'
   | 'countByAgent'
   | 'countRunningAll'
@@ -257,6 +261,12 @@ type ClearSql = Pick<
 
 function buildClearSql(d: Dialect): ClearSql {
   return {
+    // Locks the idle rows as `lockIdle` does, before the running count below reads.
+    lockIdleAll:
+      'UPDATE sessions SET last_activity_at = last_activity_at WHERE active_run_id IS NULL',
+    lockIdleByAgent:
+      `UPDATE sessions SET last_activity_at = last_activity_at ` +
+      `WHERE active_run_id IS NULL AND agent_id = ${d.param(1)}`,
     countAll: 'SELECT COUNT(*) AS n FROM sessions',
     countByAgent: `SELECT COUNT(*) AS n FROM sessions WHERE agent_id = ${d.param(1)}`,
     countRunningAll: 'SELECT COUNT(*) AS n FROM sessions WHERE active_run_id IS NOT NULL',

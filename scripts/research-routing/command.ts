@@ -42,11 +42,10 @@ import {
 export async function runCommand(options: ReadonlyMap<string, string>): Promise<void> {
   const outputPath = requiredPath(options, 'output')
   const configPath = options.get('config')
-  const loadedConfig = await loadConfig(
-    configPath === undefined
-      ? undefined
-      : { configPath: resolve(expandHome(configPath, homedir())) }
-  )
+  const loadedConfig = await loadConfig({
+    env: process.env,
+    ...(configPath === undefined ? {} : { configPath: resolve(expandHome(configPath, homedir())) }),
+  })
   assertEphemeralStorage(loadedConfig.raw.storage)
   const { taskSet, raw } = await loadRoutingTaskSet()
   const directSessions = new Set<string>()

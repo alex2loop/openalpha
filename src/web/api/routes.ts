@@ -152,7 +152,10 @@ export const ROUTES = Object.freeze({
   cost: route<CostReport>('/v1/cost'),
   respond: route<OkAnswer>('/v1/respond'),
   runStop: (runId: string) => route<RunStopWire>(`/v1/runs/${encodeURIComponent(runId)}/stop`),
-  runCalls: (runId: string) => route<RunCallsWire>(`/v1/runs/${encodeURIComponent(runId)}/calls`),
+  runCalls: (runId: string) =>
+    route<RunCallsWire>(`/v1/runs/${encodeURIComponent(runId)}/calls`, undefined, {
+      daemonOnly: true,
+    }),
   runTimeline: (runId: string) =>
     route<RunTimelineWire>(`/v1/runs/${encodeURIComponent(runId)}/timeline`, undefined, {
       daemonOnly: true,

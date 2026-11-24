@@ -8,7 +8,7 @@ import type { ReadLimiter } from '@/social/request/rate'
 import type { SocialLabel } from '@/social/skill/labels'
 import type { HttpMethod, NetworkPin, SocialEndpoint } from '@/social/types'
 import { ValidationError } from '@/core/errors'
-import { hasLikelySecret } from '@/core/security/credentials'
+import { hasLikelySecret, registerKnownSecret } from '@/core/security/credentials'
 import { dayBoundsInZone, MS_PER_DAY, MS_PER_SECOND } from '@/core/utils/time'
 import { isCappedLabel } from '@/social/config'
 import { notifySafely } from '@/social/notices'
@@ -253,9 +253,14 @@ async function pinStep(
 
   const apiKey = await deps.keys.read(who.network, who.agentId)
 
-  return apiKey === undefined
-    ? refuse('no-key')
-    : { ...current, membership: who.membership, apiKey }
+  if (apiKey === undefined) {
+    return refuse('no-key')
+  }
+
+  // A network's key has no vendor prefix, so only the scrubber's known-secret list catches it in logs.
+  registerKnownSecret(apiKey)
+
+  return { ...current, membership: who.membership, apiKey }
 }
 
 // A missing or damaged pointer or `network.toml` pins nothing, so it reads like a pin that no

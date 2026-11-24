@@ -174,6 +174,13 @@ function relativePath(pathname: string, apiBase: URL): string | undefined {
     : undefined
 }
 
+/** A curl command's path under the API base; `undefined` when it calls another origin. */
+function commandPath(command: CurlCommand, apiBase: URL): string | undefined {
+  return command.url.origin === apiBase.origin
+    ? relativePath(command.url.pathname, apiBase)
+    : undefined
+}
+
 function endpointsOf(
   text: string,
   commands: readonly CurlCommand[],
@@ -182,10 +189,7 @@ function endpointsOf(
   const raw: RawEndpoint[] = []
 
   for (const command of commands) {
-    const path =
-      command.url.origin === apiBase.origin
-        ? relativePath(command.url.pathname, apiBase)
-        : undefined
+    const path = commandPath(command, apiBase)
 
     if (path !== undefined) {
       raw.push({ method: command.method, path })
@@ -315,7 +319,7 @@ function registerOf(
   apiBase: URL
 ): { readonly register?: SocialRegisterSpec } {
   for (const command of commands) {
-    const path = relativePath(command.url.pathname, apiBase)
+    const path = commandPath(command, apiBase)
 
     if (command.method !== 'POST' || path === undefined || !REGISTER_PATH_RE.test(path)) {
       continue

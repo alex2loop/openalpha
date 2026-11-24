@@ -11,6 +11,7 @@ import type {
 } from '@/trading/kernel/operator/brief-section'
 import { LEADER_KIND, MOVER_KIND } from '@/trading/kernel/market/market-overview'
 import { BRIEF_SECTION_ORDER } from '@/trading/kernel/operator/brief-section'
+import { fractionToPct } from '@/trading/kernel/surface/agent-json'
 import { priceSection, readySection, unavailableSection } from '@/trading/markets/brief-section'
 import { MAXIMUM_NAMES_PER_LIST, rollupSections } from '@/trading/markets/overview-rollups'
 import { changeAgainstClose } from '@/trading/sources/rows/normalization'
@@ -272,7 +273,7 @@ function positioningSection(overview: MarketDataOverview): BriefSectionResult | 
           : { weekChange: positioning.weekChangeContracts }),
         ...(positioning.yearPercentile === undefined
           ? {}
-          : { yearPercentile: positioning.yearPercentile }),
+          : { yearPercentile: fractionToPct(positioning.yearPercentile) }),
       },
     ],
     titleParams: { week: positioning.week },

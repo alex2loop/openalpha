@@ -134,7 +134,7 @@ export function resolveBudget(raw: RawBudget | undefined): ResolvedBudget {
 
 export function resolveLocale(raw: RawConfig['locale']): ResolvedLocale {
   const language =
-    raw?.language ?? REGION_LANGUAGES[raw?.region ?? UNNAMED_REGION] ?? DEFAULT_LANGUAGE
+    raw?.language ?? languageOfRegion(raw?.region ?? UNNAMED_REGION) ?? DEFAULT_LANGUAGE
 
   if (language !== 'en' && language !== 'vi') {
     throw new OperatorConfigError(
@@ -160,6 +160,11 @@ export function resolveLocale(raw: RawConfig['locale']): ResolvedLocale {
     ...(raw?.currency === undefined ? {} : { currency: raw.currency }),
     ...(raw?.region === undefined ? {} : { region: raw.region }),
   }
+}
+
+// An own-key read: a region named `constructor` or `__proto__` must not find an inherited member.
+function languageOfRegion(region: string): Locale | undefined {
+  return Object.hasOwn(REGION_LANGUAGES, region) ? REGION_LANGUAGES[region] : undefined
 }
 
 export function resolveSchedule(raw: RawSchedule | undefined): ResolvedSchedule {

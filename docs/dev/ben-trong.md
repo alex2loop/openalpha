@@ -1113,7 +1113,7 @@ Hai lỗi đáng kể, vì khách trả giá cho chúng: một bản dựng mang
 
 ### Lưu giữ dữ liệu trên web
 
-Trình duyệt chạy cùng lượt quét cơ sở dữ liệu với dịch vụ nền (`runPortableRetention`, [portable-retention.ts](../../src/app/portable-retention.ts)) với các khoảng `[retention]` mặc định. Được quét: phiên và tin nhắn của chúng, phiên chạy, thông báo, mục memory, cảnh báo đã kết thúc, bản chụp bản tin và các bản ghi lượt gọi mô hình (`llm_attempts`, giữ khoảng một năm). Không bao giờ quét: `ledger_entries`, `trading_profiles`, `suggestion_analyses` (bản ghi bền của khách, chưa có vòng quét ở v1) và `config_overrides`. `nav_snapshots` theo `history_days` như của dịch vụ nền: chúng không tải lại được khi giá cũ đã bị dọn, nên lịch sử giá trị ngoài khoảng đó mất.
+Trình duyệt chạy cùng lượt quét cơ sở dữ liệu với dịch vụ nền (`runPortableRetention`, [portable-retention.ts](../../src/app/portable-retention.ts)) với các khoảng `[retention]` mặc định. Được quét: phiên và tin nhắn của chúng, phiên chạy, thông báo, mục memory, cảnh báo đã kết thúc, bản chụp bản tin và các bản ghi lượt gọi mô hình (`llm_attempts`, giữ khoảng một năm). Không bao giờ quét: `ledger_entries`, `ledger_deletions`, `trading_profiles`, `suggestion_analyses` (bản ghi bền của khách, chưa có vòng quét ở v1) và `config_overrides`. `nav_snapshots` theo `history_days` như của dịch vụ nền: chúng không tải lại được khi giá cũ đã bị dọn, nên lịch sử giá trị ngoài khoảng đó mất.
 
 ---
 
