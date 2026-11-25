@@ -42,7 +42,8 @@ export function toModelPrice(row: z.infer<typeof PriceRowSchema>): ModelPrice | 
 // become NaN and silently poison every charge computed from it. A negative rate is no price either:
 // OpenRouter's router models publish "-1" for a cost that depends on the routed model.
 function perMillion(value: string | undefined): number | undefined {
-  if (value === undefined) {
+  // `Number('')` is 0: a blank rate would read as free and skip every fallback price.
+  if (value === undefined || value.trim() === '') {
     return undefined
   }
 

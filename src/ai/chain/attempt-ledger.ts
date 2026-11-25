@@ -47,6 +47,7 @@ interface RunProviderAttemptInput {
   readonly maxRetries: number
   readonly retryBackoffMs: number
   readonly isRetryable: (err: LLMError) => boolean
+  readonly isEmitted: () => boolean
 }
 
 interface RejectedFieldRetry {
@@ -132,6 +133,11 @@ export async function runProviderAttempt(input: RunProviderAttemptInput): Promis
 // chain never sees this one.
 async function retryWithoutRejectedField(options: RejectedFieldRetry): Promise<AttemptResult> {
   const { input, req, entry, err } = options
+
+  // A retry would stream its answer again after the one the caller already has.
+  if (input.isEmitted()) {
+    throw err
+  }
 
   if (isReasoningRejection(err, entry)) {
     entry.logger.warn('ai.reasoning_rejected', {
