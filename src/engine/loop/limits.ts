@@ -46,7 +46,7 @@ function estimateToolTokens(tools: LLMRequest['tools']): number {
   return Math.ceil(weightedCharCount(serialized) / CHARS_PER_TOKEN)
 }
 
-function messageCharCount(message: LLMMessage): number {
+export function messageCharCount(message: LLMMessage): number {
   let chars = typeof message.content === 'string' ? weightedCharCount(message.content) : 0
 
   if (Array.isArray(message.content)) {
