@@ -359,11 +359,11 @@ function etfTrims(
   for (const [segment, funds] of segments) {
     const caps = request.profile.caps[segment]
     const ceiling = caps?.maximumEtfPctNav
-    const weights = trimmedWeights(funds, request, positions)
+    const core = coreOf(caps, funds, request.held)
+    const weights = withCoreAtFloor(trimmedWeights(funds, request, positions), core)
     const total = totalOf(weights)
 
     if (ceiling !== undefined && total >= ceiling + driftBand(ceiling, request.rebalancePolicy)) {
-      const core = coreOf(caps, funds, request.held)
       const floors = new Map(core === undefined ? [] : [core])
 
       trims.push(
@@ -377,6 +377,19 @@ function etfTrims(
   }
 
   return new Map(trims)
+}
+
+/** Allocation fills the core up to its floor in the same plan, so the excess is measured with the
+ *  core there rather than at what it holds now. */
+function withCoreAtFloor(
+  weights: WeightedMembers,
+  core: readonly [string, number] | undefined
+): WeightedMembers {
+  return weights.map(([member, weight]) =>
+    core !== undefined && buildInstrumentKey(member.instrument) === core[0]
+      ? [member, Math.max(weight, core[1])]
+      : [member, weight]
+  )
 }
 
 function coreLast(
