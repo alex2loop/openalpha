@@ -194,7 +194,7 @@ export function parsedSource<T>(value: T, caveats: readonly Caveat[] = []): Pars
 // The failure code is threaded through: `unavailable/failed` alone cannot tell a timeout from a
 // payload rejection. The kind travels with it because `source.empty-window` names what the provider
 // had nothing of, and one provider answers several kinds.
-function unavailableFromFetch(
+export function unavailableFromFetch(
   id: SourceId,
   kind: SourceKind,
   code: CaveatCode

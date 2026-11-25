@@ -19,7 +19,7 @@ import { withCooldown } from '@/core/utils/concurrency'
 import { unavailable } from '@/trading/kernel/source/source-result'
 import { createRegistrationPhase } from '@/trading/registry-lifecycle'
 import { createRequestCoalescer, sourceRequestKey } from '@/trading/sources/coalesce'
-import { toRegisteredSource } from '@/trading/sources/define'
+import { toRegisteredSource, unavailableFromFetch } from '@/trading/sources/define'
 import { createFreshReads } from '@/trading/sources/freshness'
 import { ANY_SCOPE, type SourceRouteTable } from '@/trading/sources/routes'
 
@@ -209,14 +209,20 @@ function resolveAllSources<K extends SourceKind>(
   }
 
   // Health demotes on the failover path and is inert here, where every leg runs anyway — so an open
-  // breaker has to skip, or one dark provider spends its whole deadline on every merged read. Only
-  // the breaker, never `isDegraded`: a single failure must not drop a leg that is merely having a
-  // bad minute.
-  const eligible = routedSources(state.routes, sources, options).filter(
-    (source) => source.covers(options.context) && source.summary().breaker !== 'open'
+  // breaker skips the call, or one dark provider spends its whole deadline on every merged read. Only
+  // the breaker, never `isDegraded`: a leg having a bad minute still runs. A skipped leg answers
+  // unavailable, so a read missing a provider never looks complete.
+  const covering = routedSources(state.routes, sources, options).filter((source) =>
+    source.covers(options.context)
   )
 
-  return Promise.all(eligible.map((source) => source.fetch(options.context, options.signal)))
+  return Promise.all(
+    covering.map((source) =>
+      source.summary().breaker === 'open'
+        ? unavailableFromFetch(source.id, source.kind, 'source.breaker-open')
+        : source.fetch(options.context, options.signal)
+    )
+  )
 }
 
 function routedSources<K extends SourceKind>(
