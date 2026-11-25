@@ -109,3 +109,9 @@ function drop(key: string, response: Promise<ScreenResponse>): void {
     boards.delete(key)
   }
 }
+
+/** Forgets every board: a new engine root reads another database or another language. A read still
+ *  in flight lands nowhere, since it settles only into the board it started. */
+export function clearScreenCache(): void {
+  boards.clear()
+}
