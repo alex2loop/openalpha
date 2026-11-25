@@ -130,6 +130,15 @@ interface SectorLimits {
   readonly excluded: ReadonlySet<string>
 }
 
+interface CutRule {
+  readonly limit: CapReason
+  readonly cap: number
+  /** What a name keeps whatever the excess, by instrument key. */
+  readonly floors?: ReadonlyMap<string, number>
+}
+
+type WeightedMembers = readonly (readonly [PortfolioCandidate, number])[]
+
 interface CapTrimRequest {
   readonly profile: UserProfile
   readonly candidates: readonly PortfolioCandidate[]
@@ -196,11 +205,16 @@ export function coreOf(
 /** Back to the cap, not to a target: under proportional costs the no-trade region ends at the cap.
  *  A cap of zero trims nothing where the segment has no caps record or is off, and exits whole through
  *  its target. A fund ceiling the operator declared as zero is a cap like any other: the segment's
- *  held funds are sold back to nothing, whatever their score. */
+ *  held funds are sold back to nothing, whatever their score. A segment's funds past its ceiling
+ *  together give the excess back too. */
 export function capTrims(request: CapTrimRequest): ReadonlyMap<string, CapTrim> {
   const positions = positionTrims(request)
 
-  return new Map([...positions, ...sectorTrims(request, positions)])
+  return new Map([
+    ...positions,
+    ...sectorTrims(request, positions),
+    ...etfTrims(request, positions),
+  ])
 }
 
 function positionTrims(request: CapTrimRequest): ReadonlyMap<string, CapTrim> {
@@ -250,32 +264,20 @@ function sectorTrims(
     trigger: cap + driftBand(cap, request.rebalancePolicy),
     excluded: request.excluded,
   }
-  const sectors = new Map<string, PortfolioCandidate[]>()
   const trims: (readonly [string, CapTrim])[] = []
 
   if (cap <= 0) {
     return new Map()
   }
 
-  for (const candidate of request.candidates) {
-    if (
-      candidate.sector !== undefined &&
-      candidate.instrumentKind !== ETF_KIND &&
-      (request.profile.segmentTargets[candidate.segment] ?? 0) > 0
-    ) {
-      sectors.set(candidate.sector, [...(sectors.get(candidate.sector) ?? []), candidate])
-    }
-  }
+  const sectors = fundedGroups(request, (candidate) =>
+    candidate.instrumentKind === ETF_KIND ? undefined : candidate.sector
+  )
 
   for (const members of sectors.values()) {
-    const weights = members.map((member) => {
-      const key = buildInstrumentKey(member.instrument)
+    const weights = trimmedWeights(members, request, positions)
 
-      return [member, positions.get(key)?.toPctNav ?? request.held.get(key) ?? 0] as const
-    })
-    const total = weights.reduce((sum, [, weight]) => sum + weight, 0)
-
-    if (total >= limits.trigger) {
+    if (totalOf(weights) >= limits.trigger) {
       trims.push(...cutWeakestFirst(weights, limits))
     }
   }
@@ -287,11 +289,11 @@ function sectorTrims(
  *  the sector back inside its band, the rest keep their weight, as the next run would leave them;
  *  otherwise the rest are cut back to the cap. */
 function cutWeakestFirst(
-  weights: readonly (readonly [PortfolioCandidate, number])[],
+  weights: WeightedMembers,
   limits: SectorLimits
 ): readonly (readonly [string, CapTrim])[] {
   const weakestFirst = [...weights].sort(([left], [right]) => compareCandidates(right, left))
-  const total = weights.reduce((sum, [, weight]) => sum + weight, 0)
+  const total = totalOf(weights)
   const exits = exitCuts(weakestFirst, total - limits.cap, limits)
   const kept = total - exits.freed
 
@@ -301,13 +303,16 @@ function cutWeakestFirst(
 
   const staying = weakestFirst.filter(([member]) => !leavesWhole(member, limits))
 
-  return [...exits.cuts, ...cutsToCap(staying, kept - limits.cap, limits.cap)]
+  return [
+    ...exits.cuts,
+    ...cutsToCap(staying, kept - limits.cap, { limit: 'sector', cap: limits.cap }),
+  ]
 }
 
 /** A weak name the cut reaches is sold whole, so its whole weight is what it frees. An excluded one
  *  is kept rather than exited, so it is cut like any other name. */
 function exitCuts(
-  weakestFirst: readonly (readonly [PortfolioCandidate, number])[],
+  weakestFirst: WeightedMembers,
   excess: number,
   limits: SectorLimits
 ): { readonly cuts: readonly (readonly [string, CapTrim])[]; readonly freed: number } {
@@ -338,25 +343,107 @@ function leavesWhole(member: PortfolioCandidate, limits: SectorLimits): boolean 
   )
 }
 
+/** A segment's funds past the ETF ceiling together give the excess back, weakest first, the core
+ *  last and only down to its floor. A fund is never exited on its score, so this cuts to the ceiling
+ *  and sells a fund whole only where the ceiling leaves it nothing. An excluded fund is cut like any
+ *  other. Funds already trimmed to their own cap count at that weight. */
+function etfTrims(
+  request: CapTrimRequest,
+  positions: ReadonlyMap<string, CapTrim>
+): ReadonlyMap<string, CapTrim> {
+  const trims: (readonly [string, CapTrim])[] = []
+  const segments = fundedGroups(request, (candidate) =>
+    candidate.instrumentKind === ETF_KIND ? candidate.segment : undefined
+  )
+
+  for (const [segment, funds] of segments) {
+    const caps = request.profile.caps[segment]
+    const ceiling = caps?.maximumEtfPctNav
+    const weights = trimmedWeights(funds, request, positions)
+    const total = totalOf(weights)
+
+    if (ceiling !== undefined && total >= ceiling + driftBand(ceiling, request.rebalancePolicy)) {
+      const core = coreOf(caps, funds, request.held)
+      const floors = new Map(core === undefined ? [] : [core])
+
+      trims.push(
+        ...cutsToCap(coreLast(weights, core), total - ceiling, {
+          limit: 'etf',
+          cap: ceiling,
+          floors,
+        })
+      )
+    }
+  }
+
+  return new Map(trims)
+}
+
+function coreLast(
+  weights: WeightedMembers,
+  core: readonly [string, number] | undefined
+): WeightedMembers {
+  const isCore = ([member]: readonly [PortfolioCandidate, number]): boolean =>
+    buildInstrumentKey(member.instrument) === core?.[0]
+
+  return [...weights].sort(
+    (left, right) =>
+      Number(isCore(left)) - Number(isCore(right)) || compareCandidates(right[0], left[0])
+  )
+}
+
 function cutsToCap(
-  weakestFirst: readonly (readonly [PortfolioCandidate, number])[],
+  weakestFirst: WeightedMembers,
   excess: number,
-  cap: number
+  rule: CutRule
 ): readonly (readonly [string, CapTrim])[] {
   const cuts: (readonly [string, CapTrim])[] = []
   let remaining = excess
 
   for (const [member, weight] of weakestFirst) {
-    const cut = Math.min(weight, remaining)
+    const key = buildInstrumentKey(member.instrument)
+    const given = Math.min(Math.max(0, weight - (rule.floors?.get(key) ?? 0)), remaining)
 
-    if (cut > 0) {
-      cuts.push([
-        buildInstrumentKey(member.instrument),
-        { limit: 'sector', capPctNav: cap, toPctNav: weight - cut },
-      ])
-      remaining -= cut
+    if (given > 0) {
+      cuts.push([key, { limit: rule.limit, capPctNav: rule.cap, toPctNav: weight - given }])
+      remaining -= given
     }
   }
 
   return cuts
+}
+
+/** The candidates of segments the plan still funds, grouped by what the cap is shared across. A
+ *  segment it no longer funds leaves whole anyway, so its names take no room. */
+function fundedGroups<Key extends string>(
+  request: CapTrimRequest,
+  keyOf: (candidate: PortfolioCandidate) => Key | undefined
+): ReadonlyMap<Key, readonly PortfolioCandidate[]> {
+  const groups = new Map<Key, PortfolioCandidate[]>()
+
+  for (const candidate of request.candidates) {
+    const key = keyOf(candidate)
+
+    if (key !== undefined && (request.profile.segmentTargets[candidate.segment] ?? 0) > 0) {
+      groups.set(key, [...(groups.get(key) ?? []), candidate])
+    }
+  }
+
+  return groups
+}
+
+function trimmedWeights(
+  members: readonly PortfolioCandidate[],
+  request: CapTrimRequest,
+  positions: ReadonlyMap<string, CapTrim>
+): WeightedMembers {
+  return members.map((member) => {
+    const key = buildInstrumentKey(member.instrument)
+
+    return [member, positions.get(key)?.toPctNav ?? request.held.get(key) ?? 0] as const
+  })
+}
+
+function totalOf(weights: WeightedMembers): number {
+  return weights.reduce((sum, [, weight]) => sum + weight, 0)
 }

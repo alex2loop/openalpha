@@ -771,7 +771,7 @@ hoạch liệt kê.
 Một mã đang nắm mà lần soát gần nhất vẫn nghiêng về bán bớt thì không được mua thêm, và cũng không
 được tính khi kế hoạch báo còn bao nhiêu mã mua được.
 
-Một vị thế vượt trần mỗi mã hoặc trần ngành quá dải 5/25 sẽ được giảm bớt về đúng mức trần, bất kể điểm của nó.
+Một vị thế vượt trần mỗi mã hoặc trần ngành quá dải 5/25 sẽ được giảm bớt về đúng mức trần, bất kể điểm của nó. Các quỹ của một nhóm cộng lại vượt trần ETF cũng trả phần dư, quỹ lõi sau cùng.
 
 #### Bản tin khi chưa có danh sách theo dõi
 

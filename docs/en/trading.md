@@ -1664,6 +1664,10 @@ drifted.
   rest). When those sales alone bring the sector back inside its band, the other names keep their
   weight, as the next run would leave them. Funds are left out of it, and so are names in a segment
   with a 0% target, since those are sold whole anyway.
+- **Per segment's funds.** A segment's ETFs count together against its ETF cap. Past the cap plus the
+  5/25 band, the plan gives the excess back from the weakest funds first and the core fund last, and
+  never below the core floor. One on your exclusion list is cut like the rest, and a segment with a 0%
+  target is skipped, since its funds are sold whole anyway.
 - **How much.** The sale goes to the cap, at most one board lot past it, and in one step. The settled
   quantity and the name's turnover still limit what sells in a day. A name that traded nothing in the
   window has a turnover of zero: it is sized to nothing, and the plan for every other name goes on.

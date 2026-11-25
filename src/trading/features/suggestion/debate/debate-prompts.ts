@@ -106,7 +106,7 @@ const REDUCE_REASON_SENTENCES = {
 const OVER_CAP_SENTENCES: Partial<Record<CapReason, string>> = {
   position:
     'the position has grown past the per-name cap the operator set, measured on the whole book; the sale only brings it back to that cap and is risk discipline, not a view on the name',
-  etf: 'the fund has grown past the cap the operator set for funds in its segment, measured on the whole book; the sale only brings it back to that cap and is risk discipline, not a view on the fund',
+  etf: 'the fund, or the funds its segment holds together, have grown past the cap the operator set for funds in the segment, measured on the whole book; the sale only brings them back to that cap and is risk discipline, not a view on the fund',
   sector:
     'the names in its sector together have grown past the sector cap the operator set, measured on the whole book, and this is among the weakest of them; the sale only brings the sector back within that cap and is risk discipline, not a view on the name',
 }
