@@ -7,7 +7,7 @@ import { createConfigSummary } from '@/app/views'
 import { resolveRegisteredChannelSettings } from '@/channels/node-api'
 import { createCoreCommands } from '@/commands/api'
 import { toCommandLaneKey } from '@/core/command-lane'
-import { agentId as brandAgentId, DEFAULT_AGENT_ID } from '@/core/ids'
+import { agentId as brandAgentId, DEFAULT_AGENT_ID, LOCAL_USER_ID } from '@/core/ids'
 import { formatErrForLog } from '@/core/security/credentials'
 import { isEntryAgent } from '@/engine/api'
 import { t } from '@/i18n'
@@ -44,7 +44,7 @@ export function coreCommands(app: App): readonly SlashCommand[] {
     releases: app.resolve('releaseUpdates'),
     modelControl: app.resolve('modelControl'),
     schedulerCommands: app.resolve('schedulerCommands'),
-    scopeFor: async (ctx) => ({ agentId: await entryAgent(app, ctx), userId: ctx.userId }),
+    scopeFor: async (ctx) => ({ agentId: await entryAgent(app, ctx), userId: LOCAL_USER_ID }),
     pausedAgents: app.resolve('agentPauseStore'),
     agentFor: (ctx) => entryAgent(app, ctx),
     selectAgent: (ctx, target) => selectEntryAgent(app, ctx, target),
