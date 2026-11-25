@@ -1,5 +1,11 @@
 import type { FoldState, MutableCurrencyCash } from '@/trading/features/ledger/fold-state'
-import type { CashTxn, DividendTxn, LedgerTxn, TransferTxn } from '@/trading/features/ledger/types'
+import type {
+  CashTxn,
+  DividendTxn,
+  LedgerTxn,
+  TradeTxn,
+  TransferTxn,
+} from '@/trading/features/ledger/types'
 import type { CurrencyCode, TradingDay, VenueRef } from '@/trading/kernel/instrument'
 import type { Book, CurrencyCash, LedgerEntryId, VenueCash } from '@/trading/kernel/operator/book'
 import { moveVenueCash } from '@/trading/features/ledger/fold-state'
@@ -68,24 +74,17 @@ function outflowAmountOf(txn: LedgerTxn): number {
   }
 }
 
-/** Spends settled cash at its own average cost, so unsettled sale proceeds at another rate never
- *  price it, and returns the base cost that leaves with the amount. With nothing settled it falls
- *  back to the average over the whole pool. */
-export function spendCurrencyCash(cash: MutableCurrencyCash, amount: number): number {
-  const costBase = spentCostBase(cash, amount)
+/** What a trade's cash leg cost in the base: the venue's currency cash at its average cost when it
+ *  holds that currency, the row's own rate otherwise. Committed now, not at settlement: this is the
+ *  debit that closes the unsettled double-spend, for a buy and for a sale whose fee passes its gross. */
+export function payFromCash(state: FoldState, txn: TradeTxn, costNative: number): number {
+  const held = currencyCashAt(state, txn.venue, txn.currency)
+  const costBase =
+    held === undefined ? costNative * txn.conversion.rate : spendCurrencyCash(held, costNative)
 
-  cash.amount -= amount
-  cash.available -= amount
-  cash.costBase -= costBase
-  cash.availableCostBase -= costBase
-
-  // Dust from float subtraction would be averaged into the next inflow's cost.
-  if (Math.abs(cash.amount) <= QUANTITY_EPSILON) {
-    cash.amount = 0
-    cash.available = 0
-    cash.costBase = 0
-    cash.availableCostBase = 0
-  }
+  state.cashBase -= costBase
+  state.availableCashBase -= costBase
+  moveVenueCash(state, txn.venue, { cash: -costBase, available: -costBase })
 
   return costBase
 }
@@ -214,6 +213,28 @@ function transferCurrencyCash(state: FoldState, txn: TransferTxn, entryId: Ledge
     amount: txn.amount,
     costBase: leavingBase - feeBase,
   })
+}
+
+/** Spends settled cash at its own average cost, so unsettled sale proceeds at another rate never
+ *  price it, and returns the base cost that leaves with the amount. With nothing settled it falls
+ *  back to the average over the whole pool. */
+function spendCurrencyCash(cash: MutableCurrencyCash, amount: number): number {
+  const costBase = spentCostBase(cash, amount)
+
+  cash.amount -= amount
+  cash.available -= amount
+  cash.costBase -= costBase
+  cash.availableCostBase -= costBase
+
+  // Dust from float subtraction would be averaged into the next inflow's cost.
+  if (Math.abs(cash.amount) <= QUANTITY_EPSILON) {
+    cash.amount = 0
+    cash.available = 0
+    cash.costBase = 0
+    cash.availableCostBase = 0
+  }
+
+  return costBase
 }
 
 function addCurrencyCash(

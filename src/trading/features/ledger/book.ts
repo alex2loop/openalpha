@@ -17,8 +17,8 @@ import {
   currencyCashAt,
   isCurrencyCashRow,
   movesCurrencyCash,
+  payFromCash,
   receiveCurrencyCash,
-  spendCurrencyCash,
   toCurrencyCash,
 } from '@/trading/features/ledger/currency-cash'
 import { createFoldState, moveVenueCash } from '@/trading/features/ledger/fold-state'
@@ -194,7 +194,7 @@ export function positionAt(
 function applyBuy(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
   const position = positionFor(state, txn)
   const costNative = -cashDeltaNative(txn)
-  const costBase = payForBuy(state, txn, costNative)
+  const costBase = payFromCash(state, txn, costNative)
 
   if (position.quantity === 0) {
     position.cycleSoldQuantity = 0
@@ -222,21 +222,6 @@ function applyBuy(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
   })
 }
 
-/** What a buy cost in the base: the venue's currency cash at its average cost when it holds that
- *  currency, the row's own rate otherwise. Committed now, not at settlement: this is the debit that
- *  closes the unsettled double-spend. */
-function payForBuy(state: FoldState, txn: TradeTxn, costNative: number): number {
-  const held = currencyCashAt(state, txn.venue, txn.currency)
-  const costBase =
-    held === undefined ? costNative * txn.conversion.rate : spendCurrencyCash(held, costNative)
-
-  state.cashBase -= costBase
-  state.availableCashBase -= costBase
-  moveVenueCash(state, txn.venue, { cash: -costBase, available: -costBase })
-
-  return costBase
-}
-
 function applySell(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
   const position = positionFor(state, txn)
   const closing = isClosingSale(position.quantity, txn.quantity)
@@ -262,6 +247,32 @@ function applySell(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
     clearFlatPosition(position)
   }
 
+  receiveSaleProceeds(state, entry, txn)
+  consumeLots(position, txn.quantity)
+  state.sales.push({
+    instrument: txn.instrument,
+    venue: txn.venue,
+    at: txn.at,
+    unitPriceNative: txn.unitPrice,
+    proceedsNative,
+    basisReleasedNative,
+    realizedBase: proceedsBase - basisReleasedBase,
+    remainingQuantity: position.quantity,
+  })
+}
+
+/** Proceeds are money in, not spendable until the sale settles. A fee passing the gross leaves
+ *  them negative: a net outflow, debited at the trade day like a buy's cash leg. */
+function receiveSaleProceeds(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
+  const proceedsNative = cashDeltaNative(txn)
+  const proceedsBase = cashDeltaBase(txn)
+
+  if (proceedsNative < 0) {
+    payFromCash(state, txn, -proceedsNative)
+
+    return
+  }
+
   state.cashBase += proceedsBase
   moveVenueCash(state, txn.venue, { cash: proceedsBase, available: 0 })
 
@@ -278,17 +289,6 @@ function applySell(state: FoldState, entry: LedgerEntry, txn: TradeTxn): void {
       amountBase: proceedsBase,
     })
   )
-  consumeLots(position, txn.quantity)
-  state.sales.push({
-    instrument: txn.instrument,
-    venue: txn.venue,
-    at: txn.at,
-    unitPriceNative: txn.unitPrice,
-    proceedsNative,
-    basisReleasedNative,
-    realizedBase: proceedsBase - basisReleasedBase,
-    remainingQuantity: position.quantity,
-  })
 }
 
 /** Flat means flat: a basis left standing against no shares reappears in the next cycle's average
