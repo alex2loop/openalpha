@@ -7,6 +7,40 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.13] - 2026-11-25 [IMPORTANT]
+
+Channel `/memory` and `/schedule` now work on the same memories and jobs as the CLI, an exposed HTTP API can no longer redirect failure notices or a provider's address, a new profile's segments stay within each category's maximum, and `/trade` counts only a resting stop-loss as protection. One database change; the upgrade runs it for you, and briefs stored before it are rebuilt on the next run.
+> `/memory` và `/schedule` trên kênh chat giờ dùng chung ghi nhớ và lịch với CLI, API HTTP khi mở ra ngoài không còn đổi được nơi nhận thông báo lỗi hay địa chỉ của nhà cung cấp, nhóm của hồ sơ mới không vượt mức tối đa của loại tài sản, và `/trade` chỉ tính lệnh cắt lỗ đang treo là đã bảo vệ. Có một thay đổi cơ sở dữ liệu; lệnh nâng cấp tự chạy nó, và các bản tin đã lưu trước đó sẽ được dựng lại ở lần chạy tới.
+
+### Changed
+
+- `/brief` stores one brief per market region, so two regions on the same day no longer replace each other's brief.
+- A new profile's seeded segment targets stay within each category's maximum; the excess goes to cash.
+- `/rebalance` trims a segment's funds together back to the ETF ceiling, counting the core at its floor, and no longer suggests adding to a name that has a standing reduce.
+- `/trade` and the agent's exit view count only a resting stop-loss as protection. A position guarded only by a take-profit is named as such and points to `/trade cancel` first.
+- A tool's time limit pauses while its run waits for you to review a research plan, as the run's own limit already did.
+- While `[api] public_url` is set, `POST /v1/config` refuses changes to `schedule.failure_target`, a channel's `fallback_chat_id`, a provider's address and the variable that holds its key.
+- Plugin workflow commands run as the local operator, as channel commands do.
+- Release downloads follow at most five redirects, and only to https.
+
+### Fixed
+
+- Channel `/memory` and `/schedule` read and wrote a separate set per chat sender instead of yours.
+- A merged market read did not name the source an open circuit breaker had skipped.
+- A bars read ending on a weekend or holiday flagged the series as stale and fetched it again.
+- The factor board's medians counted factors that carry no weight.
+- Exit recovery did not adopt an exit the venue had already triggered.
+- Editing a ledger row to another instrument did not mark a reused suggestion for the old one as outdated.
+- A sale whose fee was larger than its proceeds did not take the difference from cash on the trade day.
+- The scheduler could start more due jobs in one tick than its per-tick limit.
+- Compacting a long chat could replace a short tool result with a longer stub.
+- A model stream that had started answering could still time out on the first-output limit, and its watchdog could arm again after firing.
+- A blank OpenRouter rate was read as free, and a request could be retried without a rejected field after it had already streamed output.
+- A blocked MCP tool description left the tool with no text; it now shows the server name. A memory whose secret was split across its key and value was saved.
+- A cancelled catalog read was reported as an empty listing.
+- Gemini: an empty tool call id was kept instead of replaced.
+- Web version: the macro page showed empty verdict fields for a read that carries only readings, screen boards kept old labels after a restart, a refused restart dropped the new language, and a refused steer message gave the chat no answer.
+
 ## [1.8.12] - 2026-11-23
 
 Deleting a ledger row now marks a reused suggestion as outdated, foreign cash stays correct when a buy spends a currency's whole balance, a sale whose fee passes its proceeds needs the cash to pay it, and the gold COT line shows its real rank. One database change; the upgrade runs it for you.
@@ -1228,6 +1262,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.13
 [1.8.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.12
 [1.8.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.10
 [1.8.9]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.9
