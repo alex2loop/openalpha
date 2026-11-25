@@ -762,11 +762,13 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     `[trading.orders] allow_unattended`.
   - Khi đã đặt `[api] public_url`, `allowed_ids`, `operator_user_ids`, `pairing`, `dm_policy` và
     `fallback_chat_id` của từng kênh cũng chỉ đổi được trên máy chủ.
-  - Khi kiểm tra hay lưu một thay đổi ở những mục như vậy, trang sẽ từ chối và nêu tên từng mục. Ô chọn
-    mô hình vẫn đổi được nhà cung cấp: khi đó nó đặt biến chứa khóa của chính nhà cung cấp đó, chọn sẵn
-    mô hình mặc định của họ và bỏ địa chỉ cũ. Nhà cung cấp nào trong chuỗi đã lưu mà chưa có khóa sẽ có
-    một dòng nhắc và nút "Thêm khóa" mở thẳng thẻ của họ. Thử kết nối chạy các mô hình đang dùng, nên
-    sau khi lưu một thay đổi thì phải chờ khởi động lại mới thử được.
+  - Khi kiểm tra hay lưu một thay đổi ở những mục như vậy, trang sẽ từ chối và nêu tên từng mục. Ô
+    chọn mô hình vẫn đổi được nhà cung cấp: khi đó nó đặt biến chứa khóa của chính nhà cung cấp đó,
+    chọn sẵn mô hình mặc định của họ và bỏ địa chỉ cũ. Đổi sang nhà cung cấp của `[model_defaults]`
+    khi mục đó có `base_url` hoặc `fallback_base_url` thì bị từ chối, vì khóa sẽ bị gửi tới địa chỉ
+    đó. Nhà cung cấp nào trong chuỗi đã lưu mà chưa có khóa sẽ có một dòng nhắc và nút "Thêm khóa"
+    mở thẳng thẻ của họ. Thử kết nối chạy các mô hình đang dùng, nên sau khi lưu một thay đổi thì
+    phải chờ khởi động lại mới thử được.
   - Mỗi dòng nói rõ lưu xong có hiệu lực ngay hay cần khởi động lại. Bánh răng đếm các thay đổi đang
     chờ khởi động lại, và chân trang Cài đặt luôn có nút "Khởi động lại dịch vụ nền" (xem ở trên), kể
     cả khi không có gì đang chờ.

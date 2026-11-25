@@ -267,7 +267,7 @@ Mặc định ([core/config/resolvers/runtime.ts](../../src/core/config/resolver
   chung một router, và một lần từ chối từ phía trên không được tắt luôn các mục dự phòng phía sau. Chỉ thông tin đăng nhập
   và thanh toán mới trải lên mọi mô hình sau một nhà cung cấp.
 - Endpoint nào từ chối một trường suy luận hay hợp đồng đầu ra thì được thử thêm một lần không có trường đó
-  (`ai.reasoning_rejected`, `ai.output_contract_rejected`). Cả hai chỉ là phần tối ưu, phiên chạy vẫn đi tiếp được; lần thử
+  (`ai.reasoning_rejected`, `ai.output_contract_rejected`), trừ khi đầu ra đã đến tay người gọi. Cả hai chỉ là phần tối ưu, phiên chạy vẫn đi tiếp được; lần thử
   bị từ chối vẫn tính tiền.
 - Cho nghỉ đánh dấu một mục là không dùng được cho cả lượt kế tiếp, nên chỉ tín hiệu khả dụng thật mới làm điều đó
   (`transient`, `rate`, `timeout` - `ENTRY_COOLDOWN_CODES`). `empty_response` và `output_budget_exhausted` nói về đầu ra của

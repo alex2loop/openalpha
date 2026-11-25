@@ -142,16 +142,6 @@ function RatesLine({ readings }: { readonly readings: ReadyMacro['readings'] }) 
   return rates.length === 0 ? null : <p>{joinInline(rates)}</p>
 }
 
-// The daemon states a driver's weight, band and pull; the web edition's read carries only its value.
-function isPulled(driver: MacroDriver): driver is Required<MacroDriver> {
-  return (
-    driver.weight !== undefined &&
-    driver.bearishAt !== undefined &&
-    driver.bullishAt !== undefined &&
-    driver.contribution !== undefined
-  )
-}
-
 /** Under a driver's reading in Nâng cao: where it sits between its bearish and bullish ends, and
  *  its weight and pull on the composite. Nothing where the read carries none. */
 function DriverDetail(driver: MacroDriver) {
@@ -175,6 +165,16 @@ function DriverDetail(driver: MacroDriver) {
         ])}
       </span>
     </div>
+  )
+}
+
+// The daemon states a driver's weight, band and pull; the web edition's read carries only its value.
+function isPulled(driver: MacroDriver): driver is Required<MacroDriver> {
+  return (
+    driver.weight !== undefined &&
+    driver.bearishAt !== undefined &&
+    driver.bullishAt !== undefined &&
+    driver.contribution !== undefined
   )
 }
 

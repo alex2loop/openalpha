@@ -50,19 +50,6 @@ function toMacroVerdictWire(macro: MacroRiskView) {
   }
 }
 
-function toMacroReadingWire(
-  driver: MacroRiskView['drivers'][number],
-  labels: TradingMacroView['labels']
-) {
-  return {
-    id: driver.id,
-    label: labels[driver.id] ?? driver.id,
-    unit: driver.unit,
-    value: driver.value,
-    asOf: driver.asOf,
-  }
-}
-
 function toMacroDriverWire(
   driver: MacroRiskView['drivers'][number],
   labels: TradingMacroView['labels']
@@ -73,5 +60,18 @@ function toMacroDriverWire(
     bearishAt: driver.bearishAt,
     bullishAt: driver.bullishAt,
     contribution: driver.contribution,
+  }
+}
+
+function toMacroReadingWire(
+  driver: MacroRiskView['drivers'][number],
+  labels: TradingMacroView['labels']
+) {
+  return {
+    id: driver.id,
+    label: labels[driver.id] ?? driver.id,
+    unit: driver.unit,
+    value: driver.value,
+    asOf: driver.asOf,
   }
 }
