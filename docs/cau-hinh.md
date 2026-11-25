@@ -612,7 +612,8 @@ cầu cục bộ. Nên hãy đặt `public_url` trước khi mở ra ngoài, và
   plugin, cũng không dùng công cụ mạng xã hội;
 - công việc tạo từ ứng dụng chỉ trả lời trong ứng dụng;
 - việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing`, `dm_policy` và
-  `fallback_chat_id` của từng kênh chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+  `fallback_chat_id` của từng kênh, cùng `[schedule] failure_target`, chỉ đổi được trên máy chủ: bằng câu lệnh hoặc
+  trong file này, không bao giờ từ ứng dụng.
 
 Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhập ChatGPT: hãy dùng `openalpha key set` và
 `openalpha auth login chatgpt` trên máy chủ.

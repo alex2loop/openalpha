@@ -327,8 +327,8 @@ fixtures are the **payloads**; on the socket each is wrapped in its `ServerFrame
   `trading.venues.<id>.credentials`, so the names `/v1/credentials` may write come only from the CLI
   or the file), and every `*_env`, `base_url` and `fallback_base_url` key anywhere. While `[api] public_url` is set
   it also refuses a change to any channel's `allowed_ids`, `operator_user_ids`, `pairing`,
-  `dm_policy` or `fallback_chat_id` (`channels.<id>.<key>`, with its own server-only sentence). An
-  equal value passes;
+  `dm_policy` or `fallback_chat_id` (`channels.<id>.<key>`), and to `schedule.failure_target`, each
+  with its own server-only sentence. An equal value passes;
   dropping a `*_env`, `base_url` or `fallback_base_url` key passes
   (the provider's own address and key variable take over), and so does an `api_key_env` set to the
   key variable the provider catalog names for the entry's `provider`, unless the entry carries a

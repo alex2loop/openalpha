@@ -520,7 +520,7 @@ another failure is logged, retried next interval), never a quarantine.
 
 - An app-channel run is never offered what `isClientApprovalWithheld` names (the same predicate `/v1/mcp` uses: `shell` capability, `file_write`, `file_edit`, the social tools and every external tool), nor `order_place` while `[api] orders` is off. The wrap reaches the children of such a run.
 - A job the app creates without a target is aimed at the app channel, so it runs under the same limits. A job for another chat is refused.
-- Pairing approve answers 409 naming `pair approve`, the config guard refuses `channels.<id>.{allowed_ids, operator_user_ids, pairing, dm_policy, fallback_chat_id}`, and every order route plus `/trade` on the socket answers as off.
+- Pairing approve answers 409 naming `pair approve`, the config guard refuses `channels.<id>.{allowed_ids, operator_user_ids, pairing, dm_policy, fallback_chat_id}` and `schedule.failure_target`, and every order route plus `/trade` on the socket answers as off.
 
 `api`, `update` and `trading.orders.allow_unattended` are CLI-only whether or not `public_url` is set.
 

@@ -772,7 +772,7 @@ Run `openalpha web` (see [Run the API on a server](#run-the-api-on-a-server)). I
     `fallback_base_url`, a channel's `token_file`, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` and
     `[trading.orders] allow_unattended`.
   - While `[api] public_url` is set, a channel's `allowed_ids`, `operator_user_ids`, `pairing`,
-    `dm_policy` and `fallback_chat_id` change only on the server too.
+    `dm_policy` and `fallback_chat_id`, and `[schedule] failure_target`, change only on the server too.
   - Checking or saving a change to one of those is refused, with a line naming each such field. The
     model picker can still switch provider: that sets that provider's own key variable, starts from
     its default model and drops the old address. Switching to the provider of `[model_defaults]`

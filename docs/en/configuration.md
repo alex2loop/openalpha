@@ -615,7 +615,8 @@ Setting `public_url` also limits what the app can do, because it is now reachabl
   plugins, nor the social network tools;
 - jobs made from the app answer only in the app;
 - pairing approval plus each channel's `allowed_ids`, `operator_user_ids`, `pairing`,
-  `dm_policy` and `fallback_chat_id` are server-only: they change from the CLI or this file, never from the app.
+  `dm_policy` and `fallback_chat_id`, and `[schedule] failure_target`, are server-only: they change from the
+  CLI or this file, never from the app.
 
 The page then saves no key and starts no ChatGPT sign-in either: use `openalpha key set` and
 `openalpha auth login chatgpt` on the server.

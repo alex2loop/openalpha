@@ -535,7 +535,7 @@ mỗi vòng cho tới khi có lỗi khác được ghi, thử lại ở khoảng
 
 - Một phiên chạy của kênh ứng dụng không bao giờ được đưa những gì `isClientApprovalWithheld` nêu tên (cùng điều kiện `/v1/mcp` dùng: khả năng `shell`, `file_write`, `file_edit`, các công cụ mạng xã hội và mọi công cụ bên ngoài), cũng không có `order_place` khi `[api] orders` đang tắt. Lớp bọc này với tới cả các lượt con của phiên chạy đó.
 - Một công việc do ứng dụng tạo mà không nêu đích được hướng vào kênh ứng dụng, nên chạy dưới cùng các giới hạn. Công việc cho chat khác bị từ chối.
-- Duyệt ghép nối trả 409 nêu tên `pair approve`, cổng kiểm cấu hình từ chối `channels.<id>.{allowed_ids, operator_user_ids, pairing, dm_policy, fallback_chat_id}`, và mọi đường đặt lệnh cùng `/trade` trên socket đều trả lời như đang tắt.
+- Duyệt ghép nối trả 409 nêu tên `pair approve`, cổng kiểm cấu hình từ chối `channels.<id>.{allowed_ids, operator_user_ids, pairing, dm_policy, fallback_chat_id}` và `schedule.failure_target`, và mọi đường đặt lệnh cùng `/trade` trên socket đều trả lời như đang tắt.
 
 `api`, `update` và `trading.orders.allow_unattended` chỉ đổi được bằng dòng lệnh dù có đặt `public_url` hay không.
 

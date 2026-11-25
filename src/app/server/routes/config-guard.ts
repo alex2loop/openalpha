@@ -34,6 +34,8 @@ const CHANNEL_ACCESS_KEYS: readonly string[] = [
   'dm_policy',
   'fallback_chat_id',
 ]
+/** Where the daemon writes outside a channel's own keys, server-only on the same terms. */
+const EXPOSED_ONLY_PATHS: readonly (readonly string[])[] = [['schedule', 'failure_target']]
 const MCP_SECTION = 'mcp'
 const MODEL_DEFAULTS_SECTION = 'model_defaults'
 const MCP_SERVERS_PATH: readonly string[] = [MCP_SECTION, 'servers']
@@ -101,9 +103,7 @@ export function redactedPaths(tree: unknown, path = ''): readonly string[] {
 /** Every CLI-only value `body` changes against the file, by its path in the body. */
 export function cliOnlyChanges(body: ConfigTree, disk: ConfigTree): readonly string[] {
   return [
-    ...CLI_ONLY_PATHS.filter(
-      (path) => !Bun.deepEquals(valueAt(body, path), valueAt(disk, path))
-    ).map((path) => path.join('.')),
+    ...changedPaths(CLI_ONLY_PATHS, body, disk),
     ...mcpServerChanges(body, disk),
     ...venueCredentialChanges(body, disk),
     ...endpointChanges(body, disk),
@@ -126,17 +126,19 @@ function venueCredentialChanges(body: ConfigTree, disk: ConfigTree): readonly st
     .map((id) => [...VENUES_PATH, id, VENUE_CREDENTIALS_KEY].join('.'))
 }
 
-/** Every channel access key `body` changes against the file, by its path in the body. */
+/** Every channel access key and exposed-only path `body` changes against the file, by its path in
+ *  the body. */
 export function exposedOnlyChanges(body: ConfigTree, disk: ConfigTree): readonly string[] {
   const channels = memberOf(body, CHANNELS_SECTION)
   const before = memberOf(disk, CHANNELS_SECTION)
   const ids = new Set([...recordKeys(channels), ...recordKeys(before)])
-
-  return [...ids].flatMap((id) =>
+  const channelChanges = [...ids].flatMap((id) =>
     CHANNEL_ACCESS_KEYS.filter(
       (key) => !Bun.deepEquals(valueAt(channels, [id, key]), valueAt(before, [id, key]))
     ).map((key) => [CHANNELS_SECTION, id, key].join('.'))
   )
+
+  return [...channelChanges, ...changedPaths(EXPOSED_ONLY_PATHS, body, disk)]
 }
 
 function recordKeys(value: unknown): readonly string[] {
@@ -251,6 +253,16 @@ function counterpartAt(disk: unknown, item: unknown, index: number): unknown {
   return typeof name === 'string'
     ? disk.find((held: unknown) => memberOf(held, 'name') === name)
     : disk[index]
+}
+
+function changedPaths(
+  paths: readonly (readonly string[])[],
+  body: ConfigTree,
+  disk: ConfigTree
+): readonly string[] {
+  return paths
+    .filter((path) => !Bun.deepEquals(valueAt(body, path), valueAt(disk, path)))
+    .map((path) => path.join('.'))
 }
 
 function valueAt(tree: unknown, path: readonly string[]): unknown {
