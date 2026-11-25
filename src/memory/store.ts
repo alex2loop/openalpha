@@ -29,6 +29,7 @@ export const MEMORY_SEARCH_LIMIT_MAX = 100
 // stored; only the truly dangerous control/plane characters are rejected before I/O.
 // biome-ignore lint/suspicious/noControlCharactersInRegex: explicit C0/C1 control-plane ranges per remediation plan
 const DISALLOWED_CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/u
+const MEMORY_SECRET_SCAN_SEPARATOR = ': '
 
 interface EntryRow {
   readonly key: string
@@ -173,9 +174,10 @@ async function storeMemory(input: StoreMemoryInput): Promise<void> {
   assertStorable(value)
   assertWithinLimit(value, input.limits.maxValueBytes)
   // Key and value both round-trip back into a prompt, so both are scanned for secrets and injection
-  // before any durable I/O. Secrets and injection are both hard rejections at this boundary.
-  rejectIfSecret(input.key)
-  rejectIfSecret(value)
+  // before any durable I/O. Secrets and injection are both hard rejections at this boundary. They are
+  // scanned as one assignment: a password split into a `db_password` key and its value matches only
+  // when the two stand together.
+  rejectIfSecret(`${input.key}${MEMORY_SECRET_SCAN_SEPARATOR}${value}`)
   assertNoPromptInjection(input.key, value)
 
   const now = Date.now()
