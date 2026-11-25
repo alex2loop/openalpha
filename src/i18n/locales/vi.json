@@ -2104,7 +2104,7 @@
     "office.doctor.fix.logging": "Nơi ghi nhật ký chỉ đổi được trong config.toml trên máy chủ.",
     "office.doctor.fix.database": "Bạn chạy `{brand} doctor database` trên máy chủ; nếu vẫn lỗi, khôi phục bản sao lưu gần nhất.",
     "office.doctor.fix.channels": "Kiểm tra mã bot trên máy chủ: `{brand} key set <TÊN>`, rồi khởi động lại; danh sách ID ở Cài đặt › Kênh nhắn tin.",
-    "office.doctor.fix.delivery": "Đặt fallback_chat_id cho kênh ở Cài đặt › Nâng cao, để việc chạy theo lịch có nơi gửi.",
+    "office.doctor.fix.delivery": "Đặt fallback_chat_id cho kênh ở Cài đặt › Nâng cao, hoặc trong config.toml trên máy chủ khi trang mở qua địa chỉ công khai, để việc chạy theo lịch có nơi gửi.",
     "office.doctor.fix.sources": "Thêm khóa nguồn dữ liệu ở Cài đặt › Công cụ.",
     "office.doctor.fix.safety": "Nếu không cố ý bật, bạn tắt công tắc này trong config.toml trên máy chủ.",
     "office.doctor.fix.venues": "Sửa khóa ở Cài đặt › Sàn giao dịch rồi khởi động lại.",
@@ -2748,7 +2748,7 @@
     "fields.price_event_incomplete": "Sự kiện giá cần có mã, điều kiện và ngưỡng giá.",
     "fields.level_not_price": "Chỉ sự kiện giá mới có mức giá.",
     "fields.config_cli_only": "{field} chỉ đổi được bằng câu lệnh hoặc sửa thẳng trong config.toml, vì mục này quyết định dịch vụ nền chạy gì, dùng file nào và gửi khóa của bạn đi đâu.",
-    "fields.config_server_only": "{field} chỉ đổi được trên máy chủ khi API mở ra ngoài ([api] public_url), vì mục này quyết định ai được trò chuyện với dịch vụ nền.",
+    "fields.config_server_only": "{field} chỉ đổi được trên máy chủ khi API mở ra ngoài ([api] public_url), vì mục này quyết định ai được trò chuyện với dịch vụ nền hoặc nơi dịch vụ nền gửi tin.",
     "fields.config_secret_hidden": "{field} vẫn đang là ký hiệu che giấu mà file chưa có giá trị cho mục này. Bạn nhập giá trị thật trong config.toml nhé.",
     "watchlistNotLoaded": "Mình chưa kiểm tra được các mã này: danh sách thị trường chưa được nạp, hoặc lần kiểm tra vừa rồi bị lỗi. Bạn chạy /refresh trước rồi thêm lại nhé.",
     "watchlistNamesInvalid": "Mình không đọc được một trong các mã này, hoặc có quá nhiều mã cùng lúc. Bạn viết mỗi mã dạng FPT, hoặc thị trường:mã như crypto:BTC nhé."

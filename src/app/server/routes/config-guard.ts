@@ -22,17 +22,20 @@ const CLI_ONLY_PATHS: readonly (readonly string[])[] = [
 const VENUES_PATH: readonly string[] = ['trading', 'venues']
 const VENUE_CREDENTIALS_KEY = 'credentials'
 const CHANNELS_SECTION = 'channels'
-/** Who may talk to the daemon through a channel. While the API is reachable from outside
- *  (`[api] public_url`) they change only on the server; the other channel keys grant no chat:
- *  a channel with no allowlist pairs, and pairing approval is server-only then too. Mirrors the
- *  access keys in `channels/schema.ts` and each adapter's `config.ts`; a new one is added here. */
+/** What decides who talks to the daemon through a channel or where it writes. While the API is
+ *  reachable from outside (`[api] public_url`) they change only on the server: a channel with no
+ *  allowlist pairs, pairing approval is server-only then too, and the fallback chat receives every
+ *  proactive message. Mirrors the access keys in `channels/schema.ts` and each adapter's
+ *  `config.ts`; a new one is added here. */
 const CHANNEL_ACCESS_KEYS: readonly string[] = [
   'allowed_ids',
   'operator_user_ids',
   'pairing',
   'dm_policy',
+  'fallback_chat_id',
 ]
 const MCP_SECTION = 'mcp'
+const MODEL_DEFAULTS_SECTION = 'model_defaults'
 const MCP_SERVERS_PATH: readonly string[] = [MCP_SECTION, 'servers']
 const MCP_SERVER_CLI_ONLY_KEYS: readonly string[] = ['transport', 'command', 'args', 'env', 'url']
 /** Anywhere in the tree. A write may drop one (the provider's own address and key variable take
@@ -103,7 +106,7 @@ export function cliOnlyChanges(body: ConfigTree, disk: ConfigTree): readonly str
     ).map((path) => path.join('.')),
     ...mcpServerChanges(body, disk),
     ...venueCredentialChanges(body, disk),
-    ...endpointChanges(body, disk, ''),
+    ...endpointChanges(body, disk),
   ]
 }
 
@@ -180,44 +183,61 @@ function mcpServerChanges(body: ConfigTree, disk: ConfigTree): readonly string[]
   })
 }
 
-function endpointChanges(body: unknown, disk: unknown, path: string): readonly string[] {
-  if (Array.isArray(body)) {
-    return body.flatMap((item, index) =>
-      endpointChanges(item, counterpartAt(disk, item, index), childPath(path, index))
-    )
-  }
+function endpointChanges(root: ConfigTree, disk: ConfigTree): readonly string[] {
+  const defaults = memberOf(root, MODEL_DEFAULTS_SECTION)
 
-  if (!isPlainRecord(body)) {
-    return []
-  }
+  function walk(body: unknown, was: unknown, path: string): readonly string[] {
+    if (Array.isArray(body)) {
+      return body.flatMap((item, index) =>
+        walk(item, counterpartAt(was, item, index), childPath(path, index))
+      )
+    }
 
-  return Object.entries(body).flatMap(([key, value]) => {
-    const at = childPath(path, key)
-
-    if (path === '' && WALK_SKIPPED_SECTIONS.has(key)) {
+    if (!isPlainRecord(body)) {
       return []
     }
 
-    if (!isEndpointKey(key)) {
-      return endpointChanges(value, memberOf(disk, key), at)
-    }
+    return Object.entries(body).flatMap(([key, value]) => {
+      const at = childPath(path, key)
 
-    return Bun.deepEquals(value, memberOf(disk, key)) || isProviderKeyVar(body, key) ? [] : [at]
-  })
+      if (path === '' && WALK_SKIPPED_SECTIONS.has(key)) {
+        return []
+      }
+
+      if (!isEndpointKey(key)) {
+        return walk(value, memberOf(was, key), at)
+      }
+
+      return Bun.deepEquals(value, memberOf(was, key)) || isProviderKeyVar(body, key, defaults)
+        ? []
+        : [at]
+    })
+  }
+
+  return walk(root, disk, '')
 }
 
 function isEndpointKey(key: string): boolean {
   return ENDPOINT_KEYS.has(key) || key.endsWith(KEY_VAR_SUFFIX) || key.endsWith(SECRET_FILE_SUFFIX)
 }
 
-function isProviderKeyVar(entry: ConfigTree, key: string): boolean {
+/** The provider's own key variable, set where the key goes to the provider's own address: an
+ *  entry with an address of its own, or one inheriting `[model_defaults]`'s (only an entry of the
+ *  defaults' provider does, as in `connectionDefaults`), would send it somewhere else. */
+function isProviderKeyVar(entry: ConfigTree, key: string, defaults: unknown): boolean {
   const provider = entry.provider
 
   return (
     key === PROVIDER_KEY_VAR &&
     typeof provider === 'string' &&
-    PROVIDER_KEY_VARS.get(provider) === entry[key]
+    PROVIDER_KEY_VARS.get(provider) === entry[key] &&
+    !hasEndpoint(entry) &&
+    !(provider === memberOf(defaults, 'provider') && hasEndpoint(defaults))
   )
+}
+
+function hasEndpoint(value: unknown): boolean {
+  return [...ENDPOINT_KEYS].some((key) => memberOf(value, key) !== undefined)
 }
 
 /** The file's item an array item stands for: the one with the same `name`, else the same place. */

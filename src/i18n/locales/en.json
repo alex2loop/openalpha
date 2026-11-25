@@ -2104,7 +2104,7 @@
     "office.doctor.fix.logging": "Where logs go is set only in config.toml on the server.",
     "office.doctor.fix.database": "Run `{brand} doctor database` on the server; if it still fails, restore the latest backup.",
     "office.doctor.fix.channels": "Check the bot token on the server: `{brand} key set <NAME>`, then restart; allowed IDs are in Settings › Messaging channels.",
-    "office.doctor.fix.delivery": "Give the channel a fallback_chat_id in Settings › Advanced, so scheduled jobs have somewhere to send.",
+    "office.doctor.fix.delivery": "Give the channel a fallback_chat_id in Settings › Advanced, or in config.toml on the server while the page is open through a public address, so scheduled jobs have somewhere to send.",
     "office.doctor.fix.sources": "Add the data source key in Settings › Tools.",
     "office.doctor.fix.safety": "Turn this switch off in config.toml on the server unless you meant it.",
     "office.doctor.fix.venues": "Fix the key in Settings › Exchanges, then restart.",
@@ -2748,7 +2748,7 @@
     "fields.price_event_incomplete": "A price event needs a ticker, a condition and a threshold.",
     "fields.level_not_price": "Only a price event takes a level.",
     "fields.config_cli_only": "{field} changes only from the CLI or in config.toml: it decides what the daemon runs, which files it uses or where your keys go.",
-    "fields.config_server_only": "{field} changes only on the server while the API is open to the outside ([api] public_url): it decides who may talk to the daemon.",
+    "fields.config_server_only": "{field} changes only on the server while the API is open to the outside ([api] public_url): it decides who may talk to the daemon or where it writes.",
     "fields.config_secret_hidden": "{field} still shows the hidden placeholder and the file has no value for it. Type the real value in config.toml.",
     "watchlistNotLoaded": "I can't tell yet which of these names are real: the market list isn't loaded, or checking it failed. Run /refresh first, then add them again.",
     "watchlistNamesInvalid": "I could not read one of those names, or there were too many at once. Write each as a ticker like FPT, or market:ticker like crypto:BTC."

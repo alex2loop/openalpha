@@ -760,8 +760,8 @@ Chạy `openalpha web` (xem [Chạy API trên máy chủ](#chạy-api-trên-máy
     môi trường (`[trading.sources]`, `[trading.venues.<id>] credentials`), `base_url` và
     `fallback_base_url`, `token_file` của kênh, `[paths]`, `[log] file`, `[storage]`, `[api]`, `[update]` và
     `[trading.orders] allow_unattended`.
-  - Khi đã đặt `[api] public_url`, `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của
-    từng kênh cũng chỉ đổi được trên máy chủ.
+  - Khi đã đặt `[api] public_url`, `allowed_ids`, `operator_user_ids`, `pairing`, `dm_policy` và
+    `fallback_chat_id` của từng kênh cũng chỉ đổi được trên máy chủ.
   - Khi kiểm tra hay lưu một thay đổi ở những mục như vậy, trang sẽ từ chối và nêu tên từng mục. Ô chọn
     mô hình vẫn đổi được nhà cung cấp: khi đó nó đặt biến chứa khóa của chính nhà cung cấp đó, chọn sẵn
     mô hình mặc định của họ và bỏ địa chỉ cũ. Nhà cung cấp nào trong chuỗi đã lưu mà chưa có khóa sẽ có
