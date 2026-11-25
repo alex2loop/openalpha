@@ -3,7 +3,7 @@ import type { RunId, SessionId } from '@/core/ids'
 import type { RunDeadline } from '@/core/tool'
 import type { RunHandle, RunIdentity, RunLifecycle, RunRegistry } from '@/engine/types/run'
 import { RunHalted } from '@/core/errors'
-import { unrefTimer } from '@/core/utils/time'
+import { createPausableTimer } from '@/engine/pausable-timer'
 
 // A private symbol cannot collide with a caller-supplied abort reason, so `signal.reason ===
 // TIMEOUT_ABORT` is an unambiguous "the duration limit fired" test.
@@ -63,61 +63,29 @@ export function composeAbort(
     return { controller, deadline: NO_DEADLINE, dispose: detach }
   }
 
-  let remainingMs = timeoutMs
-  let startedAt = performance.now()
-  let timer: ReturnType<typeof setTimeout> | undefined = armTimeout(controller, remainingMs)
-  // Counted, not a flag: overlapping pauses would otherwise let the inner resume restart the clock
-  // while an outer caller still holds it stopped.
-  let pauses = 0
-  // The run hands `deadline` to every tool, so a tool settling after finalize can still call in.
-  // Without this a resume would arm a fresh timer against an already-torn-down composition.
-  let disposed = false
+  const clock = createPausableTimer(timeoutMs, () => controller.abort(TIMEOUT_ABORT))
 
+  // A source that aborted the run leaves no clock to move.
   return {
     controller,
     deadline: {
       pause(): void {
-        if (disposed || controller.signal.aborted) {
-          return
+        if (!controller.signal.aborted) {
+          clock.pause()
         }
-
-        pauses += 1
-
-        if (pauses > 1) {
-          return
-        }
-
-        clearTimeout(timer)
-        timer = undefined
-        remainingMs -= performance.now() - startedAt
       },
 
       resume(): void {
-        if (disposed || pauses === 0 || controller.signal.aborted) {
-          return
+        if (!controller.signal.aborted) {
+          clock.resume()
         }
-
-        pauses -= 1
-
-        if (pauses > 0 || timer !== undefined) {
-          return
-        }
-
-        startedAt = performance.now()
-        timer = armTimeout(controller, remainingMs)
       },
     },
     dispose(): void {
-      disposed = true
-      clearTimeout(timer)
-      timer = undefined
+      clock.dispose()
       detach()
     },
   }
-}
-
-function armTimeout(controller: AbortController, ms: number): ReturnType<typeof setTimeout> {
-  return unrefTimer(setTimeout(() => controller.abort(TIMEOUT_ABORT), ms))
 }
 
 function abortChatEntries(

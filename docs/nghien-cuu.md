@@ -39,7 +39,8 @@ tự.
 | `thorough` | như `standard` | tới 2 với câu hỏi phức tạp, còn lại tối đa 1 | tương tác |
 
 Chạy `thorough` ở tầng gốc **cần** một người duyệt kế hoạch tương tác. Không có người duyệt thì nó bị
-hủy trước khi tốn đồng nào, thay vì chạy mức đắt nhất mà không ai soát.
+hủy trước khi tốn đồng nào, thay vì chạy mức đắt nhất mà không ai soát. Thời gian bạn duyệt kế hoạch
+không bị tính vào giới hạn thời gian của phiên chạy lẫn của lượt nghiên cứu.
 
 ### Một phiên chạy thật
 
