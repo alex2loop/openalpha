@@ -148,7 +148,10 @@ export interface InstrumentSearchResponse {
 }
 
 /** GET /v1/macro?region — the risk regime and the drivers behind it. A driver's position runs from
- *  `bearishAt` (defensive) to `bullishAt` (risk-on); `contribution`s sum to `score`. */
+ *  `bearishAt` (defensive) to `bullishAt` (risk-on); `contribution`s sum to `score`. The web
+ *  edition makes no call on the market, so its read carries the readings only: no `regime`,
+ *  `scoreRegime`, `score`, `lean` or `scoreRange`, and no driver `weight`, `bearishAt`, `bullishAt`
+ *  or `contribution`. */
 export type MacroResponse =
   | {
       readonly region: string
@@ -156,14 +159,14 @@ export type MacroResponse =
       readonly asOf: string
       /** When the sources were read (epoch ms); absent when none reported a read time. */
       readonly readAt?: number
-      readonly regime: 'risk-on' | 'neutral' | 'risk-off'
+      readonly regime?: 'risk-on' | 'neutral' | 'risk-off'
       /** The regime the score alone implies; differs when a market lowered it. */
-      readonly scoreRegime: 'risk-on' | 'neutral' | 'risk-off'
-      readonly score: number
+      readonly scoreRegime?: 'risk-on' | 'neutral' | 'risk-off'
+      readonly score?: number
       /** The CLI's sentence for this lean (the regime and the two drivers pulling hardest). */
       readonly lean?: string
       /** The composite's scale and the cuts that name its regimes, for drawing the score. */
-      readonly scoreRange: {
+      readonly scoreRange?: {
         readonly min: number
         readonly max: number
         readonly riskOffAt: number
@@ -183,11 +186,11 @@ export type MacroResponse =
         readonly asOf: string
         /** A share of 0 to 1, rounded across the drivers to whole percents that still sum as the
          *  chat prints them. */
-        readonly weight: number
-        readonly bearishAt: number
-        readonly bullishAt: number
+        readonly weight?: number
+        readonly bearishAt?: number
+        readonly bullishAt?: number
         /** Rounded across the drivers to two decimals that still sum as the chat prints them. */
-        readonly contribution: number
+        readonly contribution?: number
       }[]
       /** The drivers with no reading, left out of the score; `label` in the operator's language. */
       readonly missing: readonly {

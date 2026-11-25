@@ -96,8 +96,11 @@ export interface TradingSetupView {
 export interface TradingMacroView {
   readonly region: Region
   readonly result: SourceResult<MacroRiskView>
-  /** The CLI's lean sentence; absent with the macro read. */
+  /** The CLI's lean sentence; absent with the macro read, and on an edition that makes no call. */
   readonly lean?: string
+  /** An edition that makes no call: a surface states the readings, never the regime, score or the
+   *  weights behind them. */
+  readonly readingsOnly?: true
   /** Each driver's name in the operator's language, keyed by driver id. */
   readonly labels: Readonly<Record<string, string>>
 }

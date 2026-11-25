@@ -63,8 +63,9 @@ interface AppViewDeps {
   readonly timezone: string
   /** How a screen answers on this edition; absent is the ranked board. */
   readonly screenForm?: ScreenForm
-  /** The brief's caveats in their plain form, for an edition that makes no call. */
-  readonly plainCaveats?: true
+  /** An edition that makes no call: the brief's caveats in their plain form, the macro read as
+   *  its readings alone. */
+  readonly readingsOnly?: true
 }
 
 /** What the host serves an app beside the data: the CLI's own lines for it, written in the operator's
@@ -121,6 +122,7 @@ export interface AppViews {
   }): Promise<{
     readonly result: SourceResult<MacroRiskView>
     readonly lean?: string
+    readonly readingsOnly?: true
     /** Each driver's name in the operator's language, keyed by driver id, missing ones too. */
     readonly labels: Readonly<Record<string, string>>
   }>
@@ -310,7 +312,7 @@ async function macro(
     now: request.now,
     signal: request.signal,
   })
-  const lean = renderMacroLean(request.locale, result)
+  const lean = deps.readingsOnly === true ? undefined : renderMacroLean(request.locale, result)
   const named =
     result.kind === 'available' ? [...result.value.drivers, ...result.value.missing] : []
   const labels = Object.fromEntries(
@@ -320,7 +322,12 @@ async function macro(
     ])
   )
 
-  return lean === undefined ? { result, labels } : { result, lean, labels }
+  return {
+    result,
+    ...(lean === undefined ? {} : { lean }),
+    ...(deps.readingsOnly === true ? { readingsOnly: true as const } : {}),
+    labels,
+  }
 }
 
 async function themes(
@@ -388,7 +395,7 @@ export function buildAppViews(
     ...services,
     timezone: config.displayTimezone,
     ...(edition?.screen === undefined ? {} : { screenForm: edition.screen }),
-    ...(edition?.readingsOnly === true ? { plainCaveats: true as const } : {}),
+    ...(edition?.readingsOnly === true ? { readingsOnly: true as const } : {}),
   }
 
   return {
@@ -413,7 +420,7 @@ export function buildAppViews(
             ? null
             : renderBriefForSurface(request.locale, snapshot, {
                 timezone: deps.timezone,
-                ...(deps.plainCaveats === true ? { plain: true as const } : {}),
+                ...(deps.readingsOnly === true ? { plain: true as const } : {}),
               }),
       }
     },
