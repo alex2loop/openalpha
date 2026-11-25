@@ -6,6 +6,7 @@ import type {
   SlashResult,
 } from '@/core/types/command'
 import type { Job, JobOwner, SchedulerRunNowInput } from '@/scheduler/api'
+import { LOCAL_USER_ID } from '@/core/ids'
 
 const USAGE: CommandMessage = { key: 'slash.scheduleUsage' }
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
@@ -172,7 +173,7 @@ async function runScheduleCommand(
 }
 
 function ownerOf(ctx: SlashContext): JobOwner {
-  return { userId: ctx.userId, channel: ctx.channel, chatId: ctx.chatId }
+  return { userId: LOCAL_USER_ID, channel: ctx.channel, chatId: ctx.chatId }
 }
 
 function listResult(jobs: readonly Job[]): SlashResult {

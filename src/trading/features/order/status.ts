@@ -145,11 +145,11 @@ function withCurrency(deps: OrderServiceDeps, exit: RestingExit): RestingExitRow
   return { ...exit, ...(currency === undefined ? {} : { currency }) }
 }
 
-/** Positions with less exit standing at them than the book says is held, largest gap first. Only
+/** Positions with less stop standing at them than the book says is held, largest gap first. Only
  *  where the venue carries an adapter: a custodian this tree has no client for can hold no resting
  *  order at all, so naming its positions unguarded would flag every hand-held book forever. What
- *  stands is the larger of this tree's exits and the stops the venue lists, since the venue's list
- *  holds this tree's own stops as well. */
+ *  stands is the larger of this tree's stops and the stops the venue lists, since the venue's list
+ *  holds this tree's own stops as well. A take-profit alone guards nothing. */
 function unguardedPositions(
   deps: OrderServiceDeps,
   positions: readonly Position[],
@@ -158,15 +158,21 @@ function unguardedPositions(
   const resting = exitsByPosition(input.exits)
 
   return placeablePositions(deps, positions)
-    .map((position) => ({
-      instrument: position.instrument,
-      venue: position.venue,
-      quantity: position.quantity,
-      guarded: Math.max(
-        guardedQuantityOf(restingOn(resting, position)),
-        stopSizeAtVenue(deps, position, input.venueStops) ?? 0
-      ),
-    }))
+    .map((position) => {
+      const exits = restingOn(resting, position)
+      const stops = stopsOf(exits)
+
+      return {
+        instrument: position.instrument,
+        venue: position.venue,
+        quantity: position.quantity,
+        guarded: Math.max(
+          guardedQuantityOf(stops),
+          stopSizeAtVenue(deps, position, input.venueStops) ?? 0
+        ),
+        ...(stops.length === 0 && exits.length > 0 ? { takeProfitOnly: true as const } : {}),
+      }
+    })
     .filter((row) => gapOf(row) > row.quantity * UNGUARDED_FRACTION)
     .sort((left, right) => gapOf(right) - gapOf(left))
 }
@@ -175,7 +181,7 @@ function gapOf(row: UnguardedPosition): number {
   return row.quantity - row.guarded
 }
 
-/** How much of each position has an exit standing at it, for the agent that has to know whether a
+/** How much of each position has a stop standing at it, for the agent that has to know whether a
  *  holding is protected before it advises anything that assumes a stop. A fraction and never a
  *  quantity: unit counts are book size, which an agent may not see. */
 export async function resolveExitCoverage(
@@ -203,7 +209,7 @@ function toCoverage(position: Position, resting: readonly RestingExit[]): ExitCo
   return {
     instrument: position.instrument,
     venue: position.venue,
-    guardedShare: coveredFractionOf(guardedQuantityOf(resting), position.quantity),
+    guardedShare: coveredFractionOf(guardedQuantityOf(stopsOf(resting)), position.quantity),
     ...(levels?.takeProfit === undefined ? {} : { takeProfit: levels.takeProfit }),
     ...(levels?.stopLoss === undefined ? {} : { stopLoss: levels.stopLoss }),
   }
@@ -243,7 +249,7 @@ export async function resolveRestingStops(
       continue
     }
 
-    const stops = restingOn(resting, position).filter((exit) => exit.stopLoss !== undefined)
+    const stops = stopsOf(restingOn(resting, position))
     const venueSize = stopSizeAtVenue(deps, position, venueStops) ?? 0
     const cover = coverOf(
       { placed: guardedQuantityOf(stops), atVenue: venueSize },
@@ -329,6 +335,11 @@ function placeablePositions(
   positions: readonly Position[]
 ): readonly Position[] {
   return positions.filter((position) => deps.venues.find(position.venue)?.adapter !== undefined)
+}
+
+/** Only the exits carrying a stop-loss: a take-profit alone leaves the position unprotected. */
+function stopsOf(exits: readonly RestingExit[]): readonly RestingExit[] {
+  return exits.filter((exit) => exit.stopLoss !== undefined)
 }
 
 /** The one staged order a bare confirm may claim. `undefined` where none or several are quotable,

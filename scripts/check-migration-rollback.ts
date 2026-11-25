@@ -24,6 +24,8 @@ const DATABASE_FILE = 'rollback-check.sqlite'
 const EXTENSION_MIGRATION_ID = '9999_12_31_235959_rollback_failure_probe'
 const EXTENSION_TABLE = 'rollback_failure_probe'
 const ORDER_INTENTS_TABLE = 'order_intents'
+const BRIEF_REGION_MIGRATION_ID = '2026_11_25_174700_add_brief_snapshots_region'
+const BRIEF_SNAPSHOTS_TABLE = 'brief_snapshots'
 const LEDGER_DELETIONS_MIGRATION_ID = '2026_11_23_190924_add_ledger_deletions'
 const LEDGER_DELETIONS_TABLE = 'ledger_deletions'
 const MEMORY_NFC_MIGRATION_ID = '2026_11_22_203500_normalize_memory_values'
@@ -227,6 +229,42 @@ async function indexNames(db: Storage): Promise<ReadonlySet<string>> {
   return new Set(rows.map((row) => row.name))
 }
 
+/** Two regions' snapshots for one day and locale go, since the original unique index refuses the
+ *  pair, and the column goes with them. */
+async function assertBriefRegionRollback(db: Storage): Promise<void> {
+  assertState(
+    await hasColumn(db, BRIEF_SNAPSHOTS_TABLE, 'region'),
+    'brief region migration did not add the column'
+  )
+  await db.execute(
+    'INSERT INTO brief_snapshots (id, region, day, authored_locale, created_at, payload) VALUES ' +
+      "('a', 'vn', '2026-11-25', 'en', ?1, '{}'), ('b', 'us', '2026-11-25', 'en', ?1, '{}')",
+    [APPLIED_AT_MS]
+  )
+
+  await rollBackBriefRegion(db)
+  const identity = await db.query<{ readonly name: string }>(
+    "SELECT name FROM pragma_index_info('idx_brief_identity')"
+  )
+  const rows = await db.query<{ readonly id: string }>('SELECT id FROM brief_snapshots')
+
+  assertState(identity.length === 2, 'brief region rollback did not restore the unique index')
+  assertState(rows.length === 0, 'brief region rollback kept snapshots')
+}
+
+async function rollBackBriefRegion(db: Storage): Promise<void> {
+  const rolledBack = await rollbackMigration(db, sqliteDialect, {
+    expectedId: BRIEF_REGION_MIGRATION_ID,
+    logger: silentLogger,
+  })
+
+  assertState(rolledBack.kind === 'rolled_back', 'brief region rollback did not complete')
+  assertState(
+    !(await hasColumn(db, BRIEF_SNAPSHOTS_TABLE, 'region')),
+    'brief region rollback kept the column'
+  )
+}
+
 /** The recorded deletions go with their one table; a deleted row then goes unseen by the book
  *  change check, as it did before the table existed. */
 async function assertLedgerDeletionsRollback(db: Storage): Promise<void> {
@@ -275,6 +313,7 @@ async function assertMemoryNfcRollback(db: Storage): Promise<void> {
   assertState(rows[0]?.value === decomposed.normalize('NFC'), 'memory NFC up left a decomposed value')
 
   // The migrate above applied every rolled-back migration again, the newer one included.
+  await rollBackBriefRegion(db)
   await rollBackLedgerDeletions(db)
 
   const secondBack = await rollbackMigration(db, sqliteDialect, {
@@ -657,6 +696,7 @@ async function main(): Promise<void> {
     const applied = await migrate(db, sqliteDialect, { logger: silentLogger })
     assertState(applied === MIGRATIONS.length, 'fresh up did not apply every built-in migration')
 
+    await assertBriefRegionRollback(db)
     await assertLedgerDeletionsRollback(db)
     await assertMemoryNfcRollback(db)
     await assertShownBreachesRollback(db)

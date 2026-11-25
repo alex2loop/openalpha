@@ -87,6 +87,7 @@ interface BriefBuildInput {
 }
 
 interface SnapshotLookupInput {
+  readonly region: Region
   readonly asOf: TradingDay
   readonly locale: Locale
   readonly profile: UserProfile | null
@@ -104,8 +105,8 @@ type SnapshotLookup =
   | { readonly kind: 'absent' }
 
 /** The one gate on reusing a stored brief, shared by the build and by the operator's own read so
- *  the two cannot answer differently. `(day, locale)` names the row; the profile revision decides
- *  whether it is still this day's answer. */
+ *  the two cannot answer differently. `(region, day, locale)` names the row; the profile revision
+ *  decides whether it is still this day's answer. */
 export async function findCurrentSnapshot(
   deps: BriefBuildDeps,
   input: SnapshotLookupInput
@@ -130,17 +131,14 @@ async function readSnapshot(
   input: SnapshotLookupInput
 ): Promise<BriefSnapshot | null> {
   try {
-    const exact = await deps.store.findExact({
-      asOf: input.asOf,
-      authoredLocale: input.locale,
-      signal: input.signal,
-    })
+    const key = { region: input.region, authoredLocale: input.locale, signal: input.signal }
+    const exact = await deps.store.findExact({ ...key, asOf: input.asOf })
 
     if (exact !== null || input.orLatest !== true) {
       return exact
     }
 
-    return await deps.store.findLatest({ authoredLocale: input.locale, signal: input.signal })
+    return await deps.store.findLatest(key)
   } catch (err: unknown) {
     if (isAbortError(err)) {
       throw err
@@ -155,10 +153,9 @@ async function readSnapshot(
   }
 }
 
-/** A market without a brief capability is refused first, so a stored snapshot is never served for
- *  another region. Reuse is by the stored row's `(day, locale)` and the profile revision it was built
- *  against. It must not suppress delivery: a snapshot built for a send that failed still needs
- *  sending. */
+/** A market without a brief capability is refused first. Reuse is by the stored row's
+ *  `(region, day, locale)` and the profile revision it was built against. It must not suppress
+ *  delivery: a snapshot built for a send that failed still needs sending. */
 export async function findOrBuildBrief(
   deps: BriefBuildDeps,
   input: BriefBuildInput
@@ -306,6 +303,7 @@ async function persist(
   const scorecardMonth = settledScorecardMonth(composed, input.asOf)
   const snapshot: BriefSnapshot = {
     id: buildBriefSnapshotId(input.now),
+    region: input.region,
     asOf: input.asOf,
     authoredLocale: input.locale,
     profileRevision: composed.profileRevision,
@@ -356,7 +354,12 @@ async function previousReading(
   deps: BriefBuildDeps,
   input: BriefBuildInput
 ): Promise<{ readonly previous: BriefSnapshot | null; readonly scorecardMonth?: string }> {
-  const options = { before: input.asOf, authoredLocale: input.locale, signal: input.signal }
+  const options = {
+    region: input.region,
+    before: input.asOf,
+    authoredLocale: input.locale,
+    signal: input.signal,
+  }
   const previous = await orAbsent(deps, () => deps.store.findPrevious(options), null)
   const scorecardMonth =
     previous === null

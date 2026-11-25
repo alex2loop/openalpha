@@ -33,8 +33,9 @@ const FULL_COVERAGE = 1
 // Where a driver with no band between its two ends sits.
 const MIDDLE_POSITION = 0.5
 
-/** The region's macro reading in full: the regime and lean at every level, what is missing and how
- *  much of the model read in; in Nâng cao also the scale and the drivers behind the score. */
+/** The region's macro reading in full: the regime and lean at every level where the read carries
+ *  them, what is missing and how much of the model read in; in Nâng cao also the scale and the
+ *  drivers behind the score. */
 export function MacroFull({ region }: { readonly region: string }) {
   const reading = useBlock(ROUTES.macro, { query: { region }, everyMs: MACRO_POLL_MS })
 
@@ -50,10 +51,7 @@ export function MacroFull({ region }: { readonly region: string }) {
     >
       {(macro) => (
         <>
-          <MacroReading
-            macro={macro}
-            detail={isAdvanced.value && !isAnalysisOnly.value ? DriverDetail : undefined}
-          />
+          <MacroReading macro={macro} detail={isAdvanced.value ? DriverDetail : undefined} />
           {macro.status === 'ready' && <MacroDetail macro={macro} />}
           <InfoNotes caveats={macro.caveats} />
         </>
@@ -63,21 +61,21 @@ export function MacroFull({ region }: { readonly region: string }) {
 }
 
 function MacroDetail({ macro }: { readonly macro: ReadyMacro }) {
-  const range = macro.scoreRange
+  const { score, scoreRange } = macro
   const reading = readingLines(macro)
 
   return (
     <div class="stack meta">
       <RatesLine readings={macro.readings} />
       {reading.length > 0 && <p>{joinInline(reading)}</p>}
-      {isAdvanced.value && !isAnalysisOnly.value && (
+      {isAdvanced.value && score !== undefined && scoreRange !== undefined && (
         <p>
           {tr('ui.office.market.scale', {
-            score: formatScoreValue(macro.score),
-            min: formatScoreValue(range.min),
-            max: formatScoreValue(range.max),
-            on: formatScoreValue(range.riskOnAt),
-            off: formatScoreValue(range.riskOffAt),
+            score: formatScoreValue(score),
+            min: formatScoreValue(scoreRange.min),
+            max: formatScoreValue(scoreRange.max),
+            on: formatScoreValue(scoreRange.riskOnAt),
+            off: formatScoreValue(scoreRange.riskOffAt),
           })}
         </p>
       )}
@@ -145,8 +143,12 @@ function RatesLine({ readings }: { readonly readings: ReadyMacro['readings'] }) 
 }
 
 /** Under a driver's reading in Nâng cao: where it sits between its bearish and bullish ends, and
- *  its weight and pull on the composite. */
+ *  its weight and pull on the composite. Nothing where the read carries none. */
 function DriverDetail(driver: MacroDriver) {
+  if (!isPulled(driver)) {
+    return null
+  }
+
   return (
     <div class="meta macro-detail">
       <span class="macro-range">
@@ -166,8 +168,18 @@ function DriverDetail(driver: MacroDriver) {
   )
 }
 
+// The daemon states a driver's weight, band and pull; the web edition's read carries only its value.
+function isPulled(driver: MacroDriver): driver is Required<MacroDriver> {
+  return (
+    driver.weight !== undefined &&
+    driver.bearishAt !== undefined &&
+    driver.bullishAt !== undefined &&
+    driver.contribution !== undefined
+  )
+}
+
 // 0 at `bearishAt`, 1 at `bullishAt`, clamped: a band may run either way up.
-function positionOf(driver: MacroDriver): number {
+function positionOf(driver: Required<MacroDriver>): number {
   const span = driver.bullishAt - driver.bearishAt
 
   if (span === 0) {

@@ -11,9 +11,9 @@ import type { ApiRouteContext, ApiRouteSpec } from '@/app/types'
 import type { InstrumentKind, MarketRef, Ticker, TradingMarketsView } from '@/trading/api'
 import { API_CHANNEL, APP_CHAT_ID } from '@/app/server/channel'
 import { apiError, json } from '@/app/server/http/dispatch'
+import { toMacroWire } from '@/app/server/mappers/macro'
 import {
   toAlertWire,
-  toMacroWire,
   toMarketsWire,
   toOverviewWire,
   toSearchWire,

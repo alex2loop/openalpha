@@ -269,8 +269,8 @@ first attempt, 500 ms backoff, 60 s transient cooldown, 900 s credential cooldow
   router, and one upstream refusal must not disable the fallbacks behind it. Only credentials and billing span
   every model behind a provider.
 - An endpoint that refuses a reasoning field or an output contract gets one more try without it
-  (`ai.reasoning_rejected`, `ai.output_contract_rejected`). Both are optimizations the run can do without; the
-  refused attempt is still paid for.
+  (`ai.reasoning_rejected`, `ai.output_contract_rejected`), unless output already reached the caller. Both are
+  optimizations the run can do without; the refused attempt is still paid for.
 - Cooling marks an entry unavailable for the next turn, so only real availability signals do it (`transient`,
   `rate`, `timeout` - `ENTRY_COOLDOWN_CODES`). `empty_response` and `output_budget_exhausted` describe this
   request's output; cooling on them would poison a working entry.

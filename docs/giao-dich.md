@@ -1649,6 +1649,10 @@ Một mã đã vượt trần sẽ được giảm bớt, kể cả khi điểm 
   Nếu chỉ riêng các lệnh đó đã đưa ngành về trong dải, các mã khác giữ nguyên tỷ trọng, đúng như phiên
   chạy sau cũng sẽ để yên. Quỹ không bị tính vào đó, các mã thuộc nhóm có mục tiêu 0% cũng vậy, vì
   chúng đằng nào cũng được giảm bớt hết.
+- **Theo các quỹ của nhóm.** Các quỹ ETF của một nhóm được tính cộng lại so với trần ETF của nhóm. Khi
+  vượt trần quá dải 5/25, kế hoạch trả phần dư từ các quỹ yếu nhất trước và quỹ lõi sau cùng, không
+  bao giờ xuống dưới mức sàn của quỹ lõi. Quỹ trong danh sách loại trừ cũng bị cắt như các quỹ khác,
+  còn nhóm có mục tiêu 0% thì được bỏ qua, vì quỹ của nó đằng nào cũng được giảm bớt hết.
 - **Giảm bao nhiêu.** Lệnh đưa về mức trần, lệch tối đa một lô, và trong một bước. Khối lượng đã về tài
   khoản và thanh khoản của mã vẫn giới hạn số giảm bớt được trong ngày. Một mã không có giao dịch nào
   trong cửa sổ đó có thanh khoản bằng 0: nó được tính cỡ về không, còn kế hoạch cho mọi mã khác vẫn chạy tiếp.
@@ -1954,7 +1958,7 @@ Một sàn khai những gì API của nó làm được, và sàn nào không l�
 - **Đã tắt mua từ ...** - chỉ có sau `/trade halt`, và đứng đầu vì nó đổi nghĩa mọi dòng khác.
 - **Đang chờ bạn xác nhận** - mọi lệnh đã dàn dựng còn trong cửa sổ năm phút, mỗi lệnh kèm token đặt nó.
 - **Lệnh thoát đang chờ trên sàn** - những gì đang đứng ở một sàn, kèm trigger của chúng.
-- **Chưa có gì bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lối thoát bên dưới ít hơn cuốn sổ nói bạn đang nắm, mỗi cái nêu lệnh để chữa. Trên OKX, lệnh dừng lỗ đặt trong app của sàn được tính đến đúng khối lượng của nó, nên lệnh dừng lỗ nhỏ hơn số đang nắm vẫn khiến phần còn lại bị liệt kê.
+- **Chưa có lệnh cắt lỗ nào bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lệnh cắt lỗ bên dưới ít hơn cuốn sổ nói bạn đang nắm (chỉ có lệnh chốt lời thì không tính), mỗi cái nêu lệnh để chữa; nơi chỉ có một lệnh chốt lời đang chờ thì đó là `/trade cancel` trước, vì `/trade exit` không thêm lệnh cắt lỗ bên cạnh nó. Trên OKX, lệnh cắt lỗ đặt trong app của sàn được tính đến đúng khối lượng của nó, nên lệnh cắt lỗ nhỏ hơn số đang nắm vẫn khiến phần còn lại bị liệt kê.
 - **Đã đặt trên sàn, chưa có trong sổ** - danh sách đối soát, kèm cách chữa.
 
 Nó không chạm sàn nào. Một trạng thái cần mọi sàn đều hoạt động sẽ trống đúng lúc bạn cần biết nhất cái gì đang đứng ngoài đó.
@@ -1999,7 +2003,7 @@ Mỗi bước là một kiểu hỏng riêng mà thiết kế này sinh ra để
 - [ ] **Một lần chỉnh bị từ chối giữ lối thoát cũ** - gửi một `sl` mà sàn bác (trên giá cuối): lần chỉnh hỏng và lối thoát gốc vẫn sống ở OKX.
 - [ ] **Từ chối do dạng chân** - có một lối thoát chỉ cắt lỗ đang treo, `/trade exit <mã> tp <giá> sl <giá>` từ chối và nêu lệnh hủy, để nguyên cắt lỗ.
 - [ ] **Co lại sau một lệnh bán tay** - `/record sell` một phần vị thế, rồi `/trade exit`: cỡ lối thoát đang treo giảm xuống bằng cái cuốn sổ giờ đang nắm.
-- [ ] **Phủ một phần** - `/trade exit <mã> qty <một nửa> sl <giá>`: biên nhận nêu phần để lại chưa được bảo vệ, và `/trade` trần liệt kê vị thế đó dưới *Chưa có gì bảo vệ*.
+- [ ] **Phủ một phần** - `/trade exit <mã> qty <một nửa> sl <giá>`: biên nhận nêu phần để lại chưa được bảo vệ, và `/trade` trần liệt kê vị thế đó dưới *Chưa có lệnh cắt lỗ nào bảo vệ*.
 - [ ] **Phủ quá cỡ** - một `qty` lớn hơn vị thế bị từ chối, không đặt gì.
 - [ ] **Xác nhận trần** - có đúng một lệnh đang dàn dựng, `/trade confirm` đặt nó. Dàn dựng cái thứ hai và nó từ chối kèm cả hai token thay vì chọn.
 - [ ] **Trạng thái** - `/trade` trần liệt kê cái đã dàn dựng, đang treo, chưa được bảo vệ và cái cuốn sổ đang thiếu, và vẫn trả lời khi sàn không với tới được.

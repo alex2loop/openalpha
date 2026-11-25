@@ -12,6 +12,7 @@ import { findMissingKeyProvider } from '@/app/browser/keys'
 import { renderModelKeyNeeded, researchRefusalOf } from '@/app/browser/research-gate'
 import { openBrowserRoot, restoreDatabase } from '@/app/browser/root'
 import { handleHttp } from '@/app/server/http/dispatch'
+import { clearScreenCache } from '@/app/server/routes/screen-cache'
 import { API_ERROR_STATUS } from '@/app/server/wire/errors'
 import { closeChatClient, followChatBus } from '@/app/server/ws/chat-client'
 import { handleChatFrame } from '@/app/server/ws/frames'
@@ -196,6 +197,7 @@ async function releaseRoot(state: BridgeState, logger: Logger): Promise<void> {
 
   state.root = undefined
   state.stopFeed = undefined
+  clearScreenCache()
 
   for (const controller of state.controllers.values()) {
     controller.abort()
@@ -390,6 +392,13 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
 
   if (frame.type === 'chat' || frame.type === 'steer') {
     const refusal = keyRefusalOf(ctx, frame.message, root.app.config)
+
+    // A steer belongs to a turn still running, which the refusal must not end.
+    if (refusal !== undefined && frame.type === 'steer') {
+      sink.send({ type: 'chat', kind: 'steer_dropped', text: refusal, ...toLaneTag(frame.id) })
+
+      return
+    }
 
     if (refusal !== undefined) {
       sink.send({

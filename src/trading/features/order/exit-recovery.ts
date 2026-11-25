@@ -6,19 +6,29 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { settleSignal } from '@/trading/features/order/mirror'
 import { OrderError } from '@/trading/features/order/types'
 
+// A transport error says nothing about whether the exchange took the exit. A refusal can say the
+// same: a retry after a crash places under the client id the first attempt used, and a venue
+// answers that as a duplicate refusal, whose code is its own and not one this tree can match.
+const UNSETTLED_CODES: ReadonlySet<string> = new Set(['order.network', 'order.rejected'])
+
+// A resting exit is adopted, and so is one that already fired in the window: its row is what the exit
+// tick settles the fill from. One cancelled or refused left nothing at the exchange to track.
+const ADOPTED_STATES: Readonly<Record<ExitStatus['state'], boolean>> = Object.freeze({
+  live: true,
+  triggered: true,
+  canceled: false,
+  failed: false,
+})
+
 interface RecoverExitInput {
   readonly venue: RoutedVenue
   readonly symbol: string
   readonly exitClientId: string
 }
 
-// A transport error says nothing about whether the exchange took the exit. A refusal can say the
-// same: a retry after a crash places under the client id the first attempt used, and a venue
-// answers that as a duplicate refusal, whose code is its own and not one this tree can match.
-const UNSETTLED_CODES: ReadonlySet<string> = new Set(['order.network', 'order.rejected'])
-
 /** One lookup by the deterministic client id answers whether the exchange took the exit: one found
- *  resting is adopted, so it gets its row, and anything else lets the original error stand. */
+ *  resting or already triggered is adopted, so it gets its row, and anything else lets the original
+ *  error stand. */
 export async function recoverPlacedExit(
   deps: OrderServiceDeps,
   input: RecoverExitInput,
@@ -30,13 +40,14 @@ export async function recoverPlacedExit(
 
   const status = await lookupPlacedExit(deps, input)
 
-  if (status?.state !== 'live' || status.exitId === undefined) {
+  if (status === undefined || !ADOPTED_STATES[status.state] || status.exitId === undefined) {
     throw cause
   }
 
   deps.logger.warn('order.exit_recovered', {
     exitClientId: input.exitClientId,
     exitId: status.exitId,
+    state: status.state,
     symbol: input.symbol,
     err: formatErrForLog(cause),
   })

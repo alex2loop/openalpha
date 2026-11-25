@@ -11,6 +11,7 @@ import type {
 } from '@/core/types/command'
 import type { DeclarativeSlashCommandSource } from '@/core/types/plugin'
 import type { AgentProfile, Runner, Workflow } from '@/engine/api'
+import { LOCAL_USER_ID } from '@/core/ids'
 import { runWorkflow } from '@/engine/api'
 
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
@@ -111,7 +112,7 @@ async function runWorkflowCommand(
     workflow,
     invocation: {
       channel: ctx.channel,
-      userId: ctx.userId,
+      userId: LOCAL_USER_ID,
       chatId: ctx.chatId,
       parentSignal: ctx.signal,
     },

@@ -168,7 +168,8 @@ function publishedResult(contribution: FactorContribution, firedWeight: number):
 
 /** What "ordinary" reads as on one board, per factor. A factor whose normalization saturates prints
  *  the same score for most of a board; its median is that score, and a row selected against it then
- *  leads with what actually sets the name apart. */
+ *  leads with what actually sets the name apart. A factor that read nothing for a name (no weight)
+ *  is no reading of that name. */
 export function boardMedians<K extends FactorId>(
   rows: readonly (readonly FactorResult<K>[])[]
 ): ReadonlyMap<K, number> {
@@ -176,6 +177,10 @@ export function boardMedians<K extends FactorId>(
 
   for (const factors of rows) {
     for (const factor of factors) {
+      if (factor.weight === undefined) {
+        continue
+      }
+
       const collected = scores.get(factor.id) ?? []
 
       collected.push(factor.score)

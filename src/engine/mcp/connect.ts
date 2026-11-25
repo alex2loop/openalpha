@@ -218,7 +218,7 @@ function safeDescription(options: WrapMcpToolOptions): string {
   }
 
   logger.warn('mcp.tool_description_blocked', { server: server.name, tool: remote.name, reason })
-  return remote.name
+  return options.name
 }
 
 // The schema (nested descriptions included) reaches the model verbatim; on detected injection or an

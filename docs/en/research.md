@@ -38,7 +38,8 @@ To chat with that agent directly, use `openalpha chat --agent deep-researcher`. 
 | `thorough` | same as `standard` | up to 2 for a complex question, otherwise at most 1 | interactive |
 
 A top-level `thorough` run needs someone to review the plan interactively. With nobody attached, it
-is canceled before spending anything rather than running the most expensive depth unreviewed.
+is canceled before spending anything rather than running the most expensive depth unreviewed. The
+time you spend reviewing the plan counts toward neither the run's time limit nor the research call's.
 
 ### A real run
 

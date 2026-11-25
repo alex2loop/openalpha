@@ -345,7 +345,7 @@ export interface HaltInput {
 }
 
 /** Everything outstanding, in one read: orders staged and not yet confirmed, exits resting at a
- *  venue, positions nothing is guarding, and what the exchange took that the book never got. Each
+ *  venue, positions no stop is guarding, and what the exchange took that the book never got. Each
  *  list is bounded, because this is read to decide what to do next rather than to inventory a
  *  desk. */
 export interface TradeStatus {

@@ -147,6 +147,10 @@ async function listOne(input: ListOneInput): Promise<VenueAnswer | undefined> {
 
     rows = listed.filter((instrument) => instrument.market === market)
   } catch (err: unknown) {
+    if (isAbortError(err)) {
+      throw err
+    }
+
     logger.warn('trading.venue_catalog_unavailable', {
       venue: venue.manifest.id,
       err: formatErrForLog(err),

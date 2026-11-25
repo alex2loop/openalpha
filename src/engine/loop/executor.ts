@@ -1,8 +1,15 @@
 import type { EventBus } from '@/core/events'
 import type { ProgressMessage } from '@/core/stream-events'
-import type { ToolCall, ToolInvocationContext, ToolResult, ToolServices } from '@/core/tool'
+import type {
+  RunDeadline,
+  ToolCall,
+  ToolInvocationContext,
+  ToolResult,
+  ToolServices,
+} from '@/core/tool'
 import type { Memory } from '@/core/types/memory'
 import type { ExternalCharge } from '@/core/types/usage'
+import type { PausableTimer } from '@/engine/pausable-timer'
 import type {
   PreparedToolCall,
   RunView,
@@ -13,11 +20,11 @@ import type {
 import { RunHalted, ToolError, ValidationError } from '@/core/errors'
 import { formatErrForLog } from '@/core/security/credentials'
 import { OutputPipeline } from '@/core/security/output-pipeline'
-import { unrefTimer } from '@/core/utils/time'
 import { settleExternalCharge } from '@/engine/budget/attempt-settlement'
 import { addUsage } from '@/engine/budget/usage'
 import { parseToolInput } from '@/engine/loop/tools/arg-parse'
 import { resolveToolPresentation } from '@/engine/loop/tools/presentation'
+import { createPausableTimer } from '@/engine/pausable-timer'
 
 // `services` is opaque here on purpose: tools/ owns what goes in it (agents, runner, its own
 // interfaces), and engine must not grow an edge to tools to name those types.
@@ -76,6 +83,7 @@ export function createToolExecutor(deps: ToolExecutorDeps): ToolExecutor {
         observer,
         tool: tool.name,
         signal: guard.signal,
+        deadline: guard.deadline,
       })
 
       try {
@@ -130,6 +138,8 @@ interface ToolGuard {
   /** Rejects with a timeout ToolError when the cap fires, or RunHalted('abort') when the run is
    *  aborted; never resolves. */
   readonly interrupt: Promise<never>
+  /** The run's duration cap and this call's together: time a human spends deciding is neither's. */
+  readonly deadline: RunDeadline
   readonly dispose: () => void
 }
 
@@ -142,7 +152,7 @@ function armToolGuard(run: RunView, timeoutMs: number | undefined): ToolGuard {
   const runSignal = run.state.abort.signal
   const capMs = timeoutMs ?? run.env.limits.toolTimeoutMs
   const controller = new AbortController()
-  let timer: ReturnType<typeof setTimeout> | undefined
+  let clock: PausableTimer | undefined
   let onAbort: (() => void) | undefined
   const interrupt = new Promise<never>((_, reject) => {
     onAbort = (): void => reject(new RunHalted('abort', 'run aborted'))
@@ -152,12 +162,10 @@ function armToolGuard(run: RunView, timeoutMs: number | undefined): ToolGuard {
       return
     }
 
-    timer = unrefTimer(
-      setTimeout(() => {
-        controller.abort()
-        reject(new ToolError('timeout', `tool timed out after ${capMs}ms`))
-      }, capMs)
-    )
+    clock = createPausableTimer(capMs, () => {
+      controller.abort()
+      reject(new ToolError('timeout', `tool timed out after ${capMs}ms`))
+    })
     runSignal.addEventListener('abort', onAbort, { once: true })
   })
 
@@ -169,8 +177,18 @@ function armToolGuard(run: RunView, timeoutMs: number | undefined): ToolGuard {
   return {
     signal: AbortSignal.any([runSignal, controller.signal]),
     interrupt,
+    deadline: {
+      pause: (): void => {
+        run.state.deadline.pause()
+        clock?.pause()
+      },
+      resume: (): void => {
+        clock?.resume()
+        run.state.deadline.resume()
+      },
+    },
     dispose: (): void => {
-      clearTimeout(timer)
+      clock?.dispose()
 
       if (onAbort !== undefined) {
         runSignal.removeEventListener('abort', onAbort)
@@ -230,6 +248,7 @@ function buildInvocationContext(
   options: ProgressTarget & {
     readonly callId: string
     readonly signal: AbortSignal
+    readonly deadline: RunDeadline
   }
 ): ToolInvocationContext {
   const context: ToolInvocationContext = {
@@ -257,7 +276,7 @@ function buildInvocationContext(
     budget: run.state.budget,
     skillViewBudget: run.state.skillViewBudget,
     services: deps.services,
-    deadline: run.state.deadline,
+    deadline: options.deadline,
     maxDurationMs: run.env.limits.maxDurationMs,
     delegationQuota: run.state.delegationQuota,
     ...costCallbacks(run),

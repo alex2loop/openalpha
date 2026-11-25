@@ -1,7 +1,6 @@
 import type {
   AlertWire,
   InstrumentSearchResponse,
-  MacroResponse,
   MarketSessionWire,
   MarketsResponse,
   SectorsResponse,
@@ -26,7 +25,6 @@ import type {
   InstrumentMatch,
   InvestmentGoal,
   InvestmentHorizon,
-  MacroRiskView,
   MarketDataOverview,
   MarketEventKind,
   MarketView,
@@ -37,7 +35,6 @@ import type {
   SessionPhase,
   SourceFreshness,
   SourceStatus,
-  TradingMacroView,
   TradingMarketsView,
   TradingSectorsView,
   TypedPrice,
@@ -50,13 +47,7 @@ import {
   toDealerBoardWire,
   toInstrumentWire,
 } from '@/app/server/mappers/trading'
-import {
-  changeAgainstClose,
-  MACRO_SCORE_RANGE,
-  parseExitLevel,
-  renderOverviewForSurface,
-  roundedDrivers,
-} from '@/trading/api'
+import { changeAgainstClose, parseExitLevel, renderOverviewForSurface } from '@/trading/api'
 
 type OutcomeVerdict = ReturnType<typeof outcomeVerdictOf>
 
@@ -291,60 +282,6 @@ function toMoverWire(mover: OverviewMover): OverviewMoverWire {
     instrument: toInstrumentWire(mover.instrument),
     changePct: mover.changePct,
     turnover: mover.turnover,
-  }
-}
-
-export function toMacroWire(view: TradingMacroView, locale: Locale): MacroResponse {
-  const { result } = view
-
-  if (result.kind === 'unavailable') {
-    return {
-      region: view.region,
-      status: 'unavailable',
-      caveats: toCaveatWires(result.caveats, locale),
-    }
-  }
-
-  const macro = result.value
-
-  return {
-    region: view.region,
-    status: 'ready',
-    asOf: macro.asOf,
-    ...(macro.provenance.length === 0
-      ? {}
-      : { readAt: Math.max(...macro.provenance.map((read) => read.fetchedAt)) }),
-    regime: macro.regime,
-    scoreRegime: macro.scoreRegime,
-    score: macro.score,
-    ...(view.lean === undefined ? {} : { lean: view.lean }),
-    scoreRange: { ...MACRO_SCORE_RANGE },
-    coverage: macro.coverage,
-    readings: macro.readings,
-    drivers: roundedDrivers(macro.drivers).map((driver) => toMacroDriverWire(driver, view.labels)),
-    missing: macro.missing.map((driver) => ({
-      id: driver.id,
-      label: view.labels[driver.id] ?? driver.id,
-      reason: driver.reason,
-    })),
-    caveats: toCaveatWires([...macro.caveats, ...result.caveats], locale),
-  }
-}
-
-function toMacroDriverWire(
-  driver: MacroRiskView['drivers'][number],
-  labels: TradingMacroView['labels']
-) {
-  return {
-    id: driver.id,
-    label: labels[driver.id] ?? driver.id,
-    unit: driver.unit,
-    value: driver.value,
-    asOf: driver.asOf,
-    weight: driver.weight,
-    bearishAt: driver.bearishAt,
-    bullishAt: driver.bullishAt,
-    contribution: driver.contribution,
   }
 }
 

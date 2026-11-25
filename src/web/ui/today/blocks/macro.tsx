@@ -5,7 +5,6 @@ import type { MessageKey } from '@/i18n'
 import { formatDay } from '@/i18n'
 import { ROUTES } from '@/web/api/routes'
 import { useBlock } from '@/web/state/block'
-import { isAnalysisOnly } from '@/web/state/edition'
 import { openMarketTab } from '@/web/state/market-tab'
 import { useRereadAfterRefresh } from '@/web/state/refresh'
 import { locale } from '@/web/state/session'
@@ -29,7 +28,7 @@ export type ReadyMacro = Extract<MacroResponse, { readonly status: 'ready' }>
 export type MacroDriver = ReadyMacro['drivers'][number]
 
 /** "Bối cảnh vĩ mô": each driver's own reading, under the risk regime and the daemon's one-sentence
- *  lean where the edition names a regime (the web names none). */
+ *  lean where the read carries them (the web's carries neither). */
 export function Macro() {
   const reading = useBlock(ROUTES.macro, { everyMs: MACRO_POLL_MS })
 
@@ -59,8 +58,9 @@ interface DriverReadingsProps {
   readonly detail?: ((driver: MacroDriver) => ComponentChildren) | undefined
 }
 
-/** The regime and the daemon's lean, then each driver's reading with the date it was read, and what
- *  `detail` adds under it; an unavailable reading leaves its caveats to say why. */
+/** The regime and the daemon's lean where the read has them, then each driver's reading with the date
+ *  it was read, and what `detail` adds under it; an unavailable reading leaves its caveats to say
+ *  why. */
 export function MacroReading({
   macro,
   detail,
@@ -74,12 +74,10 @@ export function MacroReading({
 
   return (
     <div class="stack">
-      {!isAnalysisOnly.value && (
-        <>
-          <span class={`regime-tag is-${macro.regime}`}>{tr(REGIME_KEYS[macro.regime])}</span>
-          {macro.lean !== undefined && <p class="lead">{macro.lean}</p>}
-        </>
+      {macro.regime !== undefined && (
+        <span class={`regime-tag is-${macro.regime}`}>{tr(REGIME_KEYS[macro.regime])}</span>
       )}
+      {macro.lean !== undefined && <p class="lead">{macro.lean}</p>}
       <DriverReadings drivers={macro.drivers} detail={detail} />
     </div>
   )

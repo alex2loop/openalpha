@@ -158,11 +158,12 @@ async function runTick(
   const now = Date.now()
   const runNowClaimTtlMs =
     deps.config.schedule.approvalTimeoutMs + JOB_MAX_DURATION_MS + RUN_NOW_CLAIM_TTL_SLACK_MS
+  const { maxPerTick } = deps.config.schedule
   // A running job stays due until it finalizes: widen the window by the in-flight count so those
   // rows cannot crowd later-due jobs out of the per-tick budget.
-  const limit = deps.config.schedule.maxPerTick + state.inFlight.size
-  const due = await deps.jobStore.due(now, limit, now - runNowClaimTtlMs)
-  const waiting = due.filter((job) => !state.inFlight.has(job.id))
+  const due = await deps.jobStore.due(now, maxPerTick + state.inFlight.size, now - runNowClaimTtlMs)
+  // A run-now job in flight is never due, so the window can hold more than one tick admits.
+  const waiting = due.filter((job) => !state.inFlight.has(job.id)).slice(0, maxPerTick)
 
   // Nothing held back, so no offline stretch to keep warning about: the next one warns afresh.
   if (waiting.length === 0) {

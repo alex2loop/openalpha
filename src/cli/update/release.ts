@@ -7,8 +7,11 @@ const LATEST_RELEASE_URL = `${BRAND.repository}/releases/latest`
 /** Where the update check goes: the release page of the repository. */
 export const UPDATE_CHECK_HOST = new URL(LATEST_RELEASE_URL).host
 const RELEASE_TAG_RE = /\/releases\/tag\/v(\d+\.\d+\.\d+)$/
+const HTTP_REDIRECT_STATUS = 300
 const HTTP_ERROR_STATUS = 400
 const HTTP_NOT_FOUND = 404
+const HTTPS_PROTOCOL = 'https:'
+const MAX_REDIRECTS = 5
 const CHECKSUMS_ASSET = 'SHA256SUMS'
 const CHANGELOG_ASSET = 'CHANGELOG.md'
 const WHITESPACE_RE = /\s+/
@@ -47,17 +50,51 @@ async function sha256OfFile(path: string): Promise<string> {
   return hasher.digest('hex')
 }
 
-/** The body of an error status is never read, so it is closed rather than left to the collector. */
+/** Follows the release host's redirects by hand: only to an https address, at most
+ *  `MAX_REDIRECTS` times. Any other answer, a refused hop included, is a failed download (null). The
+ *  body of a response that is not returned is never read, so it is closed rather than left to the
+ *  collector. */
 async function fetchAsset(url: string, signal: AbortSignal): Promise<Response | null> {
-  const res = await fetch(url, { headers: BROWSER_HEADERS, signal })
+  let target = url
 
-  if (res.ok) {
-    return res
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+    const res = await fetch(target, { headers: BROWSER_HEADERS, redirect: 'manual', signal })
+
+    if (res.ok) {
+      return res
+    }
+
+    await res.body?.cancel()
+
+    const next = redirectTarget(res, target)
+
+    if (next === null) {
+      return null
+    }
+
+    target = next
   }
 
-  await res.body?.cancel()
-
   return null
+}
+
+/** Where a redirect leads, resolved against the address it came from; null when the answer is no
+ *  redirect, names no valid address or leaves https. */
+function redirectTarget(res: Response, from: string): string | null {
+  const location = res.headers.get('location')
+
+  if (
+    res.status < HTTP_REDIRECT_STATUS ||
+    res.status >= HTTP_ERROR_STATUS ||
+    location === null ||
+    !URL.canParse(location, from)
+  ) {
+    return null
+  }
+
+  const next = new URL(location, from)
+
+  return next.protocol === HTTPS_PROTOCOL ? next.href : null
 }
 
 function releaseAssetName(): string {

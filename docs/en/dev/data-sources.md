@@ -443,8 +443,9 @@ unpaced primary was routed first for.
   - otherwise `unavailable('failed')` listing every id attempted plus `source.no-available-provider`, and one
     `trading.source_route_exhausted` warning per scope per minute (a universe sweep exhausts the same route once per name).
 - **`resolveAll`** - merge. Every routed, covering provider runs in parallel and the caller combines results in route order, which
-  is also precedence. A leg whose breaker is open is skipped (one dark provider would spend its whole deadline on every merged
-  read); only the breaker, never `isDegraded`, so one failure does not drop a leg having a bad minute. Callers merge for two
+  is also precedence. A leg whose breaker is open is skipped, not called (one dark provider would spend its whole deadline on every
+  merged read), and answers `unavailable` with `source.breaker-open` naming the source, so a merged read missing a provider never
+  looks complete; only the breaker, never `isDegraded`, so one failure does not drop a leg having a bad minute. Callers merge for two
   reasons.
 
   Most merge because no single provider covers the subject:

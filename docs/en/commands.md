@@ -785,7 +785,7 @@ plan lists.
 A held name whose latest read still leans toward selling some is not added to, and is not counted
 when the plan says how many names are left to buy.
 
-A holding past its per-name or sector cap by more than the 5/25 band is sold back to the cap, whatever its score.
+A holding past its per-name or sector cap by more than the 5/25 band is sold back to the cap, whatever its score. A segment's funds past its ETF cap together give the excess back too, the core fund last.
 
 #### A brief with no watchlist
 
@@ -1015,7 +1015,7 @@ A `venue:` prefix also picks the instrument on that venue's markets: `okx:SUI` i
 stored stock or fund shares the symbol.
 
 Bare `/trade` tells you what is outstanding: staged orders and their tokens, resting exits, positions
-nothing is guarding, and what the exchange took that your book is missing. It reaches no venue.
+no stop is guarding, and what the exchange took that your book is missing. It reaches no venue.
 
 - **`spot`** stages the order and prints a confirmation token. Nothing goes out until you type
   `/trade confirm`.

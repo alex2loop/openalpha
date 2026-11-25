@@ -2,13 +2,13 @@ import { z } from 'zod'
 
 import type { Locale } from '@/core/types/locale'
 import type { BriefSnapshot } from '@/trading/features/brief/types'
-import type { TradingDay } from '@/trading/kernel/instrument'
+import type { Region, TradingDay } from '@/trading/kernel/instrument'
 import type { BriefSectionResult } from '@/trading/kernel/operator/brief-section'
 import type { StoreDeps } from '@/trading/kernel/store/store-row'
 import { assertNotAborted } from '@/core/errors'
 import { LOCALES } from '@/core/types/locale'
 import { briefSnapshotId } from '@/trading/features/brief/types'
-import { currencyCode, marketRef, quoteUnit, tradingDay } from '@/trading/kernel/instrument'
+import { currencyCode, marketRef, quoteUnit, region, tradingDay } from '@/trading/kernel/instrument'
 import {
   BRIEF_FIELDS,
   BRIEF_RENDER_VERSION,
@@ -24,7 +24,7 @@ import {
 import { parseJson } from '@/trading/kernel/store/store-row'
 
 const INSERT_SQL =
-  'INSERT INTO brief_snapshots (id, day, authored_locale, created_at, payload) ' + 'VALUES '
+  'INSERT INTO brief_snapshots (id, region, day, authored_locale, created_at, payload) ' + 'VALUES '
 
 const readySectionSchema = z.strictObject({
   kind: z.enum(BRIEF_SECTION_ORDER),
@@ -69,6 +69,7 @@ type StoredSection = z.infer<typeof payloadSchema>['sections'][number]
 
 interface BriefSnapshotRow {
   readonly id: string
+  readonly region: string
   readonly day: string
   readonly authored_locale: string
   readonly created_at: number
@@ -76,24 +77,27 @@ interface BriefSnapshotRow {
 }
 
 interface ExactBriefOptions {
+  readonly region: Region
   readonly asOf: TradingDay
   readonly authoredLocale: Locale
   readonly signal: AbortSignal
 }
 
 interface LatestBriefOptions {
+  readonly region: Region
   readonly authoredLocale: Locale
   readonly signal: AbortSignal
 }
 
 interface PreviousBriefOptions {
+  readonly region: Region
   readonly before: TradingDay
   readonly authoredLocale: Locale
   readonly signal: AbortSignal
 }
 
 export interface BriefStore {
-  /** Whether a brief is stored for one day, whatever languages it was written in. */
+  /** Whether a brief is stored for one day, whatever region and language it was written in. */
   hasOnDay(day: TradingDay, signal: AbortSignal): Promise<boolean>
   upsertSnapshot(snapshot: BriefSnapshot, signal: AbortSignal): Promise<void>
   /** Serves idempotent build and delivery; `findLatest` serves user reads. */
@@ -130,11 +134,12 @@ async function upsertSnapshot(
   // The conflict target is the natural key, and the surviving row keeps its original id: a
   // regenerated brief replaces content, not identity.
   await deps.db.execute(
-    `${INSERT_SQL}(${deps.dialect.paramList(5)}) ` +
-      'ON CONFLICT (day, authored_locale) ' +
+    `${INSERT_SQL}(${deps.dialect.paramList(6)}) ` +
+      'ON CONFLICT (region, day, authored_locale) ' +
       'DO UPDATE SET created_at = excluded.created_at, payload = excluded.payload',
     [
       snapshot.id,
+      snapshot.region,
       snapshot.asOf,
       snapshot.authoredLocale,
       snapshot.createdAt,
@@ -170,8 +175,9 @@ async function findExact(
 
   const p = deps.dialect.param
   const rows = await deps.db.query<BriefSnapshotRow>(
-    `SELECT * FROM brief_snapshots WHERE day = ${p(1)} AND authored_locale = ${p(2)}`,
-    [options.asOf, options.authoredLocale]
+    `SELECT * FROM brief_snapshots WHERE region = ${p(1)} AND day = ${p(2)} ` +
+      `AND authored_locale = ${p(3)}`,
+    [options.region, options.asOf, options.authoredLocale]
   )
   const row = rows[0]
 
@@ -184,10 +190,11 @@ async function findLatest(
 ): Promise<BriefSnapshot | null> {
   assertNotAborted(options.signal)
 
+  const p = deps.dialect.param
   const rows = await deps.db.query<BriefSnapshotRow>(
-    `SELECT * FROM brief_snapshots WHERE authored_locale = ${deps.dialect.param(1)} ` +
+    `SELECT * FROM brief_snapshots WHERE region = ${p(1)} AND authored_locale = ${p(2)} ` +
       'ORDER BY day DESC LIMIT 1',
-    [options.authoredLocale]
+    [options.region, options.authoredLocale]
   )
   const row = rows[0]
 
@@ -226,9 +233,9 @@ async function readPreviousRow(
 
   const p = deps.dialect.param
   const rows = await deps.db.query<BriefSnapshotRow>(
-    `SELECT * FROM brief_snapshots WHERE day < ${p(1)} AND authored_locale = ${p(2)} ` +
-      'ORDER BY day DESC LIMIT 1',
-    [options.before, options.authoredLocale]
+    `SELECT * FROM brief_snapshots WHERE region = ${p(1)} AND day < ${p(2)} ` +
+      `AND authored_locale = ${p(3)} ORDER BY day DESC LIMIT 1`,
+    [options.region, options.before, options.authoredLocale]
   )
 
   return rows[0]
@@ -248,6 +255,7 @@ function toBriefSnapshot(row: BriefSnapshotRow): BriefSnapshot | null {
 
   return {
     id: briefSnapshotId(row.id),
+    region: region(row.region),
     asOf: tradingDay(row.day),
     authoredLocale: toMember(row.authored_locale, LOCALES, 'brief locale'),
     profileRevision: payload.profileRevision,

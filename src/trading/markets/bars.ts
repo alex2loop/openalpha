@@ -9,7 +9,7 @@ import type { TargetOutcome } from '@/trading/markets/refresh-result'
 import type { TradingCalendar } from '@/trading/markets/types'
 import { sourcedCaveat } from '@/trading/kernel/caveat'
 import { available } from '@/trading/kernel/source/source-result'
-import { resolveSettledDay } from '@/trading/markets/calendar'
+import { resolveSessionOnOrBefore, resolveSettledDay } from '@/trading/markets/calendar'
 
 /** How far short of the requested day a stored tail may fall and still answer. A weekend plus a
  *  holiday is the longest a provider outage should be papered over; past that an honest refusal
@@ -141,11 +141,12 @@ function fallbackCaveats(
 }
 
 /** A past day is settled; today is settled once its session has closed, and a continuous market's
- *  today never is. Never later than the request's own day. */
+ *  today never is. Never later than the request's own day, and a day the market does not trade
+ *  reads as the session before it. */
 export function lastSettledDay(request: InstrumentRequest, calendar: TradingCalendar): TradingDay {
   const settled = resolveSettledDay(calendar, request.now)
 
-  return request.asOf < settled ? request.asOf : settled
+  return request.asOf < settled ? resolveSessionOnOrBefore(calendar, request.asOf) : settled
 }
 
 function barWindow(request: BarsRequest, policy: SettledBarsPolicy): BarWindow {

@@ -1664,6 +1664,10 @@ drifted.
   rest). When those sales alone bring the sector back inside its band, the other names keep their
   weight, as the next run would leave them. Funds are left out of it, and so are names in a segment
   with a 0% target, since those are sold whole anyway.
+- **Per segment's funds.** A segment's ETFs count together against its ETF cap. Past the cap plus the
+  5/25 band, the plan gives the excess back from the weakest funds first and the core fund last, and
+  never below the core floor. One on your exclusion list is cut like the rest, and a segment with a 0%
+  target is skipped, since its funds are sold whole anyway.
 - **How much.** The sale goes to the cap, at most one board lot past it, and in one step. The settled
   quantity and the name's turnover still limit what sells in a day. A name that traded nothing in the
   window has a turnover of zero: it is sized to nothing, and the plan for every other name goes on.
@@ -1969,7 +1973,7 @@ A bare `/trade` answers one question, what is live right now, in sections. Any s
 - **Buying is off since ...** - present only after `/trade halt`, and first because it changes what every other line means.
 - **Waiting for your confirmation** - every staged order still inside its five-minute window, each with the token that places it.
 - **Resting exits** - what stands at a venue, with its triggers.
-- **Nothing is guarding these** - positions at a venue you can place at, with less exit under them than the book says you hold, each naming the command that fixes it. On OKX a stop set in the exchange's own app counts up to its size, so a stop smaller than the holding still lists the rest.
+- **No stop is guarding these** - positions at a venue you can place at, with less stop under them than the book says you hold (a take-profit alone does not count), each naming the command that fixes it; where a take-profit rests alone, that is `/trade cancel` first, since `/trade exit` will not add a stop beside it. On OKX a stop set in the exchange's own app counts up to its size, so a stop smaller than the holding still lists the rest.
 - **Placed at the exchange, missing from your book** - the reconcile list, with its remedy.
 
 It reaches no venue. A status that needs every exchange up goes blank exactly when you most need to know what is standing out there.
@@ -2014,7 +2018,7 @@ Each step is a distinct failure this design exists to prevent. The early ones st
 - [ ] **A refused amendment keeps the old exit** - send an `sl` the venue rejects (above the last price): the amendment fails and the original exit is still live at OKX.
 - [ ] **Leg-shape refusal** - with a stop-only exit resting, `/trade exit <ticker> tp <price> sl <price>` refuses and names the cancel, leaving the stop untouched.
 - [ ] **Re-size after a manual sale** - `/record sell` part of the position, then `/trade exit`: the resting exit's size drops to what the book now holds.
-- [ ] **Partial coverage** - `/trade exit <ticker> qty <half> sl <price>`: the receipt names what it leaves unguarded, and bare `/trade` lists the position under *Nothing is guarding these*.
+- [ ] **Partial coverage** - `/trade exit <ticker> qty <half> sl <price>`: the receipt names what it leaves unguarded, and bare `/trade` lists the position under *No stop is guarding these*.
 - [ ] **Oversized coverage** - a `qty` above the position refuses with nothing placed.
 - [ ] **Bare confirm** - with exactly one order staged, `/trade confirm` places it. Stage a second and it refuses with both tokens rather than picking.
 - [ ] **Status** - bare `/trade` lists what is staged, resting, unguarded and missing from the book, and answers while the exchange is unreachable.

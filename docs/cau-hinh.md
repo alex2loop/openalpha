@@ -361,7 +361,7 @@ vào cấu hình bạn xem.
 
 | Khóa | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|
-| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, phiên chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
+| `days` | số nguyên | `90` | Số dương. Giữ bao lâu: phiên không còn hoạt động và đường định tuyến của chúng, mục bộ nhớ đã xóa, phiên chạy của bộ lập lịch quá 200 lượt mới nhất mỗi việc, mục inbox chưa ai nhận, ghép nối đang chờ, cảnh báo đã kích hoạt hoặc đã tắt, bản chụp bản tin quá bản mới nhất mỗi khu vực và ngôn ngữ, và lịch sử mà ứng dụng đọc: các phiên chạy đã xong sau danh sách hoạt động, và thông báo trong chuông, đã đọc hay chưa. |
 | `history_days` | số nguyên | `1095` | Số dương, không nhỏ hơn `days` (đặt nhỏ hơn thì cấu hình bị từ chối khi nạp; bỏ trống thì không bao giờ dưới `days`). Giữ bao lâu kết quả theo dõi: đề xuất đã chấm và đề xuất giữ (mỗi mã luôn giữ mười dòng mới nhất cho mỗi hành động, đề xuất chưa chấm thì không bao giờ bị xóa), dòng factor log và kết quả chủ đề đã chốt, ảnh chụp NAV, điểm số liệu vĩ mô cùng nguồn của chúng. Tài liệu vĩ mô được giữ ít nhất 775 ngày (khoảng 25 tháng), để bộ trích xuất không phải trả tiền đọc lại một tháng. |
 | `inbox_days` | số nguyên | `7` | Số dương. Giữ bao lâu các mục inbox đã xong và đã hỏng, gồm cả nội dung. |
 | `daily_backups` | số nguyên | `3` | Từ `0`. Giữ bao nhiêu bản sao lưu SQLite hằng ngày trong `backups/daily/`; `0` là tắt. PostgreSQL bị bỏ qua (dùng `pg_dump`). |
@@ -611,8 +611,9 @@ cầu cục bộ. Nên hãy đặt `public_url` trước khi mở ra ngoài, và
 - chat từ ứng dụng không chạy được lệnh shell, không ghi tệp và không dùng công cụ của máy chủ MCP hay
   plugin, cũng không dùng công cụ mạng xã hội;
 - công việc tạo từ ứng dụng chỉ trả lời trong ứng dụng;
-- việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing` và `dm_policy` của từng kênh
-  chỉ đổi được trên máy chủ: bằng câu lệnh hoặc trong file này, không bao giờ từ ứng dụng.
+- việc duyệt ghép nối cùng `allowed_ids`, `operator_user_ids`, `pairing`, `dm_policy` và
+  `fallback_chat_id` của từng kênh, cùng `[schedule] failure_target`, chỉ đổi được trên máy chủ: bằng câu lệnh hoặc
+  trong file này, không bao giờ từ ứng dụng.
 
 Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhập ChatGPT: hãy dùng `openalpha key set` và
 `openalpha auth login chatgpt` trên máy chủ.

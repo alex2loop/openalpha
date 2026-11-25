@@ -41,6 +41,7 @@ export async function buildSessionDelta(
   home: MarketRef
 ): Promise<BriefSectionResult> {
   const previous = await context.services.previousSections({
+    region: context.request.region,
     before: context.request.asOf,
     locale: context.request.locale,
     signal: context.request.signal,

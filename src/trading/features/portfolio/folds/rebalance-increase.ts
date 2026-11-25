@@ -52,9 +52,8 @@ export function increaseRows(
       continue
     }
 
-    // Before the budget is touched, so a suppressed name never spends its segment's slice. Adding to
-    // a holding the evidence has turned against is the one buy this plan must not propose.
-    if (rows.input.standingReduces.has(key)) {
+    // Before the budget is touched, so a suppressed name never spends its segment's slice.
+    if (hasStandingReduce(rows, key)) {
       caveats.push(standingReduceCaveat(candidate))
       continue
     }
@@ -260,7 +259,7 @@ function clampToReachable(
 }
 
 /** Only segments with a name to add share the pool: one with nothing to buy would hold back a slice
- *  no order could spend. */
+ *  no order could spend, and a name the evidence closed is not one to add. */
 function fundedTargets(rows: RowInput): ReadonlyMap<PortfolioSegment, number> {
   const targets = new Map(segmentEntries(rows.input.profile.segmentTargets))
   const funded = new Map<PortfolioSegment, number>()
@@ -271,6 +270,7 @@ function fundedTargets(rows: RowInput): ReadonlyMap<PortfolioSegment, number> {
     if (
       candidate &&
       rows.drifting.has(candidate.segment) &&
+      !hasStandingReduce(rows, key) &&
       wanted > (rows.current.get(key) ?? 0)
     ) {
       funded.set(candidate.segment, Math.max(targets.get(candidate.segment) ?? 0, 0))
@@ -285,4 +285,9 @@ function byDescendingWeight(
   right: readonly [string, number]
 ): number {
   return right[1] - left[1] || left[0].localeCompare(right[0])
+}
+
+/** Adding to a holding the evidence has turned against is the one buy this plan must not propose. */
+function hasStandingReduce(rows: RowInput, key: string): boolean {
+  return rows.input.standingReduces.has(key)
 }

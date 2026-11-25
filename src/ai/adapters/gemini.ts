@@ -349,7 +349,7 @@ function routePart(part: GeminiPart, state: RouterState): readonly StreamEvent[]
   if (part.functionCall?.name) {
     // Gemini omits the call id on some models. A minted one must be unique across turns, not just
     // within a response: ledger idempotency keys and compaction both key on it.
-    const id = part.functionCall.id ?? buildToolCallId()
+    const id = part.functionCall.id || buildToolCallId()
     state.sawToolCall = true
     collectThoughtSignature(state, part, id)
 

@@ -1,4 +1,5 @@
 import type { Locale } from '@/core/types/locale'
+import type { MessageKey } from '@/i18n'
 import type { UnguardedPosition } from '@/trading/features/order/exit-coverage'
 import type { RestingExitRow, StagedOrder, TradeStatus } from '@/trading/features/order/types'
 import type { MarketRef } from '@/trading/kernel/instrument'
@@ -178,13 +179,22 @@ function residueLine(input: TradeStatusRender): readonly string[] {
 }
 
 function unguardedRow(locale: Locale, row: UnguardedPosition): string {
-  const key = row.guarded > 0 ? 'trading.order.status.partlyGuarded' : 'trading.order.status.bare'
+  const key = unguardedRowKey(row)
 
   return t(locale, key, {
     quantity: formatQuantity(locale, row.quantity - row.guarded),
     ticker: row.instrument.ticker,
     venue: renderVenueName(locale, row.venue),
   })
+}
+
+// A resting take-profit makes `/trade exit` refuse a stop beside it, so that row names the cancel.
+function unguardedRowKey(row: UnguardedPosition): MessageKey {
+  if (row.takeProfitOnly === true) {
+    return 'trading.order.status.takeProfitOnly'
+  }
+
+  return row.guarded > 0 ? 'trading.order.status.partlyGuarded' : 'trading.order.status.bare'
 }
 
 function unmirroredSection(input: TradeStatusRender): readonly string[] {

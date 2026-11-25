@@ -336,6 +336,7 @@ async function runEntry(
       maxRetries: input.tuning.maxRetries,
       retryBackoffMs: input.tuning.retryBackoffMs,
       isRetryable: (err) => !input.isEmitted() && RETRYABLE_CODES.has(err.code),
+      isEmitted: input.isEmitted,
     })
 
     return { kind: 'success', result }

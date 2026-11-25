@@ -157,11 +157,18 @@ export function holdRestartFor(settle: () => Promise<void>): () => void {
   }
 }
 
-// The restart goes on whether or not the wait succeeds: a failed copy says so on its own status.
+// The restart goes on whether or not the wait succeeds: a failed copy says so on its own status. A
+// tab that lost the database meanwhile has no engine to restart: the worker would not answer, so the
+// refusal stays on screen and the next take-over starts in the chosen language.
 function restartIn(locale: Locale): void {
   const restart = (): void => {
-    editionPhase.value = { kind: 'restarting' }
     preferredLocale.value = locale
+
+    if (editionPhase.value.kind === 'refused') {
+      return
+    }
+
+    editionPhase.value = { kind: 'restarting' }
     postToWorker({ kind: 'locale', locale })
   }
 

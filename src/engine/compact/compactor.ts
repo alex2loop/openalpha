@@ -14,7 +14,7 @@ import {
   COMPACT_SUMMARY_TOOL_RESULTS_TOTAL_MAX_BYTES,
   DUPLICATE_TOOL_RESULT_PREFIX,
 } from '@/engine/constants'
-import { estimateTokens } from '@/engine/loop/limits'
+import { estimateTokens, messageCharCount } from '@/engine/loop/limits'
 import { compactionRoomTokens } from '@/engine/loop/run-compaction'
 
 const SUMMARY_FALLBACK = '[CONTEXT TRUNCATED - summarization failed, older messages removed]'
@@ -24,7 +24,8 @@ interface CompactorDeps {
 }
 
 // Stub tool-result bodies outside the recent-group window. Messages stay in place (an orphaned
-// assistant tool_call with no tool reply is a malformed transcript), only content shrinks.
+// assistant tool_call with no tool reply is a malformed transcript), only content shrinks: a result
+// already shorter than the stub keeps its body.
 function elideStaleToolResults(
   msgs: readonly LLMMessage[],
   keepRecentGroups: number
@@ -33,12 +34,18 @@ function elideStaleToolResults(
   let changed = false
 
   const elided = mid.map((msg) => {
-    if (msg.role !== 'tool' || msg.content === COMPACT_ELIDED_TOOL_RESULT) {
+    if (msg.role !== 'tool') {
+      return msg
+    }
+
+    const stub = { ...msg, content: COMPACT_ELIDED_TOOL_RESULT }
+
+    if (messageCharCount(stub) >= messageCharCount(msg)) {
       return msg
     }
 
     changed = true
-    return { ...msg, content: COMPACT_ELIDED_TOOL_RESULT }
+    return stub
   })
 
   return changed ? [...elided, ...recent] : msgs

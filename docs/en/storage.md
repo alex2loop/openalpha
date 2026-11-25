@@ -213,7 +213,7 @@ The windows are set by [`[retention]`](configuration.md#retention): `days` is th
 | Memory | Removed once expired, or once marked deleted for more than `days`. |
 | Pending pairings | Removed after `days`, from creation. |
 | Fired or disabled alerts | Removed after `days`, from the time they fired or were disabled. Live alerts are never pruned. |
-| `brief_snapshots` | Removed after `days`, except the newest snapshot per locale, which always survives. |
+| `brief_snapshots` | Removed after `days`, except the newest snapshot per region and locale, which always survives. |
 | Scheduler jobs | A one-shot job that ran and was switched off is removed after `days` from its run time, with its run history. A paused one-shot that never ran, and every recurring or event job, stays. |
 | Resting exits | Settled or closed rows are removed after `days` from when they were placed. Live ones are never pruned. |
 | Theme runs and their reads | Removed after `days`, except a run an outcome still cites, each theme's two newest runs, and the newest run and newest full run. |
