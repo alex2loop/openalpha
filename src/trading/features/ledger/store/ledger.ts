@@ -18,7 +18,7 @@ import {
   toEntry,
   transactionColumns,
 } from '@/trading/features/ledger/store/ledger-row'
-import { venueRef } from '@/trading/kernel/instrument'
+import { isSameInstrument, venueRef } from '@/trading/kernel/instrument'
 import { ledgerEntryId } from '@/trading/kernel/operator/book'
 import { toPage } from '@/trading/kernel/store/store-row'
 
@@ -227,8 +227,21 @@ async function updateValidated(
     assertValid(current.map((row) => (row.id === next.id ? next : row)))
     await updateEntry(deps, tx, next)
 
+    // The edited row now speaks for its new instrument only, so the one it left keeps a trace.
+    if (hasLeftInstrument(existing.transaction, next.transaction)) {
+      await recordDeletion(deps, tx, { removed: existing, deletedAt: patch.updatedAt })
+    }
+
     return next
   })
+}
+
+function hasLeftInstrument(before: LedgerTxn, after: LedgerTxn): boolean {
+  if (!('instrument' in before)) {
+    return false
+  }
+
+  return !('instrument' in after && isSameInstrument(before.instrument, after.instrument))
 }
 
 async function deleteValidated(
