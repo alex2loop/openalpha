@@ -147,8 +147,8 @@ export interface AmendExitInput {
 export interface ExitStatus {
   readonly state: 'live' | 'triggered' | 'canceled' | 'failed'
   readonly fill?: OrderReceipt
-  /** What cancel and amend address, reported while `live` so a placement whose answer was lost can
-   *  be adopted by the id it was placed under. */
+  /** What cancel and amend address, reported while `live` or `triggered` so a placement whose answer
+   *  was lost can be adopted by the id it was placed under, even if it fired before the lookup. */
   readonly exitId?: string
 }
 

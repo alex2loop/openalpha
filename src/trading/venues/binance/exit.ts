@@ -90,7 +90,9 @@ export async function fetchExit(
 
   const status = await toExitStatus(deps, legs, lookup.signal)
 
-  return status.state === 'live' ? { ...status, exitId: String(named.orderId) } : status
+  return status.state === 'live' || status.state === 'triggered'
+    ? { ...status, exitId: String(named.orderId) }
+    : status
 }
 
 /** One cancel on the order the exit is named by: Binance takes the whole OCO down with any leg. */

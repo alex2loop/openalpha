@@ -277,12 +277,14 @@ async function fetchExit(
     return { state: algo.state }
   }
 
+  const identity = algo.algoId === undefined ? {} : { exitId: algo.algoId }
+
   if (algo.state === 'live') {
-    return { state: 'live', ...(algo.algoId === undefined ? {} : { exitId: algo.algoId }) }
+    return { state: 'live', ...identity }
   }
 
   if (algo.ordId === undefined) {
-    return { state: 'triggered' }
+    return { state: 'triggered', ...identity }
   }
 
   const fill = await fetchOrder(deps, {
@@ -291,7 +293,9 @@ async function fetchExit(
     signal: lookup.signal,
   })
 
-  return fill === undefined ? { state: 'triggered' } : { state: 'triggered', fill }
+  return fill === undefined
+    ? { state: 'triggered', ...identity }
+    : { state: 'triggered', fill, ...identity }
 }
 
 async function fetchAlgo(
