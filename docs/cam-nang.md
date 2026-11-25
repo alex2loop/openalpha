@@ -515,8 +515,8 @@ một cổ phiếu hay quỹ đã lưu trùng ký hiệu.
 - `spot` **chỉ dựng lệnh và in token**. Không gì ra sàn cho tới khi bạn gõ `/trade confirm`.
 - `exit` đặt hoặc dời chốt lời/cắt lỗ cho vị thế đang giữ. Mặc định lấy khối lượng từ sổ; thêm `qty`
   để chỉ bảo vệ một phần. Không cần token vì lệnh này không bao giờ gỡ bớt lớp bảo vệ đang có.
-- `/trade` gõ một mình cho bạn xem: lệnh chờ xác nhận, lệnh thoát đang treo trên sàn, vị thế chưa có gì bảo
-  vệ, và lệnh sàn đã khớp mà sổ chưa có.
+- `/trade` gõ một mình cho bạn xem: lệnh chờ xác nhận, lệnh thoát đang treo trên sàn, vị thế chưa có lệnh
+  cắt lỗ nào bảo vệ, và lệnh sàn đã khớp mà sổ chưa có.
 
 **Hai điều riêng của Binance:**
 

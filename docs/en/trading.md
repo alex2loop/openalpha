@@ -1973,7 +1973,7 @@ A bare `/trade` answers one question, what is live right now, in sections. Any s
 - **Buying is off since ...** - present only after `/trade halt`, and first because it changes what every other line means.
 - **Waiting for your confirmation** - every staged order still inside its five-minute window, each with the token that places it.
 - **Resting exits** - what stands at a venue, with its triggers.
-- **No stop is guarding these** - positions at a venue you can place at, with less stop under them than the book says you hold (a take-profit alone does not count), each naming the command that fixes it. On OKX a stop set in the exchange's own app counts up to its size, so a stop smaller than the holding still lists the rest.
+- **No stop is guarding these** - positions at a venue you can place at, with less stop under them than the book says you hold (a take-profit alone does not count), each naming the command that fixes it; where a take-profit rests alone, that is `/trade cancel` first, since `/trade exit` will not add a stop beside it. On OKX a stop set in the exchange's own app counts up to its size, so a stop smaller than the holding still lists the rest.
 - **Placed at the exchange, missing from your book** - the reconcile list, with its remedy.
 
 It reaches no venue. A status that needs every exchange up goes blank exactly when you most need to know what is standing out there.

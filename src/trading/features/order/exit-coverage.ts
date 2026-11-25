@@ -21,6 +21,8 @@ export interface UnguardedPosition {
   readonly venue: VenueRef
   readonly quantity: number
   readonly guarded: number
+  /** A take-profit rests here with no stop beside it, so adding one is a cancel first. */
+  readonly takeProfitOnly?: true
 }
 
 /** An exit resting at a venue under this tree's client id shape that no live row names, so the exit

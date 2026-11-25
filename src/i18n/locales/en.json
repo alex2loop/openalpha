@@ -6411,6 +6411,7 @@
     "order.status.residue": "{count} leftover balances below the exchange's smallest order, so no stop can guard them: {names}",
     "order.status.bare": "{quantity} {ticker} at {venue} - /trade exit {ticker} sl <price>",
     "order.status.partlyGuarded": "{quantity} {ticker} at {venue} is past the resting stop - /trade exit {ticker} sl <price>",
+    "order.status.takeProfitOnly": "{quantity} {ticker} at {venue} has a take-profit but no stop - /trade cancel {ticker}, then /trade exit {ticker} tp <price> sl <price>",
     "order.exit.uncovered": "This leaves {quantity} {ticker} with no exit.",
     "order.cap.stake": "estimated value {actual} is over the {limit} cap",
     "order.cap.openTrades": "{actual} open positions already, cap is {limit}",

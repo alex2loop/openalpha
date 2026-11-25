@@ -1958,7 +1958,7 @@ Một sàn khai những gì API của nó làm được, và sàn nào không l�
 - **Đã tắt mua từ ...** - chỉ có sau `/trade halt`, và đứng đầu vì nó đổi nghĩa mọi dòng khác.
 - **Đang chờ bạn xác nhận** - mọi lệnh đã dàn dựng còn trong cửa sổ năm phút, mỗi lệnh kèm token đặt nó.
 - **Lệnh thoát đang chờ trên sàn** - những gì đang đứng ở một sàn, kèm trigger của chúng.
-- **Chưa có lệnh cắt lỗ nào bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lệnh cắt lỗ bên dưới ít hơn cuốn sổ nói bạn đang nắm (chỉ có lệnh chốt lời thì không tính), mỗi cái nêu lệnh để chữa. Trên OKX, lệnh dừng lỗ đặt trong app của sàn được tính đến đúng khối lượng của nó, nên lệnh dừng lỗ nhỏ hơn số đang nắm vẫn khiến phần còn lại bị liệt kê.
+- **Chưa có lệnh cắt lỗ nào bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lệnh cắt lỗ bên dưới ít hơn cuốn sổ nói bạn đang nắm (chỉ có lệnh chốt lời thì không tính), mỗi cái nêu lệnh để chữa; nơi chỉ có một lệnh chốt lời đang chờ thì đó là `/trade cancel` trước, vì `/trade exit` không thêm lệnh cắt lỗ bên cạnh nó. Trên OKX, lệnh cắt lỗ đặt trong app của sàn được tính đến đúng khối lượng của nó, nên lệnh cắt lỗ nhỏ hơn số đang nắm vẫn khiến phần còn lại bị liệt kê.
 - **Đã đặt trên sàn, chưa có trong sổ** - danh sách đối soát, kèm cách chữa.
 
 Nó không chạm sàn nào. Một trạng thái cần mọi sàn đều hoạt động sẽ trống đúng lúc bạn cần biết nhất cái gì đang đứng ngoài đó.

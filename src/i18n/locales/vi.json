@@ -6411,6 +6411,7 @@
     "order.status.residue": "{count} số dư lẻ dưới mức lệnh nhỏ nhất của sàn, không đặt được lệnh cắt lỗ: {names}",
     "order.status.bare": "{quantity} {ticker} tại {venue} - /trade exit {ticker} sl <giá>",
     "order.status.partlyGuarded": "{quantity} {ticker} tại {venue} nằm ngoài lệnh cắt lỗ đang chờ - /trade exit {ticker} sl <giá>",
+    "order.status.takeProfitOnly": "{quantity} {ticker} tại {venue} có lệnh chốt lời nhưng chưa có lệnh cắt lỗ - /trade cancel {ticker}, rồi /trade exit {ticker} tp <giá> sl <giá>",
     "order.exit.uncovered": "Còn {quantity} {ticker} chưa có lệnh thoát nào.",
     "order.cap.stake": "giá trị ước tính {actual} vượt hạn mức {limit}",
     "order.cap.openTrades": "đã có {actual} vị thế mở, hạn mức là {limit}",
