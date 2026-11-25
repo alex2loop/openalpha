@@ -4,7 +4,6 @@
     "src/ai/adapters/sse.ts#sseScanner": 44,
     "src/ai/chain/attempt-ledger.ts#runAttemptOnce": 55,
     "src/ai/chain/provider-chain.ts#runChain": 47,
-    "src/ai/chain/stream-watchdog.ts#streamWithIdleTimeout": 46,
     "src/app/boot.ts#boot": 43,
     "src/app/daemon.ts#createDaemonTask": 50,
     "src/app/providers.ts#createAppProvider": 49,

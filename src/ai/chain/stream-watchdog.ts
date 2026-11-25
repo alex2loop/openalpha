@@ -25,6 +25,37 @@ export async function streamWithIdleTimeout(
   req: LLMRequest,
   target: StreamTarget
 ): Promise<LLMResponse> {
+  const { entry } = target
+  const watchdog = createStreamWatchdog(target)
+
+  try {
+    return await transport.stream(
+      { ...req, signal: AbortSignal.any([req.signal, watchdog.signal]) },
+      entry,
+      watchdog.onEvent
+    )
+  } catch (err: unknown) {
+    if (watchdog.signal.aborted && !req.signal.aborted) {
+      throw toIdleTimeout(err, { entry, req, ...watchdog.progress() })
+    }
+
+    throw err
+  } finally {
+    watchdog.dispose()
+  }
+}
+
+interface StreamWatchdog {
+  readonly signal: AbortSignal
+  readonly onEvent: OnStreamEvent
+  /** How far the stream got, for the timeout it raises. */
+  readonly progress: () => Pick<IdleTimeoutTarget, 'timeoutMs' | 'hasOutput' | 'outputChars'>
+  readonly dispose: () => void
+}
+
+// One self-rescheduling watchdog rather than a timer per delta: a long completion emits thousands
+// of events, and re-arming on each is churn on the hottest path in the loop.
+function createStreamWatchdog(target: StreamTarget): StreamWatchdog {
   const { entry, emit } = target
   const ttftMs = entry.ttftTimeoutMs ?? DEFAULT_TTFT_TIMEOUT_MS
   const idleMs = entry.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS
@@ -34,8 +65,6 @@ export async function streamWithIdleTimeout(
   let outputChars = 0
   let lastEventAt = performance.now()
 
-  // One self-rescheduling watchdog rather than a timer per delta: a long completion emits thousands
-  // of events, and re-arming on each is churn on the hottest path in the loop.
   const watch = (): void => {
     const budgetMs = hasOutput ? idleMs : ttftMs
     const idleForMs = performance.now() - lastEventAt
@@ -47,38 +76,29 @@ export async function streamWithIdleTimeout(
 
     timer = setTimeout(watch, budgetMs - idleForMs)
   }
-  const guarded: OnStreamEvent = (event) => {
-    if (isOutputDelta(event)) {
-      hasOutput = true
-    }
-
-    outputChars += generatedChars(event)
-    lastEventAt = performance.now()
-    emit(event)
-  }
 
   timer = setTimeout(watch, ttftMs)
 
-  try {
-    return await transport.stream(
-      { ...req, signal: AbortSignal.any([req.signal, idle.signal]) },
-      entry,
-      guarded
-    )
-  } catch (err: unknown) {
-    if (idle.signal.aborted && !req.signal.aborted) {
-      throw toIdleTimeout(err, {
-        entry,
-        req,
-        timeoutMs: hasOutput ? idleMs : ttftMs,
-        hasOutput,
-        outputChars,
-      })
-    }
+  return {
+    signal: idle.signal,
+    onEvent: (event) => {
+      outputChars += generatedChars(event)
+      lastEventAt = performance.now()
 
-    throw err
-  } finally {
-    clearTimeout(timer)
+      // The wake-up armed for the first token may sit past the idle budget that now applies.
+      if (!hasOutput && isOutputDelta(event) && timer !== undefined) {
+        hasOutput = true
+        clearTimeout(timer)
+        watch()
+      }
+
+      emit(event)
+    },
+    progress: () => ({ timeoutMs: hasOutput ? idleMs : ttftMs, hasOutput, outputChars }),
+    dispose: () => {
+      clearTimeout(timer)
+      timer = undefined
+    },
   }
 }
 
