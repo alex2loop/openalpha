@@ -138,8 +138,8 @@ export const PROFILE_BOUNDS: ProfileBounds = Object.freeze({
     gold: { minimum: 0.05, maximum: 0.4 },
     crypto: { minimum: 0.01, maximum: 0.2 },
   }),
-  // The floor is the seeded ceiling's own floor, so every seed clears it. A seeded ceiling is clamped
-  // to the maximum: one segment left on takes the others' share, and its ceiling would pass it.
+  // The floor is the seeded ceiling's own floor, so every seed clears it. A seeded target and its
+  // ceiling are clamped to the maximum: one segment left on takes the others' share, and would pass it.
   segmentPctNavByCategory: Object.freeze({
     stock: { minimum: SEGMENT_CEILING_FLOOR_PCT_POINTS, maximum: 0.9 },
     gold: { minimum: SEGMENT_CEILING_FLOOR_PCT_POINTS, maximum: 0.5 },
@@ -245,7 +245,7 @@ function seedTargets(
     }
   }
 
-  return renormalize(targets)
+  return capAtCategoryMaximum(renormalize(targets), segments)
 }
 
 function renormalize(targets: Record<PortfolioSegment, number>): Record<PortfolioSegment, number> {
@@ -258,6 +258,30 @@ function renormalize(targets: Record<PortfolioSegment, number>): Record<Portfoli
   return Object.fromEntries(
     Object.entries(targets).map(([segment, weight]) => [segment, weight / total])
   )
+}
+
+/** One segment left on takes the others' share, which can pass what its category admits; the excess
+ *  stays in cash, the one segment with no ceiling. */
+function capAtCategoryMaximum(
+  targets: Readonly<Record<PortfolioSegment, number>>,
+  segments: readonly SegmentDescriptor[]
+): Record<PortfolioSegment, number> {
+  const capped: Record<PortfolioSegment, number> = { ...targets }
+  let excess = 0
+
+  for (const segment of segments) {
+    const maximum = PROFILE_BOUNDS.segmentPctNavByCategory[segment.category]?.maximum
+    const target = targets[segment.id] ?? 0
+
+    if (maximum !== undefined && target > maximum) {
+      capped[segment.id] = maximum
+      excess += target - maximum
+    }
+  }
+
+  capped[CASH_SEGMENT] = (targets[CASH_SEGMENT] ?? 0) + excess
+
+  return capped
 }
 
 function seedCaps(
