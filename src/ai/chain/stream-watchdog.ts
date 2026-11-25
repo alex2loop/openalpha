@@ -64,12 +64,15 @@ function createStreamWatchdog(target: StreamTarget): StreamWatchdog {
   let hasOutput = false
   let outputChars = 0
   let lastEventAt = performance.now()
+  // Set once the watchdog fired or the stream ended: nothing arms a timer after it.
+  let finished = false
 
   const watch = (): void => {
     const budgetMs = hasOutput ? idleMs : ttftMs
     const idleForMs = performance.now() - lastEventAt
 
     if (idleForMs >= budgetMs) {
+      finished = true
       idle.abort()
       return
     }
@@ -86,7 +89,7 @@ function createStreamWatchdog(target: StreamTarget): StreamWatchdog {
       lastEventAt = performance.now()
 
       // The wake-up armed for the first token may sit past the idle budget that now applies.
-      if (!hasOutput && isOutputDelta(event) && timer !== undefined) {
+      if (!(finished || hasOutput) && isOutputDelta(event)) {
         hasOutput = true
         clearTimeout(timer)
         watch()
@@ -96,8 +99,8 @@ function createStreamWatchdog(target: StreamTarget): StreamWatchdog {
     },
     progress: () => ({ timeoutMs: hasOutput ? idleMs : ttftMs, hasOutput, outputChars }),
     dispose: () => {
+      finished = true
       clearTimeout(timer)
-      timer = undefined
     },
   }
 }

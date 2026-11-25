@@ -77,10 +77,10 @@ function outflowAmountOf(txn: LedgerTxn): number {
 /** What a trade's cash leg cost in the base: the venue's currency cash at its average cost when it
  *  holds that currency, the row's own rate otherwise. Committed now, not at settlement: this is the
  *  debit that closes the unsettled double-spend, for a buy and for a sale whose fee passes its gross. */
-export function payFromCash(state: FoldState, txn: TradeTxn, costNative: number): number {
+export function payFromCash(state: FoldState, txn: TradeTxn, amountNative: number): number {
   const held = currencyCashAt(state, txn.venue, txn.currency)
   const costBase =
-    held === undefined ? costNative * txn.conversion.rate : spendCurrencyCash(held, costNative)
+    held === undefined ? amountNative * txn.conversion.rate : spendCurrencyCash(held, amountNative)
 
   state.cashBase -= costBase
   state.availableCashBase -= costBase

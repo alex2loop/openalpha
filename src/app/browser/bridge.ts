@@ -394,18 +394,20 @@ async function serveFrame(ctx: BridgeContext, frame: ClientFrame): Promise<void>
     const refusal = keyRefusalOf(ctx, frame.message, root.app.config)
 
     // A steer belongs to a turn still running, which the refusal must not end.
+    if (refusal !== undefined && frame.type === 'steer') {
+      sink.send({ type: 'chat', kind: 'steer_dropped', text: refusal, ...toLaneTag(frame.id) })
+
+      return
+    }
+
     if (refusal !== undefined) {
-      sink.send(
-        frame.type === 'steer'
-          ? { type: 'chat', kind: 'steer_dropped', text: refusal, ...toLaneTag(frame.id) }
-          : {
-              type: 'chat',
-              kind: 'error',
-              code: 'unavailable',
-              message: refusal,
-              ...toLaneTag(frame.id),
-            }
-      )
+      sink.send({
+        type: 'chat',
+        kind: 'error',
+        code: 'unavailable',
+        message: refusal,
+        ...toLaneTag(frame.id),
+      })
 
       return
     }
