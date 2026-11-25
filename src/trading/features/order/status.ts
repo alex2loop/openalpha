@@ -17,7 +17,6 @@ import {
   guardedQuantityOf,
   liveExits,
   restingOn,
-  stopsRestingOn,
 } from '@/trading/features/order/resting'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
@@ -330,6 +329,14 @@ function placeablePositions(
   positions: readonly Position[]
 ): readonly Position[] {
   return positions.filter((position) => deps.venues.find(position.venue)?.adapter !== undefined)
+}
+
+/** Only the exits carrying a stop-loss: a take-profit alone leaves the position unprotected. */
+function stopsRestingOn(
+  byPosition: ReadonlyMap<string, readonly RestingExit[]>,
+  position: Position
+): readonly RestingExit[] {
+  return restingOn(byPosition, position).filter((exit) => exit.stopLoss !== undefined)
 }
 
 /** The one staged order a bare confirm may claim. `undefined` where none or several are quotable,

@@ -53,14 +53,6 @@ export function restingOn(
   return byPosition.get(buildPositionKey(position.instrument, position.venue)) ?? []
 }
 
-/** Only the exits carrying a stop-loss: a take-profit alone leaves the position unprotected. */
-export function stopsRestingOn(
-  byPosition: ReadonlyMap<string, readonly RestingExit[]>,
-  position: Position
-): readonly RestingExit[] {
-  return restingOn(byPosition, position).filter((exit) => exit.stopLoss !== undefined)
-}
-
 export function guardedQuantityOf(resting: readonly RestingExit[]): number {
   return resting.reduce((total, exit) => total + exit.quantity, 0)
 }
