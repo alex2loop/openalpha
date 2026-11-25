@@ -12,9 +12,10 @@ export interface ExitCoverage {
   readonly stopLoss?: number
 }
 
-/** A position at a venue with less exit standing at it than the book says is held. Both figures,
- *  because partly guarded and not guarded at all are different situations and the remedy names a
- *  size. Only ever a venue this tree can place at — nothing can rest at a hand-held custodian. */
+/** A position at a venue with less stop standing at it than the book says is held; a take-profit
+ *  alone does not count. Both figures, because partly guarded and not guarded at all are different
+ *  situations and the remedy names a size. Only ever a venue this tree can place at — nothing can
+ *  rest at a hand-held custodian. */
 export interface UnguardedPosition {
   readonly instrument: InstrumentRef
   readonly venue: VenueRef

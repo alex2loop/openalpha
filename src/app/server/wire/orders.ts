@@ -37,12 +37,12 @@ export interface RestingExitWire {
   readonly placedAt: number
 }
 
-/** A position with less exit resting under it than the book holds. */
+/** A position with less stop resting under it than the book holds. */
 export interface UnguardedPositionWire {
   readonly instrument: InstrumentRefWire
   readonly venue: string
   readonly quantity: number
-  /** How much of it an exit covers. */
+  /** How much of it a stop covers. */
   readonly guarded: number
 }
 

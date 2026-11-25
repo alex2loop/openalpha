@@ -1015,7 +1015,7 @@ A `venue:` prefix also picks the instrument on that venue's markets: `okx:SUI` i
 stored stock or fund shares the symbol.
 
 Bare `/trade` tells you what is outstanding: staged orders and their tokens, resting exits, positions
-nothing is guarding, and what the exchange took that your book is missing. It reaches no venue.
+no stop is guarding, and what the exchange took that your book is missing. It reaches no venue.
 
 - **`spot`** stages the order and prints a confirmation token. Nothing goes out until you type
   `/trade confirm`.

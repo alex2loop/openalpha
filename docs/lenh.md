@@ -1000,7 +1000,7 @@ Tiền tố `sàn:` còn chọn công cụ trong các thị trường mà sàn �
 cổ phiếu hay quỹ đã lưu trùng ký hiệu.
 
 `/trade` trần cho biết đang có gì chờ: các lệnh đã dàn kèm token, các lệnh thoát đang treo, các vị thế
-không ai canh, và những gì sàn đã nhận mà sổ của bạn còn thiếu. Nó không với tới sàn nào.
+chưa có lệnh cắt lỗ nào canh, và những gì sàn đã nhận mà sổ của bạn còn thiếu. Nó không với tới sàn nào.
 
 - **`spot`** dàn lệnh và in một token xác nhận. Không gì đi ra cho tới khi bạn gõ `/trade confirm`.
 - **`exit`** đặt hoặc dời chốt lời và cắt lỗ đang treo trên một vị thế mà sổ đã nắm, phủ toàn bộ trừ khi

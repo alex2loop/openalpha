@@ -17,6 +17,7 @@ import {
   guardedQuantityOf,
   liveExits,
   restingOn,
+  stopsRestingOn,
 } from '@/trading/features/order/resting'
 import { buildInstrumentKey } from '@/trading/kernel/instrument'
 import { isBelowMinimumSize } from '@/trading/kernel/venue/catalog'
@@ -145,11 +146,11 @@ function withCurrency(deps: OrderServiceDeps, exit: RestingExit): RestingExitRow
   return { ...exit, ...(currency === undefined ? {} : { currency }) }
 }
 
-/** Positions with less exit standing at them than the book says is held, largest gap first. Only
+/** Positions with less stop standing at them than the book says is held, largest gap first. Only
  *  where the venue carries an adapter: a custodian this tree has no client for can hold no resting
  *  order at all, so naming its positions unguarded would flag every hand-held book forever. What
- *  stands is the larger of this tree's exits and the stops the venue lists, since the venue's list
- *  holds this tree's own stops as well. */
+ *  stands is the larger of this tree's stops and the stops the venue lists, since the venue's list
+ *  holds this tree's own stops as well. A take-profit alone guards nothing. */
 function unguardedPositions(
   deps: OrderServiceDeps,
   positions: readonly Position[],
@@ -163,7 +164,7 @@ function unguardedPositions(
       venue: position.venue,
       quantity: position.quantity,
       guarded: Math.max(
-        guardedQuantityOf(restingOn(resting, position)),
+        guardedQuantityOf(stopsRestingOn(resting, position)),
         stopSizeAtVenue(deps, position, input.venueStops) ?? 0
       ),
     }))
@@ -243,7 +244,7 @@ export async function resolveRestingStops(
       continue
     }
 
-    const stops = restingOn(resting, position).filter((exit) => exit.stopLoss !== undefined)
+    const stops = stopsRestingOn(resting, position)
     const venueSize = stopSizeAtVenue(deps, position, venueStops) ?? 0
     const cover = coverOf(
       { placed: guardedQuantityOf(stops), atVenue: venueSize },
