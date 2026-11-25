@@ -166,7 +166,7 @@ Vậy nếu một bảng nghiệp vụ biến mất sau khi reset, nghĩa là mi
 ## Lưu giữ
 
 `persistence/retention.ts`. Hằng số: `SCHEDULER_RUNS_KEEP_PER_JOB` 200,
-`BRIEF_SNAPSHOTS_KEEP_PER_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 ngày. `RetentionConfig` mang
+`BRIEF_SNAPSHOTS_KEEP_PER_REGION_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 ngày. `RetentionConfig` mang
 `retentionDays` và `inboxRetentionDays`, cùng `historyFloors`: số ngày nơi đọc của từng phạm vi lịch sử
 nhìn lại (`HISTORY_FLOOR_DAYS` của trading: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`, `MACRO_WINDOW_DAYS`,
 `MACRO_BACKFILL_DAYS`), `effectiveHistoryDays` lấy số lớn hơn giữa nó và `historyRetentionDays`.

@@ -25,6 +25,7 @@ import * as migrationAddScreenedNames from '@/persistence/migrations/2026_11_09_
 import * as migrationAddOrderIntentShownBreaches from '@/persistence/migrations/2026_11_12_180037_add_order_intent_shown_breaches'
 import * as migrationNormalizeMemoryValues from '@/persistence/migrations/2026_11_22_203500_normalize_memory_values'
 import * as migrationAddLedgerDeletions from '@/persistence/migrations/2026_11_23_190924_add_ledger_deletions'
+import * as migrationAddBriefSnapshotsRegion from '@/persistence/migrations/2026_11_25_174700_add_brief_snapshots_region'
 
 export const MIGRATIONS = [
   { id: '2026_07_10_000001_initial_schema', reversibility: 'irreversible', up: migrationInitialSchema.up },
@@ -50,4 +51,5 @@ export const MIGRATIONS = [
   { id: '2026_11_12_180037_add_order_intent_shown_breaches', reversibility: 'reversible', up: migrationAddOrderIntentShownBreaches.up, down: migrationAddOrderIntentShownBreaches.down },
   { id: '2026_11_22_203500_normalize_memory_values', reversibility: 'reversible', up: migrationNormalizeMemoryValues.up, down: migrationNormalizeMemoryValues.down },
   { id: '2026_11_23_190924_add_ledger_deletions', reversibility: 'reversible', up: migrationAddLedgerDeletions.up, down: migrationAddLedgerDeletions.down },
+  { id: '2026_11_25_174700_add_brief_snapshots_region', reversibility: 'reversible', up: migrationAddBriefSnapshotsRegion.up, down: migrationAddBriefSnapshotsRegion.down },
 ] as const satisfies readonly Migration[]

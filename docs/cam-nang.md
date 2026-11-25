@@ -849,7 +849,7 @@ nhắn.
 > /brief disable         # tắt giao tự động (vẫn xem thủ công được)
 ```
 
-Một ngày một bản cho mỗi ngôn ngữ. Gõ `/brief` lần hai trong ngày trả lại đúng bản đã dựng,
+Một ngày một bản cho mỗi khu vực và ngôn ngữ. Gõ `/brief` lần hai trong ngày trả lại đúng bản đã dựng,
 **không tốn thêm đồng nào**.
 
 #### Bản tin gồm những gì

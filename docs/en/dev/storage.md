@@ -171,7 +171,7 @@ So a domain table missing after a reset means its migration was not registered a
 ## Retention
 
 `persistence/retention.ts`. Constants: `SCHEDULER_RUNS_KEEP_PER_JOB` 200,
-`BRIEF_SNAPSHOTS_KEEP_PER_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 days. `RetentionConfig` carries
+`BRIEF_SNAPSHOTS_KEEP_PER_REGION_LOCALE` 1, `LLM_ATTEMPTS_RETENTION_MS` 400 days. `RetentionConfig` carries
 `retentionDays` and `inboxRetentionDays`, plus `historyFloors`: the days each history scope's readers
 look back (trading's `HISTORY_FLOOR_DAYS`: `MAXIMUM_OUTCOME_LOOKBACK_DAYS`, `MACRO_WINDOW_DAYS`,
 `MACRO_BACKFILL_DAYS`), which `effectiveHistoryDays` takes the larger of with `historyRetentionDays`.

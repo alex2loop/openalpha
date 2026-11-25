@@ -81,6 +81,7 @@ async function findLatestSnapshot(
 ): Promise<BriefSnapshot | null> {
   const plan = resolvePlan(deps, options.region)
   const found = await findCurrentSnapshot(deps, {
+    region: options.region,
     asOf: resolveDay(plan.market, options.now),
     locale: options.locale,
     profile: await deps.profiles.find(options.signal),

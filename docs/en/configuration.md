@@ -363,7 +363,7 @@ you see.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, brief snapshots past the newest per language, and the history the app reads: finished runs behind the activity list, and the notices in the bell, read or not. |
+| `days` | int | `90` | Positive. How long to keep inactive sessions and their routes, deleted memory entries, scheduler runs past the newest 200 per job, unclaimed inbox entries, pending pairings, fired or disabled alerts, brief snapshots past the newest per region and language, and the history the app reads: finished runs behind the activity list, and the notices in the bell, read or not. |
 | `history_days` | int | `1095` | Positive, at least `days` (a shorter one is refused when the config loads; unset, it is never below `days`). How long to keep the track record: scored suggestions and holds (each name keeps its newest ten per action, and an unscored call is never removed), resolved factor-log and theme outcome rows, NAV snapshots, and macro series points with their sources. Macro documents are kept at least 775 days (about 25 months), so the extractor never pays to read a month again. |
 | `inbox_days` | int | `7` | Positive. How long to keep completed and failed inbox entries, payloads included. |
 | `daily_backups` | int | `3` | `0` or more. How many daily SQLite snapshots to keep in `backups/daily/`; `0` turns them off. PostgreSQL is skipped (use `pg_dump`). |
@@ -614,8 +614,8 @@ Setting `public_url` also limits what the app can do, because it is now reachabl
 - chats from the app cannot run shell commands, write files or use tools from MCP servers or
   plugins, nor the social network tools;
 - jobs made from the app answer only in the app;
-- pairing approval plus each channel's `allowed_ids`, `operator_user_ids`, `pairing` and
-  `dm_policy` are server-only: they change from the CLI or this file, never from the app.
+- pairing approval plus each channel's `allowed_ids`, `operator_user_ids`, `pairing`,
+  `dm_policy` and `fallback_chat_id` are server-only: they change from the CLI or this file, never from the app.
 
 The page then saves no key and starts no ChatGPT sign-in either: use `openalpha key set` and
 `openalpha auth login chatgpt` on the server.

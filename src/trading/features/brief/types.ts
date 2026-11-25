@@ -72,6 +72,7 @@ type EnableBriefRejection = (typeof ENABLE_BRIEF_REJECTIONS)[number]
 
 export interface BriefSnapshot {
   readonly id: BriefSnapshotId
+  readonly region: Region
   /** The `YYYY-MM` whose monthly scorecard the reader has already seen. Carried forward by every
    *  later snapshot in that month, so a month is settled by the scorecard rendering rather than by
    *  a brief merely happening. */
@@ -234,6 +235,7 @@ interface BriefAdviceOptions {
  *  language it was authored in. Named apart from the store's own options, which key the same read
  *  by column name. */
 interface PreviousSectionsOptions {
+  readonly region: Region
   readonly before: TradingDay
   readonly locale: Locale
   readonly signal: AbortSignal

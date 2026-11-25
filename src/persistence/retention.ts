@@ -22,7 +22,7 @@ import { SESSION_ROUTE_KEY_PREFIX } from '@/persistence/stores/channel/chat-bind
 import { detachAttemptsSql } from '@/persistence/stores/session/sql'
 
 const SCHEDULER_RUNS_KEEP_PER_JOB = 200
-const BRIEF_SNAPSHOTS_KEEP_PER_LOCALE = 1
+const BRIEF_SNAPSHOTS_KEEP_PER_REGION_LOCALE = 1
 // Above the 366-day cost view range, so a full year of /v1/cost stays complete, and above any
 // monthly cap window. Not the general window: `db prune --older-than` must not shorten the ledger.
 const LLM_ATTEMPTS_RETENTION_MS = 400 * MS_PER_DAY
@@ -213,13 +213,13 @@ function alertTerminalWhere(atParam: string): string {
   return `state IN ('fired','disabled') AND COALESCE(fired_at, disabled_at) < ${atParam}`
 }
 
-// Ranked over every row, not just expired ones: the newest brief per locale survives regardless of
-// age, so a replay after a long pause still has a snapshot to show.
+// Ranked over every row, not just expired ones: the newest brief per region and locale survives
+// regardless of age, so a replay after a long pause still has a snapshot to show.
 function briefCandidateSql(): string {
   return (
     `WITH ranked AS (` +
     `SELECT id, created_at, ` +
-    `ROW_NUMBER() OVER (PARTITION BY authored_locale ORDER BY day DESC, id DESC) AS rn ` +
+    `ROW_NUMBER() OVER (PARTITION BY region, authored_locale ORDER BY day DESC, id DESC) AS rn ` +
     `FROM brief_snapshots` +
     `) `
   )
@@ -313,7 +313,7 @@ async function countBriefSnapshots(
     `${briefCandidateSql()}SELECT COUNT(*) AS n FROM ranked ` +
     `WHERE rn > ${dialect.param(1)} AND created_at < ${dialect.param(2)}`
 
-  return countRows(tx, sql, [BRIEF_SNAPSHOTS_KEEP_PER_LOCALE, cutoff])
+  return countRows(tx, sql, [BRIEF_SNAPSHOTS_KEEP_PER_REGION_LOCALE, cutoff])
 }
 
 async function countLlmAttempts(
@@ -442,7 +442,7 @@ async function deleteBriefSnapshots(
     sql:
       `${briefCandidateSql()}DELETE FROM brief_snapshots WHERE id IN (` +
       `SELECT id FROM ranked WHERE rn > ${dialect.param(1)} AND created_at < ${dialect.param(2)})`,
-    params: [BRIEF_SNAPSHOTS_KEEP_PER_LOCALE, cutoff],
+    params: [BRIEF_SNAPSHOTS_KEEP_PER_REGION_LOCALE, cutoff],
   })
 }
 

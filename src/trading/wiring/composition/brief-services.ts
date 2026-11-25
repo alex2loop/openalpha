@@ -68,9 +68,12 @@ export function lazyBriefServices(
       }),
     stopDistances: (o) => services().alerts.stopDistances(o),
     previousSections: async (o) => {
-      const previous = await app
-        .resolve('tradingStores')
-        .brief.findPrevious({ before: o.before, authoredLocale: o.locale, signal: o.signal })
+      const previous = await app.resolve('tradingStores').brief.findPrevious({
+        region: o.region,
+        before: o.before,
+        authoredLocale: o.locale,
+        signal: o.signal,
+      })
 
       return previous?.sections ?? null
     },
