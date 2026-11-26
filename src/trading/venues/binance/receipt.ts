@@ -3,7 +3,6 @@ import { z } from 'zod'
 import type { FeePriceLookup } from '@/trading/kernel/venue/fee'
 import type { OrderReceipt, OrderSide, OrderState } from '@/trading/kernel/venue/spot-adapter'
 import type { BinanceTransportDeps } from '@/trading/venues/binance/transport'
-import { OrderError } from '@/trading/features/order/types'
 import { ORDER_SIDES } from '@/trading/kernel/venue/spot-adapter'
 import { fetchAssetPrice } from '@/trading/venues/binance/price'
 import { toBinanceTicker } from '@/trading/venues/binance/symbol'
@@ -126,10 +125,8 @@ async function toReceipt(input: ReceiptInput): Promise<OrderReceipt | undefined>
       : 0
   // Coins moved with no trade row to price them: the fee is not known yet, and zero would book a
   // free fill and leave an in-kind fee in the quantity.
-  const fee =
-    order.executedQty > 0 && input.trades.length === 0
-      ? undefined
-      : await chargedFee(input, averagePrice)
+  const unreported = order.executedQty > 0 && input.trades.length === 0
+  const fee = unreported ? undefined : await chargedFee(input, averagePrice)
   const filledAt = latestTradeTime(input.trades)
 
   return {
@@ -142,7 +139,8 @@ async function toReceipt(input: ReceiptInput): Promise<OrderReceipt | undefined>
     // A receipt carries a charge as negative; Binance reports it positive.
     fee: fee === undefined ? 0 : -fee.amount,
     feeCurrency: fee?.currency ?? '',
-    ...(fee === undefined ? { feeUnreported: true as const } : {}),
+    ...(unreported ? { feeUnreported: true as const } : {}),
+    ...(fee === undefined && !unreported ? { feeUnpriced: true as const } : {}),
     ...(filledAt === undefined ? {} : { filledAt }),
   }
 }
@@ -152,7 +150,10 @@ function netQuantity(executed: number, side: OrderSide, inKind: number): number 
   return side === 'buy' ? executed - inKind : executed + inKind
 }
 
-async function chargedFee(input: ReceiptInput, averagePrice: number): Promise<ChargedFee> {
+async function chargedFee(
+  input: ReceiptInput,
+  averagePrice: number
+): Promise<ChargedFee | undefined> {
   const byAsset = commissionsByAsset(input.trades)
   const [only, ...rest] = [...byAsset]
 
@@ -169,12 +170,13 @@ async function chargedFee(input: ReceiptInput, averagePrice: number): Promise<Ch
 
 /** One order billed in several assets - the BNB balance ran out partway - becomes one quote fee.
  *  The base part is netted into the quantity first, on either side, exactly as `toBookedFill` nets
- *  an in-kind fee: it leaves a buy's and joins a sell's. */
+ *  an in-kind fee: it leaves a buy's and joins a sell's. Undefined when a third asset has no quote,
+ *  because no single currency states the fee then. */
 async function foldIntoQuote(
   input: ReceiptInput,
   byAsset: ReadonlyMap<string, number>,
   averagePrice: number
-): Promise<ChargedFee> {
+): Promise<ChargedFee | undefined> {
   const base = toBinanceTicker(input.order.symbol)
   let amount = 0
   let inKind = 0
@@ -186,21 +188,17 @@ async function foldIntoQuote(
       inKind += charged
       amount += charged * averagePrice
     } else {
-      amount += charged * (await pricedFeeAsset(input, asset))
+      const price = await input.priceOf(asset, input.signal)
+
+      if (price === undefined) {
+        return undefined
+      }
+
+      amount += charged * price
     }
   }
 
   return { amount, currency: BINANCE_QUOTE_ASSET, inKind }
-}
-
-async function pricedFeeAsset(input: ReceiptInput, asset: string): Promise<number> {
-  const price = await input.priceOf(asset, input.signal)
-
-  if (price === undefined) {
-    throw new OrderError('order.rejected', `binance fee in ${asset} has no quote price`)
-  }
-
-  return price
 }
 
 function commissionsByAsset(trades: readonly BinanceTrade[]): ReadonlyMap<string, number> {

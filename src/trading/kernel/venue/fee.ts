@@ -35,13 +35,13 @@ export function isBookableFill(receipt: OrderReceipt): boolean {
  *  invent a figure the venue never stated.
  *
  *  Undefined where the figure would have to be invented: a receipt that names no priced fill; one
- *  whose fee the venue has not reported yet; a third-currency fee the venue will not quote has no
- *  rate to convert at; and a buy fee at or above
- *  the fill delivered nothing, which is not a row. */
+ *  whose fee the venue has not reported yet, or billed in several assets one of which it will not
+ *  quote; a third-currency fee the venue will not quote has no rate to convert at; and a buy fee at
+ *  or above the fill delivered nothing, which is not a row. */
 export async function toBookedFill(input: BookedFillInput): Promise<BookedFill | undefined> {
   const { receipt } = input
 
-  if (!isBookableFill(receipt) || receipt.feeUnreported === true) {
+  if (!isBookableFill(receipt) || receipt.feeUnreported === true || receipt.feeUnpriced === true) {
     return undefined
   }
 

@@ -1844,7 +1844,7 @@ When an order is refused for size (a sale larger than what has settled, or than 
 - Before an order leaves, an in-flight marker is written. If the process dies while the exchange holds the order, the marker survives, `/trade reconcile` lists it, and the caps count it until it is settled. An order that cannot be recorded this way is not sent. Every later outcome replaces the marker.
 - `/trade` books its fill under the venue's own order id, the same key `/record sync` uses, and dates the row by the session the fill traded in rather than the moment you confirmed. Whichever of the two writes second finds the row already there, inside the ledger's write lock, and books nothing, so the cash is debited once even when both run at the same moment. If `/record sync` booked the fill while `/trade` was still waiting on it, `/trade` adopts that row.
 - A run canceled after the exchange took an order still marks it for `/trade reconcile` and, for an order left resting, tries to cancel it.
-- One canceled between the fill and the ledger write leaves an unrecorded row with the reason `order.mirror_aborted`, still charged against the caps and listed by `/trade reconcile`.
+- The ledger write that follows a fill runs under a short bound of its own, so canceling the run no longer stops it once it has started. A run canceled before it (while the fill's fee is still being priced), or a write that does not finish inside that bound, leaves an unrecorded row with the reason `order.mirror_aborted`, still charged against the caps and listed by `/trade reconcile`.
 
 `/trade reconcile` also asks each venue that rests exits what it holds under a client id this setup
 minted, and lists any with no live row. The exit check reads rows alone, so such an exit (a crash

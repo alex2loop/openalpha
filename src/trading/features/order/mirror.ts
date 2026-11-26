@@ -159,10 +159,11 @@ async function record(
   filled: Omit<FilledOrder, 'write'>
 ): Promise<LedgerWriteResult> {
   const { input, numbers, receipt, venue } = filled
+  const signal = settleSignal()
 
   try {
     return (
-      (await bookedFill(deps, filled)) ??
+      (await bookedFill(deps, filled, signal)) ??
       (await deps.portfolio.record({
         draft: {
           kind: input.staged.side,
@@ -179,11 +180,11 @@ async function record(
         idempotencyKey: buildVenueFillKey(venue.id, receipt.orderId),
         fillSource: 'venue',
         now: input.now,
-        signal: input.signal,
+        signal,
       }))
     )
   } catch (err: unknown) {
-    if (input.signal.aborted || isAbortError(err)) {
+    if (signal.aborted) {
       await markUnmirrored(deps, input, { receipt, failure: MIRROR_ABORTED_FAILURE })
 
       throw err
@@ -223,16 +224,17 @@ function fillDayOf(deps: OrderServiceDeps, filled: Omit<FilledOrder, 'write'>): 
  *  the ledger would otherwise refuse as one key reused with another request. */
 async function bookedFill(
   deps: OrderServiceDeps,
-  filled: Omit<FilledOrder, 'write'>
+  filled: Omit<FilledOrder, 'write'>,
+  signal: AbortSignal
 ): Promise<LedgerWriteResult | undefined> {
   const { input, receipt, venue } = filled
-  const entry = await deps.findRecordedFill(venue.id, receipt.orderId, input.signal)
+  const entry = await deps.findRecordedFill(venue.id, receipt.orderId, signal)
 
   if (entry === undefined) {
     return undefined
   }
 
-  const { book } = await deps.portfolio.viewAbsolute({ now: input.now, signal: input.signal })
+  const { book } = await deps.portfolio.viewAbsolute({ now: input.now, signal })
 
   return { kind: 'recorded', entry, book }
 }

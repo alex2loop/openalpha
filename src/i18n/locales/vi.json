@@ -6424,7 +6424,7 @@
     "order.unmirrored.reason.order.unmirrorable": "đã khớp nhưng sổ từ chối ghi",
     "order.unmirrored.reason.order.unmirrorable_fee": "đã khớp nhưng không quy đổi được phí",
     "order.unmirrored.reason.order.fee_unreported": "đã khớp nhưng sàn chưa báo phí",
-    "order.unmirrored.reason.order.mirror_aborted": "đã khớp nhưng phiên bị hủy trước khi sổ ghi lại",
+    "order.unmirrored.reason.order.mirror_aborted": "đã khớp nhưng sổ chưa ghi lại",
     "order.unmirrored.reason.order.unpriced_fill": "lệnh khớp ở mức giá sổ không ghi được",
     "order.unmirrored.orderId": "mã lệnh trên sàn {orderId}",
     "order.unmirrored.fillPrice": "khớp giá {price}",
