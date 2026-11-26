@@ -233,7 +233,6 @@ export {
   renderAnalysisText,
 } from '@/trading/features/suggestion/analysis/render'
 export { renderAnalysisFailure } from '@/trading/features/suggestion/analysis/render-failure'
-export { createAnalysisService } from '@/trading/features/suggestion/analysis/run'
 export { AnalysisError, analysisId } from '@/trading/features/suggestion/analysis/types'
 export { MINIMUM_TRACK_RECORD_SAMPLE } from '@/trading/features/suggestion/pipeline/reporting'
 export { renderRoleStance, toDebateView } from '@/trading/features/suggestion/render/debate-view'

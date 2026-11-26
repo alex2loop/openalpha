@@ -53,7 +53,18 @@ const HOST_GLOBAL_RES: ReadonlyMap<string, RegExp> = new Map([
 ])
 const TIMER_METHODS: ReadonlySet<string> = new Set(['.unref(', '.ref('])
 const TIMER_METHOD_OWNER = 'src/core/utils/time.ts'
-const COMMENT_LINE_RE = /^\s*(?:\/\/|\/?\*)/
+// Strings and regex literals come first so a quote or `//` inside one is not read as code or a
+// comment. A `/` starts a regex only after a token that cannot end an operand.
+const SINGLE_QUOTED = String.raw`'(?:\\.|[^'\\\n])*'`
+const DOUBLE_QUOTED = String.raw`"(?:\\.|[^"\\\n])*"`
+const TEMPLATE = String.raw`\`(?:\\.|[^\`\\])*\``
+const REGEX_AFTER = String.raw`(?<=[(,=:[!&|?{;]\s*|\breturn\s+|=>\s*)`
+const REGEX_BODY = String.raw`(?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\\n[])+`
+const REGEX_LITERAL = String.raw`${REGEX_AFTER}\/(?![/*])${REGEX_BODY}\/[a-z]*`
+const LINE_COMMENT = String.raw`\/\/[^\n]*`
+const BLOCK_COMMENT = String.raw`\/\*[\s\S]*?\*\/`
+const LITERAL = [SINGLE_QUOTED, DOUBLE_QUOTED, TEMPLATE, REGEX_LITERAL].join('|')
+const STRING_OR_COMMENT_RE = new RegExp(`(${LITERAL})|${LINE_COMMENT}|${BLOCK_COMMENT}`, 'g')
 
 type Logs = Bun.BuildOutput['logs']
 type Parents = ReadonlyMap<string, readonly string[]>
@@ -254,19 +265,25 @@ function isOwnTimerMethod(name: string, source: string): boolean {
 async function hostGlobalReferences(sources: readonly string[]): Promise<readonly Leak[]> {
   const found = await Promise.all(
     sources.map(async (source) => {
-      const lines = (await Bun.file(resolve(ROOT, source)).text()).split('\n')
+      const text = (await Bun.file(resolve(ROOT, source)).text()).replace(
+        STRING_OR_COMMENT_RE,
+        stripComment
+      )
 
-      return lines.flatMap((line, index) =>
-        COMMENT_LINE_RE.test(line)
-          ? []
-          : [...HOST_GLOBAL_RES].flatMap(([name, re]) =>
-              re.test(line) && !isOwnTimerMethod(name, source)
-                ? [{ source, what: `${name} (line ${index + 1})` }]
-                : []
-            )
+      return text.split('\n').flatMap((line, index) =>
+        [...HOST_GLOBAL_RES].flatMap(([name, re]) =>
+          re.test(line) && !isOwnTimerMethod(name, source)
+            ? [{ source, what: `${name} (line ${index + 1})` }]
+            : []
+        )
       )
     })
   )
 
   return found.flat()
+}
+
+// A comment becomes one space per line, so line numbers hold and `x/**/process.` stays two tokens.
+function stripComment(match: string, literal: string | undefined): string {
+  return literal ?? match.replace(/[^\n]+/g, ' ')
 }
