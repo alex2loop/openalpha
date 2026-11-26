@@ -953,8 +953,11 @@ rather than sent late; the next time goes out as normal.
 a row with no time of its own follows this key. A brief is always scheduled in the **market's**
 timezone, taken from the calendar that owns `[locale] region`, never from `[locale] timezone`
 (where you are). An operator in London does not get a brief at 15:15 Hanoi time.
-The brief is a pre-open read, so `send_time` has to come before your home market opens; the daemon
-refuses to start with a later one rather than skip the brief every morning.
+The brief is a pre-open read, so `send_time` has to come before the open of every market your venues
+trade, not only your home market: a brief row for another region with no time of its own also follows
+this key, in that market's timezone. The daemon refuses to start with a later one rather than skip a
+brief every morning. `/brief enable 07:30` stores its time on one region's row only (your home
+region's), so it does not move the others.
 
 The profile watchlist is the only configured instrument list. Quotes and the brief's suggestion
 sections derive from it and from what the book holds.

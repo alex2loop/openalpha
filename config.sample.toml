@@ -293,7 +293,7 @@ language = "en"                   # en | vi; every reply, brief and alert uses i
 # The brief opens with a market story (Vietnam or US home) and a check of earlier ones; it calls no model and needs no key.
 # Under its title sits a strip of headline figures: the home market's indices first (VN-Index and VN30, or the Nasdaq Composite), then SJC gold, world gold, BTC and USD/VND.
 # [trading.briefs]
-# send_time = "08:15"                # morning brief delivery (HH:MM, home market's time zone, before the open)
+# send_time = "08:15"                # morning brief delivery (HH:MM in each market's own time zone, before the open of every market your venues trade)
 
 # Mid-session report for the market of your [locale] region (VN stocks by
 # default), on that market's hours and trading days. Off by default; name the
