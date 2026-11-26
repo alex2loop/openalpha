@@ -183,6 +183,7 @@ export { withoutResearchDepth } from '@/engine/loop/run-text'
 export {
   formatTodoBlock,
   TODO_GLYPHS,
+  TODO_WRITE_TOOL_NAME,
   todoChecklistOf,
   toPlanSteps,
   toTodoSteps,

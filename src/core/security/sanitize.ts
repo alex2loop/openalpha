@@ -94,9 +94,11 @@ export interface Threat {
   readonly severity: ThreatSeverity
 }
 
+/** `max` caps each severity on its own: a full tier of notices never hides a block finding. */
 interface ScanSink {
   readonly findings: Threat[]
   readonly seen: Set<string>
+  readonly counts: Record<ThreatSeverity, number>
   readonly max: number
 }
 
@@ -162,13 +164,15 @@ export function hasBlockingThreat(threats: readonly Threat[]): boolean {
 }
 
 function createSink(max: number): ScanSink {
-  return { findings: [], seen: new Set<string>(), max }
+  return { findings: [], seen: new Set<string>(), counts: { block: 0, notice: 0 }, max }
 }
 
 function collectMatches(input: MatchInput, sink: ScanSink): void {
   for (const p of input.patterns) {
-    if (isSinkFull(sink)) {
-      return
+    const severity = input.severity ?? p.severity
+
+    if (isSinkFull(sink, severity)) {
+      continue
     }
 
     const m = p.pattern.exec(input.text)
@@ -177,7 +181,7 @@ function collectMatches(input: MatchInput, sink: ScanSink): void {
       pushFinding(sink, {
         pattern: p.name,
         excerpt: buildExcerpt(input.text, m.index, m[0].length),
-        severity: input.severity ?? p.severity,
+        severity,
       })
     }
   }
@@ -185,7 +189,7 @@ function collectMatches(input: MatchInput, sink: ScanSink): void {
 
 function collectHiding(text: string, severity: ThreatSeverity, sink: ScanSink): void {
   for (const match of text.matchAll(HIDING_RE)) {
-    if (isSinkFull(sink)) {
+    if (isSinkFull(sink, severity)) {
       return
     }
 
@@ -201,18 +205,19 @@ function collectHiding(text: string, severity: ThreatSeverity, sink: ScanSink): 
   }
 }
 
-// Callers check isSinkFull before each candidate, so this only has to dedupe.
+// Callers check isSinkFull for the candidate's severity first, so this only has to dedupe.
 function pushFinding(sink: ScanSink, threat: Threat): void {
   const key = `${threat.severity}:${threat.pattern}:${threat.excerpt}`
 
   if (!sink.seen.has(key)) {
     sink.seen.add(key)
     sink.findings.push(threat)
+    sink.counts[threat.severity]++
   }
 }
 
-function isSinkFull(sink: ScanSink): boolean {
-  return sink.findings.length >= sink.max
+function isSinkFull(sink: ScanSink, severity: ThreatSeverity): boolean {
+  return sink.counts[severity] >= sink.max
 }
 
 function flatten(s: string): string {

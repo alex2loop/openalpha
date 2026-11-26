@@ -7,7 +7,7 @@ import { formatErrForLog } from '@/core/security/credentials'
 import { CHARS_PER_TOKEN, weightedCharCount } from '@/core/stream-events'
 import { textOf } from '@/core/utils/message'
 import { reserveOptionalLlmCost } from '@/engine/budget/reservation'
-import { isCompactionSummary } from '@/engine/compact/compactor'
+import { isEngineWrittenMessage } from '@/engine/compact/compactor'
 import { appendSystemBlock } from '@/engine/hooks/system-block'
 import {
   buildExtractPrompt,
@@ -18,7 +18,6 @@ import {
   VALUE_MAX_CHARS,
 } from '@/engine/hooks/user-preference-prompts'
 import { streamSettledTurn } from '@/engine/llm-turn'
-import { TODO_RESTORED_NOTICE } from '@/engine/loop/todo'
 import '@/engine/events'
 
 export const PREFS_PREFIX = 'prefs:'
@@ -280,7 +279,7 @@ function lastTypedUserText(history: readonly LLMMessage[]): string | undefined {
       continue
     }
 
-    if (isCompactionSummary(message) || message.content.startsWith(TODO_RESTORED_NOTICE)) {
+    if (isEngineWrittenMessage(message)) {
       continue
     }
 

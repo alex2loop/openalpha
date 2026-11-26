@@ -1,12 +1,13 @@
 import type { LLMMessage } from '@/core/llm'
 import type { RunView, TodoSlot } from '@/engine/types/run'
-import { textOf } from '@/core/utils/message'
+import { textOf, toolCallsOf } from '@/core/utils/message'
 
 // Bracket markers, not XML: tool results are XML-escaped into the transcript, so a `<todo_list>`
 // tag would be stored as `&lt;todo_list&gt;` and never match again.
 const TODO_OPENING = '[todo_list]\n'
 const TODO_CLOSING = '\n[/todo_list]'
-export const TODO_RESTORED_NOTICE =
+export const TODO_WRITE_TOOL_NAME = 'todo_write'
+const TODO_RESTORED_NOTICE =
   'Your todo list is still active. Older messages were compacted away, so here it is again:'
 
 export type TodoStatus = 'pending' | 'in_progress' | 'completed'
@@ -43,6 +44,11 @@ export function createTodoSlot(): TodoSlot {
       checklist = next
     },
   }
+}
+
+/** The engine's re-append of the checklist: model-written text, never what the operator typed. */
+export function isTodoRestoredNotice(message: LLMMessage): boolean {
+  return message.role === 'user' && textOf(message.content).startsWith(TODO_RESTORED_NOTICE)
 }
 
 export function formatTodoBlock(checklist: string): string {
@@ -128,20 +134,31 @@ export function restoreTodoList(run: RunView): void {
   })
 }
 
-// Newest-first, and only the tool's own result refreshes the slot: a summarizer that paraphrases
-// the list into its recap must not overwrite what the agent actually wrote.
+// Newest-first, and only the todo tool's own result refreshes the slot: a summarizer that
+// paraphrases the list into its recap, or a fetched page that carries the block, must not overwrite
+// what the agent actually wrote.
 function scanTodoList(history: readonly LLMMessage[]): TodoScan {
+  const todoCallIds = new Set(
+    history
+      .flatMap((message) => toolCallsOf(message))
+      .filter((call) => call.name === TODO_WRITE_TOOL_NAME)
+      .map((call) => call.id)
+  )
   let visible = false
 
   for (let index = history.length - 1; index >= 0; index--) {
     const message = history[index]
 
-    if (message?.role === 'user') {
-      visible ||= textOf(message.content).startsWith(TODO_RESTORED_NOTICE)
+    if (message === undefined) {
       continue
     }
 
-    if (message?.role !== 'tool') {
+    if (message.role === 'user') {
+      visible ||= isTodoRestoredNotice(message)
+      continue
+    }
+
+    if (message.role !== 'tool' || !todoCallIds.has(message.toolCallId ?? '')) {
       continue
     }
 

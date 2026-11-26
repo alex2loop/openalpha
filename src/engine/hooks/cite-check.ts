@@ -2,7 +2,7 @@ import type { AssistantMessage, ContentBlock, LLMMessage } from '@/core/llm'
 import type { AfterToolHook, HookFn, RunState } from '@/engine/types/run'
 import { unwrapToolResult } from '@/core/security/sanitize'
 import { textOf } from '@/core/utils/message'
-import { isCompactionSummary } from '@/engine/compact/compactor'
+import { isEngineWrittenMessage } from '@/engine/compact/compactor'
 import { CITE_TRUSTED_URLS_MAX } from '@/engine/constants'
 
 const MD_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi
@@ -92,7 +92,7 @@ function trustedUrls(history: readonly LLMMessage[], state: RunState): ReadonlyS
   const urls = new Set(resultUrls.get(state))
 
   for (const msg of history) {
-    if (msg.role === 'user' && !isCompactionSummary(msg)) {
+    if (msg.role === 'user' && !isEngineWrittenMessage(msg)) {
       addTextUrls(textOf(msg.content, '\n'), urls)
     } else if (msg.role === 'tool') {
       addStructuredUrls(textOf(msg.content, '\n'), urls)

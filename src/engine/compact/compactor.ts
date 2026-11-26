@@ -16,6 +16,7 @@ import {
 } from '@/engine/constants'
 import { estimateTokens, messageCharCount } from '@/engine/loop/limits'
 import { compactionRoomTokens } from '@/engine/loop/run-compaction'
+import { isTodoRestoredNotice } from '@/engine/loop/todo'
 
 const SUMMARY_FALLBACK = '[CONTEXT TRUNCATED - summarization failed, older messages removed]'
 
@@ -85,9 +86,13 @@ export function createSummarizingCompactor(deps: CompactorDeps): Compactor {
   }
 }
 
-/** The engine's own recap of older turns: model prose that can restate a fetched page, never text
- *  the operator typed. */
-export function isCompactionSummary(message: LLMMessage): boolean {
+/** A user-role message the engine wrote itself (the compaction recap, the todo restore notice):
+ *  model prose that can restate a fetched page, never text the operator typed. */
+export function isEngineWrittenMessage(message: LLMMessage): boolean {
+  return isCompactionSummary(message) || isTodoRestoredNotice(message)
+}
+
+function isCompactionSummary(message: LLMMessage): boolean {
   return (
     message.role === 'user' && textOf(message.content, '\n').startsWith(COMPACT_SUMMARY_PREAMBLE)
   )
