@@ -993,8 +993,8 @@ shows its result, instead of paying for a second debate. Only the request that s
 a deeper debate never joins a lighter run, and `force` always starts its own.
 
 `/suggest stops` covers every held position whose latest plan is missing a stop or a target, plus
-every one that has passed the window an outcome is measured over without moving. It runs `lean` by
-default and tells you when nothing needs a fresh read.
+every one on a short-horizon segment that has passed the window an outcome is measured over without
+moving. It runs `lean` by default and tells you when nothing needs a fresh read.
 
 ### Orders
 

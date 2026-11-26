@@ -312,11 +312,11 @@ export async function unwatchedPositions(
   return unwatched
 }
 
-/** Held names past the window the outcome scorer measures a call over that have not moved: the same
- *  barrier the reduce path applies, read on demand so a surface can prompt for the run that would
- *  apply it. Marks are the caller's where it has valued the book, exactly as `stopDistances` takes
- *  them. Dated by today rather than by a settled session: the question is whether the wait has
- *  elapsed, which a calendar day answers and a settled close does not. */
+/** Short-horizon held names past the window the outcome scorer measures a call over that have not
+ *  moved: the same barrier the reduce path applies, read on demand so a surface can prompt for the
+ *  run that would apply it. Marks are the caller's where it has valued the book, exactly as
+ *  `stopDistances` takes them. Dated by today rather than by a settled session: the question is
+ *  whether the wait has elapsed, which a calendar day answers and a settled close does not. */
 export async function stalePositions(
   deps: ExitWatchDeps,
   options: StalePositionOptions
@@ -332,13 +332,20 @@ export async function stalePositions(
       continue
     }
 
+    const horizon = horizonFor(options.profile, market.manifest.segment)
+
+    // Only a short horizon ever sells a stale holding, so a long one waiting is not a finding.
+    if (horizon !== 'short') {
+      continue
+    }
+
     // The window is answered from the book alone, so a position too young to be stale never costs
     // the quote that would only confirm it.
     const window = {
       market,
       held,
       asOf: market.manifest.calendar.dayAt(options.now),
-      horizon: horizonFor(options.profile, market.manifest.segment),
+      horizon,
     }
 
     if (!isPastOutcomeWindow(window)) {

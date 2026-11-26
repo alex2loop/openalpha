@@ -8,7 +8,7 @@ import type {
   TradeTxnDraftInput,
 } from '@/trading/features/ledger/types'
 import type { TradingCosts } from '@/trading/kernel/config'
-import type { CurrencyCode } from '@/trading/kernel/instrument'
+import type { CurrencyCode, Region } from '@/trading/kernel/instrument'
 import type { SELL_ALL } from '@/trading/kernel/surface/surface'
 import type { MarketRegistry } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
@@ -19,6 +19,7 @@ import { isTradeDraft } from '@/trading/features/ledger/draft'
 import { resolveVenueFill } from '@/trading/features/ledger/fills'
 import { orderLedger } from '@/trading/features/ledger/ordering'
 import { isSellAllDraft } from '@/trading/features/ledger/types'
+import { resolveRegionDay } from '@/trading/features/market-data/resolve'
 import { isSameInstrument } from '@/trading/kernel/instrument'
 import { estimatedFee, resolveTradeCost } from '@/trading/markets/cost'
 import { venueParam } from '@/trading/render/format'
@@ -32,6 +33,7 @@ interface ResolveDeps {
   readonly logger: Logger
   readonly ledger: Pick<LedgerStore, 'listAll'>
   readonly baseCurrency: CurrencyCode
+  readonly defaultRegion: Region
 }
 
 /** Narrowed here rather than exported from the ledger's types: only this file resolves a close, so
@@ -100,6 +102,7 @@ async function resolveTrade(
       markets: deps.markets,
       venues: deps.venues,
       draft,
+      book: { dayAt: (at) => resolveRegionDay(deps.markets, deps.defaultRegion, at) },
       logger: deps.logger,
       signal,
     })
