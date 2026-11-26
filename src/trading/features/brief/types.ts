@@ -339,7 +339,8 @@ export interface BriefServices {
   positionExits(options: PositionExitOptions): Promise<readonly BriefAlertRow[]>
   /** Held names the exit watch is not protecting: no stored plan, or a hold without levels. */
   unwatchedPositions(options: PositionExitOptions): Promise<readonly InstrumentRef[]>
-  /** Held names past the window their segment is scored over, with the price gone nowhere. */
+  /** Short-horizon held names past the window their segment is scored over, with the price gone
+   *  nowhere. */
   stalePositions(options: StopDistanceOptions): Promise<readonly InstrumentRef[]>
   /** Undefined where the host holds no stop read at all: a section then states no stop, which is
    *  not the same as stating that every holding is unmeasured. */

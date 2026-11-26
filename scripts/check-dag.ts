@@ -211,6 +211,14 @@ const moduleOf = (absPath: string): string | null => {
   return seg && MODULE_NAME_RE.test(seg) ? seg : null
 }
 
+// The part of a resolved path after its module, as an `@/<module>/<subpath>` import would spell it;
+// undefined for the module's bare entry.
+const subpathOf = (absPath: string, module: string): string | undefined =>
+  absPath
+    .slice(`${SRC}/${module}/`.length)
+    .replace(/\.tsx?$/, '')
+    .replace(/(?:^|\/)index$/, '') || undefined
+
 const resolveRelative = (fromFile: string, spec: string): string | null => {
   const base = resolve(dirname(fromFile), spec)
   for (const candidate of [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`]) {
@@ -329,7 +337,11 @@ const checkFile = (file: string, importer: Importer, source: string): void => {
     } else if (found.specifier.startsWith('.')) {
       const target = resolveRelative(file, found.specifier)
       const targetModule = target ? moduleOf(target) : null
-      if (targetModule && targetModule !== importer.name) depModule = targetModule
+
+      if (target && targetModule && targetModule !== importer.name) {
+        depModule = targetModule
+        subpath = subpathOf(target, targetModule)
+      }
     }
 
     const doorIssue = doorCrossingIssue(file, importer.name, found.specifier)

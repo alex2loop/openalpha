@@ -1,5 +1,5 @@
-import { closeSync, fstatSync, openSync, readFileSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import type { FileHandle } from 'node:fs/promises'
+import { open, readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
@@ -56,10 +56,10 @@ interface ParsedEnv {
   readonly badLines: readonly number[]
 }
 
-/** Boot only (sync): sets each name the file holds and the environment does not, so every reader
- *  of `process.env` sees a saved key. A file other users can read is left alone. */
-export function loadEnvFile(path: string, env: NodeJS.ProcessEnv): EnvFileLoad {
-  const text = readPrivateText(path)
+/** Sets each name the file holds and the environment does not, so every reader of `process.env`
+ *  sees a saved key. A file other users can read is left alone. */
+export async function loadEnvFile(path: string, env: NodeJS.ProcessEnv): Promise<EnvFileLoad> {
+  const text = await readPrivateText(path)
 
   if (text === undefined) {
     return { kind: 'missing', file: { path, loaded: new Set() } }
@@ -97,8 +97,14 @@ export function reportKeyFile(app: Pick<CliApp, 'config' | 'err'>, load: EnvFile
   }
 }
 
+/** The keys the daemon would load from the file: none when it is missing or refused (boot already
+ *  said why), so a listing never shows a key the daemon does not read. */
 export async function readEnvFile(path: string): Promise<ReadonlyMap<string, string>> {
-  return parseEnvText(await readTextOrEmpty(path)).entries
+  const text = await readPrivateText(path)
+
+  return text === undefined || text === 'open' || text === 'unreadable'
+    ? new Map()
+    : parseEnvText(text).entries
 }
 
 /** Replaces the line that sets `name`, or appends one; every other line and comment stays. The
@@ -141,11 +147,11 @@ export async function removeEnvFileValue(path: string, name: string): Promise<bo
 
 /** undefined: no file. `open`: other users can read it, so it is not read at all. `unreadable`:
  *  this user cannot open it (one left behind by `sudo`), which must not stop every command. */
-function readPrivateText(path: string): string | 'open' | 'unreadable' | undefined {
-  let fd: number
+async function readPrivateText(path: string): Promise<string | 'open' | 'unreadable' | undefined> {
+  let handle: FileHandle
 
   try {
-    fd = openSync(path, 'r')
+    handle = await open(path, 'r')
   } catch (err: unknown) {
     if (isErrno(err, 'ENOENT') || isErrno(err, 'ENOTDIR')) {
       return undefined
@@ -159,7 +165,7 @@ function readPrivateText(path: string): string | 'open' | 'unreadable' | undefin
   }
 
   try {
-    const info = fstatSync(fd)
+    const info = await handle.stat()
 
     if (!info.isFile()) {
       return undefined
@@ -169,9 +175,9 @@ function readPrivateText(path: string): string | 'open' | 'unreadable' | undefin
       return 'open'
     }
 
-    return readFileSync(fd, 'utf8')
+    return await handle.readFile('utf8')
   } finally {
-    closeSync(fd)
+    await handle.close()
   }
 }
 

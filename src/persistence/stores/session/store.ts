@@ -151,7 +151,7 @@ async function clearSessions(store: StoreDeps, agentId?: AgentId): Promise<Sessi
       return { kind: 'active', count: running }
     }
 
-    const countSql = agentId === undefined ? store.sql.countAll : store.sql.countByAgent
+    const countSql = agentId === undefined ? store.sql.countIdleAll : store.sql.countIdleByAgent
     const countRows = await tx.query<{ readonly n: number }>(countSql, params)
     const count = countRows[0]?.n ?? 0
 

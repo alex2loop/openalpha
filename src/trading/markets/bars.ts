@@ -149,6 +149,17 @@ export function lastSettledDay(request: InstrumentRequest, calendar: TradingCale
   return request.asOf < settled ? resolveSessionOnOrBefore(calendar, request.asOf) : settled
 }
 
+/** Sessions only: a token feed prints quiet weekend bars the metal never trades, and counted as
+ *  sessions they shrink an ATR and shift every window a factor reads. */
+export function tradingDayBars(
+  result: SourceResult<readonly Candle[]>,
+  calendar: TradingCalendar
+): SourceResult<readonly Candle[]> {
+  return result.kind === 'available'
+    ? { ...result, value: result.value.filter((candle) => calendar.isTradingDay(candle.at)) }
+    : result
+}
+
 function barWindow(request: BarsRequest, policy: SettledBarsPolicy): BarWindow {
   const sessions = request.sessions > 0 ? request.sessions : policy.defaultSessions
   const toDay = lastSettledDay(request, policy.calendar)

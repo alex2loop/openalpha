@@ -946,8 +946,11 @@ trễ; mốc kế tiếp vẫn gửi bình thường.
 chưa có giờ riêng mới theo khóa này. Bản tin luôn được lập lịch theo múi giờ của **thị trường**, lấy từ
 lịch của khu vực `[locale] region`, không bao giờ từ `[locale] timezone` (nơi bạn đang ở). Một operator
 ở London không nhận bản tin vào 15:15 giờ Hà Nội.
-Bản tin là bức tranh trước giờ mở cửa, nên `send_time` phải sớm hơn giờ mở cửa của thị trường chính.
-Đặt muộn hơn thì dịch vụ nền từ chối khởi động, thay vì lặng lẽ bỏ bản tin mỗi sáng.
+Bản tin là bức tranh trước giờ mở cửa, nên `send_time` phải sớm hơn giờ mở cửa của mọi thị trường mà
+các sàn của bạn giao dịch, không chỉ thị trường chính: dòng bản tin của khu vực khác chưa có giờ riêng
+cũng theo khóa này, tính theo múi giờ của thị trường đó. Đặt muộn hơn thì dịch vụ nền từ chối khởi động,
+thay vì lặng lẽ bỏ bản tin mỗi sáng. `/brief enable 07:30` chỉ lưu giờ lên dòng của một khu vực (khu vực
+chính của bạn), nên không dời các dòng còn lại.
 
 Danh sách theo dõi trong hồ sơ là danh sách công cụ duy nhất được cấu hình. Bảng giá và các mục đề xuất
 trong bản tin đều suy ra từ nó và từ phần đang nắm trong sổ.

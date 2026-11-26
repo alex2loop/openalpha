@@ -288,7 +288,7 @@ async function vnGoldFactors(factorDeps: FactorDeps, options: FactorRequest): Pr
     loadGoldEvidence(deps, {
       instrument: WORLD_GOLD_REF,
       asOf: options.asOf,
-      fromDay: WORLD_CALENDAR.addTradingDays(options.asOf, -EVIDENCE_SESSIONS),
+      calendar: WORLD_CALENDAR,
       now: options.now,
       signal: options.signal,
     }),

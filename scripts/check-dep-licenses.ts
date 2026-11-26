@@ -43,18 +43,52 @@ interface Offender {
   readonly reason: string
 }
 
-/** True when every alternative an OR offers is unacceptable; one permissive branch is enough. */
+/** Malformed input, `WITH` exceptions included, is refused. Every operand is parsed even once the
+ *  answer is settled, so the whole expression has to be consumed. */
 const satisfiable = (expr: string): boolean => {
-  const terms = expr
-    .replace(/[()]/g, ' ')
-    .split(/\s+OR\s+/i)
-    .map((t) => t.trim())
+  const tokens = expr.match(/[()]|[^\s()]+/g) ?? []
+  let at = 0
 
-  return terms.some((term) =>
-    term
-      .split(/\s+AND\s+/i)
-      .every((part) => PERMISSIVE.has(part.replace(/\+$/, '').trim().toUpperCase()))
-  )
+  const eat = (word: string): boolean => {
+    const hit = tokens[at]?.toUpperCase() === word
+    at += hit ? 1 : 0
+    return hit
+  }
+
+  const leaf = (): boolean => {
+    if (eat('(')) {
+      const inner = anyOf()
+      return eat(')') && inner
+    }
+
+    const id = tokens[at]
+    at += 1
+    return id !== undefined && PERMISSIVE.has(id.replace(/\+$/, '').toUpperCase())
+  }
+
+  const allOf = (): boolean => {
+    let ok = leaf()
+
+    while (eat('AND')) {
+      ok = leaf() && ok
+    }
+
+    return ok
+  }
+
+  const anyOf = (): boolean => {
+    let ok = allOf()
+
+    while (eat('OR')) {
+      ok = allOf() || ok
+    }
+
+    return ok
+  }
+
+  const accepted = anyOf()
+
+  return accepted && at === tokens.length
 }
 
 const declaredLicense = (pkg: Record<string, unknown>): string => {

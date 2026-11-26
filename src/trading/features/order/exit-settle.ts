@@ -161,7 +161,7 @@ interface MirrorFillInput {
   readonly signal: AbortSignal
 }
 
-/** The sale this read booked, or undefined when the book already held it.
+/** The sale this read booked, or undefined when the book already held it, whoever wrote it.
  *
  *  The exit is dated by the session that produced it, from the fill's own stamp - never by
  *  `Date.now()`. This may run hours later and across a day boundary, and dating an exit to the day
@@ -210,9 +210,10 @@ async function mirrorFill(
 
   // The figures are the venue's own: asking it again would re-fetch this fill and replace the
   // clamped fill day above with the market's unclamped one.
-  await deps.portfolio.record({ ...booked, fillSource: 'venue', now, signal })
+  const write = await deps.portfolio.record({ ...booked, fillSource: 'venue', now, signal })
 
-  return booked
+  // A writer that raced past the check above landed the row first, and announces it.
+  return write.replayed === true ? undefined : booked
 }
 
 interface SaleParts {

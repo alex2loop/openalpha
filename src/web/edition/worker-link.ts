@@ -9,6 +9,7 @@ import { recordLogEntry } from '@/web/edition/error-log'
 import { createWorkerTransport } from '@/web/edition/transport'
 import { allowWorkerScript } from '@/web/edition/trusted-types'
 import { createWorkerFeedSocket } from '@/web/edition/worker-socket'
+import { startNewSession } from '@/web/state/chat-history'
 import { preferredLocale } from '@/web/state/session'
 import { readStorage, writeStorage } from '@/web/state/storage'
 
@@ -188,8 +189,10 @@ export async function requestDbOpen(bytes: ArrayBuffer): Promise<DbOpenOutcome> 
   const reply = await askWorker({ kind: 'open-db', id: crypto.randomUUID(), bytes }, 'db-opened')
 
   if (reply.outcome === 'opened') {
-    // Two writes in a row: the office stops on the first and boots again on the second.
+    // The office stops on the first write, which cuts the turns in flight, and boots again on the
+    // last; the old file's chat is dropped between them.
     editionPhase.value = { kind: 'restarting' }
+    startNewSession()
     editionPhase.value = { kind: 'ready' }
   }
 

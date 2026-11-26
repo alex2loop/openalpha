@@ -6424,7 +6424,7 @@
     "order.unmirrored.reason.order.unmirrorable": "it filled and the ledger refused the row",
     "order.unmirrored.reason.order.unmirrorable_fee": "it filled and the fee cannot be booked",
     "order.unmirrored.reason.order.fee_unreported": "it filled and the exchange has not listed its fee yet",
-    "order.unmirrored.reason.order.mirror_aborted": "it filled and the run was canceled before the book recorded it",
+    "order.unmirrored.reason.order.mirror_aborted": "it filled and the book has not recorded it",
     "order.unmirrored.reason.order.unpriced_fill": "it filled at a price the book cannot record",
     "order.unmirrored.orderId": "exchange order {orderId}",
     "order.unmirrored.fillPrice": "filled at {price}",

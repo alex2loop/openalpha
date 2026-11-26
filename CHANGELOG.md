@@ -7,6 +7,33 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.14] - 2026-11-26 [IMPORTANT]
+
+A link in a restored todo list no longer opens without asking, a buy whose run is canceled right after the fill still gets its stop, a Binance fill billed in several fee coins is no longer reported as rejected, and the web version starts the chat on a file you open. No database change.
+> Link trong danh sách việc cần làm được khôi phục không còn tự mở mà không hỏi, lệnh mua có phiên chạy bị hủy ngay sau khi khớp vẫn được đặt lệnh cắt lỗ, lần khớp Binance bị thu phí bằng nhiều đồng không còn bị báo là bị từ chối, và bản web mở cuộc trò chuyện của file bạn vừa mở. Không có thay đổi cơ sở dữ liệu.
+
+### Changed
+
+- `/suggest stops` and the brief's stale-positions section list short-horizon holdings only, the only ones a stale reading sells.
+- `key list`, `autostart enable` and the office page's key list ignore a key file other users can read, as the service already does at start.
+- A social post linking to a `javascript:` or `data:` address asks first, like any other outside link.
+- World gold's own factors follow the holidays set under `[trading.markets.gold]`.
+- The `send_time` guide says the brief time must come before the open of every market your venues trade.
+
+### Fixed
+
+- After a long chat was compacted, a link in the restored todo list counted as one you typed: `web_fetch` opened it without asking and citations trusted it. A tool result carrying a todo block could also replace the agent's list.
+- Five harmless warnings in a text could hide a blocking one from the memory, schedule and source checks.
+- `/record` of a crypto fill made after midnight UTC was refused as a future day in a US-based book.
+- Canceling a run right after the exchange filled could leave the fill unrecorded or the new position without its stop.
+- A Binance fill billed in a coin with no price was reported as rejected and its stop skipped, and `/record sync binance` stopped on it.
+- An exit that filled while `/trade cancel` ran was announced twice.
+- World gold counted weekend bars from its backup source, tightening `gold-vn` stops and shifting gold factors.
+- Clearing chat history on Postgres could delete a chat that had just started.
+- Web version: opening a saved file kept the previous file's chat, and a restart (language, keys, opening a file) left a running reply spinning.
+- The crypto execution skill told the agent to amend a Binance exit, which Binance refuses.
+- Release checks: the licence check accepted a required copyleft licence beside a permissive choice, the architecture checks missed re-exports, dynamic imports and code after a block comment, and the strategy version check missed gold's macro reference ranges.
+
 ## [1.8.13] - 2026-11-25 [IMPORTANT]
 
 Channel `/memory` and `/schedule` now work on the same memories and jobs as the CLI, an exposed HTTP API can no longer redirect failure notices or a provider's address, a new profile's segments stay within each category's maximum, and `/trade` counts only a resting stop-loss as protection. One database change; the upgrade runs it for you, and briefs stored before it are rebuilt on the next run.
@@ -1262,6 +1289,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.14
 [1.8.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.13
 [1.8.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.12
 [1.8.10]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.10

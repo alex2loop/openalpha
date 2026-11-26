@@ -7,9 +7,9 @@ import type { SourceContext } from '@/trading/kernel/source/source-result'
 import type { MarketDeps } from '@/trading/markets/deps'
 import type { EvidenceSeries } from '@/trading/markets/evidence'
 import type { FactorInput } from '@/trading/markets/factor-scoring'
+import type { TradingCalendar } from '@/trading/markets/types'
 import { provenanceOf } from '@/trading/kernel/source/source-result'
-import { lastSettledDay } from '@/trading/markets/bars'
-import { createTradingCalendar } from '@/trading/markets/calendar'
+import { lastSettledDay, tradingDayBars } from '@/trading/markets/bars'
 import { optionalRaw, percentileWithin, toSeries } from '@/trading/markets/evidence'
 import {
   EVIDENCE_SESSIONS,
@@ -19,19 +19,16 @@ import {
   RATIO_LOOKBACK_SESSIONS,
   SILVER_TICKER,
   TREND_LOOKBACK_SESSIONS,
-  WORLD_GOLD_CALENDAR,
 } from '@/trading/markets/gold/policy'
 import { MACRO_COMPOSITE_REGION, mergeMacroValues } from '@/trading/markets/macro'
 import { nSessionReturn, trendDistance } from '@/trading/markets/timeseries'
 
-const WORLD_CALENDAR = createTradingCalendar(WORLD_GOLD_CALENDAR)
-
 interface GoldEvidenceRequest {
   readonly instrument: InstrumentRef
   readonly asOf: TradingDay
-  /** First day of the evidence window; the caller derives it from its own trading calendar, which
-   *  is the only thing that knows how many calendar days `EVIDENCE_SESSIONS` sessions span. */
-  readonly fromDay: TradingDay
+  /** The gold tape's own calendar: it spans the window in sessions, ends it on a settled one and
+   *  drops the bars the metal never trades. */
+  readonly calendar: TradingCalendar
   readonly now: number
   readonly signal: AbortSignal
 }
@@ -53,8 +50,8 @@ export async function loadGoldEvidence(
 ): Promise<GoldEvidence> {
   const silverRef: InstrumentRef = { market: GOLD_MARKET_REF, ticker: SILVER_TICKER }
   const [bars, silver, macro] = await Promise.all([
-    readBars(deps, barsContext(request.instrument, request), request.signal),
-    readBars(deps, barsContext(silverRef, request), request.signal),
+    readBars(deps, request.instrument, request),
+    readBars(deps, silverRef, request),
     deps.macro.get(MACRO_COMPOSITE_REGION, request.asOf, request.signal),
   ])
   const { values } = mergeMacroValues(macro)
@@ -151,16 +148,22 @@ function barsContext(instrument: InstrumentRef, request: GoldEvidenceRequest): S
   return {
     market: GOLD_MARKET_REF,
     instrument,
-    fromDay: request.fromDay,
-    toDay: lastSettledDay(request, WORLD_CALENDAR),
+    fromDay: request.calendar.addTradingDays(request.asOf, -EVIDENCE_SESSIONS),
+    toDay: lastSettledDay(request, request.calendar),
     limit: EVIDENCE_SESSIONS,
   }
 }
 
 async function readBars(
   deps: MarketDeps,
-  context: SourceContext,
-  signal: AbortSignal
+  instrument: InstrumentRef,
+  request: GoldEvidenceRequest
 ): Promise<EvidenceSeries<readonly Candle[]>> {
-  return toSeries(await deps.sources.resolve({ kind: 'bars', context, signal }))
+  const bars = await deps.sources.resolve({
+    kind: 'bars',
+    context: barsContext(instrument, request),
+    signal: request.signal,
+  })
+
+  return toSeries(tradingDayBars(bars, request.calendar))
 }

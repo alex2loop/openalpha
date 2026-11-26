@@ -10,11 +10,12 @@ import { Glob } from 'bun'
 import { readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 
+import { lineAt, scanImports } from './import-scan'
+
 const REPO = resolve(import.meta.dir, '..')
 const TRADING = 'src/trading'
 const ROOT = `${REPO}/${TRADING}`
 const ALLOWLIST_PATH = 'scripts/feature-isolation-allowlist.json'
-const IMPORT_RE = /^import\s+([\s\S]*?)\s+from\s+'([^']+)'/gm
 const EXPORT_TYPE_RE = /^export (?:interface|type) /gm
 const EXPORT_FN_RE = /^export (?:async )?function /gm
 const SERVICE_FACTORY_RE = /create[A-Z]\w*Service/
@@ -149,23 +150,12 @@ function violationsIn(rel: string, source: string): readonly Violation[] {
   const found: Violation[] = []
   const from = areaOf(rel)
 
-  for (const match of source.matchAll(IMPORT_RE)) {
-    const clause = match[1]
-    const specifier = match[2]
-
-    if (clause === undefined || specifier === undefined) {
-      continue
-    }
-
+  for (const { specifier, index, clause = '' } of scanImports(source)) {
     const to = targetArea(rel, specifier)
     const message = to === null ? null : edgeMessage(from, to, clause, specifier)
 
     if (message !== null) {
-      found.push({
-        edge: `${TRADING}/${rel}->${specifier}`,
-        line: source.slice(0, match.index).split('\n').length,
-        message,
-      })
+      found.push({ edge: `${TRADING}/${rel}->${specifier}`, line: lineAt(source, index), message })
     }
   }
 

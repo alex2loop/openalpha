@@ -48,6 +48,8 @@ import { withoutResidue } from '@/trading/features/portfolio/folds/holdings'
 /** What a row says when the order left this process and its fate is unknown. Not an `OrderError`
  *  code: those name why one call failed, and this names a row a human still has to close. */
 const UNRECONCILED_FAILURE = 'unreconciled'
+// A limits read and the exit's write, each under the venue transport's own per-request budget.
+const EXIT_PLACEMENT_TIMEOUT_MS = 60_000
 
 export function createOrderService(deps: OrderServiceDeps): OrderService {
   // One write to an exchange at a time. Both races this closes are the same shape — read the state,
@@ -416,7 +418,8 @@ async function attachExit(
       quantity: filled.numbers.quantity,
       key: input.staged.token,
       now: input.now,
-      signal: input.signal,
+      // A caller gone right after the fill must not leave the new position unprotected.
+      signal: settleSignal(EXIT_PLACEMENT_TIMEOUT_MS),
     })
 
     return { exit: placed.receipt }

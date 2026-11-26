@@ -469,7 +469,7 @@ Nguồn dữ liệu từng thị trường: [Nguồn dữ liệu](nguon-du-lieu.
 | `/alert` | `/alert [list [số dòng]]` \| `create <mã> above\|below <ngưỡng>` \| `disable <id>` | không |
 | `/brief` | `/brief` \| `force` \| `enable [HH:mm]` \| `disable` | một phần nhỏ cho mục đề xuất |
 | `/refresh` | `/refresh [thị trường] [force]` | không |
-| `/suggest` | `/suggest <mã> [full\|lean] [force]` - tùy chọn theo thứ tự tùy ý sau mã; `/suggest stops` đọc lại các vị thế đang giữ chưa có kế hoạch thoát hoặc đã quá hạn cửa sổ | **có** - chạy cả quy trình tranh luận |
+| `/suggest` | `/suggest <mã> [full\|lean] [force]` - tùy chọn theo thứ tự tùy ý sau mã; `/suggest stops` đọc lại các vị thế đang giữ chưa có kế hoạch thoát, hoặc thuộc nhóm kỳ hạn ngắn đã quá hạn cửa sổ | **có** - chạy cả quy trình tranh luận |
 | `/sources` | `/sources` - nhà cung cấp dữ liệu nào đang phản hồi | không |
 | `/glossary` | `/glossary` \| `<thuật ngữ>` - liệt kê các thuật ngữ thị trường theo mục, hoặc giải thích một thuật ngữ bằng lời đơn giản | không |
 | `/reconcile` | `/reconcile` - đối chiếu sổ với số dư thực tế trên từng sàn | không |

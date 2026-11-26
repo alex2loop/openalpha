@@ -4,14 +4,13 @@ import type { ChatSessionsResponse } from '@/app/server/wire/chat'
 import type { WireEvent } from '@/app/server/wire/events'
 import type { ClientFrame } from '@/app/server/wire/socket'
 import { stopRun } from '@/web/state/approvals'
+import { applyFrame } from '@/web/state/chat-turn'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { onWireEvent } from '@/web/state/events'
 import { type ChatServerFrame, onChatFrame, sendFrame } from '@/web/state/feed'
-import { findFinishedTickers } from '@/web/state/live'
 import { connection } from '@/web/state/session'
 
 const MAX_TURNS = 200
-const MAX_CHAT_STEPS = 20
 const WORD_BREAK = /\s+/
 // One line per preference the hook keeps, of which there are five.
 const MAX_TURN_PREFERENCES = 5
@@ -30,7 +29,7 @@ export type ChatSession = ChatSessionsResponse['sessions'][number]
 export type SavedPreference = NonNullable<WireEvent['preference']>
 
 /** `cut` is a turn the page lost with its connection; `stopped` one the operator or a run stopped. */
-type TurnStatus =
+export type TurnStatus =
   | 'sending'
   | 'queued'
   | 'running'
@@ -140,6 +139,10 @@ export function startChat(): () => void {
     for (const off of offs) {
       off()
     }
+
+    // No frame reaches a stopped chat. The effect above cannot cut here: a teardown runs batched,
+    // so the status it sets lands after the effect is gone.
+    cutUnfinished()
   }
 }
 
@@ -370,77 +373,6 @@ function settleCallback(turn: Turn): void {
 
   if (turn.status === 'done') {
     callback?.()
-  }
-}
-
-function applyFrame(turn: Turn, frame: ChatServerFrame): Turn {
-  switch (frame.kind) {
-    case 'text':
-      return { ...turn, reply: turn.reply + frame.delta, status: 'running' }
-    case 'progress':
-      return withStep(turn, frame.text)
-    case 'queued':
-      return toQueued(turn, frame.position, frame.sessionId)
-    case 'started':
-      return toStarted(turn, frame.runId, frame.sessionId)
-    case 'dropped':
-      // A command told to stop after it began ends as dropped too.
-      return toFinished(turn, turn.status === 'running' ? 'stopped' : 'dropped')
-    case 'done':
-      return toDone(turn, frame)
-    case 'error':
-      return { ...toFinished(turn, 'error'), error: frame.message }
-    case 'steered':
-      return { ...turn, steer: { state: 'steered', text: turn.steer?.text ?? '' } }
-    case 'steer_dropped':
-      return { ...turn, steer: { state: 'dropped', text: frame.text } }
-    default:
-      return turn.status === 'running' ? turn : { ...turn, status: 'running' }
-  }
-}
-
-// A position is a place in the command lane; without one the line waits behind the chat's answer.
-function toQueued(turn: Turn, position: number | undefined, session: string | undefined): Turn {
-  return {
-    ...turn,
-    status: 'queued',
-    ...(position === undefined ? {} : { position, isInLane: true }),
-    ...(session === undefined ? {} : { sessionId: session }),
-  }
-}
-
-// A start with a run is a command in the lane; an agent turn starts with its session.
-function toStarted(turn: Turn, runId: string | undefined, session: string | undefined): Turn {
-  return {
-    ...turn,
-    status: 'running',
-    ...(runId === undefined ? { byAgent: true } : { runId, isInLane: true }),
-    ...(session === undefined ? {} : { sessionId: session }),
-  }
-}
-
-function withStep(turn: Turn, step: string): Turn {
-  const steps = turn.steps.at(-1) === step ? turn.steps : [...turn.steps, step]
-
-  return { ...turn, status: 'running', step, steps: steps.slice(-MAX_CHAT_STEPS) }
-}
-
-function toFinished(turn: Turn, status: TurnStatus): Turn {
-  return { ...turn, status, doneAt: performance.now() }
-}
-
-function toDone(turn: Turn, frame: Extract<ChatServerFrame, { readonly kind: 'done' }>): Turn {
-  const { sessionId: session, haltCode } = frame
-  const runId = frame.runId ?? turn.runId
-  // The live store notes a finished run's tickers before the hub tells anyone of the event.
-  const tickers = runId === undefined ? [] : findFinishedTickers(runId)
-
-  return {
-    ...toFinished(turn, 'done'),
-    ...(runId === undefined ? {} : { runId }),
-    ...(tickers.length === 0 ? {} : { tickers }),
-    ...(haltCode === undefined || turn.reply.trim() !== '' ? {} : { haltCode }),
-    ...(turn.sessionId === undefined && session !== undefined ? { sessionId: session } : {}),
   }
 }
 

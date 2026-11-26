@@ -96,6 +96,7 @@ export function startChatHistory(sessionToOpen?: string): () => void {
 /** The column moves to a new session, as "Phiên chat mới" does once confirmed. */
 export function startNewSession(): void {
   viewedSession.value = undefined
+  view.value = EMPTY
   startSession()
   clearAgentChoice()
   clearOpenedSession()

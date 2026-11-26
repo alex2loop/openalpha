@@ -18,7 +18,7 @@ The market never closes and the operator sleeps. Everything here follows from th
 3. **Round to the exchange's own increments.** Price tick and quantity step differ per venue and per pair. An order rejected for a step violation is an unprotected position.
 4. **Check the book against the intended size.** Compare the order to recent traded value on the venue being used, not to aggregated market volume - depth is per venue, and a size that is a large share of one book moves the price against the operator.
 5. **Say what would cancel the order.** One condition, in words.
-6. **Move the resting stop when the plan's stop moves.** The plan's stop trails the highest close every session; the exchange's does not. When `/portfolio` shows the stop above the resting order, amend the exit with `/trade exit` to the plan's level. Never down.
+6. **Move the resting stop when the plan's stop moves.** The plan's stop trails the highest close every session; the exchange's does not. When `/portfolio` shows the stop above the resting order, move the exit to the plan's level with `/trade exit` on OKX; Binance refuses an amend (`order.exit_not_amendable`), so `/trade cancel` first, then set the new exit back to back. Never down.
 7. **A resting entry is a good-til-cancelled limit on the exchange.** When the plan's entry sits below the live price, place that limit as it stands and cancel it after the day the plan names. Never buy at market instead: the plan rests it because names this stretched have measured to give part of the run back.
 
 ## When to place
@@ -34,7 +34,7 @@ Relative volume grades a breakout; it never times one. A close above the trigger
 ## What execution advice must never do
 
 - Never restate or move the entry, stop, or target. Those are computed and validated upstream; describe conditions in words instead.
-- Never imply the system places an order. It does not, structurally. Every output is an instruction for the operator to carry out or ignore.
+- Never imply the system places an order on its own. `/trade` places one only when the operator runs it and confirms it. Every output is an instruction for the operator to carry out or ignore.
 - Never present an exit as removing risk. A stop is filled at the market, and in a liquidation cascade that price can be well below the level.
 
 ## Output

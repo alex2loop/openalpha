@@ -978,8 +978,8 @@ lượt đang chạy và dùng kết quả của nó, khỏi tốn thêm một p
 cầu chạy sâu hơn không nối vào một lượt nhẹ hơn, và `force` luôn chạy riêng.
 
 `/suggest stops` bao quát mọi vị thế đang nắm mà kế hoạch mới nhất thiếu mức dừng hoặc mục tiêu, cộng mọi
-vị thế đã qua cửa sổ đo kết cục mà không nhúc nhích. Nó mặc định chạy `lean` và báo khi chẳng có gì cần
-đọc lại.
+vị thế thuộc nhóm kỳ hạn ngắn đã qua cửa sổ đo kết cục mà không nhúc nhích. Nó mặc định chạy `lean` và
+báo khi chẳng có gì cần đọc lại.
 
 ### Đặt lệnh
 

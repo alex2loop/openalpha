@@ -45,6 +45,10 @@ export interface OrderReceipt {
   /** The venue printed a fill but has not said what it cost, so `fee` is a placeholder zero. Not
    *  bookable until a later read carries the charge: a guessed zero would book a free fill. */
   readonly feeUnreported?: true
+  /** The venue charged in several assets and one has no quote, so no single currency states the
+   *  fee: `fee` is a placeholder zero and the quantity is not netted. Never bookable, and a later
+   *  read gives the same answer. */
+  readonly feeUnpriced?: true
   /** The last fill's stamp, from the venue's clock. What dates an exit — absent when the
    *  venue named none, because a local clock would date the trade to the day it was noticed. */
   readonly filledAt?: number

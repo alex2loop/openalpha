@@ -172,7 +172,8 @@ export interface AlertService {
   /** The exit prompt a suggest-only system owes, read on demand rather than armed. */
   positionExits(options: PositionExitOptions): Promise<readonly PositionExit[]>
   unwatchedPositions(options: PositionExitOptions): Promise<readonly InstrumentRef[]>
-  /** Held names the window has passed on with nothing decided — the prompt for a fresh read. */
+  /** Short-horizon held names the window has passed on with nothing decided — the prompt for a
+   *  fresh read. */
   stalePositions(options: StalePositionOptions): Promise<readonly InstrumentRef[]>
   stopDistances(options: StopDistanceOptions): Promise<readonly StopDistance[]>
 }

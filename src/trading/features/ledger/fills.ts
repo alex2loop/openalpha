@@ -5,6 +5,7 @@ import type { OrderReceipt, OrderSide } from '@/trading/kernel/venue/spot-adapte
 import type { MarketRegistry, TradingCalendar } from '@/trading/markets/types'
 import type { VenueRegistry } from '@/trading/venues/types'
 import { MS_PER_DAY, parseIsoDay } from '@/core/utils/time'
+import { resolveFillDay } from '@/trading/features/market-data/resolve'
 import { isBookableFill, toBookedFill } from '@/trading/kernel/venue/fee'
 import { shiftCalendarDay } from '@/trading/markets/calendar'
 
@@ -28,6 +29,8 @@ interface VenueFillInput {
   readonly markets: MarketRegistry
   readonly venues: VenueRegistry
   readonly draft: TradeTxnDraftInput
+  /** Dates the fill no later than the book's own today. */
+  readonly book: { dayAt(at: number): TradingDay }
   readonly logger: Logger
   readonly signal: AbortSignal
 }
@@ -38,15 +41,15 @@ interface VenueFillInput {
  *  window, two fills either could be, or a fee the convention cannot book — because a guessed
  *  figure would store one trade under another's. */
 export async function resolveVenueFill(input: VenueFillInput): Promise<TradeTxnDraft | undefined> {
-  const { draft } = input
+  const { draft, book } = input
   const side = orderSideOf(draft)
-  const calendar = input.markets.find(draft.instrument.market)?.manifest.calendar
+  const market = input.markets.find(draft.instrument.market)
   const adapter = input.venues.find(draft.venue)?.adapter
   const dayStartUtc = parseIsoDay(draft.at)
 
   if (
     side === undefined ||
-    calendar === undefined ||
+    market === null ||
     dayStartUtc === undefined ||
     adapter === undefined ||
     adapter.fetchFilledOrders === undefined
@@ -62,7 +65,7 @@ export async function resolveVenueFill(input: VenueFillInput): Promise<TradeTxnD
     since: dayStartUtc - MS_PER_DAY,
     signal: input.signal,
   })
-  const matches = matchingFills(filled, draft, calendar)
+  const matches = matchingFills(filled, draft, market.manifest.calendar)
   const [only, second] = matches
 
   // The evidence gap the operator cannot see from the row alone: the venue answered, and what it
@@ -93,7 +96,7 @@ export async function resolveVenueFill(input: VenueFillInput): Promise<TradeTxnD
   // The venue's day, like its quantity and price: which session a fill belongs to is a fact of
   // execution the operator cannot hold, since the exchange renders the trade in their zone and the
   // market's own calendar is the one the row is booked against.
-  const at = only.filledAt === undefined ? draft.at : calendar.dayAt(only.filledAt)
+  const at = only.filledAt === undefined ? draft.at : resolveFillDay(market, only.filledAt, book)
 
   return { ...draft, at, quantity: booked.quantity, unitPrice: only.averagePrice, fee: booked.fee }
 }

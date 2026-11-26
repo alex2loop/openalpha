@@ -92,7 +92,10 @@ function hostsIn(raw: string): readonly string[] {
 
 function pushHost(hosts: string[], raw: string): void {
   try {
-    hosts.push(new URL(raw).hostname)
+    const { hostname, protocol } = new URL(raw)
+
+    // `javascript:` or `data:` has no host: the scheme stands in, so the link is still flagged.
+    hosts.push(hostname === '' ? protocol : hostname)
   } catch {
     // Not a URL after all; the schemeless patterns still look at the same text.
   }

@@ -3,7 +3,13 @@ import { z } from 'zod'
 import type { DisplayText } from '@/core/stream-events'
 import { ToolError } from '@/core/errors'
 import { createTool } from '@/core/tool'
-import { formatTodoBlock, TODO_GLYPHS, todoChecklistOf, toTodoSteps } from '@/engine/api'
+import {
+  formatTodoBlock,
+  TODO_GLYPHS,
+  TODO_WRITE_TOOL_NAME,
+  todoChecklistOf,
+  toTodoSteps,
+} from '@/engine/api'
 
 const TODO_MAX_ITEMS = 20
 const TODO_TEXT_MAX_LEN = 120
@@ -35,7 +41,7 @@ const todoListSchema = z.object({
 type TodoItem = z.infer<typeof todoItemSchema>
 
 export const todoWriteTool = createTool({
-  name: 'todo_write',
+  name: TODO_WRITE_TOOL_NAME,
   description: TODO_DESCRIPTION,
   inputSchema: todoListSchema,
   inputExamples: [
