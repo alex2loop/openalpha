@@ -33,8 +33,8 @@ export interface FilledOrder {
 
 /** A fresh bound for the writes and cancel that follow an order leaving: the caller's signal is
  *  often the abort that interrupted it, and a call it refuses drops an order the exchange took. */
-export function settleSignal(): AbortSignal {
-  return AbortSignal.timeout(SETTLE_TIMEOUT_MS)
+export function settleSignal(timeoutMs = SETTLE_TIMEOUT_MS): AbortSignal {
+  return AbortSignal.timeout(timeoutMs)
 }
 
 /** The fill becomes a ledger row and the intent is settled, in that order: the row is the fact and
