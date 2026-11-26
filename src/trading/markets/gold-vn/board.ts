@@ -9,6 +9,7 @@ import type { MarketManifest, TradingCalendar } from '@/trading/markets/types'
 import { sourcedCaveat } from '@/trading/kernel/caveat'
 import { region } from '@/trading/kernel/instrument'
 import { available, provenanceOf, unavailable } from '@/trading/kernel/source/source-result'
+import { tradingDayBars } from '@/trading/markets/bars'
 import { createTradingCalendar, resolveSettledDay } from '@/trading/markets/calendar'
 import {
   EVIDENCE_SESSIONS,
@@ -133,12 +134,14 @@ export async function worldBars(
     signal: request.signal,
   })
 
-  return result.kind === 'available'
-    ? available(result.value, result.provenance, [
-        ...result.caveats,
+  const bars = tradingDayBars(result, WORLD_CALENDAR)
+
+  return bars.kind === 'available'
+    ? available(bars.value, bars.provenance, [
+        ...bars.caveats,
         { code: 'source.unit-mismatch', detail: { quoteUnit: 'currency-per-troy-ounce' } },
       ])
-    : result
+    : bars
 }
 
 /** A chosen form carrying the snapshot it was priced from, so a caller can date the reading. */

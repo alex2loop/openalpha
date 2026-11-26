@@ -14,7 +14,7 @@ import { GOLD_FACTOR_IDS } from '@/trading/kernel/factor'
 import { currencyCode, portfolioSegment, quoteUnit } from '@/trading/kernel/instrument'
 import { MACRO_FORMULA_VERSION } from '@/trading/kernel/market/macro-series'
 import { available, unavailable } from '@/trading/kernel/source/source-result'
-import { settledBars } from '@/trading/markets/bars'
+import { settledBars, tradingDayBars } from '@/trading/markets/bars'
 import { createTradingCalendar } from '@/trading/markets/calendar'
 import { FACTOR_SCORING_VERSION, scoreFactors } from '@/trading/markets/factor-scoring'
 import { goldFactorInputs, loadGoldEvidence } from '@/trading/markets/gold/factors'
@@ -77,7 +77,7 @@ export function createGoldMarket(deps: MarketDeps): Market {
       const evidence = await loadGoldEvidence(deps, {
         instrument: options.instrument,
         asOf: options.asOf,
-        fromDay: manifest.calendar.addTradingDays(options.asOf, -EVIDENCE_SESSIONS),
+        calendar: manifest.calendar,
         now: options.now,
         signal: options.signal,
       })
@@ -204,9 +204,7 @@ function goldBars(
         signal: request.signal,
       })
 
-      return bars.kind === 'available'
-        ? { ...bars, value: bars.value.filter((candle) => calendar.isTradingDay(candle.at)) }
-        : bars
+      return tradingDayBars(bars, calendar)
     },
   })
 }

@@ -9,6 +9,8 @@ export const STALE_SESSION_MESSAGE = 'daemon restarted while session was active'
 const PAYLOAD_COLS = 'role, content, tool_call_id, reasoning_blocks, is_error'
 // A display-only row is a slash command's turn kept for the reader; nothing the model reads sees it.
 const MODEL_ROWS = 'AND display_only = 0'
+// A session no run holds; clearing touches only these, so a chat that starts mid-clear survives.
+const IDLE_SESSION = 'sessions.active_run_id IS NULL'
 // Every attempt against a model, billed whether or not it came back; an `external` row is a vendor
 // fee rather than a call. (COUNT(*) FILTER is not portable; the CASE form runs on both dialects.)
 const MODEL_CALLS_CASE = `CASE WHEN kind <> 'external' THEN 1 ELSE 0 END`
@@ -71,6 +73,8 @@ export interface SessionSql {
   readonly lockIdleByAgent: string
   readonly countAll: string
   readonly countByAgent: string
+  readonly countIdleAll: string
+  readonly countIdleByAgent: string
   readonly countRunningAll: string
   readonly countRunningByAgent: string
   readonly clearRoutesAll: string
@@ -245,6 +249,8 @@ type ClearSql = Pick<
   | 'lockIdleByAgent'
   | 'countAll'
   | 'countByAgent'
+  | 'countIdleAll'
+  | 'countIdleByAgent'
   | 'countRunningAll'
   | 'countRunningByAgent'
   | 'clearRoutesAll'
@@ -260,6 +266,11 @@ type ClearSql = Pick<
 >
 
 function buildClearSql(d: Dialect): ClearSql {
+  const agent = d.param(1)
+  const idleIds = `SELECT id FROM sessions WHERE ${IDLE_SESSION}`
+  const agentIdleIds = `${idleIds} AND sessions.agent_id = ${agent}`
+  const boundIdleIds = `${idleIds} AND sessions.channel = bindings.channel`
+
   return {
     // Locks the idle rows as `lockIdle` does, before the running count below reads.
     lockIdleAll:
@@ -269,31 +280,26 @@ function buildClearSql(d: Dialect): ClearSql {
       `WHERE active_run_id IS NULL AND agent_id = ${d.param(1)}`,
     countAll: 'SELECT COUNT(*) AS n FROM sessions',
     countByAgent: `SELECT COUNT(*) AS n FROM sessions WHERE agent_id = ${d.param(1)}`,
+    countIdleAll: `SELECT COUNT(*) AS n FROM sessions WHERE ${IDLE_SESSION}`,
+    countIdleByAgent: `SELECT COUNT(*) AS n FROM (${agentIdleIds}) AS idle`,
     countRunningAll: 'SELECT COUNT(*) AS n FROM sessions WHERE active_run_id IS NOT NULL',
     countRunningByAgent: `SELECT COUNT(*) AS n FROM sessions WHERE active_run_id IS NOT NULL AND agent_id = ${d.param(1)}`,
     clearRoutesAll:
-      `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} ` +
-      'AND value IN (SELECT id FROM sessions)',
+      `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} ` + `AND value IN (${idleIds})`,
     clearRoutesByAgent:
       `DELETE FROM channel_state WHERE key LIKE ${d.param(1)} ` +
-      `AND value IN (SELECT id FROM sessions WHERE agent_id = ${d.param(2)})`,
+      `AND value IN (${idleIds} AND sessions.agent_id = ${d.param(2)})`,
     // The agent a chat is bound to, keyed (channel, chat id): the app's chat id is its session id.
-    clearBindingsAll:
-      'DELETE FROM bindings WHERE chat_id IN ' +
-      '(SELECT id FROM sessions WHERE sessions.channel = bindings.channel)',
+    clearBindingsAll: `DELETE FROM bindings WHERE chat_id IN (${boundIdleIds})`,
     clearBindingsByAgent:
-      'DELETE FROM bindings WHERE chat_id IN ' +
-      `(SELECT id FROM sessions WHERE sessions.channel = bindings.channel AND sessions.agent_id = ${d.param(1)})`,
-    clearMessagesAll: 'DELETE FROM session_messages',
-    clearMessagesByAgent:
-      `DELETE FROM session_messages WHERE session_id IN ` +
-      `(SELECT id FROM sessions WHERE agent_id = ${d.param(1)})`,
-    detachAttemptsAll: detachAttemptsSql('session_id IN (SELECT id FROM sessions)'),
-    detachAttemptsByAgent: detachAttemptsSql(
-      `session_id IN (SELECT id FROM sessions WHERE agent_id = ${d.param(1)})`
-    ),
-    clearAll: 'DELETE FROM sessions',
-    clearByAgent: `DELETE FROM sessions WHERE agent_id = ${d.param(1)}`,
+      `DELETE FROM bindings WHERE chat_id IN ` +
+      `(${boundIdleIds} AND sessions.agent_id = ${agent})`,
+    clearMessagesAll: `DELETE FROM session_messages WHERE session_id IN (${idleIds})`,
+    clearMessagesByAgent: `DELETE FROM session_messages WHERE session_id IN (${agentIdleIds})`,
+    detachAttemptsAll: detachAttemptsSql(`session_id IN (${idleIds})`),
+    detachAttemptsByAgent: detachAttemptsSql(`session_id IN (${agentIdleIds})`),
+    clearAll: `DELETE FROM sessions WHERE ${IDLE_SESSION}`,
+    clearByAgent: `DELETE FROM sessions WHERE ${IDLE_SESSION} AND sessions.agent_id = ${agent}`,
   }
 }
 
