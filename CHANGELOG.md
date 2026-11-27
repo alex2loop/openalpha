@@ -7,6 +7,34 @@ Each release opens with a short English summary; from 1.0.6 on, one `> ` line in
 it. OpenAlpha shows both in its update notice. A release you should install soon carries
 ` [IMPORTANT]` after its date.
 
+## [1.8.15] - 2026-11-27 [IMPORTANT]
+
+Behind `public_url` the page no longer adds, edits or removes agents, a key pasted into a chat line or a note is no longer kept in the chat history, a bare `/trade confirm` no longer waits on OKX, and the VN gold premium no longer ranks the board against itself before the open. No database change.
+> Khi đã đặt `public_url`, trang không còn thêm, sửa hay xóa agent, khóa lỡ dán vào tin chat hay ghi chú bổ sung không còn nằm trong lịch sử trò chuyện, `/trade confirm` không kèm token không còn chờ OKX, và premium vàng VN không còn tự xếp hạng bảng giá với chính nó trước giờ mở cửa. Không có thay đổi cơ sở dữ liệu.
+
+### Changed
+
+- While `[api] public_url` is set, agents are added, edited and removed on the server (`agent add`, `agent edit`, `agent remove`); pausing, resuming and reloading still work from the page.
+- A chat line, or a note added to a running answer, is stored with any credential scrubbed, as a slash command already was. The model still reads it as sent for that run.
+- `onboard` refuses a key name the key file skips at start (`PATH`, `NODE_OPTIONS`, `OPENALPHA_DATA_DIR` and the like), as `key set` does.
+- Citations trust the address fields of built-in tools only: never an MCP server's, a social network's or a failed call's.
+- A plugin command hands a chat only to an agent a chat can reach, never to an internal research worker.
+- The web version leaves out what it lacks: the bell key and its shortcut rows, the cat's link to notifications, "Open in a new tab" for a chat, and the create-alert link after `/alert create`.
+- Zalo personal runs on zca-js 2.4.0, and the homepage on motion 14.14.0.
+
+### Fixed
+
+- The web version's "Add to it" sent a line holding a key that sending refuses.
+- `gold-vn`'s premium factor ranked the board against its own stored point on Sundays and before the open, so it read differently from `/overview`.
+- A bare `/trade confirm` waited for OKX's stop list, up to its request budget when OKX was slow. `/trade` and its guide said it reaches no venue, though it reads the stops set in the OKX app.
+- Streamed usage could count cache writes twice when a provider reported them in a later chunk.
+- On Windows, an `upgrade` that could not keep the replaced release as the rollback copy pointed `--rollback` at an older copy, and could start that copy after a failed start.
+- Connecting OpenRouter in the web version left its consent dialog with no way back to Settings.
+- The web version's fetch guard let `localhost.` and other local names with a trailing dot through.
+- A delegate's description reached the orchestrator's prompt unescaped.
+- A position the book closed kept a sliver of lot that a later settlement read or split could count.
+- The API contract named the wrong error for VN gold's price chart.
+
 ## [1.8.14] - 2026-11-26 [IMPORTANT]
 
 A link in a restored todo list no longer opens without asking, a buy whose run is canceled right after the fill still gets its stop, a Binance fill billed in several fee coins is no longer reported as rejected, and the web version starts the chat on a file you open. No database change.
@@ -1289,6 +1317,7 @@ honest record. It never places an order you did not approve.
 - Orders on OKX and Binance through `/trade`, always approved.
 - CLI, Telegram, Zalo, HTTP API and MCP; the model never sees your money.
 
+[1.8.15]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.15
 [1.8.14]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.14
 [1.8.13]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.13
 [1.8.12]: https://github.com/alex2loop/openalpha/releases/tag/v1.8.12
