@@ -1,3 +1,4 @@
+import { scrubCredentials } from '@/core/security/credentials'
 import { decodeUtf8, encodeUtf8, isContinuationByte, utf8ByteLength } from '@/core/utils/text'
 import { USER_MESSAGE_MAX_BYTES } from '@/engine/constants'
 
@@ -16,4 +17,10 @@ export function clampUserMessage(msg: string): string {
   }
 
   return decodeUtf8(buf.subarray(0, end))
+}
+
+/** What the transcript keeps of a line the operator sent: clamped, with any credential in it
+ *  scrubbed, since the stored copy reaches the database and its backups. */
+export function toStoredUserMessage(msg: string): string {
+  return scrubCredentials(clampUserMessage(msg))
 }

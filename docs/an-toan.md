@@ -208,11 +208,13 @@ khóa mà `openalpha key set` ghi, `<thư mục dữ liệu>/env`, quyền `0600
   đầu đăng nhập ChatGPT.
 
 Việc nhận diện thông tin đăng nhập bao gồm header authorization, token của nhà cung cấp, JWT, khóa
-riêng, chứng chỉ và URL có mang thông tin đăng nhập. Nó được dùng theo ba hướng:
+riêng, chứng chỉ và URL có mang thông tin đăng nhập. Nó được dùng theo bốn hướng:
 
 - các yêu cầu đi ra từ chối những phần URL, header và thân có dạng bí mật;
 - bộ nhớ từ chối các giá trị trông như bí mật;
-- đầu ra công cụ, lỗi và stack trace được lọc trước khi hiển thị hay ghi log.
+- đầu ra công cụ, lỗi và stack trace được lọc trước khi hiển thị hay ghi log;
+- tin nhắn bạn gửi, hoặc bổ sung vào câu trả lời đang chạy, được lưu vào lịch sử trò chuyện với mọi
+  thông tin đăng nhập đã lọc; mô hình vẫn đọc nguyên văn trong phiên chạy đó.
 
 Chi tiết của việc lọc:
 

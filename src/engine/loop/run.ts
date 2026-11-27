@@ -30,7 +30,7 @@ import {
   preflightRun,
 } from '@/engine/loop/preflight'
 import { toRunTitle } from '@/engine/loop/run-text'
-import { clampUserMessage } from '@/engine/loop/user-message'
+import { clampUserMessage, toStoredUserMessage } from '@/engine/loop/user-message'
 import { composeAbort } from '@/engine/run-registry'
 
 export async function runOnce(
@@ -286,9 +286,7 @@ function appendUserTurn(messages: MessageStore, input: RunInput, userMessage: st
 
   messages.appendDirect(
     { role: 'user', content: userMessage },
-    input.typedMessage === undefined
-      ? undefined
-      : { role: 'user', content: scrubCredentials(clampUserMessage(input.typedMessage)) }
+    { role: 'user', content: toStoredUserMessage(input.typedMessage ?? input.userMessage) }
   )
 }
 
@@ -307,7 +305,7 @@ function resultForPreRegistrationFailure(err: unknown): RunResult {
     }
   }
 
-  const message = err instanceof Error ? scrubCredentials(err.message) : String(err)
+  const message = scrubCredentials(err instanceof Error ? err.message : String(err))
 
   return {
     reason: 'error',
