@@ -1,7 +1,9 @@
 import type { AssistantMessage, ContentBlock, LLMMessage } from '@/core/llm'
-import type { AfterToolHook, HookFn, RunState } from '@/engine/types/run'
+import type { ToolDefinition } from '@/core/tool'
+import type { AfterToolHook, HookFn, RunState, RunView } from '@/engine/types/run'
 import { unwrapToolResult } from '@/core/security/sanitize'
-import { textOf } from '@/core/utils/message'
+import { hasOutsideOutput } from '@/core/tool'
+import { textOf, toolCallsOf } from '@/core/utils/message'
 import { isEngineWrittenMessage } from '@/engine/compact/compactor'
 import { CITE_TRUSTED_URLS_MAX } from '@/engine/constants'
 
@@ -14,10 +16,10 @@ const URL_KEY_NAME_RE = /url$/i
 // so it is collected with the run.
 const resultUrls = new WeakMap<RunState, Set<string>>()
 
-export const citeCheckAfterTool: AfterToolHook = async (run, _call, result) => {
+export const citeCheckAfterTool: AfterToolHook = async (run, call, result) => {
   const urls = resultUrlsFor(run.state)
 
-  if (urls.size < CITE_TRUSTED_URLS_MAX) {
+  if (urls.size < CITE_TRUSTED_URLS_MAX && !result.isError && isOwnTool(run.env.tools, call.name)) {
     addStructuredUrls(result.content, urls)
   }
 }
@@ -36,7 +38,7 @@ export const citeCheckHook: HookFn = async (run) => {
     return
   }
 
-  const trusted = trustedUrls(history, run.state)
+  const trusted = trustedUrls(history, run)
   let stripped = 0
   const cleaned = replaceLinks(last.content, trusted, (count) => {
     stripped += count
@@ -88,18 +90,41 @@ function replaceMarkdownLinks(
   })
 }
 
-function trustedUrls(history: readonly LLMMessage[], state: RunState): ReadonlySet<string> {
-  const urls = new Set(resultUrls.get(state))
+function trustedUrls(history: readonly LLMMessage[], run: RunView): ReadonlySet<string> {
+  const urls = new Set(resultUrls.get(run.state))
+  const ownCallIds = new Set(
+    history
+      .flatMap((msg) => toolCallsOf(msg))
+      .filter((call) => isOwnTool(run.env.tools, call.name))
+      .map((call) => call.id)
+  )
 
   for (const msg of history) {
     if (msg.role === 'user' && !isEngineWrittenMessage(msg)) {
       addTextUrls(textOf(msg.content, '\n'), urls)
-    } else if (msg.role === 'tool') {
+    } else if (isOwnToolResult(msg, ownCallIds)) {
       addStructuredUrls(textOf(msg.content, '\n'), urls)
     }
   }
 
   return urls
+}
+
+function isOwnToolResult(msg: LLMMessage, ownCallIds: ReadonlySet<string>): boolean {
+  return (
+    msg.role === 'tool' &&
+    msg.isError !== true &&
+    msg.toolCallId !== undefined &&
+    ownCallIds.has(msg.toolCallId)
+  )
+}
+
+// Only a tool this codebase wrote attaches a `...url` field the model did not choose; a tool gone
+// from the run since its call is not vouched for.
+function isOwnTool(tools: readonly ToolDefinition[], name: string): boolean {
+  const tool = tools.find((candidate) => candidate.name === name)
+
+  return tool !== undefined && !hasOutsideOutput(tool)
 }
 
 function resultUrlsFor(state: RunState): Set<string> {

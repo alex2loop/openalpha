@@ -1,4 +1,4 @@
-import { editionKey } from '@/web/state/edition'
+import { editionKey, isAnalysisOnly } from '@/web/state/edition'
 import { tr } from '@/web/text/tr'
 import { SHORTCUT_ROWS } from '@/web/ui/keys/keys'
 import { Button } from '@/web/ui/kit/button'
@@ -25,7 +25,7 @@ function KeyList() {
   return (
     <>
       <dl class="key-list">
-        {SHORTCUT_ROWS.map((row) => (
+        {SHORTCUT_ROWS.filter((row) => !(row.bellOnly && isAnalysisOnly.value)).map((row) => (
           <div key={row.does} class="key-row">
             <dt>
               {row.caps.map((cap) => (
@@ -36,7 +36,9 @@ function KeyList() {
           </div>
         ))}
       </dl>
-      <p class="meta">{tr('ui.office.keys.note')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.keys.note', 'ui.office.edition.shortcuts.note'))}
+      </p>
     </>
   )
 }

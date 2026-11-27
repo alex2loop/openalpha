@@ -2,6 +2,7 @@ import type { InstrumentKind } from '@/app/server/wire/vocab'
 import type { MessageKey } from '@/i18n'
 import { openBook } from '@/web/state/book'
 import { commandWordsOf } from '@/web/state/chat'
+import { offers } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
 import { openIdeas } from '@/web/state/ideas'
 import { openTicker } from '@/web/state/known-tickers'
@@ -100,9 +101,11 @@ function isScreenOption(word: string, markets: ReadonlySet<string>): boolean {
   return markets.has(word) || NUMBER_WORD.test(word) || Object.hasOwn(KIND_WORDS, word)
 }
 
-// `/alert create FPT ...` opens the form for the name it asked about; any other `/alert` has none.
+// `/alert create FPT ...` opens the form for the name it asked about; any other `/alert` has none,
+// nor does an edition without alerts.
 function linkAlert([action, first]: readonly string[]): CommandLink | undefined {
-  const name = action?.toLowerCase() === ALERT_CREATE_WORD ? parseName(first) : undefined
+  const isCreate = offers('schedules') && action?.toLowerCase() === ALERT_CREATE_WORD
+  const name = isCreate ? parseName(first) : undefined
 
   if (name === undefined) {
     return undefined

@@ -615,8 +615,8 @@ cầu cục bộ. Nên hãy đặt `public_url` trước khi mở ra ngoài, và
   `fallback_chat_id` của từng kênh, cùng `[schedule] failure_target`, chỉ đổi được trên máy chủ: bằng câu lệnh hoặc
   trong file này, không bao giờ từ ứng dụng.
 
-Khi đó trang cũng không lưu khóa nào và không bắt đầu đăng nhập ChatGPT: hãy dùng `openalpha key set` và
-`openalpha auth login chatgpt` trên máy chủ.
+Khi đó trang cũng không lưu khóa nào, không bắt đầu đăng nhập ChatGPT và không thêm, sửa hay xóa agent: hãy
+dùng `openalpha key set`, `openalpha auth login chatgpt` và `openalpha agent add` trên máy chủ.
 
 Mã API là biến `token_env` nếu có, nếu không là tệp `auth/api/token.json` (tạo ở phiên chạy đầu, quyền
 0600). Nếu `token_env` được đặt mà biến rỗng hoặc ngắn hơn 32 ký tự thì API không mở (token đã lưu
@@ -1058,7 +1058,8 @@ trong môi trường luôn thắng tệp.
 
 Tệp chỉ giữ khóa dịch vụ, kể cả khóa mang tiền tố `OPENALPHA_` như `OPENALPHA_OPENROUTER_API_KEY`. Các
 tên điều khiển chính OpenAlpha (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) hay cách chương trình khởi
-động (`PATH`, `NODE_OPTIONS`, `LD_*`...) bị bỏ qua, và `#` sau một dấu cách là chú thích. Tệp khóa theo
+động (`PATH`, `NODE_OPTIONS`, `LD_*`...) bị bỏ qua, nên `key set` và `onboard` từ chối chúng, và `#`
+sau một dấu cách là chú thích. Tệp khóa theo
 `--data-dir` hoặc `OPENALPHA_DATA_DIR`, không bao giờ theo `[paths] data_dir`, vì nó được đọc trước cấu
 hình.
 

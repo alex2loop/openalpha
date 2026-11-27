@@ -1961,7 +1961,7 @@ Một sàn khai những gì API của nó làm được, và sàn nào không l�
 - **Chưa có lệnh cắt lỗ nào bảo vệ** - các vị thế ở một sàn bạn đặt lệnh được, có lệnh cắt lỗ bên dưới ít hơn cuốn sổ nói bạn đang nắm (chỉ có lệnh chốt lời thì không tính), mỗi cái nêu lệnh để chữa; nơi chỉ có một lệnh chốt lời đang chờ thì đó là `/trade cancel` trước, vì `/trade exit` không thêm lệnh cắt lỗ bên cạnh nó. Trên OKX, lệnh cắt lỗ đặt trong app của sàn được tính đến đúng khối lượng của nó, nên lệnh cắt lỗ nhỏ hơn số đang nắm vẫn khiến phần còn lại bị liệt kê.
 - **Đã đặt trên sàn, chưa có trong sổ** - danh sách đối soát, kèm cách chữa.
 
-Nó không chạm sàn nào. Một trạng thái cần mọi sàn đều hoạt động sẽ trống đúng lúc bạn cần biết nhất cái gì đang đứng ngoài đó.
+Sàn duy nhất nó hỏi là OKX, để đọc lệnh cắt lỗ bạn đặt trong ứng dụng, và khi OKX không trả lời thì nó trả lời mà không có phần đó. Một trạng thái cần mọi sàn đều hoạt động sẽ trống đúng lúc bạn cần biết nhất cái gì đang đứng ngoài đó. `/trade confirm` không kèm token chỉ đọc cuốn sổ để tìm lệnh duy nhất đang chờ.
 
 `/trade confirm` không kèm token đặt cái lệnh duy nhất đang chờ. Có hai lệnh trở lên thì nó từ chối và liệt kê cả hai, giống cách định tuyến từ chối một sàn mà nó phải chọn giữa.
 

@@ -32,7 +32,7 @@ built-in. `agent bind`, `unbind` and `bindings` map a channel chat to an agent -
 
 With the API on, the office page can create, edit and delete your agents without you touching a file. It writes
 the same `agent.toml` into your agents folder, so `agent list` and `agent show` see the agent and a later hand edit
-still works.
+still works. While `[api] public_url` is set, the page cannot add, edit or remove agents: do that on the server.
 
 - On the *Your agents* floor, "+ Add an agent" opens the form. With no agent yet, three starting
   templates fill it in for you to edit, and a blank one is there too. The form asks for:

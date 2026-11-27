@@ -497,7 +497,7 @@ xét**, vì bỏ sót một mã đang nắm thì lời khuyên về cả cuốn 
 Chỉ có khi bạn đã khai khóa OKX hoặc Binance.
 
 ```text
-/trade                                   # đang treo những gì - không chạm tới sàn
+/trade                                   # đang treo những gì - chỉ hỏi OKX về lệnh cắt lỗ
 /trade spot <[sàn:]mã> buy|sell <khối lượng> [limit <giá>] [tp <giá>] [sl <giá>]
 /trade exit <[sàn:]mã> [qty <khối lượng>] [tp <giá>] [sl <giá>]
 /trade confirm [token]

@@ -4,9 +4,9 @@ import { createCommand, createGroup, type Group, hasLoadedConfig, type Needs } f
 import { liveDaemon } from '@/cli/daemon-guard'
 import { getEnv } from '@/cli/env'
 import {
-  isRuntimeEnvName,
   readEnvFile,
   removeEnvFileValue,
+  skippedKeyNameText,
   writeEnvFileValue,
 } from '@/cli/env-file'
 import { usage } from '@/cli/error-output'
@@ -15,7 +15,7 @@ import { keyEnvNames } from '@/cli/missing-keys'
 import { flagString } from '@/cli/parsing/args'
 import { hint, success } from '@/cli/ui/colors'
 import { declined, promptSecret } from '@/cli/ui/prompt'
-import { BRAND, isControlEnvName } from '@/core/brand'
+import { BRAND } from '@/core/brand'
 import { isEnvName } from '@/core/config/operator-errors'
 import { isAbortError } from '@/core/errors'
 import { closestName } from '@/core/utils/text'
@@ -67,12 +67,10 @@ async function setKey(args: ParsedArgs, app: CliApp): Promise<number> {
     return usage(app, t(locale, 'cli.keyNameInvalid', { brand: BRAND.name }))
   }
 
-  if (isControlEnvName(name)) {
-    return usage(app, t(locale, 'cli.keyNameReserved', { name, brand: BRAND.display }))
-  }
+  const skipped = skippedKeyNameText(name, locale)
 
-  if (isRuntimeEnvName(name)) {
-    return usage(app, t(locale, 'cli.keyNameRuntime', { name }))
+  if (skipped !== undefined) {
+    return usage(app, skipped)
   }
 
   const value = await readSecret(app, name)

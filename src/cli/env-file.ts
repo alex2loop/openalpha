@@ -3,8 +3,9 @@ import { open, readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 import type { CliApp } from '@/cli/types'
+import type { Locale } from '@/core/types/locale'
 import { warn } from '@/cli/ui/colors'
-import { isControlEnvName } from '@/core/brand'
+import { BRAND, isControlEnvName } from '@/core/brand'
 import { isEnvName } from '@/core/config/operator-errors'
 import { isErrno, ValidationError } from '@/core/errors'
 import {
@@ -214,6 +215,15 @@ function parseEnvText(text: string): ParsedEnv {
   }
 
   return { entries, badLines }
+}
+
+/** Why the file would skip a key saved under `name` at every start; absent for a name it keeps. */
+export function skippedKeyNameText(name: string, locale: Locale): string | undefined {
+  if (isControlEnvName(name)) {
+    return t(locale, 'cli.keyNameReserved', { name, brand: BRAND.display })
+  }
+
+  return isRuntimeEnvName(name) ? t(locale, 'cli.keyNameRuntime', { name }) : undefined
 }
 
 /** A name that steers how a program starts rather than which service it reaches: skipped when the

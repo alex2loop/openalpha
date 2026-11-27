@@ -11,6 +11,8 @@ const FETCH_TIMEOUT_MS = 30 * MS_PER_SECOND
 const HTTPS_PROTOCOL = 'https:'
 const IP_LITERAL_RE = /^(?:\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-f:]+\])$/i
 const LOCAL_SUFFIXES = Object.freeze(['.local', '.internal', '.localhost'])
+// `localhost.` is the same host as `localhost`: DNS reads a trailing dot as the root label.
+const TRAILING_DOTS_RE = /\.+$/
 
 export const BROWSER_FETCH_GUARD: FetchGuard = {
   async guardedFetch(url, init, options) {
@@ -55,10 +57,12 @@ function parsePublicUrl(raw: string): URL {
     throw new ToolError('host_blocked', 'only plain https addresses are allowed')
   }
 
+  const host = url.hostname.replace(TRAILING_DOTS_RE, '')
+
   if (
-    IP_LITERAL_RE.test(url.hostname) ||
-    url.hostname === 'localhost' ||
-    LOCAL_SUFFIXES.some((suffix) => url.hostname.endsWith(suffix))
+    IP_LITERAL_RE.test(host) ||
+    host === 'localhost' ||
+    LOCAL_SUFFIXES.some((suffix) => host.endsWith(suffix))
   ) {
     throw new ToolError('host_blocked', `host ${url.hostname} is not a public name`)
   }

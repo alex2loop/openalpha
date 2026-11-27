@@ -527,7 +527,9 @@ trình ngắn hạn của riêng nó.
 - cho ứng dụng tạo công việc chỉ trả lời trong ứng dụng; công việc cho chat khác thì tạo trên máy chủ
   (`openalpha schedule add ... --to`);
 - để việc duyệt ghép nối và các khóa truy cập của từng kênh chỉ làm được trên máy chủ: duyệt bằng
-  `openalpha pair approve <mã>` và đổi `allowed_ids` cùng các khóa tương tự trong tệp cấu hình.
+  `openalpha pair approve <mã>` và đổi `allowed_ids` cùng các khóa tương tự trong tệp cấu hình;
+- để việc thêm, sửa và xóa agent chỉ làm được trên máy chủ: `openalpha agent add`, `agent edit` và
+  `agent remove`.
 
 Khóa sàn cũng nên cẩn thận như vậy: chỉ cấp quyền giao dịch, không bao giờ cho rút tiền, và gắn với địa chỉ
 IP của máy chủ trên sàn, để khóa lộ ra cũng không rút được tiền đi.

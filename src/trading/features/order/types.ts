@@ -401,8 +401,11 @@ export interface OrderService {
   confirm(input: ClaimInput): Promise<ConfirmOutcome>
   /** Drops a staged order unplaced; false when the token names none still quotable. */
   discard(input: ClaimInput): Promise<boolean>
-  /** What is outstanding right now. Reads no venue, so it answers while an exchange is down. */
+  /** What is outstanding right now. A venue whose stops cannot be read is left out, so it answers
+   *  while an exchange is down. */
   tradeStatus(input: TradeStatusInput): Promise<TradeStatus>
+  /** The staged orders a confirm may still claim. Reads no venue. */
+  stagedOrders(input: TradeStatusInput): Promise<readonly StagedOrder[]>
   /** Whether each position has an exit standing at it, in the terms an agent may see. */
   exitCoverage(input: TradeStatusInput): Promise<readonly ExitCoverage[]>
   /** Per instrument the book could place a stop for, whether one is standing at every venue holding

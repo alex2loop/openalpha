@@ -534,7 +534,9 @@ less, so setting `public_url` also:
 - lets the app make jobs that answer only in the app; a job for another chat is made on the server
   (`openalpha schedule add ... --to`);
 - makes pairing approval and each channel's access keys server-only: approve with
-  `openalpha pair approve <code>` and change `allowed_ids` and the like in the config file.
+  `openalpha pair approve <code>` and change `allowed_ids` and the like in the config file;
+- makes adding, changing and removing agents server-only: `openalpha agent add`, `agent edit` and
+  `agent remove`.
 
 Exchange keys deserve the same care: make them trading-only, never allow withdrawals, and pin them to
 the server's IP address on the exchange, so a leaked key cannot move money out.

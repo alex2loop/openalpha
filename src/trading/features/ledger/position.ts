@@ -77,8 +77,10 @@ export function sellShare(position: MutablePosition, quantity: number, closing: 
 }
 
 /** Snap a position the fold has emptied: a residual quantity a later sell's share would divide
- *  against, and a residual basis the next buy would average its own cost into. */
+ *  against, a residual basis the next buy would average its own cost into, and lot dust a later
+ *  settlement read or split would count. */
 export function clearFlatPosition(position: MutablePosition): void {
+  position.lots.length = 0
   position.quantity = 0
   position.costBasisNative = 0
   position.costBasisBase = 0

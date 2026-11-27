@@ -6,6 +6,7 @@ import { ApiFailure } from '@/web/api/client'
 import { type AgentDraft, agentFormRequest, removeAgent, saveAgent } from '@/web/state/agents'
 import { knownMarkets } from '@/web/state/market'
 import { openView } from '@/web/state/panel'
+import { state } from '@/web/state/session'
 import { toErrorText, tr } from '@/web/text/tr'
 import {
   BudgetField,
@@ -191,9 +192,15 @@ function submit(open: OpenForm): void {
     })
 }
 
-// A new agent refused as a conflict has an id already in use: said under the id field.
+// A new agent refused as a conflict has an id already in use, said under the id field; behind
+// `public_url` the conflict is the refusal to change agents from the page.
 function showFailure(form: AgentForm, error: unknown): void {
-  if (form.existing === undefined && error instanceof ApiFailure && error.code === 'conflict') {
+  if (
+    form.existing === undefined &&
+    state.value?.exposed !== true &&
+    error instanceof ApiFailure &&
+    error.code === 'conflict'
+  ) {
     form.fields.value = new Map([[TAKEN_ID_PATH, toErrorText(error)]])
     return
   }

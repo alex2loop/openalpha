@@ -32,7 +32,7 @@ import {
   executeTools,
   keepPartialAnswer,
 } from '@/engine/loop/turn'
-import { clampUserMessage } from '@/engine/loop/user-message'
+import { clampUserMessage, toStoredUserMessage } from '@/engine/loop/user-message'
 import { TIMEOUT_ABORT } from '@/engine/run-registry'
 
 declare module '@/core/events' {
@@ -291,7 +291,10 @@ function drainSteering(run: RunView, steering: SteeringInbox): void {
   }
 
   for (const text of drained) {
-    run.state.messages.appendDirect({ role: 'user', content: clampUserMessage(text) })
+    run.state.messages.appendDirect(
+      { role: 'user', content: clampUserMessage(text) },
+      { role: 'user', content: toStoredUserMessage(text) }
+    )
   }
 
   run.services.logger.info('engine.steering_injected', { count: drained.length })

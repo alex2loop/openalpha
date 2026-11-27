@@ -1,12 +1,16 @@
 import type { SlashContext, SlashResult } from '@/core/types/command'
 import type { MarketDataService } from '@/trading/features/market-data/types'
-import type { OrderService, ReconcileReview, TradeStatus } from '@/trading/features/order/types'
+import type {
+  OrderService,
+  ReconcileReview,
+  StagedOrder,
+  TradeStatus,
+} from '@/trading/features/order/types'
 import { pluralKey } from '@/i18n'
 import { quoteConventionsFor } from '@/trading/features/market-data/command/quote-conventions'
 import { renderUnmirroredIntents } from '@/trading/features/order/render'
 import { renderOrphanExits } from '@/trading/features/order/render-orphans'
 import { renderTradeStatus } from '@/trading/features/order/render-status'
-import { soleStagedOrder } from '@/trading/features/order/status'
 import { formatCount } from '@/trading/render/format'
 import { joinSections } from '@/trading/render/layout'
 
@@ -37,7 +41,10 @@ export const REVIEW_MESSAGE_KEYS = Object.freeze([
 /** What the read arms need, which is less than the command holds: no costs, no exit path, and
  *  nothing that places an order. */
 interface ReviewDeps {
-  readonly order: Pick<OrderService, 'tradeStatus' | 'reconcileOrders' | 'clearUnmirrored'>
+  readonly order: Pick<
+    OrderService,
+    'tradeStatus' | 'stagedOrders' | 'reconcileOrders' | 'clearUnmirrored'
+  >
   readonly marketData: Pick<MarketDataService, 'quoteConvention'>
   /** The operator's one clock, for the stamp an outstanding row carries. */
   readonly timezone: string
@@ -48,8 +55,9 @@ interface ReviewInput {
   readonly now: number
 }
 
-/** What is outstanding, and nothing else: no venue is asked, so it answers while an exchange is
- *  down — which is exactly when an operator wants to know what is still standing out there. */
+/** What is outstanding, and nothing else: a venue that cannot be read is left out, so it answers
+ *  while an exchange is down — which is exactly when an operator wants to know what is still
+ *  standing out there. */
 export async function runStatus(deps: ReviewDeps, input: ReviewInput): Promise<SlashResult> {
   const { ctx, now } = input
   const status = await deps.order.tradeStatus({ now, signal: ctx.signal })
@@ -102,7 +110,7 @@ export async function resolveConfirmTarget(
   }
 
   const { ctx, now } = input
-  const { staged } = await deps.order.tradeStatus({ now, signal: ctx.signal })
+  const staged = await deps.order.stagedOrders({ now, signal: ctx.signal })
   const only = soleStagedOrder(staged)
 
   if (only !== undefined) {
@@ -110,6 +118,14 @@ export async function resolveConfirmTarget(
   }
 
   return { kind: 'refused', key: staged.length === 0 ? NO_STAGED : MANY_STAGED }
+}
+
+/** The one staged order a bare confirm may claim. `undefined` where none or several are quotable,
+ *  which the surface reports differently: nothing to confirm is not a choice to make. */
+function soleStagedOrder(staged: readonly StagedOrder[]): StagedOrder | undefined {
+  const [only, second] = staged
+
+  return second === undefined ? only : undefined
 }
 
 /** The two halves of one job: read what the exchange took and the book never got, square it there

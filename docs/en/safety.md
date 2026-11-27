@@ -205,11 +205,13 @@ Keys typed on the office page (Settings > Providers, Exchanges and Tools) go to 
   ChatGPT sign-in.
 
 Credential detection covers authorization headers, provider tokens, JWTs, private keys,
-certificates and URLs that carry credentials. It is used three ways:
+certificates and URLs that carry credentials. It is used four ways:
 
 - outbound requests reject secret-looking URL parts, headers and bodies;
 - memory rejects values that look like secrets;
-- tool output, errors and stack traces are scrubbed before display or logging.
+- tool output, errors and stack traces are scrubbed before display or logging;
+- a message you send, or add to a running answer, is stored in the chat history with any credential
+  scrubbed; the model still reads it as sent for that run.
 
 Details of the scrub:
 

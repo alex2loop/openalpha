@@ -33,7 +33,7 @@ sẵn. `agent bind`, `unbind` và `bindings` gắn một chat của kênh vào m
 
 Khi API bật, trang văn phòng tạo, sửa và xóa được agent của bạn mà không cần chạm vào tệp nào. Trang ghi đúng tệp
 `agent.toml` vào thư mục agent của bạn, nên `agent list` và `agent show` vẫn thấy agent, và sau này bạn sửa tay vẫn
-được.
+được. Khi đã đặt `[api] public_url`, trang không thêm, sửa hay xóa được agent: hãy làm việc đó trên máy chủ.
 
 - Ở tầng *Agent của bạn*, "+ Thêm agent" mở biểu mẫu. Khi chưa có agent nào, ba mẫu khởi đầu điền
   sẵn để bạn sửa, và có cả một mẫu trống. Biểu mẫu hỏi:

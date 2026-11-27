@@ -1976,7 +1976,7 @@ A bare `/trade` answers one question, what is live right now, in sections. Any s
 - **No stop is guarding these** - positions at a venue you can place at, with less stop under them than the book says you hold (a take-profit alone does not count), each naming the command that fixes it; where a take-profit rests alone, that is `/trade cancel` first, since `/trade exit` will not add a stop beside it. On OKX a stop set in the exchange's own app counts up to its size, so a stop smaller than the holding still lists the rest.
 - **Placed at the exchange, missing from your book** - the reconcile list, with its remedy.
 
-It reaches no venue. A status that needs every exchange up goes blank exactly when you most need to know what is standing out there.
+The only venue it asks is OKX, for the stops you set in its app, and when OKX does not answer it answers without them. A status that needs every exchange up goes blank exactly when you most need to know what is standing out there. A bare `/trade confirm` reads only the book to find the one waiting order.
 
 `/trade confirm` with no token places the one order waiting. With two or more it refuses and lists both, the same way routing refuses a venue it would have to pick between.
 
