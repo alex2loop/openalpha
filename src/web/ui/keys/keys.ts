@@ -6,6 +6,7 @@ import { stopFollow, view, ZOOM_KEYS } from '@/web/scene/view'
 import { agents } from '@/web/state/agents'
 import { COMMAND_PREFIX, isChatOpen, setChatOpen } from '@/web/state/chat'
 import { fillInput, focusInput, inputText } from '@/web/state/command'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { toggleInfoOnly } from '@/web/state/pane'
 import { openView, panelView } from '@/web/state/panel'
 import {
@@ -54,6 +55,8 @@ interface ShortcutRow {
   readonly does: MessageKey
   /** What the web edition says in its place, where the daemon's wording names something it lacks. */
   readonly webDoes?: MessageKey
+  /** Left off the web edition's list, which has no bell for the key to open or answer in. */
+  readonly bellOnly?: true
 }
 
 /** The key that opens the list, printed on the header's button. */
@@ -110,7 +113,7 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = Object.freeze([
     webDoes: 'ui.office.edition.shortcuts.tabs',
   },
   { caps: [BACK_KEY.toUpperCase()], does: 'ui.office.keys.back' },
-  { caps: [BELL_KEY.toUpperCase()], does: 'ui.office.keys.bell' },
+  { caps: [BELL_KEY.toUpperCase()], does: 'ui.office.keys.bell', bellOnly: true },
   { caps: [JOBS_KEY.toUpperCase()], does: 'ui.office.keys.jobs' },
   { caps: [CHAT_KEY.toUpperCase()], does: 'ui.office.keys.chat' },
   { caps: [INFO_KEY.toUpperCase()], does: 'ui.office.keys.info' },
@@ -125,8 +128,12 @@ export const SHORTCUT_ROWS: readonly ShortcutRow[] = Object.freeze([
     ],
     does: 'ui.office.keys.canvasMove',
   },
-  { caps: [UP_KEY_CAP, DOWN_KEY_CAP], does: 'ui.office.keys.choose' },
-  { caps: [DECISION_KEYS.approve, DECISION_KEYS.deny], does: 'ui.office.keys.approve' },
+  { caps: [UP_KEY_CAP, DOWN_KEY_CAP], does: 'ui.office.keys.choose', bellOnly: true },
+  {
+    caps: [DECISION_KEYS.approve, DECISION_KEYS.deny],
+    does: 'ui.office.keys.approve',
+    bellOnly: true,
+  },
   { caps: [ESCAPE_KEY_CAP], does: 'ui.office.keys.close' },
 ])
 const FIELD_SELECTOR = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])'
@@ -240,6 +247,10 @@ function handleNamedKey(key: string, { deps, viewed }: KeyContext): boolean {
     case BACK_KEY:
       return reopen(viewed)
     case BELL_KEY:
+      if (isAnalysisOnly.value) {
+        return false
+      }
+
       togglePopover(BELL_POPOVER_ID)
       return true
     case JOBS_KEY:

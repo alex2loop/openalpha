@@ -12,7 +12,7 @@ import type {
 import type { DeclarativeSlashCommandSource } from '@/core/types/plugin'
 import type { AgentProfile, Runner, Workflow } from '@/engine/api'
 import { LOCAL_USER_ID } from '@/core/ids'
-import { runWorkflow } from '@/engine/api'
+import { isEntryAgent, runWorkflow } from '@/engine/api'
 
 const MESSAGE_KEYS: readonly CommandMessageKey[] = [
   'slash.pluginAgentUnavailable',
@@ -77,7 +77,7 @@ function runAgentCommand(
   deps: DeclarativeCommandDeps,
   ctx: SlashContext
 ): SlashResult {
-  if (!deps.agents.has(target.id)) {
+  if (!isEntryAgent(deps.agents.get(target.id))) {
     return {
       kind: 'message',
       messages: [{ key: 'slash.pluginAgentUnavailable', values: { id: target.id } }],

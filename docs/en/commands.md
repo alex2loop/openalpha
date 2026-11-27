@@ -421,7 +421,8 @@ mismatch or Ctrl-C all end before the swap. So your current version stays, and a
 running.
 
 The release you replaced stays next to the new one as `openalpha.old` (`openalpha.exe.old` on
-Windows), and `upgrade --rollback` swaps back to it.
+Windows), and `upgrade --rollback` swaps back to it. When Windows keeps that copy locked, the one from
+an earlier upgrade stays instead, and `--rollback` leaves the database as it is.
 
 If the newer release changed the database, `--rollback` first takes it back to what the older release
 reads, with `db migrate down --to`. It asks before doing so, and on SQLite it saves a copy in
@@ -1015,7 +1016,8 @@ A `venue:` prefix also picks the instrument on that venue's markets: `okx:SUI` i
 stored stock or fund shares the symbol.
 
 Bare `/trade` tells you what is outstanding: staged orders and their tokens, resting exits, positions
-no stop is guarding, and what the exchange took that your book is missing. It reaches no venue.
+no stop is guarding, and what the exchange took that your book is missing. The only venue it asks is
+OKX, for the stops you set in its app; when OKX does not answer, it answers without them.
 
 - **`spot`** stages the order and prints a confirmation token. Nothing goes out until you type
   `/trade confirm`.

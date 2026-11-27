@@ -3,6 +3,7 @@ import type { CallApprovalContext, Capability, ToolDefinition } from '@/core/too
 import type { RunState, RunView } from '@/engine/types/run'
 import { withoutPastedContent } from '@/core/security/pasted-content'
 import { unwrapToolResult } from '@/core/security/sanitize'
+import { hasOutsideOutput } from '@/core/tool'
 import { textOf, toolCallsOf } from '@/core/utils/message'
 import { isEngineWrittenMessage } from '@/engine/compact/compactor'
 
@@ -113,11 +114,7 @@ function sourceTextOf(
 }
 
 function isVouchingTool(tool: ToolDefinition): boolean {
-  return (
-    tool.capability === SOURCE_CAPABILITY &&
-    tool.isExternal !== true &&
-    tool.thirdPartyOutput !== true
-  )
+  return tool.capability === SOURCE_CAPABILITY && !hasOutsideOutput(tool)
 }
 
 function sourceOf(

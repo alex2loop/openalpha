@@ -2629,6 +2629,8 @@
     "pairingApproveServerOnly": "Khi đã đặt [api] public_url, chỉ duyệt ghép nối được trên máy chủ: chạy {brand} pair approve {code} ở đó.",
     "credentialsServerOnly": "Khi trang mở qua {url}, khóa chỉ đổi được trên máy chủ: `{brand} key set {name}`, rồi `{brand} restart --background`.",
     "credentialsServerOnlySaved": "config.toml đã đặt [api] public_url, nên khóa chỉ đổi được trên máy chủ: `{brand} key set {name}`, rồi `{brand} restart --background`.",
+    "agentEditServerOnly": "Khi trang mở qua {url}, agent chỉ thêm, sửa và xóa được trên máy chủ: `{brand} agent add`, `{brand} agent edit` hoặc `{brand} agent remove`.",
+    "agentEditServerOnlySaved": "config.toml đã đặt [api] public_url, nên agent chỉ thêm, sửa và xóa được trên máy chủ: `{brand} agent add`, `{brand} agent edit` hoặc `{brand} agent remove`.",
     "credentialNameNotAllowed": "{name} không phải khóa trang này được đặt.",
     "credentialValueInvalid": "Bạn dán khóa trên một dòng, không có khoảng trắng ở hai đầu nhé.",
     "chatgptServerOnly": "Khi trang mở qua {url}, bạn đăng nhập hoặc đăng xuất ChatGPT trên máy chủ: `{brand} auth login chatgpt` hoặc `{brand} auth logout chatgpt`.",

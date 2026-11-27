@@ -118,7 +118,8 @@ tools = [
 # web search and fetch, memory, the read-only market and suggestion tools, now and calc,
 # plus spawn when max_spawn is above 0. Never a shell, a file write or a schedule. When the
 # page edits such a file it keeps the turn, token and time caps, hosts, skills and delegates you
-# wrote here and replaces only what it owns.
+# wrote here and replaces only what it owns. While [api] public_url is set, the page cannot add,
+# edit or remove agents; do that on the server.
 
 # ---- Workspace boundary -----------------------------------------------------
 # File tools are rooted at <data_dir>/workspaces/<id>/. An approved shell starts

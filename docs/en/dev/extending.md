@@ -443,7 +443,8 @@ server = "research"
 tool = "lookup"
 ```
 
-A command with `target = "agent"` takes `agent` and `prompt` instead of `workflow`. Unknown manifest
+A command with `target = "agent"` takes `agent` and `prompt` instead of `workflow`; the agent must be
+one a chat can be handed to, never an internal worker such as a research stage. Unknown manifest
 fields fail strict validation. A missing manifest is valid: the plugin then contributes its
 folder-discovered agents, workflows and skills, plus `sources.ts` when present.
 

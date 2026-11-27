@@ -5,7 +5,6 @@ import {
   isFinished,
   isSteerable,
   type SavedPreference,
-  steer,
   stopTurn,
   type Turn,
   thread,
@@ -17,7 +16,7 @@ import {
   inputText,
   SUGGEST_COMMAND,
   SUGGEST_STOPS_ARG,
-  setInput,
+  steerFromInput,
 } from '@/web/state/command'
 import { isAnalysisOnly, offers } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
@@ -224,19 +223,13 @@ function RunningActions({ turn }: { readonly turn: Turn }) {
         </Button>
       )}
       {turn.kind === 'ask' && (
-        <Button size="small" disabled={!isSteerable(typed)} onClick={() => addNote(turn, typed)}>
+        <Button size="small" disabled={!isSteerable(typed)} onClick={() => steerFromInput(turn)}>
           {tr('ui.office.chat.addNote')}
         </Button>
       )}
       {canStop(turn) && <StopButton onClick={() => askStopTurn(turn)} />}
     </div>
   )
-}
-
-function addNote(turn: Turn, typed: string): void {
-  if (steer(turn, typed)) {
-    setInput('')
-  }
 }
 
 // A command stops by its run; an agent turn stops what runs in this chat.

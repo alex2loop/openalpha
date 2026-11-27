@@ -10,10 +10,12 @@ const PREVIOUS_PATH = `${BINARY_PATH}.old`
 // One fixed name: a copy a failed step leaves behind is cleared by the next swap, never piled up.
 const STAGED_PATH = `${BINARY_PATH}.staged`
 
-/** Installs the downloaded release and keeps the one it replaces as the rollback copy. */
-export async function installDownloadedBinary(): Promise<void> {
+/** Installs the downloaded release and keeps the one it replaces as the rollback copy; false when
+ *  that copy could not be kept, so the rollback copy on disk is an older one. */
+export async function installDownloadedBinary(): Promise<boolean> {
   await chmod(DOWNLOAD_PATH, BINARY_MODE)
-  await promote(DOWNLOAD_PATH)
+
+  return await promote(DOWNLOAD_PATH)
 }
 
 /** Exchanges the installed binary with the rollback copy, so a second call undoes the first. */
@@ -39,8 +41,8 @@ export async function previousBinaryStamp(): Promise<string | null> {
 
 /** Puts `source` where the binary is and keeps the binary it replaces as the rollback copy. The old
  *  rollback copy is replaced only once the new binary is in place, so a failed step loses neither,
- *  and no step deletes a running file. */
-async function promote(source: string): Promise<void> {
+ *  and no step deletes a running file. False when the replaced binary could not become the copy. */
+async function promote(source: string): Promise<boolean> {
   try {
     await keepAside(BINARY_PATH, STAGED_PATH)
   } catch (err: unknown) {
@@ -61,10 +63,12 @@ async function promote(source: string): Promise<void> {
     throw err
   }
 
-  await rename(STAGED_PATH, PREVIOUS_PATH).catch(() => {
-    // The new binary is already in place: a rollback copy still locked by a running old release
-    // only leaves the previous one standing.
-  })
+  // The new binary is already in place: a rollback copy still locked by a running old release
+  // only leaves the previous one standing.
+  return await rename(STAGED_PATH, PREVIOUS_PATH).then(
+    () => true,
+    () => false
+  )
 }
 
 /** The one platform branch. POSIX keeps `from` in place, so the command on PATH never goes missing

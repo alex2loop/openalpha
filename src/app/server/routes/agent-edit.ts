@@ -13,8 +13,10 @@ import type { AgentProfile } from '@/engine/api'
 import '@/app/events'
 
 import { buildUserAgent, reloadUserAgents } from '@/app/agent-registry'
+import { buildServerOnlyText } from '@/app/server/exposure'
 import { apiError, json } from '@/app/server/http/dispatch'
 import { AGENT_WRITE_BODY, toAgentDetailWire, toAgentToml } from '@/app/server/mappers/agent-edit'
+import { isExposedOnDisk } from '@/app/server/routes/config'
 import {
   fieldRefusal,
   localeOf,
@@ -35,6 +37,10 @@ import { pauseJobsOfAgent } from '@/scheduler/api'
 
 // Each user agent holds a log sink open, so the page may not create them without bound.
 const MAX_USER_AGENTS = 50
+const SERVER_ONLY_KEYS = Object.freeze({
+  booted: 'errors.agentEditServerOnly',
+  saved: 'errors.agentEditServerOnlySaved',
+} as const)
 
 async function parseWriteBody(req: Request): Promise<AgentWriteBody> {
   const parsed = AGENT_WRITE_BODY.safeParse(await readJsonBody(req))
@@ -82,6 +88,16 @@ async function reloadRefusal(ctx: ApiRouteContext): Promise<Response | null> {
   }
 }
 
+// An agent's prompt and spend cap reach every chat and job it runs for, past the app's own limits:
+// where nobody at the page is known to be the operator, agents change on the server.
+async function refuseWhenExposed(ctx: ApiRouteContext): Promise<Response | undefined> {
+  if (!(await isExposedOnDisk(ctx))) {
+    return undefined
+  }
+
+  return apiError('conflict', buildServerOnlyText(ctx, SERVER_ONLY_KEYS, { brand: BRAND.name }))
+}
+
 function notEditable(ctx: ApiRouteContext, id: AgentId): Response {
   return apiError('conflict', t(localeOf(ctx), 'errors.agentNotEditable', { id }))
 }
@@ -107,6 +123,12 @@ function handleDetail(req: Request, ctx: ApiRouteContext): Promise<Response> {
 }
 
 async function handleCreate(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const refused = await refuseWhenExposed(ctx)
+
+  if (refused !== undefined) {
+    return refused
+  }
+
   const body = await parseWriteBody(req)
   let id: AgentId
 
@@ -183,6 +205,12 @@ function createUnderCap(
 }
 
 async function handleEdit(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const refused = await refuseWhenExposed(ctx)
+
+  if (refused !== undefined) {
+    return refused
+  }
+
   const id = parsePathId(req, agentId)
 
   if (id === null) {
@@ -258,6 +286,12 @@ function deletedKey(pausedSchedules: number): MessageKey {
 }
 
 async function handleDelete(req: Request, ctx: ApiRouteContext): Promise<Response> {
+  const refused = await refuseWhenExposed(ctx)
+
+  if (refused !== undefined) {
+    return refused
+  }
+
   const id = parsePathId(req, agentId)
 
   if (id === null) {

@@ -71,6 +71,8 @@ interface SchemaRollback {
 interface DaemonSwitch {
   readonly daemon: RunningDaemon | null
   readonly version: string
+  /** The replaced release became the rollback copy; false leaves an older upgrade's copy there. */
+  readonly keptPrevious: boolean
 }
 
 async function runUpgrade(app: CliApp, options: UpgradeOptions): Promise<number> {
@@ -165,8 +167,10 @@ async function switchRelease(app: CliApp, latest: string): Promise<number> {
     }
   }
 
+  let keptPrevious: boolean
+
   try {
-    await installDownloadedBinary()
+    keptPrevious = await installDownloadedBinary()
   } catch {
     app.err(fail(t(locale, 'cli.upgradeFailed', { current: `v${BRAND.version}` })))
     await recoverStoppedDaemon(app, paused)
@@ -174,7 +178,8 @@ async function switchRelease(app: CliApp, latest: string): Promise<number> {
     return 1
   }
 
-  const binaryStamp = await previousBinaryStamp()
+  // A rollback copy an older upgrade left is not the release this one replaced.
+  const binaryStamp = keptPrevious ? await previousBinaryStamp() : null
 
   await recordUpdateState(app, {
     rollbackTarget:
@@ -191,7 +196,7 @@ async function switchRelease(app: CliApp, latest: string): Promise<number> {
 
   app.out(success(t(locale, 'cli.upgradeDone', { brand: BRAND.display, latest: `v${latest}` })))
 
-  return await resumeDaemon(app, { daemon, version: latest })
+  return await resumeDaemon(app, { daemon, version: latest, keptPrevious })
 }
 
 /** A stop that times out may still finish late: a daemon that went down by then comes back on the
@@ -245,6 +250,13 @@ async function restorePreviousRelease(
   change: DaemonSwitch & { readonly daemon: RestartableDaemon }
 ): Promise<number> {
   const locale = app.config.locale.language
+
+  // An older upgrade's copy never ran on this schema, so it is not started in place of this one.
+  if (!change.keptPrevious) {
+    app.err(fail(t(locale, 'cli.upgradeRollbackFailed', { command: START_COMMAND })))
+
+    return 1
+  }
 
   // The release that failed is the one that knows how to undo its migrations; it barely ran, so
   // nothing it stored is worth a prompt.

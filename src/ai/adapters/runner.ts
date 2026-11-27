@@ -45,7 +45,7 @@ interface RunStreamOptions {
 interface MutableUsage {
   input: number
   output: number
-  /** Uncached input plus cache reads — the merge key `input` is re-derived from. */
+  /** Uncached input plus cache reads and writes — the merge key `input` is re-derived from. */
   promptTotal: number
   cacheRead: number
   cacheWrite: number
@@ -250,16 +250,17 @@ function applyEvent(state: StreamState, event: StreamEvent): void {
 
 // Providers re-send cumulative counters mid-stream; max-merge so a later partial frame reporting 0
 // cannot erase a count an earlier frame already established. `input` is not merged directly: it is
-// reported uncached-only, so it shrinks as cache reads grow and max-merging both fields
-// independently would sum a low-cache frame's input with a high-cache frame's cacheRead.
+// reported uncached-only, so it shrinks as cache reads and writes grow and max-merging the fields
+// independently would sum a low-cache frame's input with a high-cache frame's cache counts.
 function mergeUsage(into: MutableUsage, usage: TokenUsage): void {
   const cacheRead = usage.cacheRead ?? 0
+  const cacheWrite = usage.cacheWrite ?? 0
 
-  into.promptTotal = Math.max(into.promptTotal, usage.input + cacheRead)
+  into.promptTotal = Math.max(into.promptTotal, usage.input + cacheRead + cacheWrite)
   into.cacheRead = Math.max(into.cacheRead, cacheRead)
-  into.input = Math.max(0, into.promptTotal - into.cacheRead)
+  into.cacheWrite = Math.max(into.cacheWrite, cacheWrite)
+  into.input = Math.max(0, into.promptTotal - into.cacheRead - into.cacheWrite)
   into.output = Math.max(into.output, usage.output)
-  into.cacheWrite = Math.max(into.cacheWrite, usage.cacheWrite ?? 0)
 
   if (usage.reasoning !== undefined) {
     into.reasoning = Math.max(into.reasoning ?? 0, usage.reasoning)

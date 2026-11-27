@@ -44,18 +44,15 @@ interface TradeStatusInput {
 }
 
 /** The four things this tree is holding on the operator's behalf, read together because they answer
- *  one question. Nothing here reaches a venue: a status that needs every exchange up goes blank
- *  exactly when the operator most needs to know what is outstanding. */
+ *  one question. The only venue read is the stops set in an exchange's own app, and a failed one is
+ *  left out: a status that needs every exchange up goes blank exactly when the operator most needs
+ *  to know what is outstanding. */
 export async function resolveTradeStatus(
   deps: OrderServiceDeps,
   input: TradeStatusInput
 ): Promise<TradeStatus> {
   const [staged, exits, unmirrored, positions, haltedAt] = await Promise.all([
-    deps.intents.listStaged({
-      notBefore: input.now - CONFIRM_TTL_MS,
-      limit: STATUS_ROWS,
-      signal: input.signal,
-    }),
+    resolveStagedOrders(deps, input),
     liveExits(deps, input.signal),
     deps.intents.listUnmirrored(input.signal),
     deps.portfolio.positionsAt({ now: input.now, signal: input.signal }),
@@ -73,6 +70,18 @@ export async function resolveTradeStatus(
     }),
     ...(haltedAt === undefined ? {} : { haltedAt }),
   }
+}
+
+/** The staged orders a confirm may still claim, read from the book alone. */
+export async function resolveStagedOrders(
+  deps: OrderServiceDeps,
+  input: TradeStatusInput
+): Promise<readonly StagedOrder[]> {
+  return await deps.intents.listStaged({
+    notBefore: input.now - CONFIRM_TTL_MS,
+    limit: STATUS_ROWS,
+    signal: input.signal,
+  })
 }
 
 /** The floor the rest of the surface already reads: a holding under the venue's smallest order is
@@ -340,12 +349,4 @@ function placeablePositions(
 /** Only the exits carrying a stop-loss: a take-profit alone leaves the position unprotected. */
 function stopsOf(exits: readonly RestingExit[]): readonly RestingExit[] {
   return exits.filter((exit) => exit.stopLoss !== undefined)
-}
-
-/** The one staged order a bare confirm may claim. `undefined` where none or several are quotable,
- *  which the surface reports differently: nothing to confirm is not a choice to make. */
-export function soleStagedOrder(staged: readonly StagedOrder[]): StagedOrder | undefined {
-  const [only, second] = staged
-
-  return second === undefined ? only : undefined
 }

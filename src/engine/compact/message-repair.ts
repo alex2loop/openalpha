@@ -133,8 +133,8 @@ function isCompleteGroup(group: readonly LLMMessage[]): boolean {
 }
 
 // Splits a message body into ordered groups: each user/assistant message opens a new group, and the
-// tool messages that immediately follow an assistant attach to it. An orphan tool message (no
-// preceding assistant) forms its own group.
+// tool messages that follow attach to it, a user's included. Only a tool message with nothing before
+// it forms its own group.
 export function groupMessages(msgs: readonly LLMMessage[]): readonly (readonly LLMMessage[])[] {
   const groups: LLMMessage[][] = []
   let current: LLMMessage[] | null = null

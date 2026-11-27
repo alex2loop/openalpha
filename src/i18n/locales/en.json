@@ -2629,6 +2629,8 @@
     "pairingApproveServerOnly": "While [api] public_url is set, a pairing is approved only on the server: run {brand} pair approve {code} there.",
     "credentialsServerOnly": "While the page is open through {url}, keys change only on the server: `{brand} key set {name}`, then `{brand} restart --background`.",
     "credentialsServerOnlySaved": "[api] public_url is set in config.toml, so keys change only on the server: `{brand} key set {name}`, then `{brand} restart --background`.",
+    "agentEditServerOnly": "While the page is open through {url}, agents are added, changed and removed only on the server: `{brand} agent add`, `{brand} agent edit` or `{brand} agent remove`.",
+    "agentEditServerOnlySaved": "[api] public_url is set in config.toml, so agents are added, changed and removed only on the server: `{brand} agent add`, `{brand} agent edit` or `{brand} agent remove`.",
     "credentialNameNotAllowed": "{name} isn't a key this page can set.",
     "credentialValueInvalid": "Paste the key as one line, without spaces at either end.",
     "chatgptServerOnly": "While the page is open through {url}, sign in to or out of ChatGPT on the server: `{brand} auth login chatgpt` or `{brand} auth logout chatgpt`.",

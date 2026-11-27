@@ -199,7 +199,7 @@ export function byDistinctiveness<K extends FactorId>(
   medians: ReadonlyMap<K, number>
 ): readonly FactorResult<K>[] {
   return factors
-    .filter((factor) => factor.weight !== 0)
+    .filter((factor) => factor.weight !== undefined && factor.weight !== 0)
     .sort((left, right) => deviationFrom(medians, right) - deviationFrom(medians, left))
 }
 

@@ -1,7 +1,15 @@
 import { signal } from '@preact/signals'
 
 import { selectAgent } from '@/web/state/agents'
-import { COMMAND_PREFIX, commandWordsOf, isFinished, sendMessage, thread } from '@/web/state/chat'
+import {
+  COMMAND_PREFIX,
+  commandWordsOf,
+  isFinished,
+  sendMessage,
+  steer,
+  type Turn,
+  thread,
+} from '@/web/state/chat'
 import { isAnalysisOnly } from '@/web/state/edition'
 import { isCommandRun, runs } from '@/web/state/live'
 import { quietCommands } from '@/web/state/quiet-command'
@@ -120,12 +128,26 @@ export function sendFromInput(): void {
     return
   }
 
-  if (isAnalysisOnly.value && hasKeyLikeToken(text)) {
+  if (isRefusedAsKey(text)) {
     notSent.value = 'key-like'
     return
   }
 
   if (send(text)) {
+    setInput('')
+  }
+}
+
+/** Adds the box to `turn`'s running answer, refused like a send when the line holds a key. */
+export function steerFromInput(turn: Turn): void {
+  const text = inputText.value.trim()
+
+  if (isRefusedAsKey(text)) {
+    notSent.value = 'key-like'
+    return
+  }
+
+  if (steer(turn, text)) {
     setInput('')
   }
 }
@@ -187,6 +209,10 @@ function holdUnsent(text: string): void {
   if (inputText.value.trim() === '') {
     inputText.value = text
   }
+}
+
+function isRefusedAsKey(text: string): boolean {
+  return isAnalysisOnly.value && hasKeyLikeToken(text)
 }
 
 // A web address in a /research question is not a key, however long its path.

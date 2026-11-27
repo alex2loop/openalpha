@@ -3,6 +3,7 @@
 
 import type { AgentProfile } from '@/engine/types/agent'
 import type { LLMRequestModifier } from '@/engine/types/run'
+import { escapeXml } from '@/core/security/sanitize'
 import { truncate } from '@/core/utils/text'
 import { appendSystemBlock } from '@/engine/hooks/system-block'
 
@@ -43,7 +44,7 @@ function formatDelegateLines(roles: readonly AgentProfile[]): string {
 
   for (const role of roles) {
     const description =
-      role.description === undefined ? '' : `: ${truncate(role.description, DESC_MAX)}`
+      role.description === undefined ? '' : `: ${escapeXml(truncate(role.description, DESC_MAX))}`
     const line = `- ${role.id}${description}\n`
 
     // Always emit the first line, so one over-cap line cannot silently drop the whole block.

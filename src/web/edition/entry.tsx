@@ -112,6 +112,5 @@ function showConnect(result: ConnectResult | undefined): void {
   }
 
   holdKey('ai', { provider: OPENROUTER, key: result.key, remembered: result.isRemembered })
-  openSettings('providers')
-  openConsentDialog('ai', OPENROUTER)
+  openConsentDialog('ai', OPENROUTER, { onBack: () => openSettings('providers') })
 }

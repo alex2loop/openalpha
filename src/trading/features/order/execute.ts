@@ -40,6 +40,7 @@ import { resolveSellableQuantities } from '@/trading/features/order/sellable'
 import {
   resolveExitCoverage,
   resolveRestingStops,
+  resolveStagedOrders,
   resolveTradeStatus,
 } from '@/trading/features/order/status'
 import { exitLevelsOf, OrderError } from '@/trading/features/order/types'
@@ -74,6 +75,7 @@ export function createOrderService(deps: OrderServiceDeps): OrderService {
     stage: (input) => stageOrder(deps, input),
     execute: (input) => exclusively(() => execute(deps, input)),
     tradeStatus: (input) => resolveTradeStatus(deps, input),
+    stagedOrders: (input) => resolveStagedOrders(deps, input),
     exitCoverage: (input) => resolveExitCoverage(deps, input),
     restingStops: (input) => resolveRestingStops(deps, input),
     setExit: (input) => exclusively(() => setRestingExit(deps, input)),

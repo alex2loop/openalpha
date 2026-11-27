@@ -13,6 +13,7 @@ import {
   roomStatus,
   toParamText,
 } from '@/web/scene/data/room-status'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { focusRun } from '@/web/state/focus'
 import { unseenCalls } from '@/web/state/ideas'
 import { state } from '@/web/state/session'
@@ -63,7 +64,9 @@ const TIP_READERS: Readonly<Record<TipSource, TipReader>> = Object.freeze({
   cat: () => ({
     title: tr('ui.office.pet.cat'),
     lines: [tr('ui.office.pet.catTip')],
-    go: { label: tr('ui.office.pet.catGo'), run: () => openPopover(BELL_POPOVER_ID) },
+    ...(isAnalysisOnly.value
+      ? {}
+      : { go: { label: tr('ui.office.pet.catGo'), run: () => openPopover(BELL_POPOVER_ID) } }),
   }),
   corgi: () => ({ title: tr('ui.office.pet.corgi'), lines: [tr('ui.office.pet.corgiTip')] }),
   fish: () => ({ title: tr('ui.office.pet.fish'), lines: [] }),

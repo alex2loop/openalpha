@@ -13,6 +13,7 @@ import {
   viewedSession,
 } from '@/web/state/chat'
 import { resumeAppSession, startNewSession } from '@/web/state/chat-history'
+import { isAnalysisOnly } from '@/web/state/edition'
 import { CHAT_TAB_PARAM } from '@/web/state/pane'
 import { state } from '@/web/state/session'
 import { ABSENT_CELL, joinInline, TRUNCATION_MARK } from '@/web/text/glyphs'
@@ -163,7 +164,7 @@ function SessionRow({ session, timeZone }: RowProps) {
           ])}
         </span>
       </button>
-      <RowMenu session={session} />
+      {(session.deletable || canOpenInTab()) && <RowMenu session={session} />}
     </li>
   )
 }
@@ -209,15 +210,17 @@ function RowMenu({ session }: { readonly session: ChatSession }) {
 function RowMenuItems({ session }: { readonly session: ChatSession }) {
   return (
     <>
-      <a
-        href={`?${CHAT_TAB_PARAM}=${encodeURIComponent(session.sessionId)}`}
-        target="_blank"
-        rel="noopener"
-        onClick={closePopover}
-      >
-        <ExternalIcon />
-        {tr('ui.office.sessions.openTab')}
-      </a>
+      {canOpenInTab() && (
+        <a
+          href={`?${CHAT_TAB_PARAM}=${encodeURIComponent(session.sessionId)}`}
+          target="_blank"
+          rel="noopener"
+          onClick={closePopover}
+        >
+          <ExternalIcon />
+          {tr('ui.office.sessions.openTab')}
+        </a>
+      )}
       {session.deletable && (
         <button type="button" class="is-danger" onClick={() => deleteSession(session)}>
           <TrashIcon />
@@ -226,6 +229,11 @@ function RowMenuItems({ session }: { readonly session: ChatSession }) {
       )}
     </>
   )
+}
+
+// The web edition reads no `?chat=` and keeps its data to one tab, so a chat opens only in its own.
+function canOpenInTab(): boolean {
+  return !isAnalysisOnly.value
 }
 
 // A row low in the list opens its menu upward, where the list has room for it.

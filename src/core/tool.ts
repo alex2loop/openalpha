@@ -191,6 +191,11 @@ export interface ToolSchema {
   readonly examples?: readonly Record<string, unknown>[]
 }
 
+/** Its output is text this codebase did not write: an MCP server's, a plugin's or a stranger's. */
+export function hasOutsideOutput(tool: ToolDefinition): boolean {
+  return tool.isExternal === true || tool.thirdPartyOutput === true
+}
+
 // Convert once at registry/build time; MCP tools supply their own schema, built-in/plugin tools
 // derive it from the Zod input schema.
 export function toToolSchema(def: ToolDefinition): ToolSchema {

@@ -448,7 +448,8 @@ server = "research"
 tool = "lookup"
 ```
 
-Lệnh có `target = "agent"` thì dùng `agent` và `prompt` thay cho `workflow`. Trường lạ trong manifest làm
+Lệnh có `target = "agent"` thì dùng `agent` và `prompt` thay cho `workflow`; agent đó phải là agent nhận
+được một cuộc trò chuyện, không bao giờ là agent nội bộ như một bước nghiên cứu. Trường lạ trong manifest làm
 phép kiểm tra nghiêm ngặt thất bại. Thiếu manifest vẫn hợp lệ: khi đó plugin chỉ đóng góp các agent,
 workflow và kỹ năng tìm thấy theo thư mục, cộng `sources.ts` nếu có.
 

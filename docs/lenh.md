@@ -413,7 +413,8 @@ nền đã dừng được bật lại, hoặc thông báo chỉ cách bật. T�
 Ctrl-C đều dừng trước bước thay tệp. Bản cũ vì vậy vẫn nguyên, và dịch vụ nền vẫn chạy.
 
 Bản bạn vừa thay ra nằm cạnh bản mới dưới tên `openalpha.old` (trên Windows là `openalpha.exe.old`),
-và `upgrade --rollback` đổi ngược về nó.
+và `upgrade --rollback` đổi ngược về nó. Khi Windows còn khóa tệp đó, bản của lần nâng cấp trước vẫn nằm
+lại, và `--rollback` để nguyên cơ sở dữ liệu.
 
 Nếu bản mới đã thay đổi cơ sở dữ liệu, `--rollback` sẽ đưa nó về dạng bản cũ đọc được trước, bằng
 `db migrate down --to`. Câu lệnh hỏi bạn trước khi làm, và với SQLite sẽ lưu một bản sao vào
@@ -1000,7 +1001,8 @@ Tiền tố `sàn:` còn chọn công cụ trong các thị trường mà sàn �
 cổ phiếu hay quỹ đã lưu trùng ký hiệu.
 
 `/trade` trần cho biết đang có gì chờ: các lệnh đã dàn kèm token, các lệnh thoát đang treo, các vị thế
-chưa có lệnh cắt lỗ nào canh, và những gì sàn đã nhận mà sổ của bạn còn thiếu. Nó không với tới sàn nào.
+chưa có lệnh cắt lỗ nào canh, và những gì sàn đã nhận mà sổ của bạn còn thiếu. Sàn duy nhất nó hỏi là
+OKX, để đọc lệnh cắt lỗ bạn đặt trong ứng dụng; OKX không trả lời thì nó trả lời mà không có phần đó.
 
 - **`spot`** dàn lệnh và in một token xác nhận. Không gì đi ra cho tới khi bạn gõ `/trade confirm`.
 - **`exit`** đặt hoặc dời chốt lời và cắt lỗ đang treo trên một vị thế mà sổ đã nắm, phủ toàn bộ trừ khi

@@ -9,6 +9,7 @@ import {
   requiresApiKey,
 } from '@/ai/api'
 import { getEnv } from '@/cli/env'
+import { skippedKeyNameText } from '@/cli/env-file'
 import { hint, warn } from '@/cli/ui/colors'
 import { isEnvName } from '@/core/config/operator-errors'
 import { closestName } from '@/core/utils/text'
@@ -221,7 +222,13 @@ function knownModels(provider: ProviderEntry): readonly string[] {
 }
 
 export function parseEnvName(answer: string, locale: Locale): Parsed<string> {
-  return isEnvName(answer) ? accept(answer) : refuse(t(locale, 'cli.onboardEnvNameInvalid'))
+  if (!isEnvName(answer)) {
+    return refuse(t(locale, 'cli.onboardEnvNameInvalid'))
+  }
+
+  const skipped = skippedKeyNameText(answer, locale)
+
+  return skipped === undefined ? accept(answer) : refuse(skipped)
 }
 
 export function isEnvSet(name: string): boolean {

@@ -318,13 +318,13 @@ async function premiumReading(
     return undefined
   }
 
-  const { board, worldUsdPerOunce, usdVnd } = snapshot.value
+  const { board, worldUsdPerOunce, usdVnd, asOf } = snapshot.value
   const ranking = await rankPremium(factorDeps.deps, {
     board,
     worldUsdPerOunce,
     usdVnd,
     calendar: factorDeps.manifest.calendar,
-    toDay: options.asOf,
+    toDay: asOf,
     signal: options.signal,
   })
 

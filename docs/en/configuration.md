@@ -618,8 +618,8 @@ Setting `public_url` also limits what the app can do, because it is now reachabl
   `dm_policy` and `fallback_chat_id`, and `[schedule] failure_target`, are server-only: they change from the
   CLI or this file, never from the app.
 
-The page then saves no key and starts no ChatGPT sign-in either: use `openalpha key set` and
-`openalpha auth login chatgpt` on the server.
+The page then saves no key, starts no ChatGPT sign-in and adds, edits or removes no agent either: use
+`openalpha key set`, `openalpha auth login chatgpt` and `openalpha agent add` on the server.
 
 The token is the `token_env` variable if set, otherwise the file `auth/api/token.json` (created on
 first start, mode 0600). If `token_env` is set but the variable is empty or shorter than 32
@@ -1064,8 +1064,8 @@ set in your environment wins over the file.
 
 The file holds service keys only, brand-prefixed ones such as `OPENALPHA_OPENROUTER_API_KEY`
 included. Names that steer OpenAlpha itself (`OPENALPHA_DATA_DIR`, `OPENALPHA_LOG_LEVEL`) or how
-programs start (`PATH`, `NODE_OPTIONS`, `LD_*` and the like) are skipped, and `#` after a space starts
-a comment. The key file follows `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since
+programs start (`PATH`, `NODE_OPTIONS`, `LD_*` and the like) are skipped, so `key set` and `onboard`
+refuse them, and `#` after a space starts a comment. The key file follows `--data-dir` or `OPENALPHA_DATA_DIR`, never `[paths] data_dir`, since
 it is read before the config is.
 
 A missing model key stops only what needs the model. `status`, `stop`, `/price`, `/portfolio`,
