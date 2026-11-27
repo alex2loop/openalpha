@@ -36,7 +36,9 @@ function KeyList() {
           </div>
         ))}
       </dl>
-      <p class="meta">{tr('ui.office.keys.note')}</p>
+      <p class="meta">
+        {tr(editionKey('ui.office.keys.note', 'ui.office.edition.shortcuts.note'))}
+      </p>
     </>
   )
 }

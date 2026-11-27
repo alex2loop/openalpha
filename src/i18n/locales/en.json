@@ -1265,6 +1265,7 @@
     "office.keys.list": "This list of shortcuts",
     "office.keys.focusInput": "Go to the input; / on an empty box starts a command",
     "office.keys.tabs": "Open Today / Portfolio / Ideas / Market",
+    "office.edition.shortcuts.note": "Shortcuts are off while the caret is in a field.",
     "office.edition.shortcuts.tabs": "Open Today / Portfolio / Analysis / Market",
     "office.keys.back": "Reopen what you were viewing (agent, ticker)",
     "office.keys.bell": "Notifications and requests to approve",

@@ -1265,6 +1265,7 @@
     "office.keys.list": "Bảng phím tắt này",
     "office.keys.focusInput": "Vào ô nhập; / khi ô trống thì mở sẵn một câu lệnh",
     "office.keys.tabs": "Mở Hôm nay / Danh mục / Đề xuất / Thị trường",
+    "office.edition.shortcuts.note": "Phím tắt không có tác dụng khi con trỏ đang ở ô nhập.",
     "office.edition.shortcuts.tabs": "Mở Hôm nay / Danh mục / Phân tích / Thị trường",
     "office.keys.back": "Mở lại thứ đang xem (agent, mã)",
     "office.keys.bell": "Thông báo và việc chờ duyệt",
